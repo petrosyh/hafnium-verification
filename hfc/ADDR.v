@@ -332,6 +332,10 @@ static inline void *ptr_from_va(vaddr_t va)
     mk_function_tac ipa_addr ["ipa"] ([]: list var).
   Defined.
 
+  Definition ipa_addF : function.
+    mk_function_tac ipa_add ["ipa"; "n"] ["res"].
+  Defined.
+
   Definition va_initF : function.
     mk_function_tac va_init ["v"] ([]: list var).
   Defined.
@@ -372,6 +376,7 @@ static inline void *ptr_from_va(vaddr_t va)
     ("pa_difference", pa_differenceF) ;
     ("ipa_init", ipa_initF) ;
     ("ipa_addr", ipa_addrF) ;
+    ("ipa_add", ipa_addF) ;
     ("va_init", va_initF) ;
     ("va_addr", va_addrF) ;
     ("va_from_pa", va_from_paF) ;
