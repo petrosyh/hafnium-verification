@@ -595,7 +595,134 @@ End MMTEST1.
 (* Make a test for pte_free *)
 Module MMTEST2.
     
+  Include MMSTAGE1.
+
+  (* Stack overflow... We may need to change the representation type from nat number to Z number
+  Definition TEST_HEAP_SIZE := 65536%nat. *)
+  Definition TEST_HEAP_SIZE := 4096%nat. 
+  Definition TOP_LEVEL := 3%N.
+  Definition pte_paddr_begin := 4000%N.
+
+  Definition entry_size: nat := 4.
+
+  (* Those things will be arguments of our multiple test cases *)
+  Require Import ZArith.
+  Definition VM_MEM_START: Z := 0.
+  Definition VM_MEM_END: Z := 2199023255552. (* (2^16) *)
+
+  Check (big_mem_flat pte_paddr_begin TEST_HEAP_SIZE 4).
+
+  Definition main (p i r0 r1 r2 j dd j_entry : var): stmt :=
+    Eval compute in INSERT_YIELD (
+      p #= Vptr None [0: val ; 0: val ; 0: val ] #;
+        Call "MPOOLCONCUR.mpool_init" [CBR p] #;
+        (* Need to refine the following definition *)
+        DebugMpool "(Global Mpool) After initialize" p #;
+        Call "MPOOLCONCUR.add_chunk" [CBR p ; CBV (big_mem_flat pte_paddr_begin TEST_HEAP_SIZE 4);
+                                        CBV (N.of_nat TEST_HEAP_SIZE)] #;
+        "GPOOL" #= p #;
+        
+        #while ("SIGNAL" <= 1) do (Debug "waiting for SIGNAL" Vnull) #;
+        (*** JUST FOR PRINTING -- START ***)
+        p #= (Call "Lock.acquire" [CBV (p #@ 0)]) #;
+        DebugMpool "(Global Mpool) Final: " p #;
+        (Call "Lock.release" [CBV (p #@ 0) ; CBV p]) #;
+        (*** JUST FOR PRINTING -- END ***)
+
+        (Debug "[main] calling mm_alloc_page_tables" Vnull) #;
+        r0 #= Call "mm_alloc_page_tables" [CBV 1 ; CBR p] #;
+        #assume r0 #;
+
+        (Debug "[main] calling mm_alloc_page_tables" Vnull) #;
+        r1 #= Call "mm_alloc_page_tables" [CBV 1 ; CBR p] #;
+        #assume r1 #;
+
+        (Debug "[main] calling mm_alloc_page_tables" Vnull) #;
+        r2 #= Call "mm_alloc_page_tables" [CBV 1 ; CBR p] #;
+        #assume r2 #;
+
+        j #= 0 #;
+        #while (j  <= MM_PTE_PER_PAGE - 1)
+        do (
+          dd #= (r0 #@ 0) #;
+          j_entry #= (dd #@ j) #;
+                    (Call "mm_free_page_pte" [CBV j_entry; CBV 1; CBV p]) #;
+                    j #= (j + 1)                        
+           ) #;
+
+        
+
+
+        (* Call "mm_ptable_fini" [CBV *)
+        (* Put "aaaaa" Vnull #; *)
+        (* (Debug "[main] calling mm_free_page_pte" Vnull) #; *)
+        (* e1 #= (r0 #@ 0) #; *)
+        (* Call "mm_free_page_pte" [CBV r0 #@ 0) ; CBV 1 ;  CBR p] #; *)
+
+        (* (Debug "[main] calling mm_free_page_pte" Vnull) #; *)
+        (* e1 #= (r1 #@ 0) #; *)
+        (* Call "mm_free_page_pte" [CBV (r2 #@ 0) ; CBV 1 ;  CBR p] #; *)
+        
+        (* (Debug "[main] calling mm_free_page_pte" Vnull) #; *)
+        (* e1 #= (r1 #@ 0) #; *)
+        (* Call "mm_free_page_pte" [CBV (r1 #@ 0) ; CBV 1 ;  CBR p] #; *)
+        
+        Put "main finish" Vnull #;
+        Put "MMTEST Passed" Vnull).
   
+    Definition ptable_alloc_free (count : N)
+               (p i r0 r1 r2: var): stmt := Eval compute in INSERT_YIELD (
+      #while (!"GPOOL") do (Debug "waiting for GMPOOL" Vnull) #;
+      p #= Vptr None [0: val ; 0: val ; 0: val ] #;
+      Call "MPOOLCONCUR.init_with_fallback" [CBR p ; CBV "GPOOL"] #;
+      DebugMpool "(Local Mpool) After init-with-fallback" p #;
+      (* #while i *)
+      (* do ( *)
+      Debug "looping, i is: " i #;
+      i #= i - 1 #;
+        (Debug "[thread] calling mm_alloc_page_tables" Vnull) #;
+        r0 #= Call "mm_alloc_page_tables" [CBV count; CBR p] #;
+        r1 #= Call "mm_alloc_page_tables" [CBV (count + 1); CBR p] #;
+        r2 #= Call "mm_alloc_page_tables" [CBV (count + 2); CBR p] #;
+        Skip
+      (* ) #; *)
+      #;
+      Put "thread finish" Vnull #;
+      "SIGNAL" #= "SIGNAL" + 1 #; 
+      Skip).
+    
+    Definition mm_alloc_page_tablesF : function.
+      mk_function_tac mm_alloc_page_tables ["count" ; "ppool"] ["res"].
+    Defined.
+    Definition mm_free_page_pteF : function.
+      mk_function_tac mm_free_page_pte ["pte"; "level"; "ppool"] ["table" ; "is_table_v" ; "arch_mm_v" ; "i" ; "entry_loc" ; "entry_i" ; "l_arg"].
+    Defined.
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) ["p" ; "i" ; "j" ; "dd" ; "j_entry" ; "r0" ; "r1" ; "r2"].
+    Defined.
+    Definition ptable_alloc_free1F: function.
+      mk_function_tac (ptable_alloc_free 1) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"].
+    Defined.
+    Definition ptable_alloc_free2F: function.
+      mk_function_tac (ptable_alloc_free 2) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"].
+    Defined.
+                                         
+    Definition program: program :=
+      [
+        ("main", mainF) ;
+      ("allocfree1F", ptable_alloc_free1F) ;
+      ("allocfree2F", ptable_alloc_free2F) ;
+      ("mm_alloc_page_tables", mm_alloc_page_tablesF) ;
+      ("mm_free_page_pteF", mm_free_page_pteF)
+        
+      ].
+    
+    Definition modsems: list ModSem := [program_to_ModSem program ; LOCK.modsem ; MPOOLCONCUR.mpool_modsem]. 
+    
+    Definition isem: itree Event unit :=
+      eval_multimodule_multicore
+        modsems [ "main" ; "allocfree1F" ; "allocfree2F" ].
   
 
 End MMTEST2.

@@ -317,7 +317,7 @@ let main =
   (* print_endline "-----------------------------------------------------------" ;
    * run (round_robin (fun _ -> shuffle) (List.map eval_program MultiCore.programs)) ; *)
 
-  if true
+  if false
   then begin
 
   run (CoqCodeCBR.isem) ;
@@ -371,16 +371,19 @@ let main =
 
   end;
 
-  print_endline "-----------------------------------------------------------" ;
-  run (MpoolConcur.TEST.TEST4.isem) ;
+  ;; print_endline "-----------------------------------------------------------" ;
+  ;; run (MpoolConcur.TEST.TEST4.isem) ;
+
+  ;; print_endline "-----------------------------------------------------------" ;
+  ;; run (MMStageOne.MMTEST1.isem) ;
+
+  ;; print_endline "-----------------------------------------------------------" ;
+  ;; run (MMStageOne.MMTESTAUX.isem) ;
+
+  ;; print_endline "-----------------------------------------------------------" ;
+  ;; run (eval_whole_program MMHighStageOne.HighSpecDummyTest.program) ;
 
   print_endline "-----------------------------------------------------------" ;
-  run (MMStageOne.MMTEST1.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (MMStageOne.MMTESTAUX.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (eval_whole_program MMHighStageOne.HighSpecDummyTest.program) ;
+  run (MMStageOne.MMTEST2.isem) ;
 
   ()
