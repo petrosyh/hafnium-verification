@@ -26,6 +26,8 @@ Require Import
         ExtrOcamlZInt.
 (* Require Import ExtrOcamlNatInt. *)
 
+Require Import ADDRTest.
+
 (* Avoid name clashes *)
 Extraction Blacklist List String Int.
 
@@ -91,6 +93,8 @@ Separate Extraction
          Lang.my_rr_match
          
          ITreeDefinition.observe
+
+         ADDRTest.TEST1.isem
 .
 
 Cd "..".
