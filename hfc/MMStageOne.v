@@ -656,6 +656,73 @@ static void mm_free_page_pte(pte_t pte, uint8_t level, struct mpool *ppool)
 
 End MMTEST1.
 
+(* Make a test for pte_free *)
+Module SMALLTEST.
+    
+  Include MMSTAGE1.
+  Include ArchMM.
+  
+  (* Stack overflow... We may need to change the representation type from nat number 
+to Z number
+  Definition TEST_HEAP_SIZE := 65536%nat. *)
+  Definition TEST_HEAP_SIZE := 4096%nat. 
+  Definition TOP_LEVEL := 3%N.
+  Definition pte_paddr_begin := 4000%N.
+
+  Definition entry_size: nat := 4.
+
+  (* Those things will be arguments of our multiple test cases *)
+  Require Import ZArith.
+  Definition VM_MEM_START: Z := 0.
+  Definition VM_MEM_END: Z := 2199023255552. (* (2^16) *)
+
+  Check (big_mem_flat pte_paddr_begin TEST_HEAP_SIZE 4).
+
+  Definition main (p pt : var): stmt :=
+    Eval compute in INSERT_YIELD (
+      p #= Vptr None [0: val ; 0: val ; 0: val ] #;
+        Call "MPOOLCONCUR.mpool_init" [CBR p] #;
+        (* Need to refine the following definition *)
+        DebugMpool "(Global Mpool) After initialize" p #;
+        Call "MPOOLCONCUR.add_chunk" [CBR p ; CBV (big_mem_flat pte_paddr_begin TEST_HEAP_SIZE 4);
+                                        CBV (N.of_nat TEST_HEAP_SIZE)] #;
+        "GPOOL" #= p #;
+
+        (Debug "[main] calling mm_ptable_init" Vnull) #;
+        Put "start!!!!!!!!!!!!!!!" Vnull #;
+        (#if (Call "mm_ptable_init" [CBR pt; CBV MM_FLAG_STAGE1 ; CBR p])
+          then (
+              Put "true!!!!!!!!!!" Vnull #;
+              Return Vtrue
+            )
+          else
+            Put "False!!!!!!!!!!" Vnull #;
+            Return Vfalse)).
+
+    Definition mm_ptable_initF: function.
+      mk_function_tac mm_ptable_fini ["t" ; "flags" ; "ppool"]
+                      ["tables" ; "level" ; "root_count" ; "t_root"; "i" ; "j" ; "i_table" ; "j_entry"].
+    Defined.
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) ["p" ; "pt"].
+    Defined.
+                                             
+    Definition program: program :=
+      [
+        ("main", mainF) ;
+      ("mm_ptable_init", mm_ptable_initF) 
+
+        
+      ].
+    
+    Definition modsems: list ModSem := [program_to_ModSem program ; LOCK.modsem ; MPOOLCONCUR.mpool_modsem]. 
+    
+    Definition isem: itree Event unit :=
+      eval_multimodule_multicore
+        modsems [ "main" ].
+  
+
+End SMALLTEST.
 
 (* Make a test for pte_free *)
 Module MMTEST2.

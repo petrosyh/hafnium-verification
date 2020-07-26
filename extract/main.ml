@@ -385,9 +385,9 @@ let main =
   ;; run (eval_whole_program MMHighStageOne.HighSpecDummyTest.program) ;
 
   print_endline "-----------------------------------------------------------" ;
-  run (MMStageOne.MMTEST2.isem) ;
+  run (MMStageOne.SMALLTEST.isem) ;
 
-  print_endline "-----------------------------------------------------------" ;
-  run (ADDRTest.TEST1.isem) ;
+  ;; print_endline "-----------------------------------------------------------" ;
+  ;; run (ADDRTest.TEST1.isem) ;
 
   ()
