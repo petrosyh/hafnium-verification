@@ -24,6 +24,7 @@ open MpoolConcur
 open CPUSeq
 open MMStageOne
 open MMHighStageOne
+open ADDRTest
 open LangTest
 
 open List
@@ -385,5 +386,8 @@ let main =
 
   print_endline "-----------------------------------------------------------" ;
   run (MMStageOne.MMTEST2.isem) ;
+
+  print_endline "-----------------------------------------------------------" ;
+  run (ADDRTest.TEST1.isem) ;
 
   ()

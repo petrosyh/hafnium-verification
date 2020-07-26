@@ -44,6 +44,7 @@ Local Open Scope monad_scope.
 Local Open Scope string_scope.
 Require Import Coqlib sflib.
 
+Require Import Coq.NArith.BinNat.
 
 (* From HafniumCore *)
 Require Import Lang.
@@ -119,7 +120,7 @@ static inline paddr_t pa_add(paddr_t pa, size_t n)
    *)
 
   Definition pa_add(pa n : var) (res: var) : stmt :=
-    res #= (pa + n) #;
+    res #= (SubPointerFrom pa n) #;
         Return res.
 
   (*
@@ -132,8 +133,18 @@ static inline size_t pa_difference(paddr_t start, paddr_t end)
 }
    *)
 
+  Let pa_difference_aux (vs: list val): (val * list val) :=
+    let retv := match vs with
+                | [(Vptr (Some pa_start) _); (Vptr (Some pa_end) _)] =>
+                  Vnat (pa_end - pa_start)
+                | _ => Vnull
+                end
+    in
+    (retv, nil)
+  .
+
   Definition pa_difference(pa_start pa_end : var) (res: var) : stmt :=
-    res #= (pa_end - pa_start) #;
+    res #= (CoqCode [CBV pa_start; CBV pa_end] pa_difference_aux) #;
         Return res.
 
   (*
@@ -173,7 +184,7 @@ static inline ipaddr_t ipa_add(ipaddr_t ipa, size_t n)
    *)
 
   Definition ipa_add(ipa n : var) (res: var) : stmt :=
-    res #= (ipa + n) #;
+    res #= (SubPointerFrom ipa n) #;
         Return res.
   
   (*
@@ -267,18 +278,8 @@ static inline vaddr_t va_from_ptr(const void *p)
   (* Dongjoo: I'm not sure how to convert ptr to int and reverse with dsl language. 
 This code is temporary *)
 
-  Let va_from_ptr_aux (vs: list val): (val * list val) :=
-    let retv := match vs with
-                | [(Vptr (Some p_id) _)]=> Vnat (p_id)
-                | _ => Vnodef
-                end
-    in
-    (retv, nil)
-  .
-
-  Definition va_from_ptr(p : var) (res: var) : stmt :=
-    res #= (CoqCode [CBV p] va_from_ptr_aux) #;
-        Return res.
+  Definition va_from_ptr(p : var) : stmt :=
+    Return p.
 
   (*
 /**
@@ -292,18 +293,8 @@ static inline void *ptr_from_va(vaddr_t va)
 }
    *)
 
-  Let ptr_from_va_aux (vs: list val): (val * list val) :=
-    let retv := match vs with
-                | [(Vnat p_id)]=> Vptr (Some p_id) nil
-                | _ => Vnull
-                end
-    in
-    (retv, nil)
-  .
-
-  Definition ptr_from_va(va : var) (res: var) : stmt :=
-    res #= (CoqCode [CBV va] ptr_from_va_aux) #;
-        Return res.
+  Definition ptr_from_va(va : var) : stmt :=
+    Return va.
 
 
 
@@ -332,6 +323,10 @@ static inline void *ptr_from_va(vaddr_t va)
     mk_function_tac ipa_addr ["ipa"] ([]: list var).
   Defined.
 
+  Definition ipa_addF : function.
+    mk_function_tac ipa_add ["ipa"; "n" ] ["res"].
+  Defined.
+
   Definition va_initF : function.
     mk_function_tac va_init ["v"] ([]: list var).
   Defined.
@@ -357,11 +352,11 @@ static inline void *ptr_from_va(vaddr_t va)
   Defined.
 
   Definition va_from_ptrF: function.
-    mk_function_tac va_from_ptr ["p"] ["res"].
+    mk_function_tac va_from_ptr ["p"] ([]:list var).
   Defined.
 
   Definition ptr_from_vaF: function.
-    mk_function_tac ptr_from_va ["va"] ["res"].
+    mk_function_tac ptr_from_va ["va"] ([]:list var).
   Defined.
   
   Definition addr_program: program :=
@@ -372,6 +367,7 @@ static inline void *ptr_from_va(vaddr_t va)
     ("pa_difference", pa_differenceF) ;
     ("ipa_init", ipa_initF) ;
     ("ipa_addr", ipa_addrF) ;
+    ("ipa_add", ipa_addF) ;
     ("va_init", va_initF) ;
     ("va_addr", va_addrF) ;
     ("va_from_pa", va_from_paF) ;
