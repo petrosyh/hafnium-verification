@@ -273,7 +273,72 @@ static size_t mm_index(ptable_addr_t addr, uint8_t level)
                                         (Call "mm_free_page_pte" [CBV entry_i; CBV l_arg ; CBV ppool]) #;
                                         i #= (i + 1)
                             ).  
-                 
+
+  (*
+/*      *
+ * Initializes a physical address.
+ */
+static inline paddr_t pa_init(uintpaddr_t p)
+{
+        return (paddr_t){.pa = p};
+}
+   *)
+
+  Definition pa_init(p : var) : stmt :=
+    Return p.
+
+  (*
+bool mm_ptable_init(struct mm_ptable *t, int flags, struct mpool *ppool)
+{
+        uint8_t i;
+        size_t j;
+        struct mm_page_table *tables;
+        uint8_t root_table_count = mm_root_table_count(flags);
+
+        tables = mm_alloc_page_tables(root_table_count, ppool);
+        if (tables == NULL) {
+                return false;
+        }
+
+        for (i = 0; i < root_table_count; i++) {
+                for (j = 0; j < MM_PTE_PER_PAGE; j++) {
+                        tables[i].entries[j] =
+                                arch_mm_absent_pte(mm_max_level(flags));
+                }
+        }
+
+        /*
+         * TODO: halloc could return a virtual or physical address if mm not
+         * enabled?
+         */
+        t->root = pa_init((uintpaddr_t)tables);
+
+        return true;
+}
+   *)
+
+  Definition mm_ptable_init (t flags ppool : var) (i j tables root_count max_l absent_pte i_table new_entry: var) :=
+    root_count #= (Call "mm_root_table_count" [CBV flags]) #;
+               tables #= (Call "mm_alloc_page_tables" [CBV root_count; CBR ppool]) #;
+               #if (tables == Vnull)
+                then
+                  Return Vfalse
+                else
+                  i #= 0 #;
+                    #while (i  <= root_count - 1)
+                    do (
+                      j #= 0 #;
+                        #while (j  <= MM_PTE_PER_PAGE - 1)
+                        do (max_l #= (Call "mm_max_level" [CBV flags]) #;
+                                  i_table #= (tables #@ i) #;
+                                  absent_pte #= (Call "arch_mm_absent_pte" [CBV max_l]) #;
+                                  i_table @ j #:= absent_pte #;
+                                  tables @ i #:= i_table #;
+                                  j #= (j + 1)                                     
+                           ) #;
+                        i #= (i + 1)                                     
+                    ).
+
   (*
   static void mm_ptable_fini(struct mm_ptable *t, int flags, struct mpool *ppool)
   {
@@ -597,7 +662,8 @@ Module MMTEST2.
     
   Include MMSTAGE1.
 
-  (* Stack overflow... We may need to change the representation type from nat number to Z number
+  (* Stack overflow... We may need to change the representation type from nat number 
+to Z number
   Definition TEST_HEAP_SIZE := 65536%nat. *)
   Definition TEST_HEAP_SIZE := 4096%nat. 
   Definition TOP_LEVEL := 3%N.
@@ -621,7 +687,9 @@ Module MMTEST2.
         Call "MPOOLCONCUR.add_chunk" [CBR p ; CBV (big_mem_flat pte_paddr_begin TEST_HEAP_SIZE 4);
                                         CBV (N.of_nat TEST_HEAP_SIZE)] #;
         "GPOOL" #= p #;
-        
+
+        Put "000" Vnull #;
+
         #while ("SIGNAL" <= 1) do (Debug "waiting for SIGNAL" Vnull) #;
         (*** JUST FOR PRINTING -- START ***)
         p #= (Call "Lock.acquire" [CBV (p #@ 0)]) #;
@@ -630,24 +698,31 @@ Module MMTEST2.
         (*** JUST FOR PRINTING -- END ***)
 
         (Debug "[main] calling mm_alloc_page_tables" Vnull) #;
+        Put "111" Vnull #;
         r0 #= Call "mm_alloc_page_tables" [CBV 1 ; CBR p] #;
         #assume r0 #;
 
         (Debug "[main] calling mm_alloc_page_tables" Vnull) #;
+        Put "222" Vnull #;
         r1 #= Call "mm_alloc_page_tables" [CBV 1 ; CBR p] #;
         #assume r1 #;
 
         (Debug "[main] calling mm_alloc_page_tables" Vnull) #;
+        Put "333" Vnull #;
         r2 #= Call "mm_alloc_page_tables" [CBV 1 ; CBR p] #;
         #assume r2 #;
 
         j #= 0 #;
+        Put "444" Vnull #;
         #while (j  <= MM_PTE_PER_PAGE - 1)
         do (
-          dd #= (r0 #@ 0) #;
-          j_entry #= (dd #@ j) #;
-                    (Call "mm_free_page_pte" [CBV j_entry; CBV 1; CBV p]) #;
-                    j #= (j + 1)                        
+          Put "555" Vnull #;
+              dd #= (r0 #@ 0) #;
+              Put "6626" Vnull #;
+              j_entry #= (dd #@ j) #;
+              Put "tttt" Vnull #;
+              (Call "mm_free_page_pte" [CBV j_entry; CBV 1; CBV p]) #;
+              j #= (j + 1)                        
            ) #;
 
         
