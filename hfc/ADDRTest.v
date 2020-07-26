@@ -54,23 +54,23 @@ Module TEST1.
   Include ADDR.
   
   Definition main v pa v2 ipa v3 v4 ipa2 pa2 v5 va ptr va2 v6: stmt :=
-    v #= Vnat 42#;
+    v #= Vptr (Some 42) [Vnat 0; Vnat 1; Vnat 2]#;
       pa #= (Call "pa_init" [CBV v]) #;
       v2 #= (Call "pa_addr" [CBV pa]) #;
       #assume (v2 == v) #;
       ipa #= (Call "ipa_from_pa" [CBV pa]) #;
       v3 #= (Call "ipa_addr" [CBV ipa]) #;
       #assume (v3 == v) #;
-      v4 #= Vnat 18#;
+      v4 #= Vnat 2#;
       ipa2 #= (Call "ipa_add" [CBV ipa; CBV v4]) #;
       pa2 #= (Call "pa_from_ipa" [CBV ipa2]) #;
       v5 #= (Call "pa_difference" [CBV pa; CBV pa2]) #;
       #assume (v5 == v4) #;
-      va #= (Call "va_init" [CBV v4]) #;
+      va #= (Call "va_init" [CBV v]) #;
       ptr #= (Call "ptr_from_va" [CBV va]) #;
       va2 #= (Call "va_from_ptr" [CBV ptr]) #;
       v6 #= (Call "va_addr" [CBV va2]) #;
-      #assume (v6 == v4) #;
+      #assume (v6 == v) #;
       Put "Test(ADDR) passed" Vnull
   .
 
