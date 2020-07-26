@@ -85,10 +85,10 @@ Separate Extraction
 
          MMStageOne.MMTEST1.isem
          MMStageOne.MMTESTAUX.isem
-         MMStageOne.SMALLTEST.isem
-         MMStageOne.MMTEST2.isem
+         MMStageOne.MMTEST3.isem
          
          MMHighStageOne.HighSpecDummyTest.program
+         MMHighStageOne.PTHIGHTEST.isem
          
          Lang.round_robin
          Lang.run_till_yield

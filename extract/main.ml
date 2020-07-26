@@ -207,8 +207,13 @@ let handle_Event = fun e k ->
   | ESyscall ('p'::[], msg, v::[]) ->
      print_string (cl2s msg) ; print_val v ; k (Obj.magic ())
   | ESyscall ('d'::[], msg, vs) ->
-     (* print_string "<DEBUG> " ; print_string (cl2s msg) ;
-      * * print_endline (string_of_vals vs) ; *)
+      (*
+      print_string "<DEBUG> " ; print_string (cl2s msg) ;
+      print_endline (string_of_vals vs) ;  *) 
+      k (Obj.magic ())
+  | ESyscall ('s'::'h'::'o'::'w'::[], msg, vs) ->
+      print_string "<DEBUG> " ; print_string (cl2s msg) ;
+      print_endline (string_of_vals vs) ;  
       k (Obj.magic ())
   | ESyscall ('h'::'d'::[], msg, v::[]) ->
      print_endline (cl2s msg) ;
@@ -231,7 +236,7 @@ let handle_Event = fun e k ->
      print_string (cl2s msg) ; print_endline (cl2s cl) ;
      failwith "UNSUPPORTED SYSCALL"
   | EYield ->
-     print_endline "yielding" ; 
+     (* print_endline "yielding" ; *) 
      k (Obj.magic ())
   | _ -> failwith "NO MATCH"
 
@@ -385,9 +390,11 @@ let main =
   ;; run (eval_whole_program MMHighStageOne.HighSpecDummyTest.program) ;
 
   print_endline "-----------------------------------------------------------" ;
-  run (MMStageOne.SMALLTEST.isem) ;
+  run (MMStageOne.MMTEST3.isem) ;
 
-  ;; print_endline "-----------------------------------------------------------" ;
-  ;; run (ADDRTest.TEST1.isem) ;
+  print_endline "-----------------------------------------------------------" ;
+  run (eval_whole_program MMHighStageOne.HighSpecDummyTest.program) ;
 
+  print_endline "-----------------------------------------------------------" ;
+  run (MMHighStageOne.PTHIGHTEST.isem) ;
   ()
