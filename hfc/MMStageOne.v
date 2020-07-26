@@ -78,12 +78,11 @@ Module MMSTAGE1.
    *)
 
   (* JIEUNG: TODO: ptr_from_va has to be defined *)
-  (*
+
   Definition mm_page_table_from_pa (pa : var) (tmp res : var): stmt :=
     tmp #= (Call "va_from_pa" [CBV pa]) #;
         res #= (Call "ptr_from_va" [CBV tmp]) #;
         Return res.
-   *)
 
   (*
   static paddr_t mm_pa_start_of_next_block(paddr_t pa, size_t block_size)
@@ -93,14 +92,13 @@ Module MMSTAGE1.
   *)
 
   (* JIEUNG: TODO: pa_addr and pa_init has to be defined *)
-  (*
+
   Definition mm_pa_start_of_next_block (pa block_size : var) (pa_addr_res pa_init_arg pa_init_res res: var): stmt :=
     pa_addr_res #= (Call "pa_addr" [CBV pa]) #;
                 pa_init_arg #= (pa_addr_res + block_size) #;
                 pa_init_res #= (Call "pa_init" [CBV pa_init_arg]) #;
                 res #= And pa_init_res (Not (block_size - 1)) #;
                 Return res.
-  *)
   
   (***** simple functions in the module that do not rely on arch mm ******) 
 
@@ -318,26 +316,34 @@ bool mm_ptable_init(struct mm_ptable *t, int flags, struct mpool *ppool)
    *)
 
   Definition mm_ptable_init (t flags ppool : var) (i j tables root_count max_l absent_pte i_table new_entry: var) :=
-    root_count #= (Call "mm_root_table_count" [CBV flags]) #;
-               tables #= (Call "mm_alloc_page_tables" [CBV root_count; CBR ppool]) #;
-               #if (tables == Vnull)
-                then
-                  Return Vfalse
-                else
-                  i #= 0 #;
-                    #while (i  <= root_count - 1)
-                    do (
-                      j #= 0 #;
-                        #while (j  <= MM_PTE_PER_PAGE - 1)
-                        do (max_l #= (Call "mm_max_level" [CBV flags]) #;
-                                  i_table #= (tables #@ i) #;
-                                  absent_pte #= (Call "arch_mm_absent_pte" [CBV max_l]) #;
-                                  i_table @ j #:= absent_pte #;
-                                  tables @ i #:= i_table #;
-                                  j #= (j + 1)                                     
-                           ) #;
-                        i #= (i + 1)                                     
-                    ).
+    Put "000" Vnull #;
+    root_count #= 1 #;
+    Put "111" Vnull #;
+    tables #= (Call "mm_alloc_page_tables" [CBV root_count; CBR ppool]) #;
+    Put "222" Vnull #;
+    #if (tables == Vnull)
+     then
+       Return Vfalse
+     else
+       i #= 0 #;
+         Put "333" Vnull #;
+         #while (i  <= root_count - 1)
+         do (
+           j #= 0 #;
+             #while (j  <= MM_PTE_PER_PAGE - 1)
+             do (max_l #= 1 #;
+                       i_table #= (tables #@ i) #;
+                       Put "444" Vnull #;
+                       absent_pte #= 0 #;
+                       Put "555" Vnull #;
+                       i_table @ j #:= absent_pte #;
+                       tables @ i #:= i_table #;
+                       j #= (j + 1)
+                ) #;
+             i #= (i + 1)
+         ) #;
+         Put "666" Vnull
+  .
 
   (*
   static void mm_ptable_fini(struct mm_ptable *t, int flags, struct mpool *ppool)
@@ -603,30 +609,6 @@ Module MMTEST1.
       "SIGNAL" #= "SIGNAL" + 1 #; 
       Skip).
 
-
-    (*
-static void mm_free_page_pte(pte_t pte, uint8_t level, struct mpool *ppool)
-{
-        struct mm_page_table *table;
-        uint64_t i;
-
-        if (!arch_mm_pte_is_table(pte, level)) {
-                return;
-        }
-
-        /* Recursively free any subtables. */
-        table = mm_page_table_from_pa(arch_mm_table_from_pte(pte, level));
-        for (i = 0; i < MM_PTE_PER_PAGE; ++i) {
-                mm_free_page_pte(table->entries[i], level - 1, ppool);
-        }
-
-        /* Free the table itself. */
-        mpool_free(ppool, table);
-}
-     *)
-
-    
-    (* JIEUNG: If it is easy, I hope to add different binary operators, such as LT *)
     Definition mm_alloc_page_tablesF : function.
       mk_function_tac mm_alloc_page_tables ["count" ; "ppool"] ["res"].
     Defined.
@@ -681,6 +663,7 @@ to Z number
   Definition main (p pt : var): stmt :=
     Eval compute in INSERT_YIELD (
       p #= Vptr None [0: val ; 0: val ; 0: val ] #;
+      pt #= Vptr None [0: val ; 0: val ; 0: val ] #;
         Call "MPOOLCONCUR.mpool_init" [CBR p] #;
         (* Need to refine the following definition *)
         DebugMpool "(Global Mpool) After initialize" p #;
@@ -690,6 +673,9 @@ to Z number
 
         (Debug "[main] calling mm_ptable_init" Vnull) #;
         Put "start!!!!!!!!!!!!!!!" Vnull #;
+        Put "pt = " pt #;
+        Put "MM_FLAG_STAGE1 = " MM_FLAG_STAGE1 #;
+        (* Put "p = " p #; *)
         (#if (Call "mm_ptable_init" [CBR pt; CBV MM_FLAG_STAGE1 ; CBR p])
           then (
               Put "true!!!!!!!!!!" Vnull #;
@@ -700,18 +686,21 @@ to Z number
             Return Vfalse)).
 
     Definition mm_ptable_initF: function.
-      mk_function_tac mm_ptable_fini ["t" ; "flags" ; "ppool"]
+      mk_function_tac mm_ptable_init ["t" ; "flags" ; "ppool"]
                       ["tables" ; "level" ; "root_count" ; "t_root"; "i" ; "j" ; "i_table" ; "j_entry"].
     Defined.
     Definition mainF: function.
       mk_function_tac main ([]: list var) ["p" ; "pt"].
     Defined.
+    Definition mm_alloc_page_tablesF : function.
+      mk_function_tac mm_alloc_page_tables ["count" ; "ppool"] ["res"].
+    Defined.
                                              
     Definition program: program :=
       [
         ("main", mainF) ;
-      ("mm_ptable_init", mm_ptable_initF) 
-
+          ("mm_ptable_init", mm_ptable_initF) ;
+          ("mm_alloc_page_tables", mm_alloc_page_tablesF)
         
       ].
     
@@ -757,7 +746,7 @@ to Z number
 
         Put "000" Vnull #;
 
-        #while ("SIGNAL" <= 1) do (Debug "waiting for SIGNAL" Vnull) #;
+        (* #while ("SIGNAL" <= 1) do (Debug "waiting for SIGNAL" Vnull) #; *)
         (*** JUST FOR PRINTING -- START ***)
         p #= (Call "Lock.acquire" [CBV (p #@ 0)]) #;
         DebugMpool "(Global Mpool) Final: " p #;
@@ -785,11 +774,11 @@ to Z number
         do (
           Put "555" Vnull #;
               dd #= (r0 #@ 0) #;
-              Put "6626" Vnull #;
+              Put "666" Vnull #;
               j_entry #= (dd #@ j) #;
               Put "tttt" Vnull #;
               (Call "mm_free_page_pte" [CBV j_entry; CBV 1; CBV p]) #;
-              j #= (j + 1)                        
+              j #= (j + 1)
            ) #;
 
         
@@ -864,7 +853,7 @@ to Z number
     
     Definition isem: itree Event unit :=
       eval_multimodule_multicore
-        modsems [ "main" ; "allocfree1F" ; "allocfree2F" ].
+        modsems [ "main" ].
   
 
 End MMTEST2.
