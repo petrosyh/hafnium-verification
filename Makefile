@@ -28,8 +28,9 @@ proof: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQTHEORIES))
 
 Makefile.coq: Makefile $(COQTHEORIES)
-	(echo "-R lib $(COQMODULE)"; \
-         echo "-R lang $(COQMODULE)"; \
+	(echo "-R flocq $(COQMODULE)"; \
+         echo "-R lib $(COQMODULE)"; \
+	 echo "-R lang $(COQMODULE)"; \
          echo "-R hfc $(COQMODULE)"; \
    echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
