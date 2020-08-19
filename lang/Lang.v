@@ -55,6 +55,12 @@ Require Import Coq.NArith.BinNat.
 Require Import Coq.NArith.Nnat.
 Require Import BitNat.
 
+(** From CompCert *)
+Require Import Memory.
+Require Import Integers.
+Require Import Floats.
+Require Import Values.
+
 Require Import ClassicalDescription EquivDec.
 About excluded_middle_informative.
 
@@ -177,15 +183,15 @@ Global Instance bit_ops : BitOps :=
 
 Definition var : Set := string.
 
-(* JIEUNG: to run some big examples with big numbers with Vnat values, we may need to change that one with using Z type instead of nat type *)
-Polymorphic Inductive val: Type :=
-| Vnat (n: N)
-| Vptr (paddr: option N) (contents: list val)
-(* Is this Vabs for more abstracted data types? Such as gmap? *) 
-| Vabs (a: Any)
-(* | Vundef *)
+(* (* JIEUNG: to run some big examples with big numbers with Vnat values, we may need to change that one with using Z type instead of nat type *) *)
+(* Polymorphic Inductive val: Type := *)
+(* | Vnat (n: N) *)
+(* | Vptr (paddr: option N) (contents: list val) *)
+(* (* Is this Vabs for more abstracted data types? Such as gmap? *)  *)
+(* | Vabs (a: Any) *)
+(* (* | Vundef *) *)
 (* | Vnodef *)
-.
+(* . *)
 
 Variable show_val: val -> string.
 Extract Constant show_val =>
@@ -238,53 +244,54 @@ Instance val_Showable: @Showable val := {
 
 
 
-Check (Vabs (upcast (Vabs (upcast 0)))).
+(* Check (Vabs (upcast (Vabs (upcast 0)))). *)
 
-Definition val_dec (v1 v2: val): {v1 = v2} + {v1 <> v2}.
-  revert v1 v2.
-  fix H 1.
-  intros.
-  decide equality.
-  - apply (N.eq_dec n n0).
-  - apply (list_eq_dec H contents contents0).
-  - destruct paddr, paddr0; decide equality; try apply N.eq_dec.
-  - eapply Any_dec; eauto.
-Defined.
+(* Definition val_dec (v1 v2: val): {v1 = v2} + {v1 <> v2}. *)
+(*   revert v1 v2. *)
+(*   fix H 1. *)
+(*   intros. *)
+(*   decide equality. *)
+(*   - apply (N.eq_dec n n0). *)
+(*   - apply (list_eq_dec H contents contents0). *)
+(*   - destruct paddr, paddr0; decide equality; try apply N.eq_dec. *)
+(*   - eapply Any_dec; eauto. *)
+(* Defined. *)
 
-Definition Vnull := Vptr (Some 0) [].
+Definition Vnull := Vnullptr. (* Vptr (Some 0) []. *)
 (* YJ: (Some 0) or None?
 Some 0 로 하면 처음에 ptable_buf 넣는거는 Vnull 이 아님을 (i.e. paddr <> 0) 알아야 함 *)
 (* YJ: is it really the same with nodef? or do we need explicit nodef? *)
 Definition Vnodef := Vnull.
 
-Definition Vtrue := Vnat 1.
-Definition Vfalse := Vnat 0.
+(* Definition Vtrue := Vnat 1. *)
+(* Definition Vfalse := Vnat 0. *)
 
 (** Casting vals into [bool]:  [0] corresponds to [false] and any nonzero
       val corresponds to [true].  *)
 Definition is_true (v : val) : bool :=
   match v with
-  | Vnat n => if (n =? 0)%N then false else true
+  | Vint n => if (Int.eq n Int.zero) then false else true
   (* YJ: THIS IS TEMPORARY HACKING *)
   (* | Vptr _ (_ :: _) => true (* nonnull pointer *) *)
   (* | Vptr _ _ => false (* null pointer *) *)
-  | Vptr paddr _ =>
-    match paddr with
-    | Some v => if (v =? 0)%N then false else true
-    | _ => true
-    end
+
+  (* YH: pointer isnt boolean anymore *)
+  (* | Vptr paddr _ => *)
+  (*   match paddr with *)
+  (*   | Some v => if (v =? 0)%N then false else true *)
+  (*   | _ => true *)
+  (*   end *)
+  (* YH: is this true? *)
   | _ => false
-  end
-.
+  end.
 
-Definition bool_to_val (b: bool): val :=
-  match b with
-  | true => Vtrue
-  | false => Vfalse
-  end
-.
+(* Definition bool_to_val (b: bool): val := *)
+(*   match b with *)
+(*   | true => Vtrue *)
+(*   | false => Vfalse *)
+(*   end. *)
 
-Coercion bool_to_val: bool >-> val.
+Coercion Val.of_bool: bool >-> val.
 
 Module PLAYGROUND.
   Inductive my_expr: Type :=
@@ -353,7 +360,8 @@ int getindex (struct cpu c) {
 (* YJ: fixpoint decreasing argument thing *)
 (* | SubPointer (_: expr) (from: option expr) (to: option expr) *)
 (* | SubPointer (_: expr) (from: expr + unit) (to: expr + unit) *)
-(* JIEUNG: if we add an address in a pointer value, do we still need the following operations? *)         
+(* JIEUNG: if we add an address in a pointer value, do we still need the following operations? *)
+(* YH: is this necessary? *)
 | SubPointerFrom (_: expr) (from: expr)
 | SubPointerTo (_: expr) (to: expr)
 
