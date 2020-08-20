@@ -362,8 +362,8 @@ int getindex (struct cpu c) {
 (* | SubPointer (_: expr) (from: expr + unit) (to: expr + unit) *)
 (* JIEUNG: if we add an address in a pointer value, do we still need the following operations? *)
 (* YH: is this necessary? *)
-| SubPointerFrom (_: expr) (from: expr)
-| SubPointerTo (_: expr) (to: expr)
+(* | SubPointerFrom (_: expr) (from: expr) *)
+(* | SubPointerTo (_: expr) (to: expr) *)
 
 (* JIEUNG: It seeems the following two things are flushing values and getting values from heap. 
    It seems quite similar to push/pull operations in CertiKOS. Is this true? Or is it related to other specific things? 
