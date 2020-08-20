@@ -285,11 +285,11 @@ Definition is_true (v : val) : bool :=
   | _ => false
   end.
 
-(* Definition bool_to_val (b: bool): val := *)
-(*   match b with *)
-(*   | true => Vtrue *)
-(*   | false => Vfalse *)
-(*   end. *)
+Definition bool_to_val (b: bool): val :=
+  match b with
+  | true => Vtrue
+  | false => Vfalse
+  end.
 
 Coercion Val.of_bool: bool >-> val.
 
@@ -332,7 +332,7 @@ Inductive expr : Type :=
 | ShiftL  (_ _ : expr)
 | ShiftR  (_ _ : expr)     
 (* JIEUNG: Where is store? *)
-| Load (_: var) (_: expr)
+| Load (_: expr)
 | CoqCode (_: list (var + expr)) (P: list val -> (val * list val))
 | Put (msg: string) (e: expr)
 | Debug (msg: string) (e: expr)
@@ -393,7 +393,7 @@ Inductive stmt : Type :=
 (* JIEUNG: Those two things are for assume and guarnatee rules that we want to add in the specification *)
 | AssumeFail
 | GuaranteeFail
-| Store (x: var) (ofs: expr) (e: expr) (* x->ofs := e *)
+| Store (p: expr) (e: expr) (* mem # p := e *)
 (* YJ: I used "var" instead of "var + val". We should "update" retvs into variables. *)
 | Expr (e: expr)
 (* YJ: What kind of super power do we need?
@@ -494,11 +494,12 @@ Module LangNotations.
   Notation "#guarantee e" :=
     (#if e then Skip else GuaranteeFail) (at level 60, e at level 50): stmt_scope.
 
-  Notation "x '@' ofs '#:=' e" :=
-    (Store x ofs e) (at level 60, e at level 50): stmt_scope.
+  (** TODO add store & load notations **)
+  (* Notation "x '@' ofs '#:=' e" := *)
+  (*   (Store x ofs e) (at level 60, e at level 50): stmt_scope. *)
 
-  Notation "x '#@' ofs" :=
-    (Load x ofs) (at level 99): expr_scope.
+  (* Notation "x '#@' ofs" := *)
+  (*   (Load x ofs) (at level 99): expr_scope. *)
 
   (* Notation "#put e" := *)
   (*   (Put "" e) (at level 60, e at level 50): stmt_scope. *)
@@ -509,8 +510,8 @@ Module LangNotations.
   Notation "#& e" :=
     (Ampersand e) (at level 60, e at level 50): stmt_scope.
 
-  Notation "#* e" :=
-    (Load e 0) (at level 40, e at level 50): stmt_scope.
+  (* Notation "#* e" := *)
+  (*   (Load e 0) (at level 40, e at level 50): stmt_scope. *)
 
 End LangNotations.
 
@@ -529,6 +530,13 @@ Variant LocalE : Type -> Type :=
 Variant GlobalE : Type -> Type :=
 | GetGvar (x : var) : GlobalE val
 | SetGvar (x : var) (v : val) : GlobalE unit
+.
+
+Variant MemoryE : Type -> Type :=
+| LoadE (p: val) : MemoryE val
+| StoreE (p: val) (v : val) : MemoryE unit
+| AllocE (p: val) : MemoryE bool
+| FreeE (p: val) : MemoryE bool
 .
 
 (* JIEUNG (comments):
@@ -604,6 +612,7 @@ Section Denote.
   Context {HasCallInternalE: CallInternalE -< eff}.
   Context {HasCallExternalE: CallExternalE -< eff}.
   Context {HasOwendHeapE: OwnedHeapE -< eff}.
+  Context {HasMemoryE: MemoryE -< eff}.
 
   (** _Imp_ expressions are denoted as [itree eff val], where the returned
       val in the tree is the val computed by the expression.
@@ -732,16 +741,13 @@ Section Denote.
                     | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.shiftr l r) max_unsigned))
                     | _, _ => triggerNB "expr-RShift"
                     end
-
-    | Load x ofs => x <- triggerGetVar x ;; ofs <- denote_expr ofs ;;
-                      match x, ofs with
-                      | Vptr _ cts, Vnat ofs =>
-                        match nth_error cts (N.to_nat ofs) with
-                        | Some v => ret v
-                        | _ => triggerNB "expr-load1"
-                        end
-                      | _, _ => triggerNB "expr-load2"
-                      end
+    | Load p => p <- denote_expr p ;;
+                match p with
+                | Vptr _ _ =>
+                  v <- trigger (LoadE p) ;;
+                  ret v
+                | _ => triggerNB "expr-load2"
+                end
     | CoqCode params P =>
       args <- mapT (case_ (Case:=case_sum)
                           (fun name => triggerGetVar name)
@@ -792,26 +798,26 @@ Section Denote.
       ret retv
     (* JIEUNG: copy ptr to the new variable? *)           
     | Ampersand e => v <- (denote_expr e) ;; Ret (Vptr None [v])
-    | SubPointerFrom p from =>
-      p <- (denote_expr p) ;; from <- (denote_expr from) ;;
-        match p with
-        | Vptr paddr cts =>
-          match from with
-          | Vnat from => Ret (Vptr (liftA (N.add from) paddr) (skipn (N.to_nat from) cts))
-          | _ => triggerNB "expr-subpointer1"
-          end
-        | _ => triggerNB "expr-subpointer2"
-        end
-    | SubPointerTo p to =>
-      p <- (denote_expr p) ;; to <- (denote_expr to) ;;
-        match p with
-        | Vptr paddr cts =>
-          match to with
-          | Vnat to => Ret (Vptr paddr (firstn (N.to_nat to) cts))
-          | _ => triggerNB "expr-subpointer1"
-          end
-        | _ => triggerNB "expr-subpointer2"
-        end
+    (* | SubPointerFrom p from => *)
+    (*   p <- (denote_expr p) ;; from <- (denote_expr from) ;; *)
+    (*     match p with *)
+    (*     | Vptr paddr cts => *)
+    (*       match from with *)
+    (*       | Vnat from => Ret (Vptr (liftA (N.add from) paddr) (skipn (N.to_nat from) cts)) *)
+    (*       | _ => triggerNB "expr-subpointer1" *)
+    (*       end *)
+    (*     | _ => triggerNB "expr-subpointer2" *)
+    (*     end *)
+    (* | SubPointerTo p to => *)
+    (*   p <- (denote_expr p) ;; to <- (denote_expr to) ;; *)
+    (*     match p with *)
+    (*     | Vptr paddr cts => *)
+    (*       match to with *)
+    (*       | Vnat to => Ret (Vptr paddr (firstn (N.to_nat to) cts)) *)
+    (*       | _ => triggerNB "expr-subpointer1" *)
+    (*       end *)
+    (*     | _ => triggerNB "expr-subpointer2" *)
+    (*     end *)
     (* | SubPointer p from to => *)
     (*   p <- (denote_expr p) ;; *)
     (*     match p with *)
@@ -920,15 +926,12 @@ Section Denote.
     | Skip => ret (CNormal, Vnodef)
     | AssumeFail => triggerUB "stmt-assume"
     | GuaranteeFail => triggerNB "stmt-grnt"
-    | Store x ofs e => ofs <- denote_expr ofs ;; e <- denote_expr e ;;
-                           v <- triggerGetVar x ;;
-                           match ofs, v with
-                           | Vnat ofs, Vptr paddr cts0 =>
-                             cts1 <- (unwrapN (update_err cts0 (N.to_nat ofs) e)) ;;
-                                  triggerSetVar x (Vptr paddr cts1)
-                           | _, _ => triggerNB "stmt-store"
-                           end ;;
-                           ret (CNormal, Vnodef)
+    | Store p e => p <- denote_expr p ;; e <- denote_expr e ;;
+                    match p with
+                    | Vptr _ _  => trigger (StoreE p e)
+                    | __ => triggerNB "stmt-store"
+                    end ;;
+                    ret (CNormal, Vnodef)
     | Expr e => v <- denote_expr e ;; Ret (CNormal, v)
     | Return e => v <- denote_expr e ;; Ret (CReturn, v)
     | Break => Ret (CBreak, Vnodef)
@@ -967,6 +970,7 @@ Section Denote.
   Context {HasEvent : Event -< eff}.
   Context {HasCallExternalE: CallExternalE -< eff}.
   Context {HasOwendHeapE: OwnedHeapE -< eff}.
+  Context {HasMemoryE: MemoryE -< eff}.
 
   Print Instances Traversable.
   Print Instances Reducible.
