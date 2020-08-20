@@ -424,11 +424,11 @@ Module LangNotations.
   Definition Expr_coerce: expr -> stmt := Expr.
   Definition Var_coerce: string -> expr := Var.
   Definition Val_coerce: val -> expr := Val.
-  Definition nat_coerce: N -> val := Vnat.
+  Definition nat_coerce: int -> val := Vint.
   Coercion Expr_coerce: expr >-> stmt.
   Coercion Var_coerce: string >-> expr.
   Coercion Val_coerce: val >-> expr.
-  Coercion nat_coerce: N >-> val.
+  Coercion nat_coerce: int >-> val.
 
   Bind Scope expr_scope with expr.
 
@@ -454,10 +454,10 @@ Module LangNotations.
   (* Notation "'NULL'" := (Vptr []) (at level 40): expr_scope. *)
 
   Notation "#true" :=
-    (Val (Vnat 1)) (at level 50): stmt_scope.
+    (Val (Vint Int.one)) (at level 50): stmt_scope.
 
   Notation "#false" :=
-    (Val (Vnat 0)) (at level 50): stmt_scope.
+    (Val (Vint Int.zero)) (at level 50): stmt_scope.
 
   Notation "'!' e" :=
     (Neg e) (at level 40, e at level 50): stmt_scope.
