@@ -56,6 +56,7 @@ Require Import Coq.NArith.Nnat.
 Require Import BitNat.
 
 (** From CompCert *)
+Require Import AST.
 Require Import Memory.
 Require Import Integers.
 Require Import Floats.
@@ -332,7 +333,7 @@ Inductive expr : Type :=
 | ShiftL  (_ _ : expr)
 | ShiftR  (_ _ : expr)     
 (* JIEUNG: Where is store? *)
-| Load (_: expr)
+| Load (_: expr) (_: memory_chunk)
 | CoqCode (_: list (var + expr)) (P: list val -> (val * list val))
 | Put (msg: string) (e: expr)
 | Debug (msg: string) (e: expr)
@@ -393,7 +394,9 @@ Inductive stmt : Type :=
 (* JIEUNG: Those two things are for assume and guarnatee rules that we want to add in the specification *)
 | AssumeFail
 | GuaranteeFail
-| Store (p: expr) (e: expr) (* mem # p := e *)
+| Store (p: expr) (chunk: memory_chunk) (e: expr) (* mem # p := e *)
+| Alloc (e: expr) (* Alloc size e *)
+| Free (p: expr) (* Free ptr p*)
 (* YJ: I used "var" instead of "var + val". We should "update" retvs into variables. *)
 | Expr (e: expr)
 (* YJ: What kind of super power do we need?
@@ -533,10 +536,10 @@ Variant GlobalE : Type -> Type :=
 .
 
 Variant MemoryE : Type -> Type :=
-| LoadE (p: val) : MemoryE val
-| StoreE (p: val) (v : val) : MemoryE unit
-| AllocE (p: val) : MemoryE bool
-| FreeE (p: val) : MemoryE bool
+| LoadE (b: block) (ofs: Z) (chunk: memory_chunk) : MemoryE (option val)
+| StoreE (b: block) (ofs: Z) (chunk: memory_chunk) (v : val) : MemoryE bool
+| AllocE (sz: Z) : MemoryE unit
+| FreeE (b: block) (ofs: Z) : MemoryE bool
 .
 
 (* JIEUNG (comments):
@@ -741,11 +744,14 @@ Section Denote.
                     | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.shiftr l r) max_unsigned))
                     | _, _ => triggerNB "expr-RShift"
                     end
-    | Load p => p <- denote_expr p ;;
+    | Load p chunk => p <- denote_expr p ;;
                 match p with
-                | Vptr _ _ =>
-                  v <- trigger (LoadE p) ;;
-                  ret v
+                | Vptr b ofs =>
+                  v <- trigger (LoadE b ofs chunk) ;;
+                    match v with
+                    | Some v => ret v
+                    | _ => triggerNB "expr-load1"
+                    end
                 | _ => triggerNB "expr-load2"
                 end
     | CoqCode params P =>
@@ -926,12 +932,29 @@ Section Denote.
     | Skip => ret (CNormal, Vnodef)
     | AssumeFail => triggerUB "stmt-assume"
     | GuaranteeFail => triggerNB "stmt-grnt"
-    | Store p e => p <- denote_expr p ;; e <- denote_expr e ;;
+    | Store p chunk e => p <- denote_expr p ;; e <- denote_expr e ;;
                     match p with
-                    | Vptr _ _  => trigger (StoreE p e)
-                    | __ => triggerNB "stmt-store"
-                    end ;;
-                    ret (CNormal, Vnodef)
+                    | Vptr b ofs  => v <- trigger (StoreE b ofs chunk e) ;;
+                                    if is_true v
+                                    then ret (CNormal, Vnodef)
+                                    else triggerNB "stmt-store1"
+                    | _ => triggerNB "stmt-store2"
+                    end
+    | Alloc e => e <- denote_expr e ;;
+                  match e with
+                    (* TODO *)
+                  | Vint n => trigger (AllocE n) ;; ret (CNormal, Vnodef)
+                  | Vlong n => trigger (AllocE n) ;; ret (CNormal, Vnodef)
+                  | __ => triggerNB "stmt-alloc"
+                  end
+    | Free p => p <- denote_expr p ;;
+                 match p with
+                 | Vptr b ofs  => v <- trigger (FreeE b ofs) ;;
+                                   if is_true v
+                                   then ret (CNormal, Vnodef)
+                                   else triggerNB "stmt-free1"
+                 | _ => triggerNB "stmt-free2"
+                 end
     | Expr e => v <- denote_expr e ;; Ret (CNormal, v)
     | Return e => v <- denote_expr e ;; Ret (CReturn, v)
     | Break => Ret (CBreak, Vnodef)
@@ -1132,6 +1155,34 @@ Definition interp_GlobalE {E A} (t : itree (GlobalE +' E) A) :
   let t' := State.interp_state (case_ handle_GlobalE State.pure_state) t in
   t'
 .
+
+Definition mem := memory.
+Definition handle_MemoryE {E: Type -> Type}
+  : GlobalE ~> stateT mem (itree E) :=
+  fun _ e mem =>
+    match e with
+    | LoadE (b: block) (ofs: Z) (chunk: memory_chunk) => Ret (mem, load chunk mem b ofs)
+    | StoreE (b: block) (ofs: Z) (chunk: memory_chunk) (v : val) =>
+      let mem' := store chunk men b ofs v in
+      match mem' with
+      | Some mem' => Ret (mem', true)
+      | _ => Ret (mem, false)
+      end
+    | AllocE (sz: Z) => Ret (alloc m 0 sz, tt)
+    | FreeE (b: block) (ofs: Z) =>
+      let mem' := free mem b 0 ofs in
+      match mem' with
+      | Some mem' => Ret (mem', true)
+      | _ => Ret (mem, false)
+      end
+    end.
+
+Definition interp_MemoryE {E A} (t : itree (GlobalE +' E) A) :
+  stateT mem (itree E) A :=
+  let t' := State.interp_state (case_ handle_MemoryE State.pure_state) t in
+  t'
+.
+
 
 Definition ignore_l {A B}: itree (A +' B) ~> itree B :=
   interp (fun _ (e: (A +' B) _) =>
