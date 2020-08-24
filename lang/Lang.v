@@ -344,7 +344,7 @@ Do we need to distinguish this one with Call? *)
 | Call (func_name: string) (params: list (var + expr))
 | Ampersand (_: expr)
 (* JIEUNG: What is the following operation *)       
-| GetLen (_: expr)
+(* | GetLen (_: expr) *)
 (* YJ: Vptr에 addr: nat 추가하면?
      int x = 5;
      int *y = &x;
@@ -371,6 +371,8 @@ int getindex (struct cpu c) {
    PutOwnedHeap does not have any message message lie Put.. *)               
 | PutOwnedHeap (_: expr)
 | GetOwnedHeap
+| Ptr2Int (_: expr)
+| Int2Ptr (_: expr)
 .
 
 Definition DebugShow := Syscall "show".
@@ -395,8 +397,8 @@ Inductive stmt : Type :=
 | AssumeFail
 | GuaranteeFail
 | Store (p: expr) (chunk: memory_chunk) (e: expr) (* mem # p := e *)
-| Alloc (e: expr) (* Alloc size e *)
-| Free (p: expr) (* Free ptr p*)
+| Alloc (x : var) (e: expr) (* x = alloc e *)
+| Free (p: expr) (* Free ptr p *)
 (* YJ: I used "var" instead of "var + val". We should "update" retvs into variables. *)
 | Expr (e: expr)
 (* YJ: What kind of super power do we need?
@@ -538,7 +540,7 @@ Variant GlobalE : Type -> Type :=
 Variant MemoryE : Type -> Type :=
 | LoadE (b: block) (ofs: Z) (chunk: memory_chunk) : MemoryE (option val)
 | StoreE (b: block) (ofs: Z) (chunk: memory_chunk) (v : val) : MemoryE bool
-| AllocE (sz: Z) : MemoryE unit
+| AllocE (sz: Z) : MemoryE block
 | FreeE (b: block) (ofs: Z) : MemoryE bool
 .
 
@@ -842,15 +844,29 @@ Section Denote.
         (*   end *)
         (* | _ => triggerNB "expr-subpointer2" *)
         (* end *)
-    | GetLen e => e <- denote_expr e ;;
-                   (* JIEUNG: to avoid overflow, we need to avoid any [nat] representation. 
-                      So, we may need to change the following representation [length] in the below *) 
-                    match e with
-                    | Vptr _ cts => Ret (N.of_nat (length cts): val)
-                    | _ => triggerNB "expr-getlen"
-                    end
+    (* | GetLen e => e <- denote_expr e ;; *)
+    (*                (* JIEUNG: to avoid overflow, we need to avoid any [nat] representation.  *)
+    (*                   So, we may need to change the following representation [length] in the below *)  *)
+    (*                 match e with *)
+    (*                 | Vptr _ cts => Ret (N.of_nat (length cts): val) *)
+    (*                 | _ => triggerNB "expr-getlen" *)
+    (*                 end *)
     | GetOwnedHeap => trigger EGetOwnedHeap
     | PutOwnedHeap e => v <- (denote_expr e) ;; trigger (EPutOwnedHeap v) ;; ret Vnodef
+    | Ptr2Int e => e <- denote_expr e ;;
+                    match e with
+                    | Vptr b ofs =>
+                      if b =? 1%positive
+                      then ret (Vint (Int.unsigned ofs))
+                      else triggerNB "expr-ptr2int1"
+                    | _ => triggerNB "expr-ptr2int2"
+                    end
+    | Int2Ptr e => e <- denote_expr e ;;
+                    match e with
+                    | Vint n => ret (Vptr 1%positive (Int.repr n))
+                    | Vlong n => ret (Vptr 1%positive (Int64.repr n))
+                    | _ => triggerNB "expr-ptr2int1"
+                    end
     end.
   
   (* JIEUNG (comments): Can I know a little bit more about this control? *) 
@@ -940,11 +956,12 @@ Section Denote.
                                     else triggerNB "stmt-store1"
                     | _ => triggerNB "stmt-store2"
                     end
-    | Alloc e => e <- denote_expr e ;;
+    | Alloc x e => e <- denote_expr e ;;
                   match e with
-                    (* TODO *)
-                  | Vint n => trigger (AllocE n) ;; ret (CNormal, Vnodef)
-                  | Vlong n => trigger (AllocE n) ;; ret (CNormal, Vnodef)
+                  | Vint n => v <- trigger (AllocE (Int.repr n)) ;;
+                               triggerSetVar x v ;; ret (CNormal, Vnodef)
+                  | Vlong n => v <- trigger (AllocE (Int64.repr n)) ;;
+                                triggerSetVar x v ;; ret (CNormal, Vnodef)
                   | __ => triggerNB "stmt-alloc"
                   end
     | Free p => p <- denote_expr p ;;
@@ -1168,7 +1185,9 @@ Definition handle_MemoryE {E: Type -> Type}
       | Some mem' => Ret (mem', true)
       | _ => Ret (mem, false)
       end
-    | AllocE (sz: Z) => Ret (alloc m 0 sz, tt)
+    | AllocE (sz: Z) =>
+      let '(mem', b) := alloc mem 0 sz in
+      Ret (mem', b)
     | FreeE (b: block) (ofs: Z) =>
       let mem' := free mem b 0 ofs in
       match mem' with
