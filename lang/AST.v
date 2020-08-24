@@ -35,9 +35,7 @@ Definition ident_eq := peq.
 
 Inductive typ : Type :=
   | Tint                (**r 32-bit integers or pointers *)
-  | Tfloat              (**r 64-bit double-precision floats *)
   | Tlong               (**r 64-bit integers *)
-  | Tsingle             (**r 32-bit single-precision floats *)
   | Tany32              (**r any 32-bit value *)
   | Tany64.             (**r any 64-bit value, i.e. any value *)
 
@@ -53,9 +51,7 @@ Definition Tptr : typ := if Archi.ptr64 then Tlong else Tint.
 Definition typesize (ty: typ) : Z :=
   match ty with
   | Tint => 4
-  | Tfloat => 8
   | Tlong => 8
-  | Tsingle => 4
   | Tany32 => 4
   | Tany64 => 8
   end.
@@ -74,9 +70,7 @@ Definition subtype (ty1 ty2: typ) : bool :=
   match ty1, ty2 with
   | Tint, Tint => true
   | Tlong, Tlong => true
-  | Tfloat, Tfloat => true
-  | Tsingle, Tsingle => true
-  | (Tint | Tsingle | Tany32), Tany32 => true
+  | (Tint | Tany32), Tany32 => true
   | _, Tany64 => true
   | _, _ => false
   end.
@@ -164,8 +158,6 @@ Inductive memory_chunk : Type :=
   | Mint16unsigned  (**r 16-bit unsigned integer *)
   | Mint32          (**r 32-bit integer, or pointer *)
   | Mint64          (**r 64-bit integer *)
-  | Mfloat32        (**r 32-bit single-precision float *)
-  | Mfloat64        (**r 64-bit double-precision float *)
   | Many32          (**r any value that fits in 32 bits *)
   | Many64.         (**r any value *)
 
@@ -185,8 +177,6 @@ Definition type_of_chunk (c: memory_chunk) : typ :=
   | Mint16unsigned => Tint
   | Mint32 => Tint
   | Mint64 => Tlong
-  | Mfloat32 => Tsingle
-  | Mfloat64 => Tfloat
   | Many32 => Tany32
   | Many64 => Tany64
   end.
@@ -204,8 +194,6 @@ Definition rettype_of_chunk (c: memory_chunk) : rettype :=
   | Mint16unsigned => Tint16unsigned
   | Mint32 => Tint
   | Mint64 => Tlong
-  | Mfloat32 => Tsingle
-  | Mfloat64 => Tfloat
   | Many32 => Tany32
   | Many64 => Tany64
   end.
@@ -222,9 +210,7 @@ Qed.
 Definition chunk_of_type (ty: typ) :=
   match ty with
   | Tint => Mint32
-  | Tfloat => Mfloat64
   | Tlong => Mint64
-  | Tsingle => Mfloat32
   | Tany32 => Many32
   | Tany64 => Many64
   end.
@@ -239,8 +225,6 @@ Inductive init_data: Type :=
   | Init_int16: int -> init_data
   | Init_int32: int -> init_data
   | Init_int64: int64 -> init_data
-  | Init_float32: float32 -> init_data
-  | Init_float64: float -> init_data
   | Init_space: Z -> init_data
   | Init_addrof: ident -> ptrofs -> init_data.  (**r address of symbol + offset *)
 
@@ -250,8 +234,6 @@ Definition init_data_size (i: init_data) : Z :=
   | Init_int16 _ => 2
   | Init_int32 _ => 4
   | Init_int64 _ => 8
-  | Init_float32 _ => 4
-  | Init_float64 _ => 8
   | Init_addrof _ _ => if Archi.ptr64 then 8 else 4
   | Init_space n => Z.max n 0
   end.

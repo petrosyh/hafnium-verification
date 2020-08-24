@@ -141,8 +141,6 @@ Proof.
   auto.
   apply bool_dec.
   auto.
-  apply bool_dec.
-  auto.
 Defined.
 
 Definition has_rettype (v: val) (r: rettype) : Prop :=
@@ -2226,9 +2224,7 @@ Proof.
 - destruct ty; constructor.
 - simpl. destruct ty.
 + destruct Archi.ptr64; econstructor; eauto.
-+ auto.
 + destruct Archi.ptr64; econstructor; eauto.
-+ auto.
 + destruct Archi.ptr64; econstructor; eauto.
 + econstructor; eauto.
 - constructor.
