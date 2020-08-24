@@ -865,7 +865,7 @@ Section Denote.
                     match e with
                     | Vint n => ret (Vptr 1%positive (Int.repr n))
                     | Vlong n => ret (Vptr 1%positive (Int64.repr n))
-                    | _ => triggerNB "expr-ptr2int1"
+                    | _ => triggerNB "expr-int2ptr"
                     end
     end.
   
