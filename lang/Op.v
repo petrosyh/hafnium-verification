@@ -21,7 +21,7 @@ Require Import Integers.
 Require Import Floats.
 Require Import Values.
 Require Import Memory.
-(* Require Import Ctypes. *)
+Require Import LangType.
 Require Archi.
 
 (** * Syntax of operators. *)
@@ -73,195 +73,105 @@ Inductive incr_or_decr : Type := Incr | Decr.
 (** ** Casts and truth values *)
 
 Inductive classify_cast_cases : Type :=
-  | cast_case_pointer                              (**r between pointer types or intptr_t types *)
-  | cast_case_i2i (* (sz2:intsize) (si2:signedness)  *)  (**r int -> int *)
+  | cast_case_ptr2int                              (**r between pointer types or intptr_t types *)
+  | cast_case_int2ptr
+  | cast_case_ptr2ptr
+  | cast_case_i2i (sz2:intsize) (si2:signedness)   (**r int -> int *)
   | cast_case_l2l                       (**r long -> long *)
-  | cast_case_i2l (* (si1: signedness) *)     (**r int -> long *)
-  | cast_case_l2i (* (sz2: intsize) (si2: signedness) *) (**r long -> int *)
+  | cast_case_i2l (si1: signedness)     (**r int -> long *)
+  | cast_case_l2i (sz2: intsize) (si2: signedness) (**r long -> int *)
   | cast_case_i2bool                               (**r int -> bool *)
   | cast_case_l2bool                               (**r long -> bool *)
-  (* | cast_case_struct (id1 id2: ident)              (**r struct -> struct *) *)
-  (* | cast_case_union  (id1 id2: ident)              (**r union -> union *) *)
   | cast_case_void                                 (**r any -> void *)
   | cast_case_default.
 
-Definition classify_cast (vfrom tto: type) : classify_cast_cases :=
-  match tto, tfrom with
+Definition classify_cast (vfrom: val) (tto: type) : classify_cast_cases :=
+  match tto, vfrom with
   (* To [void] *)
   | Tvoid, _ => cast_case_void
   (* To [_Bool] *)
-  | Tint IBool _ _, Tint _ _ _ => cast_case_i2bool
-  | Tint IBool _ _, Tlong _ _ => cast_case_l2bool
-  | Tint IBool _ _, Tfloat F64 _ => cast_case_f2bool
-  | Tint IBool _ _, Tfloat F32 _ => cast_case_s2bool
-  | Tint IBool _ _, (Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _) =>
+  | Tint IBool _ _, Vint _ => cast_case_i2bool
+  | Tint IBool _ _, Vlong _ => cast_case_l2bool
+  | Tint IBool _ _, Vptr _ _ => 
       if Archi.ptr64 then cast_case_l2bool else cast_case_i2bool
   (* To [int] other than [_Bool] *)
-  | Tint sz2 si2 _, Tint _ _ _ =>
-      if Archi.ptr64 then cast_case_i2i sz2 si2
-      else if intsize_eq sz2 I32 then cast_case_pointer
-      else cast_case_i2i sz2 si2
-  | Tint sz2 si2 _, Tlong _ _ => cast_case_l2i sz2 si2
-  | Tint sz2 si2 _, Tfloat F64 _ => cast_case_f2i sz2 si2
-  | Tint sz2 si2 _, Tfloat F32 _ => cast_case_s2i sz2 si2
-  | Tint sz2 si2 _, (Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _) =>
-      if Archi.ptr64 then cast_case_l2i sz2 si2
-      else if intsize_eq sz2 I32 then cast_case_pointer
-      else cast_case_i2i sz2 si2
+  | Tint sz2 si2 _, Vint _ => cast_case_i2i sz2 si2
+  | Tint sz2 si2 _, Vlong _ => cast_case_l2i sz2 si2
+  | Tint sz2 si2 _, Vptr _ _ =>
+      if Archi.ptr64 then cast_case_default else cast_case_ptr2int
   (* To [long] *)
-  | Tlong _ _, Tlong _ _ =>
-      if Archi.ptr64 then cast_case_pointer else cast_case_l2l
-  | Tlong _ _, Tint sz1 si1 _ => cast_case_i2l si1
-  | Tlong si2 _, Tfloat F64 _ => cast_case_f2l si2
-  | Tlong si2 _, Tfloat F32 _ => cast_case_s2l si2
-  | Tlong si2 _, (Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _) =>
-      if Archi.ptr64 then cast_case_pointer else cast_case_i2l si2
-  (* To [float] *)
-  | Tfloat F64 _, Tint sz1 si1 _ => cast_case_i2f si1
-  | Tfloat F32 _, Tint sz1 si1 _ => cast_case_i2s si1
-  | Tfloat F64 _, Tlong si1 _ => cast_case_l2f si1
-  | Tfloat F32 _, Tlong si1 _ => cast_case_l2s si1
-  | Tfloat F64 _, Tfloat F64 _ => cast_case_f2f
-  | Tfloat F32 _, Tfloat F32 _ => cast_case_s2s
-  | Tfloat F64 _, Tfloat F32 _ => cast_case_s2f
-  | Tfloat F32 _, Tfloat F64 _ => cast_case_f2s
+  | Tlong _ _, Vlong _ => cast_case_l2l
+  | Tlong _ _, Vint _ => cast_case_i2l Unsigned
+  | Tlong si2 _, Vptr _ _ =>
+      if Archi.ptr64 then cast_case_ptr2int else cast_case_default
   (* To pointer types *)
-  | Tpointer _ _, Tint _ si _ =>
-      if Archi.ptr64 then cast_case_i2l si else cast_case_pointer
-  | Tpointer _ _, Tlong _ _ =>
-      if Archi.ptr64 then cast_case_pointer else cast_case_l2i I32 Unsigned
-  | Tpointer _ _, (Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _) => cast_case_pointer
-  (* To struct or union types *)
-  | Tstruct id2 _, Tstruct id1 _ => cast_case_struct id1 id2
-  | Tunion id2 _, Tunion id1 _ => cast_case_union id1 id2
+  | Tpointer _ _, Vint _ =>
+      if Archi.ptr64 then cast_case_default else cast_case_int2ptr
+  | Tpointer _ _, Vlong _ =>
+      if Archi.ptr64 then cast_case_int2ptr else cast_case_default
+  | Tpointer _ _, Vptr _ _ => cast_case_ptr2ptr
   (* Catch-all *)
   | _, _ => cast_case_default
   end.
 
-(* Definition classify_cast (tfrom tto: type) : classify_cast_cases := *)
-(*   match tto, tfrom with *)
-(*   (* To [void] *) *)
-(*   | Tvoid, _ => cast_case_void *)
-(*   (* To [_Bool] *) *)
-(*   | Tint IBool _ _, Tint _ _ _ => cast_case_i2bool *)
-(*   | Tint IBool _ _, Tlong _ _ => cast_case_l2bool *)
-(*   | Tint IBool _ _, Tfloat F64 _ => cast_case_f2bool *)
-(*   | Tint IBool _ _, Tfloat F32 _ => cast_case_s2bool *)
-(*   | Tint IBool _ _, (Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _) =>  *)
-(*       if Archi.ptr64 then cast_case_l2bool else cast_case_i2bool *)
-(*   (* To [int] other than [_Bool] *) *)
-(*   | Tint sz2 si2 _, Tint _ _ _ => *)
-(*       if Archi.ptr64 then cast_case_i2i sz2 si2 *)
-(*       else if intsize_eq sz2 I32 then cast_case_pointer *)
-(*       else cast_case_i2i sz2 si2 *)
-(*   | Tint sz2 si2 _, Tlong _ _ => cast_case_l2i sz2 si2 *)
-(*   | Tint sz2 si2 _, Tfloat F64 _ => cast_case_f2i sz2 si2 *)
-(*   | Tint sz2 si2 _, Tfloat F32 _ => cast_case_s2i sz2 si2 *)
-(*   | Tint sz2 si2 _, (Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _) => *)
-(*       if Archi.ptr64 then cast_case_l2i sz2 si2 *)
-(*       else if intsize_eq sz2 I32 then cast_case_pointer *)
-(*       else cast_case_i2i sz2 si2 *)
-(*   (* To [long] *) *)
-(*   | Tlong _ _, Tlong _ _ => *)
-(*       if Archi.ptr64 then cast_case_pointer else cast_case_l2l *)
-(*   | Tlong _ _, Tint sz1 si1 _ => cast_case_i2l si1 *)
-(*   | Tlong si2 _, Tfloat F64 _ => cast_case_f2l si2 *)
-(*   | Tlong si2 _, Tfloat F32 _ => cast_case_s2l si2 *)
-(*   | Tlong si2 _, (Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _) => *)
-(*       if Archi.ptr64 then cast_case_pointer else cast_case_i2l si2 *)
-(*   (* To [float] *) *)
-(*   | Tfloat F64 _, Tint sz1 si1 _ => cast_case_i2f si1 *)
-(*   | Tfloat F32 _, Tint sz1 si1 _ => cast_case_i2s si1 *)
-(*   | Tfloat F64 _, Tlong si1 _ => cast_case_l2f si1 *)
-(*   | Tfloat F32 _, Tlong si1 _ => cast_case_l2s si1 *)
-(*   | Tfloat F64 _, Tfloat F64 _ => cast_case_f2f *)
-(*   | Tfloat F32 _, Tfloat F32 _ => cast_case_s2s *)
-(*   | Tfloat F64 _, Tfloat F32 _ => cast_case_s2f *)
-(*   | Tfloat F32 _, Tfloat F64 _ => cast_case_f2s *)
-(*   (* To pointer types *) *)
-(*   | Tpointer _ _, Tint _ si _ => *)
-(*       if Archi.ptr64 then cast_case_i2l si else cast_case_pointer *)
-(*   | Tpointer _ _, Tlong _ _ => *)
-(*       if Archi.ptr64 then cast_case_pointer else cast_case_l2i I32 Unsigned *)
-(*   | Tpointer _ _, (Tpointer _ _ | Tarray _ _ _ | Tfunction _ _ _) => cast_case_pointer *)
-(*   (* To struct or union types *) *)
-(*   | Tstruct id2 _, Tstruct id1 _ => cast_case_struct id1 id2 *)
-(*   | Tunion id2 _, Tunion id1 _ => cast_case_union id1 id2 *)
-(*   (* Catch-all *) *)
-(*   | _, _ => cast_case_default *)
-(*   end. *)
+ (* Definition classify_cast (tfrom tto: type) : classify_cast_cases := *)
+ (*  match tto, tfrom with *)
+ (*  (* To [void] *) *)
+ (*  | Tvoid, _ => cast_case_void *)
+ (*  (* To [_Bool] *) *)
+ (*  | Tint IBool _ _, Tint _ _ _ => cast_case_i2bool *)
+ (*  | Tint IBool _ _, Tlong _ _ => cast_case_l2bool *)
+ (*  | Tint IBool _ _, Tpointer _ _ =>  *)
+ (*      if Archi.ptr64 then cast_case_l2bool else cast_case_i2bool *)
+ (*  (* To [int] other than [_Bool] *) *)
+ (*  | Tint sz2 si2 _, Tint _ _ _ => *)
+ (*      if Archi.ptr64 then cast_case_i2i sz2 si2 *)
+ (*      else if intsize_eq sz2 I32 then cast_case_pointer *)
+ (*      else cast_case_i2i sz2 si2 *)
+ (*  | Tint sz2 si2 _, Tlong _ _ => cast_case_l2i sz2 si2 *)
+ (*  | Tint sz2 si2 _, Tpointer _ _ => *)
+ (*      if Archi.ptr64 then cast_case_l2i sz2 si2 *)
+ (*      else if intsize_eq sz2 I32 then cast_case_pointer *)
+ (*      else cast_case_i2i sz2 si2 *)
+ (*  (* To [long] *) *)
+ (*  | Tlong _ _, Tlong _ _ => *)
+ (*      if Archi.ptr64 then cast_case_pointer else cast_case_l2l *)
+ (*  | Tlong _ _, Tint sz1 si1 _ => cast_case_i2l si1 *)
+ (*  | Tlong si2 _, Tpointer _ _ => *)
+ (*      if Archi.ptr64 then cast_case_pointer else cast_case_i2l si2 *)
+ (*  (* To pointer types *) *)
+ (*  | Tpointer _ _, Tint _ si _ => *)
+ (*      if Archi.ptr64 then cast_case_i2l si else cast_case_pointer *)
+ (*  | Tpointer _ _, Tlong _ _ => *)
+ (*      if Archi.ptr64 then cast_case_pointer else cast_case_l2i I32 Unsigned *)
+ (*  | Tpointer _ _, Tpointer _ _ => cast_case_pointer *)
+ (*  (* Catch-all *) *)
+ (*  | _, _ => cast_case_default *)
+ (*  end. *)
 
 (** Semantics of casts.  [sem_cast v1 t1 t2 m = Some v2] if value [v1],
   viewed with static type [t1], can be converted  to type [t2],
   resulting in value [v2].  *)
 
-(* Definition cast_int_int (sz: intsize) (sg: signedness) (i: int) : int := *)
-(*   match sz, sg with *)
-(*   | I8, Signed => Int.sign_ext 8 i *)
-(*   | I8, Unsigned => Int.zero_ext 8 i *)
-(*   | I16, Signed => Int.sign_ext 16 i *)
-(*   | I16, Unsigned => Int.zero_ext 16 i *)
-(*   | I32, _ => i *)
-(*   | IBool, _ => if Int.eq i Int.zero then Int.zero else Int.one *)
-(*   end. *)
+Definition cast_int_int (sz: intsize) (sg: signedness) (i: int) : int :=
+  match sz, sg with
+  | I8, Signed => Int.sign_ext 8 i
+  | I8, Unsigned => Int.zero_ext 8 i
+  | I16, Signed => Int.sign_ext 16 i
+  | I16, Unsigned => Int.zero_ext 16 i
+  | I32, _ => i
+  | IBool, _ => if Int.eq i Int.zero then Int.zero else Int.one
+  end.
 
-(* Definition cast_int_float (si: signedness) (i: int) : float := *)
-(*   match si with *)
-(*   | Signed => Float.of_int i *)
-(*   | Unsigned => Float.of_intu i *)
-(*   end. *)
+Definition cast_int_long (si: signedness) (i: int) : int64 :=
+  match si with
+  | Signed => Int64.repr (Int.signed i)
+  | Unsigned => Int64.repr (Int.unsigned i)
+  end.
 
-(* Definition cast_float_int (si : signedness) (f: float) : option int := *)
-(*   match si with *)
-(*   | Signed => Float.to_int f *)
-(*   | Unsigned => Float.to_intu f *)
-(*   end. *)
-
-(* Definition cast_int_single (si: signedness) (i: int) : float32 := *)
-(*   match si with *)
-(*   | Signed => Float32.of_int i *)
-(*   | Unsigned => Float32.of_intu i *)
-(*   end. *)
-
-(* Definition cast_single_int (si : signedness) (f: float32) : option int := *)
-(*   match si with *)
-(*   | Signed => Float32.to_int f *)
-(*   | Unsigned => Float32.to_intu f *)
-(*   end. *)
-
-(* Definition cast_int_long (si: signedness) (i: int) : int64 := *)
-(*   match si with *)
-(*   | Signed => Int64.repr (Int.signed i) *)
-(*   | Unsigned => Int64.repr (Int.unsigned i) *)
-(*   end. *)
-
-(* Definition cast_long_float (si: signedness) (i: int64) : float := *)
-(*   match si with *)
-(*   | Signed => Float.of_long i *)
-(*   | Unsigned => Float.of_longu i *)
-(*   end. *)
-
-(* Definition cast_long_single (si: signedness) (i: int64) : float32 := *)
-(*   match si with *)
-(*   | Signed => Float32.of_long i *)
-(*   | Unsigned => Float32.of_longu i *)
-(*   end. *)
-
-(* Definition cast_float_long (si : signedness) (f: float) : option int64 := *)
-(*   match si with *)
-(*   | Signed => Float.to_long f *)
-(*   | Unsigned => Float.to_longu f *)
-(*   end. *)
-
-(* Definition cast_single_long (si : signedness) (f: float32) : option int64 := *)
-(*   match si with *)
-(*   | Signed => Float32.to_long f *)
-(*   | Unsigned => Float32.to_longu f *)
-(*   end. *)
-
-Definition sem_cast (v: val) (t1 t2: type) (m: mem): option val :=
-  match classify_cast t1 t2 with
-  | cast_case_pointer =>
+Definition sem_cast (v: val) (t2: type) (m: mem): option val :=
+  match classify_cast v t2 with
+  | cast_case_ptr2int =>
       match v with
       | Vptr _ _ => Some v
       | Vint _ => if Archi.ptr64 then None else Some v
@@ -271,54 +181,6 @@ Definition sem_cast (v: val) (t1 t2: type) (m: mem): option val :=
   | cast_case_i2i sz2 si2 =>
       match v with
       | Vint i => Some (Vint (cast_int_int sz2 si2 i))
-      | _ => None
-      end
-  | cast_case_f2f =>
-      match v with
-      | Vfloat f => Some (Vfloat f)
-      | _ => None
-      end
-  | cast_case_s2s =>
-      match v with
-      | Vsingle f => Some (Vsingle f)
-      | _ => None
-      end
-  | cast_case_s2f =>
-      match v with
-      | Vsingle f => Some (Vfloat (Float.of_single f))
-      | _ => None
-      end
-  | cast_case_f2s =>
-      match v with
-      | Vfloat f => Some (Vsingle (Float.to_single f))
-      | _ => None
-      end
-  | cast_case_i2f si1 =>
-      match v with
-      | Vint i => Some (Vfloat (cast_int_float si1 i))
-      | _ => None
-      end
-  | cast_case_i2s si1 =>
-      match v with
-      | Vint i => Some (Vsingle (cast_int_single si1 i))
-      | _ => None
-      end
-  | cast_case_f2i sz2 si2 =>
-      match v with
-      | Vfloat f =>
-          match cast_float_int si2 f with
-          | Some i => Some (Vint (cast_int_int sz2 si2 i))
-          | None => None
-          end
-      | _ => None
-      end
-  | cast_case_s2i sz2 si2 =>
-      match v with
-      | Vsingle f =>
-          match cast_single_int si2 f with
-          | Some i => Some (Vint (cast_int_int sz2 si2 i))
-          | None => None
-          end
       | _ => None
       end
   | cast_case_i2bool =>
@@ -340,18 +202,6 @@ Definition sem_cast (v: val) (t1 t2: type) (m: mem): option val :=
 
       | _ => None
       end
-  | cast_case_f2bool =>
-      match v with
-      | Vfloat f =>
-          Some(Vint(if Float.cmp Ceq f Float.zero then Int.zero else Int.one))
-      | _ => None
-      end
-  | cast_case_s2bool =>
-      match v with
-      | Vsingle f =>
-          Some(Vint(if Float32.cmp Ceq f Float32.zero then Int.zero else Int.one))
-      | _ => None
-      end
   | cast_case_l2l =>
       match v with
       | Vlong n => Some (Vlong n)
@@ -365,46 +215,6 @@ Definition sem_cast (v: val) (t1 t2: type) (m: mem): option val :=
   | cast_case_l2i sz si =>
       match v with
       | Vlong n => Some(Vint (cast_int_int sz si (Int.repr (Int64.unsigned n))))
-      | _ => None
-      end
-  | cast_case_l2f si1 =>
-      match v with
-      | Vlong i => Some (Vfloat (cast_long_float si1 i))
-      | _ => None
-      end
-  | cast_case_l2s si1 =>
-      match v with
-      | Vlong i => Some (Vsingle (cast_long_single si1 i))
-      | _ => None
-      end
-  | cast_case_f2l si2 =>
-      match v with
-      | Vfloat f =>
-          match cast_float_long si2 f with
-          | Some i => Some (Vlong i)
-          | None => None
-          end
-      | _ => None
-      end
-  | cast_case_s2l si2 =>
-      match v with
-      | Vsingle f =>
-          match cast_single_long si2 f with
-          | Some i => Some (Vlong i)
-          | None => None
-          end
-      | _ => None
-      end
-  | cast_case_struct id1 id2 =>
-      match v with
-      | Vptr b ofs =>
-          if ident_eq id1 id2 then Some v else None
-      | _ => None
-      end
-  | cast_case_union id1 id2 =>
-      match v with
-      | Vptr b ofs =>
-          if ident_eq id1 id2 then Some v else None
       | _ => None
       end
   | cast_case_void =>
