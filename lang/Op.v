@@ -429,7 +429,7 @@ Definition ptrofs_of_int (si: signedness) (n: int) : ptrofs :=
 
 Definition value_size : Z := if Archi.ptr64 then 8 else 4.
 
-Definition sem_add_ptr_int (cenv: composite_env) (si: signedness) (v1 v2: val): option val :=
+Definition sem_add_ptr_int (si: signedness) (v1 v2: val): option val :=
   match v1, v2 with
   | Vptr b1 ofs1, Vint n2 =>
       let n2 := ptrofs_of_int si n2 in
@@ -442,7 +442,7 @@ Definition sem_add_ptr_int (cenv: composite_env) (si: signedness) (v1 v2: val): 
   | _,  _ => None
   end.
 
-Definition sem_add_ptr_long (cenv: composite_env) (v1 v2: val): option val :=
+Definition sem_add_ptr_long (v1 v2: val): option val :=
   match v1, v2 with
   | Vptr b1 ofs1, Vlong n2 =>
       let n2 := Ptrofs.of_int64 n2 in
@@ -455,16 +455,16 @@ Definition sem_add_ptr_long (cenv: composite_env) (v1 v2: val): option val :=
   | _,  _ => None
   end.
 
-Definition sem_add (cenv: composite_env) (v1:val) (v2: val) (m: mem): option val :=
+Definition sem_add (v1:val) (v2: val) (m: mem): option val :=
   match classify_add v1 v2 with
   | add_case_pi =>             (**r pointer plus integer *)
-      sem_add_ptr_int cenv Unsigned v1 v2
+      sem_add_ptr_int Unsigned v1 v2
   | add_case_pl =>                (**r pointer plus long *)
-      sem_add_ptr_long cenv v1 v2
+      sem_add_ptr_long v1 v2
   | add_case_ip =>             (**r integer plus pointer *)
-      sem_add_ptr_int cenv Unsigned v2 v1
+      sem_add_ptr_int Unsigned v2 v1
   | add_case_lp =>                (**r long plus pointer *)
-      sem_add_ptr_long cenv v2 v1
+      sem_add_ptr_long v2 v1
   | add_default =>
       sem_binarith
         (fun sg n1 n2 => Some(Vint(Int.add n1 n2)))
@@ -488,7 +488,7 @@ Definition classify_sub (v1: val) (v2: val) :=
   | _, _ => sub_default
   end.
 
-Definition sem_sub (cenv: composite_env) (v1:val) (v2: val) (m:mem): option val :=
+Definition sem_sub (v1:val) (v2: val) (m:mem): option val :=
   match classify_sub v1 v2 with
   | sub_case_pi =>            (**r pointer minus integer *)
       match v1, v2 with
@@ -805,13 +805,12 @@ Definition sem_unary_operation
   end.
 
 Definition sem_binary_operation
-    (cenv: composite_env)
     (op: binary_operation)
     (v1: val) (v2: val)
     (m: mem): option val :=
   match op with
-  | Oadd => sem_add cenv v1 v2 m
-  | Osub => sem_sub cenv v1 v2 m
+  | Oadd => sem_add v1 v2 m
+  | Osub => sem_sub v1 v2 m
   | Omul => sem_mul v1 v2 m
   | Omod => sem_mod v1 v2 m
   | Odiv => sem_div v1 v2 m
@@ -828,10 +827,10 @@ Definition sem_binary_operation
   | Oge => sem_cmp Cge v1 v2 m
   end.
 
-Definition sem_incrdecr (cenv: composite_env) (id: incr_or_decr) (v: val) (m: mem) :=
+Definition sem_incrdecr (id: incr_or_decr) (v: val) (m: mem) :=
   match id with
-  | Incr => sem_add cenv v (Vint Int.one) m
-  | Decr => sem_sub cenv v (Vint Int.one) m
+  | Incr => sem_add v (Vint Int.one) m
+  | Decr => sem_sub v (Vint Int.one) m
   end.
 
 (* Definition incrdecr_type (ty: type) := *)
