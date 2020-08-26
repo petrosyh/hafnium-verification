@@ -62,6 +62,9 @@ Require Import Integers.
 Require Import Floats.
 Require Import Values.
 
+Require Import LangType.
+Require Import Op.
+
 Require Import ClassicalDescription EquivDec.
 About excluded_middle_informative.
 
@@ -372,8 +375,9 @@ int getindex (struct cpu c) {
    PutOwnedHeap does not have any message message lie Put.. *)               
 | PutOwnedHeap (_: expr)
 | GetOwnedHeap
-| Ptr2Int (_: expr)
-| Int2Ptr (_: expr)
+| Cast (_:expr) (_:type)
+(* | Ptr2Int (_: expr) *)
+(* | Int2Ptr (_: expr) *)
 .
 
 Definition DebugShow := Syscall "show".
@@ -650,104 +654,101 @@ Section Denote.
     else trigger (SetGvar n v)
   .
 
+  Definition tint := if Archi.ptr64 then Tlong Unsigned noattr else Tint I32 Unsigned noattr.
+  
   Check @mapT.
-  Fixpoint denote_expr (e : expr) : itree eff val :=
+  Fixpoint denote_expr (e : expr) (m:mem) : itree eff val :=
     match e with
     | Var v     => triggerGetVar v
     | Val n     => ret n
-    | Plus a b  => l <- denote_expr a ;; r <- denote_expr b ;;
-                     match l, r with
-                     | Vnat l, Vnat r => ret (Vnat (l + r))
-                     | _, _ => triggerNB "expr-plus"
+    | Plus a b  => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                     match sem_add l r m with
+                     | Some v => ret v
+                     | _ => triggerNB "expr-plus"
                      end
-    | Minus a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                     match l, r with
-                     | Vnat l, Vnat r => ret (Vnat (l - r))
-                     | _, _ => triggerNB "expr-minus"
+    | Minus a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                     match sem_sub l r m with
+                     | Some v => ret v
+                     | _ => triggerNB "expr-sub"
                      end
-    | Mult a b  => l <- denote_expr a ;; r <- denote_expr b ;;
-                     match l, r with
-                     | Vnat l, Vnat r => ret (Vnat (l * r))
-                     | _, _ => triggerNB "expr-mult"
+    | Mult a b  => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                     match sem_mul l r m with
+                     | Some v => ret v
+                     | _ => triggerNB "expr-mult"
                      end
-    | Mod a b   => l <- denote_expr a ;; r <- denote_expr b ;;
-                     match l, r with
-                     | Vnat l, Vnat r => ret (Vnat (l mod r))
-                     | _, _ => triggerNB "expr-mod"
+    | Mod a b   => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                     match sem_mod l r m with
+                     | Some v => ret v
+                     | _ => triggerNB "expr-mod"
                      end
-    | Div a b   => l <- denote_expr a ;; r <- denote_expr b ;;
-                     match l, r with
-                     | Vnat l, Vnat r => ret (Vnat (l / r))
-                     | _, _ => triggerNB "expr-div"
+    | Div a b   => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                     match sem_div l r m with
+                     | Some v => ret v
+                     | _ => triggerNB "expr-div"
                      end
-    | Equal a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                     Ret (if val_dec l r then Vtrue else Vfalse)
-    | Neg a => v <- denote_expr a ;; Ret (if is_true v then Vfalse else Vtrue)
-    | LE a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                  match l, r with
-                  | Vnat l, Vnat r => Ret (if N.leb l r then Vtrue else Vfalse)
-                  | _, _ => triggerNB "expr-LE"
-                  end
-    | LT a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                  match l, r with
-                  | Vnat l, Vnat r => Ret (if N.ltb l r then Vtrue else Vfalse)
-                  | _, _ => triggerNB "expr-LE"
-                  end
-
-    | And a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                 match l, r with
-                 | Vnat l, Vnat r =>
-                   match (l =? 0)%N, (r =? 0)%N with
-                   | false, false => Ret (Vtrue)
-                   | _, _ => Ret (Vfalse)
-                   end
-                 | _, _ => triggerNB "expr-And"
+    | Equal a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                     match sem_cmp Ceq l r m with
+                     | Some v => ret v
+                     | _ => triggerNB "expr-eq"
+                     end
+    | Neg a => v <- denote_expr a m ;;
+                 match sem_neg v with
+                 | Some v => ret v
+                 | _ => triggerNB "expr-neg"
                  end
-    | Or a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                match l, r with
-                | Vnat l, Vnat r =>
-                  match (l =? 0)%N, (r =? 0)%N with
-                  | true, true => Ret (Vfalse)
-                  | _, _ => Ret (Vtrue)
+    | LE a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                  match sem_cmp Cle l r m with
+                  | Some v => ret v
+                  | _ => triggerNB "expr-le"
                   end
-                | _, _ => triggerNB "expr-Or"
-                end
-    | Not a => v <- denote_expr a ;;
-                 match v with
-                 | Vnat v =>
-                   if (v =? 0)%N then Ret (Vtrue) else Ret (Vfalse)
-                 | _ => triggerNB "expr-Not"
+    | LT a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                  match sem_cmp Clt l r m with
+                  | Some v => ret v
+                  | _ => triggerNB "expr-lt"
+                  end
+    | And a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                  if (bool_val l m)
+                  then ret r
+                  else ret Vfalse
+    | Or a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                  if (bool_val l m)
+                  then ret Vtrue
+                  else ret r
+    | Not a => v <- denote_expr a m ;;
+                  match sem_notbool v m with
+                  | Some v => ret v
+                  | None => triggerNB "expr-Not"
                  end
     (* JIEUNG: In here, we define those following bitwise operations without and bound (except not).
        defining bnot is impossible without boundary wordsize.
        For other things, we may need to check result values or original values (especially for shiftl and shiftr) to guarantee
        their validity *)
-    | BAnd a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                 match l, r with
-                 | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.land l r) max_unsigned))
-                 | _, _ => triggerNB "expr-And"
+    | BAnd a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                 match sem_and l r m with
+                 | Some v => ret v
+                 | _ => triggerNB "expr-And"
                  end
-    | BOr a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                 match l, r with
-                 | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.lor l r) max_unsigned))
-                 | _, _ => triggerNB "expr-Or"
+    | BOr a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                 match sem_or l r m with
+                 | Some v => ret v
+                 | _ => triggerNB "expr-And"
                  end
-    | BNot a => v <- denote_expr a ;;
-                 match v with
-                 | Vnat v => Ret (Vnat (N.modulo (llnot v) max_unsigned))
+    | BNot a => v <- denote_expr a m ;;
+                 match sem_notint v with
+                 | Some v => ret v
                  | _ => triggerNB "expr-Not"
                  end
-    | ShiftL a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                    match l, r with
-                    | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.shiftl l r) max_unsigned))
-                    | _, _ => triggerNB "expr-LShift"
+    | ShiftL a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                    match sem_shl l r with
+                    | Some v => ret v
+                    | _ => triggerNB "expr-LShift"
                     end
-    | ShiftR a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                    match l, r with
-                    | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.shiftr l r) max_unsigned))
-                    | _, _ => triggerNB "expr-RShift"
+    | ShiftR a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+                    match sem_shr l r with
+                    | Some v => ret v
+                    | _ => triggerNB "expr-LShift"
                     end
-    | Load p chunk => p <- denote_expr p ;;
+    | Load p chunk => p <- denote_expr p m ;;
                 match p with
                 | Vptr b ofs =>
                   v <- trigger (LoadE b (Ptrofs.unsigned ofs) chunk) ;;
@@ -760,7 +761,7 @@ Section Denote.
     | CoqCode params P =>
       args <- mapT (case_ (Case:=case_sum)
                           (fun name => triggerGetVar name)
-                          (fun e => denote_expr e)) params ;;
+                          (fun e => denote_expr e m)) params ;;
       let '(retv, args_updated) := P args in
       let nvs: list (var * val) :=
           combine (filter_map (fun ne => match ne with
@@ -770,11 +771,11 @@ Section Denote.
       in
       mapT (fun '(n, v) => triggerSetVar n v) nvs ;;
       ret retv
-    | Put msg e => v <- denote_expr e ;;
+    | Put msg e => v <- denote_expr e m ;;
                  triggerSyscall "p" msg [v] ;; Ret (Vnodef)
-    | Debug msg e => v <- denote_expr e ;;
+    | Debug msg e => v <- denote_expr e m ;;
                        triggerSyscall "d" msg [v] ;; Ret (Vnodef)
-    | Syscall code msg e => v <- denote_expr e ;;
+    | Syscall code msg e => v <- denote_expr e m ;;
                        triggerSyscall code msg [v] ;; Ret (Vnodef)
     | Get => triggerSyscall "g" "" []
     | Call func_name params =>
@@ -791,7 +792,7 @@ Section Denote.
 
       args <- (mapT (case_ (Case:=case_sum)
                            (fun name => triggerGetVar name)
-                           (fun e => denote_expr e)) params) ;;
+                           (fun e => denote_expr e m)) params) ;;
       '(retv, args_updated) <- match (find (fun '(n, _) => string_dec func_name n) ctx) with
                                | Some _ => trigger (CallInternal func_name args)
                                | None => trigger (CallExternal func_name args)
@@ -853,21 +854,28 @@ Section Denote.
     (*                 | _ => triggerNB "expr-getlen" *)
     (*                 end *)
     | GetOwnedHeap => trigger EGetOwnedHeap
-    | PutOwnedHeap e => v <- (denote_expr e) ;; trigger (EPutOwnedHeap v) ;; ret Vnodef
-    | Ptr2Int e => e <- denote_expr e ;;
-                    match e with
-                    | Vptr b ofs =>
-                      if (b =? 1)%positive
-                      then ret (Vint (Ptrofs.to_int ofs))
-                      else triggerNB "expr-ptr2int1"
-                    | _ => triggerNB "expr-ptr2int2"
-                    end
-    | Int2Ptr e => e <- denote_expr e ;;
-                    match e with
-                    | Vint n => ret (Vptr 1%positive (Ptrofs.of_int n))
-                    | Vlong n => ret (Vptr 1%positive (Ptrofs.of_int64 n))
-                    | _ => triggerNB "expr-int2ptr"
-                    end
+    | PutOwnedHeap e => v <- (denote_expr e m) ;; trigger (EPutOwnedHeap v) ;; ret Vnodef
+    | Cast e tto => v <- denote_expr e m ;;
+                   match sem_cast v tto m with
+                   | Some v' => ret v'
+                   | None => triggerNB "expr-cast"
+                   end
+    (*     Ptr2Int e => v <- denote_expr e m ;; *)
+    (*               match v with *)
+    (*               | Vptr b ofs => *)
+    (*                 match sem_cast v tint m with *)
+    (*                 | Some v' => ret v' *)
+    (*                 | None => triggerNB "expr-ptr2int1" *)
+    (*                 end *)
+    (*               | _ => triggerNB "expr-ptr2int2" *)
+    (*               end *)
+    (* | Int2Ptr e =>  *)
+    (*   e <- denote_expr e ;; *)
+    (*                 match e with *)
+    (*                 | Vint n => ret (Vptr 1%positive (Ptrofs.of_int n)) *)
+    (*                 | Vlong n => ret (Vptr 1%positive (Ptrofs.of_int64 n)) *)
+    (*                 | _ => triggerNB "expr-int2ptr" *)
+    (*                 end *)
     end.
   
   (* JIEUNG (comments): Can I know a little bit more about this control? *) 
@@ -919,17 +927,17 @@ Section Denote.
       the former was true.  *)
   Typeclasses eauto := debug 4.
 
-  Fixpoint denote_stmt (s : stmt) : itree eff (control * val) :=
+  Fixpoint denote_stmt (s : stmt) (m:mem): itree eff (control * val * mem) :=
     match s with
-    | Assign x e =>  v <- denote_expr e ;; triggerSetVar x v ;; ret (CNormal, Vnodef)
+    | Assign x e =>  v <- denote_expr e m ;; triggerSetVar x v ;; ret (CNormal, Vnodef, m)
 
     (* JIEUNG: Why do we need is_normal condition only in here? 
        - for CONTINUE, we need to continuously evaluate it?
        - for BREAK, we have to terminate it 
        - for RETURN, we have to return the result 
     *)
-    | Seq a b    =>  '(c, v) <- denote_stmt a ;; if (is_normal c)
-                                                 then denote_stmt b
+    | Seq a b    =>  '(c, v, m') <- denote_stmt a m ;; if (is_normal c)
+                                                 then denote_stmt b m
                                                  else ret (c, v)
     | If i t e   =>
       v <- denote_expr i ;;
