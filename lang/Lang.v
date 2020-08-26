@@ -321,17 +321,17 @@ Inductive expr : Type :=
 | Neg (_: expr)
 | LE (_ _: expr)
 (* added *)
-| LT (_ _: expr)     
+| LT (_ _: expr)
 (* added *)
 | And (_ _: expr)
 | Or (_ _: expr)
 | Not (_ : expr)
-(* bitwise opreations *)     
+(* bitwise opreations *)
 | BAnd  (_ _ : expr)
 | BOr (_ _ : expr)
 | BNot   (_ : expr)
 | ShiftL  (_ _ : expr)
-| ShiftR  (_ _ : expr)     
+| ShiftR  (_ _ : expr)
 (* JIEUNG: Where is store? *)
 | Load (_: expr) (_: memory_chunk)
 | CoqCode (_: list (var + expr)) (P: list val -> (val * list val))
@@ -342,7 +342,8 @@ Do we need to distinguish this one with Call? *)
 | Syscall (code: string) (msg: string) (e: expr)
 | Get
 | Call (func_name: string) (params: list (var + expr))
-| Ampersand (_: expr)
+(* DJ: Is this nessasary? *)
+(* | Ampersand (_: expr) *)
 (* JIEUNG: What is the following operation *)       
 (* | GetLen (_: expr) *)
 (* YJ: Vptr에 addr: nat 추가하면?
@@ -512,8 +513,8 @@ Module LangNotations.
   (* Notation "x '#:=' '#get' e" := *)
   (*   (Get x e) (at level 60, e at level 50): stmt_scope. *)
 
-  Notation "#& e" :=
-    (Ampersand e) (at level 60, e at level 50): stmt_scope.
+  (* Notation "#& e" := *)
+  (*   (Ampersand e) (at level 60, e at level 50): stmt_scope. *)
 
   (* Notation "#* e" := *)
   (*   (Load e 0) (at level 40, e at level 50): stmt_scope. *)
@@ -540,7 +541,7 @@ Variant GlobalE : Type -> Type :=
 Variant MemoryE : Type -> Type :=
 | LoadE (b: block) (ofs: Z) (chunk: memory_chunk) : MemoryE (option val)
 | StoreE (b: block) (ofs: Z) (chunk: memory_chunk) (v : val) : MemoryE bool
-| AllocE (sz: Z) : MemoryE block
+| AllocE (sz: Z) : MemoryE val
 | FreeE (b: block) (ofs: Z) : MemoryE bool
 .
 
@@ -708,7 +709,7 @@ Section Denote.
                   match (l =? 0)%N, (r =? 0)%N with
                   | true, true => Ret (Vfalse)
                   | _, _ => Ret (Vtrue)
-                  end                  
+                  end
                 | _, _ => triggerNB "expr-Or"
                 end
     | Not a => v <- denote_expr a ;;
@@ -717,15 +718,15 @@ Section Denote.
                    if (v =? 0)%N then Ret (Vtrue) else Ret (Vfalse)
                  | _ => triggerNB "expr-Not"
                  end
-    (* JIEUNG: In here, we define those following bitwise operations without and bound (except not). 
-       defining bnot is impossible without boundary wordsize. 
-       For other things, we may need to check result values or original values (especially for shiftl and shiftr) to guarantee 
+    (* JIEUNG: In here, we define those following bitwise operations without and bound (except not).
+       defining bnot is impossible without boundary wordsize.
+       For other things, we may need to check result values or original values (especially for shiftl and shiftr) to guarantee
        their validity *)
     | BAnd a b => l <- denote_expr a ;; r <- denote_expr b ;;
                  match l, r with
                  | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.land l r) max_unsigned))
                  | _, _ => triggerNB "expr-And"
-                 end  
+                 end
     | BOr a b => l <- denote_expr a ;; r <- denote_expr b ;;
                  match l, r with
                  | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.lor l r) max_unsigned))
@@ -738,7 +739,7 @@ Section Denote.
                  end
     | ShiftL a b => l <- denote_expr a ;; r <- denote_expr b ;;
                     match l, r with
-                    | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.shiftl l r) max_unsigned)) 
+                    | Vnat l, Vnat r => Ret (Vnat (N.modulo (N.shiftl l r) max_unsigned))
                     | _, _ => triggerNB "expr-LShift"
                     end
     | ShiftR a b => l <- denote_expr a ;; r <- denote_expr b ;;
@@ -749,7 +750,7 @@ Section Denote.
     | Load p chunk => p <- denote_expr p ;;
                 match p with
                 | Vptr b ofs =>
-                  v <- trigger (LoadE b ofs chunk) ;;
+                  v <- trigger (LoadE b (Ptrofs.unsigned ofs) chunk) ;;
                     match v with
                     | Some v => ret v
                     | _ => triggerNB "expr-load1"
@@ -805,7 +806,7 @@ Section Denote.
       mapT (fun '(n, v) => triggerSetVar n v) nvs ;;
       ret retv
     (* JIEUNG: copy ptr to the new variable? *)           
-    | Ampersand e => v <- (denote_expr e) ;; Ret (Vptr None [v])
+    (* | Ampersand e => v <- (denote_expr e) ;; Ret (Vptr None [v]) *)
     (* | SubPointerFrom p from => *)
     (*   p <- (denote_expr p) ;; from <- (denote_expr from) ;; *)
     (*     match p with *)
@@ -856,15 +857,15 @@ Section Denote.
     | Ptr2Int e => e <- denote_expr e ;;
                     match e with
                     | Vptr b ofs =>
-                      if b =? 1%positive
-                      then ret (Vint (Int.unsigned ofs))
+                      if (b =? 1)%positive
+                      then ret (Vint (Ptrofs.to_int ofs))
                       else triggerNB "expr-ptr2int1"
                     | _ => triggerNB "expr-ptr2int2"
                     end
     | Int2Ptr e => e <- denote_expr e ;;
                     match e with
-                    | Vint n => ret (Vptr 1%positive (Int.repr n))
-                    | Vlong n => ret (Vptr 1%positive (Int64.repr n))
+                    | Vint n => ret (Vptr 1%positive (Ptrofs.of_int n))
+                    | Vlong n => ret (Vptr 1%positive (Ptrofs.of_int64 n))
                     | _ => triggerNB "expr-int2ptr"
                     end
     end.
@@ -950,24 +951,24 @@ Section Denote.
     | GuaranteeFail => triggerNB "stmt-grnt"
     | Store p chunk e => p <- denote_expr p ;; e <- denote_expr e ;;
                     match p with
-                    | Vptr b ofs  => v <- trigger (StoreE b ofs chunk e) ;;
-                                    if is_true v
+                    | Vptr b ofs  => v <- trigger (StoreE b (Ptrofs.unsigned ofs) chunk e) ;;
+                                    if (v: bool)
                                     then ret (CNormal, Vnodef)
                                     else triggerNB "stmt-store1"
                     | _ => triggerNB "stmt-store2"
                     end
     | Alloc x e => e <- denote_expr e ;;
                   match e with
-                  | Vint n => v <- trigger (AllocE (Int.repr n)) ;;
+                  | Vint n => v <- trigger (AllocE (Int.unsigned n)) ;;
                                triggerSetVar x v ;; ret (CNormal, Vnodef)
-                  | Vlong n => v <- trigger (AllocE (Int64.repr n)) ;;
+                  | Vlong n => v <- trigger (AllocE (Int64.unsigned n)) ;;
                                 triggerSetVar x v ;; ret (CNormal, Vnodef)
                   | __ => triggerNB "stmt-alloc"
                   end
     | Free p => p <- denote_expr p ;;
                  match p with
-                 | Vptr b ofs  => v <- trigger (FreeE b ofs) ;;
-                                   if is_true v
+                 | Vptr b ofs  => v <- trigger (FreeE b (Ptrofs.unsigned ofs)) ;;
+                                   if (v: bool)
                                    then ret (CNormal, Vnodef)
                                    else triggerNB "stmt-free1"
                  | _ => triggerNB "stmt-free2"
@@ -980,21 +981,22 @@ Section Denote.
 
     (* JIEUNG: for initialization -  I will add this part later *)
     | InitPtrs ptrvar v size =>
-      ptr <- triggerGetVar ptrvar ;;
-      match ptr, v, size with
-      | Vptr paddr cts0, Vnat init_v, Vnat sz =>
-        match  paddr with
-        | Some paddr' =>
-          if is_true paddr'
-          then
-            if is_true sz
-            then triggerNB "expr-initptr"
-            else triggerNB "expr-initptr"
-          else triggerNB "expr-initptr"  
-        | _ => triggerNB "expr-initptr"
-        end
-      | _, _, _ => triggerNB "expr-initptr"
-      end                                                                                 
+      (* ptr <- triggerGetVar ptrvar ;; *)
+      (* match ptr, v, size with *)
+      (* | Vptr paddr cts0, Vnat init_v, Vnat sz => *)
+      (*   match  paddr with *)
+      (*   | Some paddr' => *)
+      (*     if is_true paddr' *)
+      (*     then *)
+      (*       if is_true sz *)
+      (*       then triggerNB "expr-initptr" *)
+      (*       else triggerNB "expr-initptr" *)
+      (*     else triggerNB "expr-initptr"   *)
+      (*   | _ => triggerNB "expr-initptr" *)
+      (*   end *)
+      (* | _, _, _ => triggerNB "expr-initptr" *)
+      (* end *)
+      triggerNB "tmp"
     end.
     
 End Denote.
@@ -1065,12 +1067,12 @@ Section Example_Fact.
   Variable input: var.
   Variable output: var.
 
-  Definition fact (n:N): stmt :=
-    input #= n#;
-    output #= 1#;
-    #while input
-    do output #= output * input#;
-       input  #= input - Vnat 1.
+  (* Definition fact (n:N): stmt := *)
+  (*   input #= n#; *)
+  (*   output #= 1#; *)
+  (*   #while input *)
+  (*   do output #= output * input#; *)
+  (*      input  #= input - Vint 1. *)
 
   (** We have given _a_ notion of denotation to [fact 6] via [denote_imp].
       However, this is naturally not actually runnable yet, since it contains
@@ -1125,7 +1127,7 @@ How can we add error check here?
      **)
     let tl := tl lenv in
     match e with
-    | GetLvar x => Ret (lenv, (lookup_default x (Vnat 0) hd))
+    | GetLvar x => Ret (lenv, (lookup_default x (Vint Int.zero) hd))
     | SetLvar x v => Ret ((Maps.add x v hd) :: tl, tt)
  
     (* JIEUNG: is it similar to stack push and pop? *)                        
@@ -1163,7 +1165,7 @@ Definition handle_GlobalE {E: Type -> Type}
   : GlobalE ~> stateT genv (itree E) :=
   fun _ e env =>
     match e with
-    | GetGvar x => Ret (env, (lookup_default x (Vnat 0) env))
+    | GetGvar x => Ret (env, (lookup_default x (Vint Int.zero) env))
     | SetGvar x v => Ret (Maps.add x v env, tt)
     end.
 
@@ -1173,35 +1175,34 @@ Definition interp_GlobalE {E A} (t : itree (GlobalE +' E) A) :
   t'
 .
 
-Definition mem := memory.
+Definition mem := mem.
 Definition handle_MemoryE {E: Type -> Type}
-  : GlobalE ~> stateT mem (itree E) :=
+  : MemoryE ~> stateT mem (itree E) :=
   fun _ e mem =>
     match e with
-    | LoadE (b: block) (ofs: Z) (chunk: memory_chunk) => Ret (mem, load chunk mem b ofs)
-    | StoreE (b: block) (ofs: Z) (chunk: memory_chunk) (v : val) =>
-      let mem' := store chunk men b ofs v in
+    | LoadE b ofs chunk => Ret (mem, Mem.load chunk mem b ofs)
+    | StoreE b ofs chunk v =>
+      let mem' := Mem.store chunk mem b ofs v in
       match mem' with
       | Some mem' => Ret (mem', true)
       | _ => Ret (mem, false)
       end
-    | AllocE (sz: Z) =>
-      let '(mem', b) := alloc mem 0 sz in
-      Ret (mem', b)
-    | FreeE (b: block) (ofs: Z) =>
-      let mem' := free mem b 0 ofs in
+    | AllocE sz =>
+      let '(mem', b) := Mem.alloc mem 0 sz in
+      Ret (mem', Vptr b Ptrofs.zero)
+    | FreeE b ofs =>
+      let mem' := Mem.free mem b 0 ofs in
       match mem' with
       | Some mem' => Ret (mem', true)
       | _ => Ret (mem, false)
       end
     end.
 
-Definition interp_MemoryE {E A} (t : itree (GlobalE +' E) A) :
+Definition interp_MemoryE {E A} (t : itree (MemoryE +' E) A) :
   stateT mem (itree E) A :=
   let t' := State.interp_state (case_ handle_MemoryE State.pure_state) t in
   t'
 .
-
 
 Definition ignore_l {A B}: itree (A +' B) ~> itree B :=
   interp (fun _ (e: (A +' B) _) =>
@@ -1244,15 +1245,17 @@ Definition eval_whole_program (p: program): itree Event unit :=
     let i0 := (interp_LocalE (denote_program p) []) in
     let i1 := (interp_GlobalE i0 []) in
     let i2 := (interp_OwnedHeapE i1 (upcast tt)) in
-    let i3 := @ignore_l CallExternalE _ _ (ITree.ignore i2) in
-    i3
+    let i3 := (interp_MemoryE i2 Mem.empty) in
+    let i4 := @ignore_l CallExternalE _ _ (ITree.ignore i3) in
+    i4
 .
 
 Definition eval_single_program (p: program): itree (GlobalE +' Event) unit :=
     let i0 := (interp_LocalE (denote_program p) []) in
-    let i1 := @ignore_l CallExternalE _ _ (ITree.ignore i0) in
-    let i2 := @ignore_l OwnedHeapE _ _ (ITree.ignore i1) in
-    i2
+    let i1 := (interp_MemoryE i0 Mem.empty) in
+    let i2 := @ignore_l CallExternalE _ _ (ITree.ignore i1) in
+    let i3 := @ignore_l OwnedHeapE _ _ (ITree.ignore i2) in
+    i3
 .
 
 Print Instances Iter.
