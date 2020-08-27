@@ -1586,9 +1586,9 @@ Section CONCURRENCY.
 
   (* Variable shuffle: forall A, list A -> list A. *)
 
-  Definition rr_match {E R}
-             (rr : list (itree (E +' Event) R) -> itree (E +' Event) unit)
-             (q:list (itree (E +' Event) R)) : itree (E +' Event) unit
+  Definition rr_match {E1 E2 R}
+             (rr : list (itree (E1 +' E2 +' Event) R) -> itree (E1 +' E2 +' Event) unit)
+             (q:list (itree (E1 +' E2 +' Event) R)) : itree (E1 +' E2 +' Event) unit
     :=
       match q with
       | [] => Ret tt
@@ -1598,13 +1598,13 @@ Section CONCURRENCY.
         | TauF u => Tau (rr (u :: ts))
         | @VisF _ _ _ X o k =>
           match o with
-          | inr1 EYield => Vis o (fun x => rr (shuffle (k x :: ts)))
+          | inr1 (inr1 EYield) => Vis o (fun x => rr (shuffle (k x :: ts)))
           | _ => Vis o (fun x => rr (k x :: ts))
           end
         end
       end. 
 
-  CoFixpoint round_robin {E R} (q:list (itree (E +' Event) R)) : itree (E +' Event) unit :=
+  CoFixpoint round_robin {E1 E2 R} (q:list (itree (E1 +' E2 +' Event) R)) : itree (E1 +' E2 +' Event) unit :=
     rr_match round_robin q.
 
   Variable handle_Event: forall E R X, Event X -> (X -> itree E R) -> itree E R.
@@ -1664,7 +1664,7 @@ Definition eval_multimodule_multicore_REMOVETHIS(mss: list ModSem) (entries: lis
   in
   let t: itree (GlobalE +' MemoryE +' Event) _ := round_robin ts in
   let t: itree (MemoryE +' Event) _ := interp_GlobalE t [] in
-  let t: itree Event _ := interp_MemoryE t [] in
+  let t: itree Event _ := interp_MemoryE t Mem.empty in
   let t: itree Event unit := ITree.ignore t in
   t
 .
@@ -1700,7 +1700,7 @@ Definition eval_multimodule_multicore (mss: list ModSem) (entries: list var)
   let t: itree (GlobalE +' MemoryE +' Event) _ :=
       State.interp_state (case_ (HANDLE2 mss) State.pure_state) t (INITIAL2 mss) in
   let t: itree (MemoryE +' Event) _ := interp_GlobalE t [] in
-  let t: itree Event _ := interp_MemoryE t [] in
+  let t: itree Event _ := interp_MemoryE t Mem.empty in
   let t: itree Event unit := ITree.ignore t in
   t
 .
