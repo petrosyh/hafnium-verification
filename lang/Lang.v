@@ -547,6 +547,7 @@ Variant MemoryE : Type -> Type :=
 | StoreE (b: block) (ofs: Z) (chunk: memory_chunk) (v : val) : MemoryE bool
 | AllocE (sz: Z) : MemoryE val
 | FreeE (b: block) (ofs: Z) : MemoryE bool
+| GetMem : MemoryE mem
 .
 
 (* JIEUNG (comments):
@@ -657,64 +658,75 @@ Section Denote.
   Definition tint := if Archi.ptr64 then Tlong Unsigned noattr else Tint I32 Unsigned noattr.
   
   Check @mapT.
-  Fixpoint denote_expr (e : expr) (m:mem) : itree eff val :=
+  Fixpoint denote_expr (e : expr) : itree eff val :=
     match e with
     | Var v     => triggerGetVar v
     | Val n     => ret n
-    | Plus a b  => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | Plus a b  => l <- denote_expr a ;; r <- denote_expr b ;;
+                    m <- trigger GetMem ;;
                      match sem_add l r m with
                      | Some v => ret v
                      | _ => triggerNB "expr-plus"
                      end
-    | Minus a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | Minus a b => l <- denote_expr a ;; r <- denote_expr b ;;
+                    m <- trigger GetMem ;;
                      match sem_sub l r m with
                      | Some v => ret v
                      | _ => triggerNB "expr-sub"
                      end
-    | Mult a b  => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | Mult a b  => l <- denote_expr a ;; r <- denote_expr b ;;
+                    m <- trigger GetMem ;;
                      match sem_mul l r m with
                      | Some v => ret v
                      | _ => triggerNB "expr-mult"
                      end
-    | Mod a b   => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | Mod a b   => l <- denote_expr a ;; r <- denote_expr b ;;
+                    m <- trigger GetMem ;;
                      match sem_mod l r m with
                      | Some v => ret v
                      | _ => triggerNB "expr-mod"
                      end
-    | Div a b   => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | Div a b   => l <- denote_expr a ;; r <- denote_expr b ;;
+                    m <- trigger GetMem ;;
                      match sem_div l r m with
                      | Some v => ret v
                      | _ => triggerNB "expr-div"
                      end
-    | Equal a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | Equal a b => l <- denote_expr a ;; r <- denote_expr b ;;
+                    m <- trigger GetMem ;;
                      match sem_cmp Ceq l r m with
                      | Some v => ret v
                      | _ => triggerNB "expr-eq"
                      end
-    | Neg a => v <- denote_expr a m ;;
+    | Neg a => v <- denote_expr a ;;
                  match sem_neg v with
                  | Some v => ret v
                  | _ => triggerNB "expr-neg"
                  end
-    | LE a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | LE a b => l <- denote_expr a ;; r <- denote_expr b ;;
+                 m <- trigger GetMem ;;
                   match sem_cmp Cle l r m with
                   | Some v => ret v
                   | _ => triggerNB "expr-le"
                   end
-    | LT a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | LT a b => l <- denote_expr a ;; r <- denote_expr b ;;
+                 m <- trigger GetMem ;;
                   match sem_cmp Clt l r m with
                   | Some v => ret v
                   | _ => triggerNB "expr-lt"
                   end
-    | And a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | And a b => l <- denote_expr a ;; r <- denote_expr b ;;
+                  m <- trigger GetMem ;;
                   if (bool_val l m)
                   then ret r
                   else ret Vfalse
-    | Or a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | Or a b => l <- denote_expr a ;; r <- denote_expr b ;;
+                 m <- trigger GetMem ;;
                   if (bool_val l m)
                   then ret Vtrue
                   else ret r
-    | Not a => v <- denote_expr a m ;;
+    | Not a => v <- denote_expr a ;;
+                m <- trigger GetMem ;;
                   match sem_notbool v m with
                   | Some v => ret v
                   | None => triggerNB "expr-Not"
@@ -723,32 +735,34 @@ Section Denote.
        defining bnot is impossible without boundary wordsize.
        For other things, we may need to check result values or original values (especially for shiftl and shiftr) to guarantee
        their validity *)
-    | BAnd a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | BAnd a b => l <- denote_expr a ;; r <- denote_expr b ;;
+                   m <- trigger GetMem ;;
                  match sem_and l r m with
                  | Some v => ret v
                  | _ => triggerNB "expr-And"
                  end
-    | BOr a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | BOr a b => l <- denote_expr a ;; r <- denote_expr b ;;
+                  m <- trigger GetMem ;;
                  match sem_or l r m with
                  | Some v => ret v
                  | _ => triggerNB "expr-And"
                  end
-    | BNot a => v <- denote_expr a m ;;
+    | BNot a => v <- denote_expr a ;;
                  match sem_notint v with
                  | Some v => ret v
                  | _ => triggerNB "expr-Not"
                  end
-    | ShiftL a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | ShiftL a b => l <- denote_expr a ;; r <- denote_expr b ;;
                     match sem_shl l r with
                     | Some v => ret v
                     | _ => triggerNB "expr-LShift"
                     end
-    | ShiftR a b => l <- denote_expr a m ;; r <- denote_expr b m ;;
+    | ShiftR a b => l <- denote_expr a ;; r <- denote_expr b ;;
                     match sem_shr l r with
                     | Some v => ret v
                     | _ => triggerNB "expr-LShift"
                     end
-    | Load p chunk => p <- denote_expr p m ;;
+    | Load p chunk => p <- denote_expr p ;;
                 match p with
                 | Vptr b ofs =>
                   v <- trigger (LoadE b (Ptrofs.unsigned ofs) chunk) ;;
@@ -761,7 +775,7 @@ Section Denote.
     | CoqCode params P =>
       args <- mapT (case_ (Case:=case_sum)
                           (fun name => triggerGetVar name)
-                          (fun e => denote_expr e m)) params ;;
+                          (fun e => denote_expr e)) params ;;
       let '(retv, args_updated) := P args in
       let nvs: list (var * val) :=
           combine (filter_map (fun ne => match ne with
@@ -771,11 +785,11 @@ Section Denote.
       in
       mapT (fun '(n, v) => triggerSetVar n v) nvs ;;
       ret retv
-    | Put msg e => v <- denote_expr e m ;;
+    | Put msg e => v <- denote_expr e ;;
                  triggerSyscall "p" msg [v] ;; Ret (Vnodef)
-    | Debug msg e => v <- denote_expr e m ;;
+    | Debug msg e => v <- denote_expr e ;;
                        triggerSyscall "d" msg [v] ;; Ret (Vnodef)
-    | Syscall code msg e => v <- denote_expr e m ;;
+    | Syscall code msg e => v <- denote_expr e ;;
                        triggerSyscall code msg [v] ;; Ret (Vnodef)
     | Get => triggerSyscall "g" "" []
     | Call func_name params =>
@@ -792,7 +806,7 @@ Section Denote.
 
       args <- (mapT (case_ (Case:=case_sum)
                            (fun name => triggerGetVar name)
-                           (fun e => denote_expr e m)) params) ;;
+                           (fun e => denote_expr e)) params) ;;
       '(retv, args_updated) <- match (find (fun '(n, _) => string_dec func_name n) ctx) with
                                | Some _ => trigger (CallInternal func_name args)
                                | None => trigger (CallExternal func_name args)
@@ -854,8 +868,9 @@ Section Denote.
     (*                 | _ => triggerNB "expr-getlen" *)
     (*                 end *)
     | GetOwnedHeap => trigger EGetOwnedHeap
-    | PutOwnedHeap e => v <- (denote_expr e m) ;; trigger (EPutOwnedHeap v) ;; ret Vnodef
-    | Cast e tto => v <- denote_expr e m ;;
+    | PutOwnedHeap e => v <- (denote_expr e) ;; trigger (EPutOwnedHeap v) ;; ret Vnodef
+    | Cast e tto => v <- denote_expr e ;;
+                     m <- trigger GetMem ;;
                    match sem_cast v tto m with
                    | Some v' => ret v'
                    | None => triggerNB "expr-cast"
@@ -927,18 +942,19 @@ Section Denote.
       the former was true.  *)
   Typeclasses eauto := debug 4.
 
-  Fixpoint denote_stmt (s : stmt) (m:mem): itree eff (control * val * mem) :=
+  Fixpoint denote_stmt (s : stmt) : itree eff (control * val) :=
     match s with
-    | Assign x e =>  v <- denote_expr e m ;; triggerSetVar x v ;; ret (CNormal, Vnodef, m)
+    | Assign x e => v <- denote_expr e ;;
+                     triggerSetVar x v ;; ret (CNormal, Vnodef)
 
     (* JIEUNG: Why do we need is_normal condition only in here? 
        - for CONTINUE, we need to continuously evaluate it?
        - for BREAK, we have to terminate it 
        - for RETURN, we have to return the result 
     *)
-    | Seq a b    =>  '(c, v, m') <- denote_stmt a m ;; if (is_normal c)
-                                                 then denote_stmt b m
-                                                 else ret (c, v)
+    | Seq a b    => '(c, v) <- denote_stmt a ;; if (is_normal c)
+                                              then denote_stmt b
+                                              else ret (c, v)
     | If i t e   =>
       v <- denote_expr i ;;
       if is_true v then denote_stmt t else denote_stmt e
@@ -1204,6 +1220,7 @@ Definition handle_MemoryE {E: Type -> Type}
       | Some mem' => Ret (mem', true)
       | _ => Ret (mem, false)
       end
+    | GetMem => Ret (mem, mem)
     end.
 
 Definition interp_MemoryE {E A} (t : itree (MemoryE +' E) A) :
@@ -1289,12 +1306,12 @@ Inductive ModSem: Type :=
               owned_heap_Showable: @Showable owned_heap;
               initial_owned_heap: owned_heap;
               customE: Type -> Type ;
-              handler: customE ~> stateT owned_heap (itree (GlobalE +' Event));
+              handler: customE ~> stateT owned_heap (itree (GlobalE +' MemoryE +' Event));
 
               (* handler: forall E, AnyState ~> stateT Any (itree E); *)
               (* sem: CallExternalE ~> itree (CallExternalE +' Event); *)
 
-              sem: CallExternalE ~> itree (CallExternalE +' customE +' GlobalE +' Event);
+              sem: CallExternalE ~> itree (CallExternalE +' customE +' GlobalE +' MemoryE +' Event);
             }.
 
 Arguments mk_ModSem _ {owned_heap}.
@@ -1343,7 +1360,7 @@ Definition FINDN: forall A (a: A) l cond (FIND: List.find cond l = Some a),
   i. ginduction l; ii; ss.
   des_ifs.
   - exists (N.to_nat 0). ss.
-  - exploit IHl; eauto. i. destruct x. exists (S x). ss.
+  - sflib.exploit IHl; eauto. i. destruct x. exists (S x). ss.
 Defined.
 
 Fixpoint find_informative A (cond: A -> bool) (l: list A):
@@ -1362,15 +1379,15 @@ Defined.
 Obligation Tactic := idtac.
 
 Definition eval_multimodule_aux (mss: list ModSem) (entry: string):
-  itree ((sum_all1 (List.map customE mss)) +' GlobalE +' Event) (val * list val)
+  itree ((sum_all1 (List.map customE mss)) +' GlobalE +' MemoryE +' Event) (val * list val)
   :=
-  let sem: CallExternalE ~> itree ((sum_all1 (List.map customE mss)) +' GlobalE +' Event) :=
+  let sem: CallExternalE ~> itree ((sum_all1 (List.map customE mss)) +' GlobalE +' MemoryE +' Event) :=
       mrec (fun T (c: CallExternalE T) =>
               let '(CallExternal func_name args) := c in
               match find_informative (fun ms => ms.(fnames) func_name) mss with
               | Some nms =>
                 let ms := (snd (projT1 nms)) in
-                let t: itree (CallExternalE +' customE ms +' GlobalE +' Event) T :=
+                let t: itree (CallExternalE +' customE ms +' GlobalE +' MemoryE +' Event) T :=
                     (ms.(sem) c) in
                 translate (fun T e =>
                              match e with
@@ -1431,7 +1448,7 @@ Inductive hvec (n: nat): Type :=
 .
 
 Definition HANDLE: forall mss,
-    (sum_all1 (List.map customE mss)) ~> stateT (list Any) (itree (GlobalE +' Event))
+    (sum_all1 (List.map customE mss)) ~> stateT (list Any) (itree (GlobalE +' MemoryE +' Event))
 .
   intro. induction mss.
   { i; ss. }
@@ -1459,7 +1476,7 @@ Defined.
 
 Definition HANDLE2: forall mss,
     (sum_all1 (List.map customE mss)) ~> stateT (hvec (length mss))
-                                      (itree (GlobalE +' Event))
+                                      (itree (GlobalE +' MemoryE +' Event))
 .
   intro. induction mss.
   { i; ss. }
@@ -1542,12 +1559,13 @@ Definition program_to_ModSem (p: program): ModSem :=
 .
 
 Definition eval_multimodule (mss: list ModSem): itree Event unit :=
-  let t: itree (sum_all1 (List.map customE mss) +' GlobalE +' Event) (val * list val)
+  let t: itree (sum_all1 (List.map customE mss) +' GlobalE +' MemoryE +' Event) (val * list val)
       := eval_multimodule_aux mss "main" in
   let st := State.interp_state (case_ (HANDLE2 mss) State.pure_state) t in
-  let t': itree (GlobalE +' Event) _ := (st (INITIAL2 mss)) in
-  let t'': itree Event _ := interp_GlobalE t' [] in
-  ITree.ignore t''
+  let t': itree (GlobalE +' MemoryE +' Event) _ := (st (INITIAL2 mss)) in
+  let t'': itree (MemoryE +' Event) _ := interp_GlobalE t' [] in
+  let t''': itree Event _ := interp_MemoryE t'' Mem.empty in
+  ITree.ignore t'''
 .
 
 
@@ -1635,7 +1653,7 @@ End CONCURRENCY.
 
 Definition eval_multimodule_multicore_REMOVETHIS(mss: list ModSem) (entries: list var)
   : itree Event unit :=
-  let ts: list (itree (GlobalE +' Event) _) :=
+  let ts: list (itree (GlobalE +' MemoryE +' Event) _) :=
       List.map
         (fun entry =>
            let t := eval_multimodule_aux mss entry in
@@ -1644,8 +1662,9 @@ Definition eval_multimodule_multicore_REMOVETHIS(mss: list ModSem) (entries: lis
            t)
         entries
   in
-  let t: itree (GlobalE +' Event) _ := round_robin ts in
-  let t: itree Event _ := interp_GlobalE t [] in
+  let t: itree (GlobalE +' MemoryE +' Event) _ := round_robin ts in
+  let t: itree (MemoryE +' Event) _ := interp_GlobalE t [] in
+  let t: itree Event _ := interp_MemoryE t [] in
   let t: itree Event unit := ITree.ignore t in
   t
 .
@@ -1673,14 +1692,15 @@ Definition assoc_r {A B C}: itree ((A +' B) +' C) ~> itree (A +' B +' C) :=
 
 Definition eval_multimodule_multicore (mss: list ModSem) (entries: list var)
   : itree Event unit :=
-  let ts: list (itree (sum_all1 (List.map customE mss) +' GlobalE +' Event) _) :=
+  let ts: list (itree (sum_all1 (List.map customE mss) +' GlobalE +' MemoryE +' Event) _) :=
       List.map (eval_multimodule_aux mss) entries in
-  let t: itree (sum_all1 (List.map customE mss) +' GlobalE +' Event) _ :=
+  let t: itree (sum_all1 (List.map customE mss) +' GlobalE +' MemoryE +' Event) _ :=
       assoc_r (round_robin (List.map (fun t => assoc_l t) ts)) in
   (*** TODO: I want to write it in point-free style ***)
-  let t: itree (GlobalE +' Event) _ :=
+  let t: itree (GlobalE +' MemoryE +' Event) _ :=
       State.interp_state (case_ (HANDLE2 mss) State.pure_state) t (INITIAL2 mss) in
-  let t: itree Event _ := interp_GlobalE t [] in
+  let t: itree (MemoryE +' Event) _ := interp_GlobalE t [] in
+  let t: itree Event _ := interp_MemoryE t [] in
   let t: itree Event unit := ITree.ignore t in
   t
 .
