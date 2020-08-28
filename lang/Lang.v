@@ -656,6 +656,7 @@ Section Denote.
   .
 
   Definition tint := if Archi.ptr64 then Tlong Unsigned noattr else Tint I32 Unsigned noattr.
+  Definition int_sz : Z := if Archi.ptr64 then 8 else 4.
   
   Check @mapT.
   Fixpoint denote_expr (e : expr) : itree eff val :=

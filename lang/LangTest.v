@@ -52,6 +52,13 @@ About excluded_middle_informative.
 Require Import Lang Any.
 Import LangNotations.
 
+(** From CompCert *)
+Require Import AST.
+Require Import Memory.
+Require Import Integers.
+Require Import Floats.
+Require Import Values.
+Require Import LangType Op.
 
 
 Require Import Nat.
@@ -59,6 +66,7 @@ Require Import Coq.Arith.PeanoNat.
 Require Import Coq.NArith.BinNat.
 Require Import Coq.NArith.Nnat.
 Require Import BitNat.
+Require Import BinInt.
 
 Local Open Scope N_scope.
 
@@ -69,7 +77,8 @@ Set Implicit Arguments.
 Module LoadStore.
 
   Definition main x sum: stmt :=
-    sum #= Vnat 0#;
+    sum #= Vlong Int64.zero#;
+    Alloc x (Vlong (Int64.repr (Z.mul 3 int_sz))) #;    
     x #= Vptr None (repeat (Vnat 0) 3)#;
     Put "" x#;
     (x @ 0 #:= 10)#;
