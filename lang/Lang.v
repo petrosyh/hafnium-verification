@@ -205,17 +205,20 @@ Extract Constant show_val =>
   let s2cl = fun s -> List.init (String.length s) (String.get s) in
   let rec string_of_val v =
   match v with
-  | Vnat n ->  cl2s (BinaryString.of_N n) ^ "" ""
-  | Vptr(paddr, cts) ->
-     let paddr = ""("" ^ (match paddr with
-                        | Some paddr -> cl2s (BinaryString.of_N paddr)
-                        | None -> ""N"") ^ "")""
-     in
-     if length cts == nat_of_int 0
-     then ""(*) "" ^ paddr ^ "". ""
-     else ""(*) "" ^ paddr ^ ""["" ^
-            (List.fold_left (fun s i -> s ^ "" "" ^ string_of_val i) """" cts) ^ ""]""
-  | Vabs(a) -> ""(A) "" ^ cl2s (string_of_Any a) in
+  | Vint n ->  cl2s (BinaryString.of_Z (Int.unsigned n)) ^ "" ""
+  | Vlong n -> cl2s (BinaryString.of_Z (Int64.unsgiend n)) ^ "" ""
+  | Vptr(block, ofs) ->
+     (* let paddr = ""("" ^ (match paddr with *)
+     (*                    | Some paddr -> cl2s (BinaryString.of_N paddr) *)
+     (*                    | None -> ""N"") ^ "")"" *)
+     (* in *)
+     (* if length cts == nat_of_int 0 *)
+     (* then ""(*) "" ^ paddr ^ "". "" *)
+     (* else ""(*) "" ^ paddr ^ ""["" ^ *)
+     (*        (List.fold_left (fun s i -> s ^ "" "" ^ string_of_val i) """" cts) ^ ""]"" *)
+     ""(*) "" ^ cl2s (BinaryString.of_pos block) ^
+     "" "" ^ cl2s (Binarystring.of_pos (Ptrofs.unsigned ofs)) ^ "" ""
+  (* | Vabs(a) -> ""(A) "" ^ cl2s (string_of_Any a) *) in
   fun x -> s2cl (string_of_val x)
 ".
 

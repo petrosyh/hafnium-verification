@@ -14,16 +14,20 @@
  * limitations under the License.
  *)
 
+(*
 open Monad
 open OptionMonad
+*)
 open Any
 open Lang
 
+(*
 open MpoolSeq
 open MpoolConcur
 open CPUSeq
 open MMStageOne
 open MMHighStageOne
+*)
 open LangTest
 
 open List
@@ -91,6 +95,7 @@ let string_of_vals vs = List.fold_left (fun s i -> s ^ " " ^ string_of_val i) ""
 
 (* JIEUNG: The following things are for mpool. Is there any way that we can provide 
  * those definitions with more user-friendly way than now? *)
+(*
 let string_of_lock l =
   match l with
   | Vnat id -> (cl2s (BinaryString.of_N id))
@@ -123,7 +128,7 @@ let string_of_mpool p =
     | _ -> failwith "Mpool not well-formed2"
   in
   (foo "  " p)
-
+*)
 
 
 (*
@@ -225,7 +230,7 @@ let handle_Event = fun e k ->
      k (Obj.magic ()) *)
   | ESyscall ('m'::'d'::[], msg, p::[]) ->
      print_endline (cl2s msg) ;
-     print_endline (string_of_mpool p) ; 
+ (*    print_endline (string_of_mpool p) ;  *)
      print_endline "" ;
      k (Obj.magic ()) 
   (*
@@ -327,15 +332,15 @@ let main =
 
   run (CoqCodeCBR.isem) ;
   print_endline "-----------------------------------------------------------" ;
-  run (MultiCore2.sem) ;
+(*  run (MultiCore2.sem) ;
   print_endline "-----------------------------------------------------------" ;
   run (MultiCoreMPSC.sem) ;
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleMultiCore.sem) ;
-
+*)
   print_endline "-----------------------------------------------------------" ;
   run (eval_whole_program DoubleReturn.program) ;
-
+(*
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleLocalStateSimple.isem1) ;
   print_endline "-----------------------------------------------------------" ;
@@ -344,7 +349,8 @@ let main =
   run (MultiModuleLocalStateSimpleLang.isem) ;
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleGenv.isem) ;
-
+  *)
+(*
   print_endline "-----------------------------------------------------------" ;
   run (eval_whole_program MpoolSeq.TEST.TEST2.program) ;
 
@@ -372,10 +378,10 @@ let main =
 
   print_endline "-----------------------------------------------------------" ;
   run (PrintAny.isem) ;
-
+*)
 
   end;
-
+(*
   print_endline "-----------------------------------------------------------" ;
   run (MpoolConcur.TEST.TEST4.isem) ;
 
@@ -396,4 +402,5 @@ let main =
 
   print_endline "-----------------------------------------------------------" ;
   run (MMHighStageOne.PTHIGHTEST.isem) ;*)
+*)
   ()
