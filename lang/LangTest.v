@@ -945,7 +945,7 @@ End MultiCore.
 
 (* Module PrintTest. *)
 
-Require Import BinaryString.
+(* Require Import BinaryString. *)
 
 (* Include Raw. *)
 (* Definition string_gen (n: N): string := *)

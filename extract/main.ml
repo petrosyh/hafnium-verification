@@ -307,21 +307,21 @@ let main =
   Random.self_init();
 
   (* print_endline "-----------------------------------" ;
-   * run (eval_program LoadStore.program) ;
-   * print_endline "-----------------------------------" ;
-   * run (eval_program Rec.program) ;
-   * print_endline "-----------------------------------" ;
-   * run (eval_program MutRec.program) ;
-   * print_endline "-----------------------------------" ;
-   * run (eval_program Move.program) ;
-   * print_endline "-----------------------------------" ;
-   * run (eval_program CoqCode.program) ;
-   * print_endline "-----------------------------------" ;
-   * run (eval_program Control.program) ;
-   * print_endline "-----------------------------------" ;
-   * run (MultiModule.isem) ;
-   * print_endline "-----------------------------------" ;
-   * run (MultiModuleLocalState.isem) ; *)
+   * run (eval_program LoadStore.program) ; *)
+  print_endline "-----------------------------------" ;
+  run (eval_whole_program Rec.program) ;
+  print_endline "-----------------------------------" ;
+  run (eval_whole_program MutRec.program) ;
+  print_endline "-----------------------------------" ;
+  run (eval_whole_program Move.program) ;
+  print_endline "-----------------------------------" ;
+  run (eval_whole_program CoqCode.program) ;
+  print_endline "-----------------------------------" ;
+  run (eval_whole_program Control.program) ;
+  print_endline "-----------------------------------" ;
+  (*run (MultiModule.isem) ;
+  print_endline "-----------------------------------" ;
+  run (MultiModuleLocalState.isem) ; *)
   (* print_endline "-----------------------------------" ;
    * my_rr (List.map eval_program Concur.programs) ; *)
   (* print_endline "-----------------------------------------------------------" ;

@@ -205,8 +205,8 @@ Extract Constant show_val =>
   let s2cl = fun s -> List.init (String.length s) (String.get s) in
   let rec string_of_val v =
   match v with
-  | Vint n ->  cl2s (BinaryString.of_Z (Int.unsigned n)) ^ "" ""
-  | Vlong n -> cl2s (BinaryString.of_Z (Int64.unsgiend n)) ^ "" ""
+  | Vint n -> cl2s (BinaryString.of_Z (Int.unsigned n)) ^ "" ""
+  | Vlong n -> cl2s (BinaryString.of_Z (Int64.unsigned n)) ^ "" ""
   | Vptr(block, ofs) ->
      (* let paddr = ""("" ^ (match paddr with *)
      (*                    | Some paddr -> cl2s (BinaryString.of_N paddr) *)
@@ -217,8 +217,9 @@ Extract Constant show_val =>
      (* else ""(*) "" ^ paddr ^ ""["" ^ *)
      (*        (List.fold_left (fun s i -> s ^ "" "" ^ string_of_val i) """" cts) ^ ""]"" *)
      ""(*) "" ^ cl2s (BinaryString.of_pos block) ^
-     "" "" ^ cl2s (Binarystring.of_pos (Ptrofs.unsigned ofs)) ^ "" ""
-  (* | Vabs(a) -> ""(A) "" ^ cl2s (string_of_Any a) *) in
+     "" "" ^ cl2s (BinaryString.of_Z ofs) ^ "" ""
+  (* | Vabs(a) -> ""(A) "" ^ cl2s (string_of_Any a) *)
+  | Vundef -> ""Undef "" in
   fun x -> s2cl (string_of_val x)
 ".
 

@@ -17,7 +17,7 @@ Require Extraction.
 
 (* From HafniumCore *)
 (* YJ: Having some makefile problem. (dependency checking) need to solve that !! *)
-Require Import Lang LangTest.
+Require Import Lang LangTest BinaryString.
 (* Require Import MpoolSeq MpoolConcur CPUSeq MM MMStageOne MMHighStageOne. *)
 
 Require Import
@@ -35,6 +35,7 @@ Cd "extract".
 (* Separate Extraction MpoolSeq MpoolConcur Lang LangTest. *)
 
 Separate Extraction
+         BinaryString
          Any.string_of_Any
          Lang.eval_whole_program
          Lang.eval_single_program
