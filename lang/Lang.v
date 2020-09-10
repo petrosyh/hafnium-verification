@@ -208,17 +208,8 @@ Extract Constant show_val =>
   | Vint n -> cl2s (BinaryString.of_Z (Int.unsigned n)) ^ "" ""
   | Vlong n -> cl2s (BinaryString.of_Z (Int64.unsigned n)) ^ "" ""
   | Vptr(block, ofs) ->
-     (* let paddr = ""("" ^ (match paddr with *)
-     (*                    | Some paddr -> cl2s (BinaryString.of_N paddr) *)
-     (*                    | None -> ""N"") ^ "")"" *)
-     (* in *)
-     (* if length cts == nat_of_int 0 *)
-     (* then ""(*) "" ^ paddr ^ "". "" *)
-     (* else ""(*) "" ^ paddr ^ ""["" ^ *)
-     (*        (List.fold_left (fun s i -> s ^ "" "" ^ string_of_val i) """" cts) ^ ""]"" *)
-     ""(*) "" ^ cl2s (BinaryString.of_pos block) ^
-     "" "" ^ cl2s (BinaryString.of_Z ofs) ^ "" ""
-  (* | Vabs(a) -> ""(A) "" ^ cl2s (string_of_Any a) *)
+     ""(*) ("" ^ cl2s (BinaryString.of_pos block) ^
+     "") ("" ^ cl2s (BinaryString.of_Z ofs) ^ "") ""
   | Vundef -> ""Undef "" in
   fun x -> s2cl (string_of_val x)
 ".
@@ -1591,9 +1582,9 @@ Section CONCURRENCY.
 
   (* Variable shuffle: forall A, list A -> list A. *)
 
-  Definition rr_match {E1 E2 R}
-             (rr : list (itree (E1 +' E2 +' Event) R) -> itree (E1 +' E2 +' Event) unit)
-             (q:list (itree (E1 +' E2 +' Event) R)) : itree (E1 +' E2 +' Event) unit
+  Definition rr_match {E R}
+             (rr : list (itree (E +' Event) R) -> itree (E +' Event) unit)
+             (q:list (itree (E +' Event) R)) : itree (E +' Event) unit
     :=
       match q with
       | [] => Ret tt
@@ -1603,13 +1594,13 @@ Section CONCURRENCY.
         | TauF u => Tau (rr (u :: ts))
         | @VisF _ _ _ X o k =>
           match o with
-          | inr1 (inr1 EYield) => Vis o (fun x => rr (shuffle (k x :: ts)))
+          | inr1 EYield => Vis o (fun x => rr (shuffle (k x :: ts)))
           | _ => Vis o (fun x => rr (k x :: ts))
           end
         end
       end. 
 
-  CoFixpoint round_robin {E1 E2 R} (q:list (itree (E1 +' E2 +' Event) R)) : itree (E1 +' E2 +' Event) unit :=
+  CoFixpoint round_robin {E R} (q:list (itree (E +' Event) R)) : itree (E +' Event) unit :=
     rr_match round_robin q.
 
   Variable handle_Event: forall E R X, Event X -> (X -> itree E R) -> itree E R.
@@ -1656,23 +1647,23 @@ Section CONCURRENCY.
 
 End CONCURRENCY.
 
-Definition eval_multimodule_multicore_REMOVETHIS(mss: list ModSem) (entries: list var)
-  : itree Event unit :=
-  let ts: list (itree (GlobalE +' MemoryE +' Event) _) :=
-      List.map
-        (fun entry =>
-           let t := eval_multimodule_aux mss entry in
-           let st := State.interp_state (case_ (HANDLE2 mss) State.pure_state) t in
-           let t := st (INITIAL2 mss) in
-           t)
-        entries
-  in
-  let t: itree (GlobalE +' MemoryE +' Event) _ := round_robin ts in
-  let t: itree (MemoryE +' Event) _ := interp_GlobalE t [] in
-  let t: itree Event _ := interp_MemoryE t Mem.empty in
-  let t: itree Event unit := ITree.ignore t in
-  t
-.
+(* Definition eval_multimodule_multicore_REMOVETHIS(mss: list ModSem) (entries: list var) *)
+(*   : itree Event unit := *)
+(*   let ts: list (itree (GlobalE +' MemoryE +' Event) _) := *)
+(*       List.map *)
+(*         (fun entry => *)
+(*            let t := eval_multimodule_aux mss entry in *)
+(*            let st := State.interp_state (case_ (HANDLE2 mss) State.pure_state) t in *)
+(*            let t := st (INITIAL2 mss) in *)
+(*            t) *)
+(*         entries *)
+(*   in *)
+(*   let t: itree ((GlobalE +' MemoryE) +' Event) _ := round_robin ts in *)
+(*   let t: itree (MemoryE +' Event) _ := interp_GlobalE t [] in *)
+(*   let t: itree Event _ := interp_MemoryE t Mem.empty in *)
+(*   let t: itree Event unit := ITree.ignore t in *)
+(*   t *)
+(* . *)
 
 Definition assoc_l {A B C}: itree (A +' B +' C) ~> itree ((A +' B) +' C) :=
   interp (fun _ (e: (A +' B +' C) _) =>
@@ -1693,6 +1684,26 @@ Definition assoc_r {A B C}: itree ((A +' B) +' C) ~> itree (A +' B +' C) :=
             end)
 .
 
+Definition assoc_l2 {A B C D}: itree (A +' B +' C +' D) ~> itree ((A +' B +' C) +' D) :=
+  interp (fun _ (e: (A +' B +' C +' D) _) =>
+            match e with
+            | inl1 a => trigger (inl1 (inl1 a))
+            | inr1 (inl1 b) => trigger (inl1 (inr1 (inl1 b)))
+            | inr1 (inr1 (inl1 c)) => trigger (inr1 (inr1 (inl1 c)))
+            | inr1 (inr1 (inr1 d)) => trigger (inr1 d)
+            end)
+.
+
+Definition assoc_r2 {A B C D}: itree ((A +' B +' C) +' D) ~> itree (A +' B +' C +' D) :=
+  interp (fun _ (e: ((A +' B +' C) +' D) _) =>
+            match e with
+            | (inl1 (inl1 a)) => trigger (inl1 a)
+            | (inl1 (inr1 (inl1 b))) => trigger (inr1 (inl1 b))
+            | (inl1 (inr1 (inr1 c))) => trigger (inr1 (inr1 (inl1 c)))
+            | (inr1 d) => trigger (inr1 (inr1 (inr1 d)))
+            end)
+.
+
 (*** YJ: TODO: can we add coercion? ***)
 
 Definition eval_multimodule_multicore (mss: list ModSem) (entries: list var)
@@ -1700,7 +1711,7 @@ Definition eval_multimodule_multicore (mss: list ModSem) (entries: list var)
   let ts: list (itree (sum_all1 (List.map customE mss) +' GlobalE +' MemoryE +' Event) _) :=
       List.map (eval_multimodule_aux mss) entries in
   let t: itree (sum_all1 (List.map customE mss) +' GlobalE +' MemoryE +' Event) _ :=
-      assoc_r (round_robin (List.map (fun t => assoc_l t) ts)) in
+      assoc_r2 (round_robin (List.map (fun t => assoc_l2 t) ts)) in
   (*** TODO: I want to write it in point-free style ***)
   let t: itree (GlobalE +' MemoryE +' Event) _ :=
       State.interp_state (case_ (HANDLE2 mss) State.pure_state) t (INITIAL2 mss) in

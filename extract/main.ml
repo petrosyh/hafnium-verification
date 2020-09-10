@@ -319,9 +319,9 @@ let main =
   print_endline "-----------------------------------" ;
   run (eval_whole_program Control.program) ;
   print_endline "-----------------------------------" ;
-  (*run (MultiModule.isem) ;
+  run (MultiModule.isem) ;
   print_endline "-----------------------------------" ;
-  run (MultiModuleLocalState.isem) ; *)
+  run (MultiModuleLocalState.isem) ;
   (* print_endline "-----------------------------------" ;
    * my_rr (List.map eval_program Concur.programs) ; *)
   (* print_endline "-----------------------------------------------------------" ;
@@ -332,24 +332,25 @@ let main =
 
   run (CoqCodeCBR.isem) ;
   print_endline "-----------------------------------------------------------" ;
-(*  run (MultiCore2.sem) ;
+  run (MultiCore2.sem) ;
   print_endline "-----------------------------------------------------------" ;
   run (MultiCoreMPSC.sem) ;
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleMultiCore.sem) ;
-*)
+
   print_endline "-----------------------------------------------------------" ;
   run (eval_whole_program DoubleReturn.program) ;
-(*
+
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleLocalStateSimple.isem1) ;
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleLocalStateSimple.isem2) ;
   print_endline "-----------------------------------------------------------" ;
-  run (MultiModuleLocalStateSimpleLang.isem) ;
+(*  run (MultiModuleLocalStateSimpleLang.isem) ;
   print_endline "-----------------------------------------------------------" ;
+*)
   run (MultiModuleGenv.isem) ;
-  *)
+
 (*
   print_endline "-----------------------------------------------------------" ;
   run (eval_whole_program MpoolSeq.TEST.TEST2.program) ;
@@ -372,10 +373,10 @@ let main =
   print_endline "-----------------------------------------------------------" ;
   run (MpoolConcur.TEST.TEST3.isem1) ;
   run (MpoolConcur.TEST.TEST3.isem2) ;
-
+*)
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleMultiCoreLocalState.isem) ;
-
+(*
   print_endline "-----------------------------------------------------------" ;
   run (PrintAny.isem) ;
 *)

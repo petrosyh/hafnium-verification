@@ -49,21 +49,21 @@ Separate Extraction
          LangTest.CoqCodeCBR.isem
          LangTest.Control.program
          LangTest.DoubleReturn.program
-         (* LangTest.MultiCore.programs *)
-         (* LangTest.MultiCore2.sem *)
-         (* LangTest.MultiCoreMPSC.sem *)
-         (* LangTest.MultiModule.isem *)
-         (* LangTest.MultiModuleGenv.isem *)
-         (* LangTest.MultiModuleLocalState.isem *)
-         (* LangTest.MultiModuleLocalStateSimple.isem1 *)
-         (* LangTest.MultiModuleLocalStateSimple.isem2 *)
+         LangTest.MultiCore.programs
+         LangTest.MultiCore2.sem
+         LangTest.MultiCoreMPSC.sem
+         LangTest.MultiModule.isem
+         LangTest.MultiModuleGenv.isem
+         LangTest.MultiModuleLocalState.isem
+         LangTest.MultiModuleLocalStateSimple.isem1
+         LangTest.MultiModuleLocalStateSimple.isem2
          (* LangTest.MultiModuleLocalStateSimpleLang.isem *)
-         (* LangTest.MultiModuleMultiCore.sem *)
-         (* LangTest.MultiModuleMultiCoreLocalState.isem *)
+         LangTest.MultiModuleMultiCore.sem
+         LangTest.MultiModuleMultiCoreLocalState.isem
          (* LangTest.PrintAny.isem *)
-         (* LangTest.PrintTest.string_gen  *)
-         (* LangTest.PrintTest.z_gen   *)
-         (* LangTest.PrintTest.Z_to_string_gen  *)
+         LangTest.PrintTest.string_gen
+         LangTest.PrintTest.z_gen
+         LangTest.PrintTest.Z_to_string_gen
          (* LangTest.print_val *)
          (* LangTest.main *)
          (* LangTest.handle_Event *)
