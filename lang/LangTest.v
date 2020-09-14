@@ -74,37 +74,36 @@ Set Implicit Arguments.
 
 
 
-(* Module LoadStore. *)
+Module LoadStore.
 
-(*   Definition main x sum: stmt := *)
-(*     sum #= Vlong Int64.zero#; *)
-(*     Alloc x (Vlong (Int64.repr (Z.mul 3 int_sz))) #; *)
-(*     x #= Vptr None (repeat (Vnat 0) 3)#; *)
-(*     Put "" x#; *)
-(*     (x @ 0 #:= 10)#; *)
-(*     Put "" x#; *)
-(*     (x @ 1 #:= 20)#; *)
-(*     Put "" x#; *)
-(*     (x @ 2 #:= 30)#; *)
-(*     Put "" x#; *)
-(*     Put "" sum#; *)
-(*     sum #= sum + (x #@ 0)#; *)
-(*     Put "" sum#; *)
-(*     sum #= sum + (x #@ 1)#; *)
-(*     Put "" sum#; *)
-(*     sum #= sum + (x #@ 2)#; *)
-(*     Put "" sum#; *)
-(*     Skip *)
-(*   . *)
+  Definition main x sum: stmt :=
+    sum #= Vlong Int64.zero#;
+    Alloc x (Int64.repr (Z.mul 3 int_sz)) #;
+    Put "" x#;
+    (x @ Int64.zero #:= Int64.repr 10)#;
+    Put "" x#;
+    (x @ Int64.one  #:= Int64.repr 20)#;
+    Put "" x#;
+    (x @ (Int64.repr 2)  #:= Int64.repr 30)#;
+    Put "" x#;
+    Put "" sum#;
+    sum #= sum + (x #@ Int64.zero)#;
+    Put "" sum#;
+    sum #= sum + (x #@ Int64.one)#;
+    Put "" sum#;
+    sum #= sum + (x #@ (Int64.repr 2))#;
+    Put "" sum#;
+    Skip
+  .
 
-(*   Definition function: function. mk_function_tac main ([]: list var) ["x" ; "sum"]. Defined. *)
+  Definition function: function. mk_function_tac main ([]: list var) ["x" ; "sum"]. Defined.
 
-(*   Definition program: program := [("main", function)]. *)
+  Definition program: Lang.program := [("main", function)].
 
-(*   (* Extraction "LangTest.ml" load_store_program. *) *)
-(*   (* Check (eval_whole_program program). *) *)
+  (* Extraction "LangTest.ml" load_store_program. *)
+  (* Check (eval_whole_program program). *)
 
-(* End LoadStore. *)
+End LoadStore.
 
 
 Section TMP.

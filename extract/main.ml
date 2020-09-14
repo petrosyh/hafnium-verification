@@ -209,7 +209,7 @@ let handle_Event = fun e k ->
   | ENB msg -> failwith ("NB:" ^ (cl2s msg))
   | EUB msg -> failwith ("UB:" ^ (cl2s msg))
   | ESyscall ('p'::[], msg, v::[]) ->
-     print_string (cl2s msg) ; print_val v ; k (Obj.magic ())
+     print_string (cl2s msg ^ " ") ; print_val v ; k (Obj.magic ())
   | ESyscall ('d'::[], msg, vs) ->
       (*
       print_string "<DEBUG> " ; print_string (cl2s msg) ;
@@ -306,8 +306,8 @@ let rec my_rr q =
 let main =
   Random.self_init();
 
-  (* print_endline "-----------------------------------" ;
-   * run (eval_program LoadStore.program) ; *)
+  print_endline "-----------------------------------" ;
+  run (eval_whole_program LoadStore.program) ;
   print_endline "-----------------------------------" ;
   run (eval_whole_program Rec.program) ;
   print_endline "-----------------------------------" ;

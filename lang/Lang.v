@@ -331,7 +331,7 @@ Inductive expr : Type :=
 | ShiftL  (_ _ : expr)
 | ShiftR  (_ _ : expr)
 (* JIEUNG: Where is store? *)
-| Load (_: expr) (_: memory_chunk)
+| Load (_: expr)
 | CoqCode (_: list (var + expr)) (P: list val -> (val * list val))
 | Put (msg: string) (e: expr)
 | Debug (msg: string) (e: expr)
@@ -396,7 +396,7 @@ Inductive stmt : Type :=
 (* JIEUNG: Those two things are for assume and guarnatee rules that we want to add in the specification *)
 | AssumeFail
 | GuaranteeFail
-| Store (p: expr) (chunk: memory_chunk) (e: expr) (* mem # p := e *)
+| Store (p: expr) (e: expr) (* mem # p := e *)
 | Alloc (x : var) (e: expr) (* x = alloc e *)
 | Free (p: expr) (* Free ptr p *)
 (* YJ: I used "var" instead of "var + val". We should "update" retvs into variables. *)
@@ -429,11 +429,13 @@ Module LangNotations.
   Definition Expr_coerce: expr -> stmt := Expr.
   Definition Var_coerce: string -> expr := Var.
   Definition Val_coerce: val -> expr := Val.
-  Definition nat_coerce: int -> val := Vint.
+  Definition int_coerce: int -> val := Vint.
+  Definition long_coerce: int64 -> val := Vlong.
   Coercion Expr_coerce: expr >-> stmt.
   Coercion Var_coerce: string >-> expr.
   Coercion Val_coerce: val >-> expr.
-  Coercion nat_coerce: int >-> val.
+  Coercion int_coerce: int >-> val.
+  Coercion long_coerce: int64 >-> val.
 
   Bind Scope expr_scope with expr.
 
@@ -500,11 +502,11 @@ Module LangNotations.
     (#if e then Skip else GuaranteeFail) (at level 60, e at level 50): stmt_scope.
 
   (** TODO add store & load notations **)
-  (* Notation "x '@' ofs '#:=' e" := *)
-  (*   (Store x ofs e) (at level 60, e at level 50): stmt_scope. *)
+  Notation "x '@' ofs '#:=' e" :=
+    (Store (x+ofs) e) (at level 60, e at level 50): stmt_scope.
 
-  (* Notation "x '#@' ofs" := *)
-  (*   (Load x ofs) (at level 99): expr_scope. *)
+  Notation "x '#@' ofs" :=
+    (Load (x + ofs)) (at level 99): expr_scope.
 
   (* Notation "#put e" := *)
   (*   (Put "" e) (at level 60, e at level 50): stmt_scope. *)
@@ -538,8 +540,8 @@ Variant GlobalE : Type -> Type :=
 .
 
 Variant MemoryE : Type -> Type :=
-| LoadE (b: block) (ofs: Z) (chunk: memory_chunk) : MemoryE (option val)
-| StoreE (b: block) (ofs: Z) (chunk: memory_chunk) (v : val) : MemoryE bool
+| LoadE (b: block) (ofs: Z) : MemoryE (option val)
+| StoreE (b: block) (ofs: Z) (v : val) : MemoryE bool
 | AllocE (sz: Z) : MemoryE val
 | FreeE (b: block) (ofs: Z) : MemoryE bool
 | GetMem : MemoryE mem
@@ -652,6 +654,7 @@ Section Denote.
 
   Definition tint := if Archi.ptr64 then Tlong Unsigned noattr else Tint I32 Unsigned noattr.
   Definition int_sz : Z := if Archi.ptr64 then 8 else 4.
+  Definition chunk := if Archi.ptr64 then Mint64 else Mint32.
   
   Check @mapT.
   Fixpoint denote_expr (e : expr) : itree eff val :=
@@ -758,10 +761,10 @@ Section Denote.
                     | Some v => ret v
                     | _ => triggerNB "expr-LShift"
                     end
-    | Load p chunk => p <- denote_expr p ;;
+    | Load p => p <- denote_expr p ;;
                 match p with
                 | Vptr b ofs =>
-                  v <- trigger (LoadE b (Ptrofs.unsigned ofs) chunk) ;;
+                  v <- trigger (LoadE b (Ptrofs.unsigned ofs)) ;;
                     match v with
                     | Some v => ret v
                     | _ => triggerNB "expr-load1"
@@ -969,9 +972,9 @@ Section Denote.
     | Skip => ret (CNormal, Vnodef)
     | AssumeFail => triggerUB "stmt-assume"
     | GuaranteeFail => triggerNB "stmt-grnt"
-    | Store p chunk e => p <- denote_expr p ;; e <- denote_expr e ;;
+    | Store p e => p <- denote_expr p ;; e <- denote_expr e ;;
                     match p with
-                    | Vptr b ofs  => v <- trigger (StoreE b (Ptrofs.unsigned ofs) chunk e) ;;
+                    | Vptr b ofs  => v <- trigger (StoreE b (Ptrofs.unsigned ofs) e) ;;
                                     if (v: bool)
                                     then ret (CNormal, Vnodef)
                                     else triggerNB "stmt-store1"
@@ -1200,8 +1203,8 @@ Definition handle_MemoryE {E: Type -> Type}
   : MemoryE ~> stateT mem (itree E) :=
   fun _ e mem =>
     match e with
-    | LoadE b ofs chunk => Ret (mem, Mem.load chunk mem b ofs)
-    | StoreE b ofs chunk v =>
+    | LoadE b ofs => Ret (mem, Mem.load chunk mem b ofs)
+    | StoreE b ofs v =>
       let mem' := Mem.store chunk mem b ofs v in
       match mem' with
       | Some mem' => Ret (mem', true)
