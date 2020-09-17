@@ -19,7 +19,7 @@
 Require Import Coqlib.
 Require Import AST.
 Require Import Integers.
-Require Import Floats.
+(* Require Import Floats. *)
 
 Definition block : Type := positive.
 Definition eq_block := peq.

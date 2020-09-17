@@ -56,16 +56,16 @@ Import LangNotations.
 Require Import AST.
 Require Import Memory.
 Require Import Integers.
-Require Import Floats.
+(* Require Import Floats. *)
 Require Import Values.
 Require Import LangType Op.
 
 
-Require Import Nat.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.NArith.BinNat.
-Require Import Coq.NArith.Nnat.
-Require Import BitNat.
+(* Require Import Nat. *)
+(* Require Import Coq.Arith.PeanoNat. *)
+(* Require Import Coq.NArith.BinNat. *)
+(* Require Import Coq.NArith.Nnat. *)
+(* Require Import BitNat. *)
 Require Import BinInt.
 
 Local Open Scope N_scope.
