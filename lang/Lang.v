@@ -49,17 +49,17 @@ Require Import Any.
 Require Import sflib.
 Require Import Coqlib.
 
-Require Import Nat.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.NArith.BinNat.
-Require Import Coq.NArith.Nnat.
-Require Import BitNat.
+(* Require Import Nat. *)
+(* Require Import Coq.Arith.PeanoNat. *)
+(* Require Import Coq.NArith.BinNat. *)
+(* Require Import Coq.NArith.Nnat. *)
+(* Require Import BitNat. *)
 
 (** From CompCert *)
 Require Import AST.
 Require Import Memory.
 Require Import Integers.
-Require Import Floats.
+(* Require Import Floats. *)
 Require Import Values.
 
 Require Import LangType.

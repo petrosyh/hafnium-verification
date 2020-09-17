@@ -17,7 +17,7 @@
   the abstract syntax trees of many of the intermediate languages. *)
 
 Require Import String.
-Require Import Coqlib Maps Errors Integers Floats.
+Require Import Coqlib Maps Errors Integers (* Floats *).
 Require Archi.
 
 Set Implicit Arguments.
@@ -642,8 +642,8 @@ Inductive builtin_arg (A: Type) : Type :=
   | BA (x: A)
   | BA_int (n: int)
   | BA_long (n: int64)
-  | BA_float (f: float)
-  | BA_single (f: float32)
+  (* | BA_float (f: float) *)
+  (* | BA_single (f: float32) *)
   | BA_loadstack (chunk: memory_chunk) (ofs: ptrofs)
   | BA_addrstack (ofs: ptrofs)
   | BA_loadglobal (chunk: memory_chunk) (id: ident) (ofs: ptrofs)
@@ -691,8 +691,8 @@ Fixpoint map_builtin_arg (A B: Type) (f: A -> B) (a: builtin_arg A) : builtin_ar
   | BA x => BA (f x)
   | BA_int n => BA_int n
   | BA_long n => BA_long n
-  | BA_float n => BA_float n
-  | BA_single n => BA_single n
+  (* | BA_float n => BA_float n *)
+  (* | BA_single n => BA_single n *)
   | BA_loadstack chunk ofs => BA_loadstack chunk ofs
   | BA_addrstack ofs => BA_addrstack ofs
   | BA_loadglobal chunk id ofs => BA_loadglobal chunk id ofs

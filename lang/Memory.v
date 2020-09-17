@@ -34,7 +34,7 @@ Require Import Maps.
 Require Archi.
 Require Import AST.
 Require Import Integers.
-Require Import Floats.
+(* Require Import Floats. *)
 Require Import Values.
 Require Export Memdata.
 Require Export Memtype.
