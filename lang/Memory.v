@@ -339,16 +339,108 @@ Qed.
 
 (** * Operations over memory stores *)
 
+(** Reading N adjacent bytes in a block content. *)
+
+Fixpoint getN (n: nat) (p: Z) (c: ZMap.t memval) {struct n}: list memval :=
+  match n with
+  | O => nil
+  | S n' => ZMap.get p c :: getN n' (p + 1) c
+  end.
+
+(** [load chunk m b ofs] perform a read in memory state [m], at address
+  [b] and offset [ofs].  It returns the value of the memory chunk
+  at that address.  [None] is returned if the accessed bytes
+  are not readable. *)
+
+(** Writing N adjacent bytes in a block content. *)
+
+Fixpoint setN (vl: list memval) (p: Z) (c: ZMap.t memval) {struct vl}: ZMap.t memval :=
+  match vl with
+  | nil => c
+  | v :: vl' => setN vl' (p + 1) (ZMap.set p v c)
+  end.
+
+Remark setN_other:
+  forall vl c p q,
+  (forall r, p <= r < p + Z.of_nat (length vl) -> r <> q) ->
+  ZMap.get q (setN vl p c) = ZMap.get q c.
+Proof.
+  induction vl; intros; simpl.
+  auto.
+  simpl length in H. rewrite Nat2Z.inj_succ in H.
+  transitivity (ZMap.get q (ZMap.set p a c)).
+  apply IHvl. intros. apply H. omega.
+  apply ZMap.gso. apply not_eq_sym. apply H. omega.
+Qed.
+
+Remark setN_outside:
+  forall vl c p q,
+  q < p \/ q >= p + Z.of_nat (length vl) ->
+  ZMap.get q (setN vl p c) = ZMap.get q c.
+Proof.
+  intros. apply setN_other.
+  intros. omega.
+Qed.
+
+Remark getN_setN_same:
+  forall vl p c,
+  getN (length vl) p (setN vl p c) = vl.
+Proof.
+  induction vl; intros; simpl.
+  auto.
+  decEq.
+  rewrite setN_outside. apply ZMap.gss. omega.
+  apply IHvl.
+Qed.
+
+Remark getN_exten:
+  forall c1 c2 n p,
+  (forall i, p <= i < p + Z.of_nat n -> ZMap.get i c1 = ZMap.get i c2) ->
+  getN n p c1 = getN n p c2.
+Proof.
+  induction n; intros. auto. rewrite Nat2Z.inj_succ in H. simpl. decEq.
+  apply H. omega. apply IHn. intros. apply H. omega.
+Qed.
+
+Remark getN_setN_disjoint:
+  forall vl q c n p,
+  Intv.disjoint (p, p + Z.of_nat n) (q, q + Z.of_nat (length vl)) ->
+  getN n p (setN vl q c) = getN n p c.
+Proof.
+  intros. apply getN_exten. intros. apply setN_other.
+  intros; red; intros; subst r. eelim H; eauto.
+Qed.
+
+Remark getN_setN_outside:
+  forall vl q c n p,
+  p + Z.of_nat n <= q \/ q + Z.of_nat (length vl) <= p ->
+  getN n p (setN vl q c) = getN n p c.
+Proof.
+  intros. apply getN_setN_disjoint. apply Intv.disjoint_range. auto.
+Qed.
+
+Remark setN_default:
+  forall vl q c, fst (setN vl q c) = fst c.
+Proof.
+  induction vl; simpl; intros. auto. rewrite IHvl. auto.
+Qed.
+
 (** The initial store *)
 
 Program Definition empty: mem :=
   mkmem (PMap.init (ZMap.init Undef))
-        (PMap.init (fun ofs k => None))
-        1%positive _ _ _.
+        (PMap.set 1%positive
+                  (fun ofs k => if zle 0 ofs && zlt ofs 4000 then Some Freeable else None)
+                  (PMap.init (fun ofs k => None)))
+        2%positive _ _ _.
 Next Obligation.
-  repeat rewrite PMap.gi. red; auto.
+  repeat rewrite PMap.gsspec. destruct (peq b 1).
+  subst b. destruct (zle 0 ofs && zlt ofs 4000); red; auto with mem.
+  repeat rewrite PMap.gi. red; auto. 
 Qed.
 Next Obligation.
+  rewrite PMap.gsspec. destruct (peq b 1).
+  subst b. elim H. apply Plt_succ.
   rewrite PMap.gi. auto.
 Qed.
 Next Obligation.
@@ -427,19 +519,6 @@ Fixpoint free_list (m: mem) (l: list (block * Z * Z)) {struct l}: option mem :=
 
 (** Memory reads. *)
 
-(** Reading N adjacent bytes in a block content. *)
-
-Fixpoint getN (n: nat) (p: Z) (c: ZMap.t memval) {struct n}: list memval :=
-  match n with
-  | O => nil
-  | S n' => ZMap.get p c :: getN n' (p + 1) c
-  end.
-
-(** [load chunk m b ofs] perform a read in memory state [m], at address
-  [b] and offset [ofs].  It returns the value of the memory chunk
-  at that address.  [None] is returned if the accessed bytes
-  are not readable. *)
-
 Definition load (chunk: memory_chunk) (m: mem) (b: block) (ofs: Z): option val :=
   if valid_access_dec m chunk b ofs Readable
   then Some(decode_val chunk (getN (size_chunk_nat chunk) ofs (m.(mem_contents)#b)))
@@ -464,79 +543,6 @@ Definition loadbytes (m: mem) (b: block) (ofs n: Z): option (list memval) :=
   else None.
 
 (** Memory stores. *)
-
-(** Writing N adjacent bytes in a block content. *)
-
-Fixpoint setN (vl: list memval) (p: Z) (c: ZMap.t memval) {struct vl}: ZMap.t memval :=
-  match vl with
-  | nil => c
-  | v :: vl' => setN vl' (p + 1) (ZMap.set p v c)
-  end.
-
-Remark setN_other:
-  forall vl c p q,
-  (forall r, p <= r < p + Z.of_nat (length vl) -> r <> q) ->
-  ZMap.get q (setN vl p c) = ZMap.get q c.
-Proof.
-  induction vl; intros; simpl.
-  auto.
-  simpl length in H. rewrite Nat2Z.inj_succ in H.
-  transitivity (ZMap.get q (ZMap.set p a c)).
-  apply IHvl. intros. apply H. omega.
-  apply ZMap.gso. apply not_eq_sym. apply H. omega.
-Qed.
-
-Remark setN_outside:
-  forall vl c p q,
-  q < p \/ q >= p + Z.of_nat (length vl) ->
-  ZMap.get q (setN vl p c) = ZMap.get q c.
-Proof.
-  intros. apply setN_other.
-  intros. omega.
-Qed.
-
-Remark getN_setN_same:
-  forall vl p c,
-  getN (length vl) p (setN vl p c) = vl.
-Proof.
-  induction vl; intros; simpl.
-  auto.
-  decEq.
-  rewrite setN_outside. apply ZMap.gss. omega.
-  apply IHvl.
-Qed.
-
-Remark getN_exten:
-  forall c1 c2 n p,
-  (forall i, p <= i < p + Z.of_nat n -> ZMap.get i c1 = ZMap.get i c2) ->
-  getN n p c1 = getN n p c2.
-Proof.
-  induction n; intros. auto. rewrite Nat2Z.inj_succ in H. simpl. decEq.
-  apply H. omega. apply IHn. intros. apply H. omega.
-Qed.
-
-Remark getN_setN_disjoint:
-  forall vl q c n p,
-  Intv.disjoint (p, p + Z.of_nat n) (q, q + Z.of_nat (length vl)) ->
-  getN n p (setN vl q c) = getN n p c.
-Proof.
-  intros. apply getN_exten. intros. apply setN_other.
-  intros; red; intros; subst r. eelim H; eauto.
-Qed.
-
-Remark getN_setN_outside:
-  forall vl q c n p,
-  p + Z.of_nat n <= q \/ q + Z.of_nat (length vl) <= p ->
-  getN n p (setN vl q c) = getN n p c.
-Proof.
-  intros. apply getN_setN_disjoint. apply Intv.disjoint_range. auto.
-Qed.
-
-Remark setN_default:
-  forall vl q c, fst (setN vl q c) = fst c.
-Proof.
-  induction vl; simpl; intros. auto. rewrite IHvl. auto.
-Qed.
 
 (** [store chunk m b ofs v] perform a write in memory state [m].
   Value [v] is stored at address [b] and offset [ofs].
@@ -625,19 +631,21 @@ Qed.
 
 (** Properties of the empty store. *)
 
-Theorem nextblock_empty: nextblock empty = 1%positive.
+Theorem nextblock_empty: nextblock empty = 2%positive.
 Proof. reflexivity. Qed.
 
-Theorem perm_empty: forall b ofs k p, ~perm empty b ofs k p.
-Proof.
-  intros. unfold perm, empty; simpl. rewrite PMap.gi. simpl. tauto.
-Qed.
+(* Theorem perm_empty: forall b ofs k p, ~perm empty b ofs k p. *)
+(* Proof. *)
+(*   intros. unfold perm, empty; simpl. *)
+  
+(*   rewrite PMap.gi. simpl. tauto. *)
+(* Qed. *)
 
-Theorem valid_access_empty: forall chunk b ofs p, ~valid_access empty chunk b ofs p.
-Proof.
-  intros. red; intros. elim (perm_empty b ofs Cur p). apply H.
-  generalize (size_chunk_pos chunk); omega.
-Qed.
+(* Theorem valid_access_empty: forall chunk b ofs p, ~valid_access empty chunk b ofs p. *)
+(* Proof. *)
+(*   intros. red; intros. elim (perm_empty b ofs Cur p). apply H. *)
+(*   generalize (size_chunk_pos chunk); omega. *)
+(* Qed. *)
 
 (** ** Properties related to [load] *)
 
