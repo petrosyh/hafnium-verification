@@ -197,6 +197,11 @@ Definition var : Set := string.
 (* | Vnodef *)
 (* . *)
 
+Inductive val: Type :=
+  | Vnormal: Values.val -> val
+  | Vabs: Any -> val
+.
+
 Variable show_val: val -> string.
 Extract Constant show_val =>
 "
@@ -205,12 +210,15 @@ Extract Constant show_val =>
   let s2cl = fun s -> List.init (String.length s) (String.get s) in
   let rec string_of_val v =
   match v with
-  | Vint n -> cl2s (BinaryString.of_Z (Int.unsigned n)) ^ "" ""
-  | Vlong n -> cl2s (BinaryString.of_Z (Int64.unsigned n)) ^ "" ""
-  | Vptr(block, ofs) ->
-     ""(*) ("" ^ cl2s (BinaryString.of_pos block) ^
-     "") ("" ^ cl2s (BinaryString.of_Z ofs) ^ "") ""
-  | Vundef -> ""Undef "" in
+  | Vnormal v2 ->
+    (match v2 with
+    | Vint n -> cl2s (BinaryString.of_Z (Int.unsigned n)) ^ "" ""
+    | Vlong n -> cl2s (BinaryString.of_Z (Int64.unsigned n)) ^ "" ""
+    | Vptr(block, ofs) ->
+       ""(*) ("" ^ cl2s (BinaryString.of_pos block) ^
+       "") ("" ^ cl2s (BinaryString.of_Z ofs) ^ "") ""
+    | Vundef -> ""Undef "")
+  | Vabs a -> cl2s (string_of_Any a) in
   fun x -> s2cl (string_of_val x)
 ".
 
@@ -256,7 +264,9 @@ Instance val_Showable: @Showable val := {
 (*   - eapply Any_dec; eauto. *)
 (* Defined. *)
 
-Definition Vnull := Vnullptr. (* Vptr (Some 0) []. *)
+Definition Vnull := Vnormal Vnullptr. (* Vptr (Some 0) []. *)
+Definition Vtrue := Vnormal Vtrue. (* Vptr (Some 0) []. *)
+Definition Vfalse := Vnormal Vfalse. (* Vptr (Some 0) []. *)
 (* YJ: (Some 0) or None?
 Some 0 로 하면 처음에 ptable_buf 넣는거는 Vnull 이 아님을 (i.e. paddr <> 0) 알아야 함 *)
 (* YJ: is it really the same with nodef? or do we need explicit nodef? *)
@@ -269,19 +279,23 @@ Definition Vnodef := Vnull.
       val corresponds to [true].  *)
 Definition is_true (v : val) : bool :=
   match v with
-  | Vint n => if (Int.eq n Int.zero) then false else true
-  (* YJ: THIS IS TEMPORARY HACKING *)
-  (* | Vptr _ (_ :: _) => true (* nonnull pointer *) *)
-  (* | Vptr _ _ => false (* null pointer *) *)
+  | Vnormal v =>
+    match v with
+    | Vint n => if (Int.eq n Int.zero) then false else true
+    (* YJ: THIS IS TEMPORARY HACKING *)
+    (* | Vptr _ (_ :: _) => true (* nonnull pointer *) *)
+    (* | Vptr _ _ => false (* null pointer *) *)
 
-  (* YH: pointer isnt boolean anymore *)
-  (* | Vptr paddr _ => *)
-  (*   match paddr with *)
-  (*   | Some v => if (v =? 0)%N then false else true *)
-  (*   | _ => true *)
-  (*   end *)
-  (* YH: is this true? *)
-  | _ => false
+    (* YH: pointer isnt boolean anymore *)
+    (* | Vptr paddr _ => *)
+    (*   match paddr with *)
+    (*   | Some v => if (v =? 0)%N then false else true *)
+    (*   | _ => true *)
+    (*   end *)
+    (* YH: is this true? *)
+    | _ => false
+    end
+  | Vabs _ => false
   end.
 
 Definition bool_to_val (b: bool): val :=
@@ -290,7 +304,8 @@ Definition bool_to_val (b: bool): val :=
   | false => Vfalse
   end.
 
-Coercion Val.of_bool: bool >-> val.
+(* Coercion Val.of_bool: bool >-> val. *)
+Coercion bool_to_val: bool >-> val.
 
 Module PLAYGROUND.
   Inductive my_expr: Type :=
@@ -335,27 +350,27 @@ Inductive expr : Type :=
 | CoqCode (_: list (var + expr)) (P: list val -> (val * list val))
 | Put (msg: string) (e: expr)
 | Debug (msg: string) (e: expr)
-(* JIEUNG: What's this definition? Is it different from normal function calls? Syscall seems quite specific function call. 
-Do we need to distinguish this one with Call? *)
+(* JIEUNG: What's this definition? Is it different from normal function calls? Syscall seems quite specific function call.  *)
+(* Do we need to distinguish this one with Call? *)
 | Syscall (code: string) (msg: string) (e: expr)
 | Get
 | Call (func_name: string) (params: list (var + expr))
 (* DJ: Is this nessasary? *)
 (* | Ampersand (_: expr) *)
-(* JIEUNG: What is the following operation *)       
+(* JIEUNG: What is the following operation *)
 (* | GetLen (_: expr) *)
-(* YJ: Vptr에 addr: nat 추가하면?
-     int x = 5;
-     int *y = &x;
-     int *z = &x;
- *)
-(*  JIEUNG: I think we may need to add address  
-struct cpu cpus[MAX_CPUS] ... 
+(* YJ: Vptr에 addr: nat 추가하면? *)
+(*      int x = 5; *)
+(*      int *y = &x; *)
+(*      int *z = &x; *)
+(*  *)
+(*  JIEUNG: I think we may need to add address   *)
+(* struct cpu cpus[MAX_CPUS] ...  *)
 
-int getindex (struct cpu c) {
-  return c - cpus // this requires arithmatic based on addresses of pointers. 
-}
-*)
+(* int getindex (struct cpu c) { *)
+(*   return c - cpus // this requires arithmatic based on addresses of pointers.  *)
+(* } *)
+(* *)
          
 (* YJ: fixpoint decreasing argument thing *)
 (* | SubPointer (_: expr) (from: option expr) (to: option expr) *)
@@ -365,9 +380,9 @@ int getindex (struct cpu c) {
 (* | SubPointerFrom (_: expr) (from: expr) *)
 (* | SubPointerTo (_: expr) (to: expr) *)
 
-(* JIEUNG: It seeems the following two things are flushing values and getting values from heap. 
-   It seems quite similar to push/pull operations in CertiKOS. Is this true? Or is it related to other specific things? 
-   PutOwnedHeap does not have any message message lie Put.. *)               
+(* JIEUNG: It seeems the following two things are flushing values and getting values from heap.  *)
+(*    It seems quite similar to push/pull operations in CertiKOS. Is this true? Or is it related to other specific things?  *)
+(*    PutOwnedHeap does not have any message message lie Put.. *)
 | PutOwnedHeap (_: expr)
 | GetOwnedHeap
 | Cast (_:expr) (_:type)
@@ -429,13 +444,15 @@ Module LangNotations.
   Definition Expr_coerce: expr -> stmt := Expr.
   Definition Var_coerce: string -> expr := Var.
   Definition Val_coerce: val -> expr := Val.
-  Definition int_coerce: int -> val := Vint.
-  Definition long_coerce: int64 -> val := Vlong.
+  Definition int_coerce: int -> val := fun i => Vnormal (Vint i).
+  Definition long_coerce: int64 -> val := fun i => Vnormal (Vlong i).
+  Definition values_coerce: Values.val -> val := Vnormal.
   Coercion Expr_coerce: expr >-> stmt.
   Coercion Var_coerce: string >-> expr.
   Coercion Val_coerce: val >-> expr.
   Coercion int_coerce: int >-> val.
   Coercion long_coerce: int64 >-> val.
+  Coercion values_coerce: Values.val >-> val.
 
   Bind Scope expr_scope with expr.
 
@@ -540,9 +557,9 @@ Variant GlobalE : Type -> Type :=
 .
 
 Variant MemoryE : Type -> Type :=
-| LoadE (b: block) (ofs: Z) : MemoryE (option val)
-| StoreE (b: block) (ofs: Z) (v : val) : MemoryE bool
-| AllocE (sz: Z) : MemoryE val
+| LoadE (b: block) (ofs: Z) : MemoryE (option Values.val)
+| StoreE (b: block) (ofs: Z) (v : Values.val) : MemoryE bool
+| AllocE (sz: Z) : MemoryE Values.val
 | FreeE (b: block) (ofs: Z) : MemoryE bool
 | GetMem : MemoryE mem
 .
@@ -664,110 +681,178 @@ Section Denote.
     | Val n     => ret n
     | Plus a b  => l <- denote_expr a ;; r <- denote_expr b ;;
                     m <- trigger GetMem ;;
-                     match sem_add l r m with
-                     | Some v => ret v
-                     | _ => triggerNB "expr-plus"
-                     end
+                    match (l, r) with
+                    | (Vnormal l, Vnormal r) =>
+                      match sem_add l r m with
+                      | Some v => ret (Vnormal v)
+                      | _ => triggerNB "expr-plus1"
+                      end
+                    | _ => triggerNB "expr-plus2"
+                    end
     | Minus a b => l <- denote_expr a ;; r <- denote_expr b ;;
                     m <- trigger GetMem ;;
-                     match sem_sub l r m with
-                     | Some v => ret v
-                     | _ => triggerNB "expr-sub"
-                     end
+                    match (l, r) with
+                    | (Vnormal l, Vnormal r) =>
+                      match sem_sub l r m with
+                      | Some v => ret (Vnormal v)
+                      | _ => triggerNB "expr-sub1"
+                      end
+                    | _ => triggerNB "expr-sub2"
+                    end
     | Mult a b  => l <- denote_expr a ;; r <- denote_expr b ;;
                     m <- trigger GetMem ;;
-                     match sem_mul l r m with
-                     | Some v => ret v
-                     | _ => triggerNB "expr-mult"
-                     end
+                    match (l, r) with
+                    | (Vnormal l, Vnormal r) =>
+                      match sem_mul l r m with
+                      | Some v => ret (Vnormal v)
+                      | _ => triggerNB "expr-mult1"
+                      end
+                    | _ => triggerNB "expr-mult2"
+                    end
     | Mod a b   => l <- denote_expr a ;; r <- denote_expr b ;;
                     m <- trigger GetMem ;;
-                     match sem_mod l r m with
-                     | Some v => ret v
-                     | _ => triggerNB "expr-mod"
-                     end
+                    match (l, r) with
+                    | (Vnormal l, Vnormal r) =>
+                      match sem_mod l r m with
+                      | Some v => ret (Vnormal v)
+                      | _ => triggerNB "expr-mod1"
+                      end
+                    | _ => triggerNB "expr-mod2"
+                    end
     | Div a b   => l <- denote_expr a ;; r <- denote_expr b ;;
                     m <- trigger GetMem ;;
-                     match sem_div l r m with
-                     | Some v => ret v
-                     | _ => triggerNB "expr-div"
-                     end
+                    match (l, r) with
+                    | (Vnormal l, Vnormal r) =>
+                      match sem_div l r m with
+                      | Some v => ret (Vnormal v)
+                      | _ => triggerNB "expr-div1"
+                      end
+                    | _ => triggerNB "expr-div2"
+                    end
     | Equal a b => l <- denote_expr a ;; r <- denote_expr b ;;
                     m <- trigger GetMem ;;
-                     match sem_cmp Ceq l r m with
-                     | Some v => ret v
-                     | _ => triggerNB "expr-eq"
-                     end
+                    match (l, r) with
+                    | (Vnormal l, Vnormal r) =>
+                      match sem_cmp Ceq l r m with
+                      | Some v => ret (Vnormal v)
+                      | _ => triggerNB "expr-eq1"
+                      end
+                    | _ => triggerNB "expr-eq2"
+                    end
     | Neg a => v <- denote_expr a ;;
-                 match sem_neg v with
-                 | Some v => ret v
-                 | _ => triggerNB "expr-neg"
-                 end
+                match v with
+                | Vnormal v =>
+                  match sem_neg v with
+                  | Some v => ret (Vnormal v)
+                  | _ => triggerNB "expr-neg1"
+                  end
+                | _ => triggerNB "expr-neg2"
+                end
     | LE a b => l <- denote_expr a ;; r <- denote_expr b ;;
                  m <- trigger GetMem ;;
-                  match sem_cmp Cle l r m with
-                  | Some v => ret v
-                  | _ => triggerNB "expr-le"
-                  end
+                 match (l, r) with
+                 | (Vnormal l, Vnormal r) =>
+                   match sem_cmp Cle l r m with
+                   | Some v => ret (Vnormal v)
+                   | _ => triggerNB "expr-le1"
+                   end
+                 | _ => triggerNB "expr-le2"
+                 end
     | LT a b => l <- denote_expr a ;; r <- denote_expr b ;;
                  m <- trigger GetMem ;;
-                  match sem_cmp Clt l r m with
-                  | Some v => ret v
-                  | _ => triggerNB "expr-lt"
-                  end
+                 match (l, r) with
+                 | (Vnormal l, Vnormal r) =>
+                   match sem_cmp Clt l r m with
+                   | Some v => ret (Vnormal v)
+                   | _ => triggerNB "expr-lt1"
+                   end
+                 | _ => triggerNB "expr-lt2"
+                 end
     | And a b => l <- denote_expr a ;; r <- denote_expr b ;;
                   m <- trigger GetMem ;;
-                  if (bool_val l m)
-                  then ret r
-                  else ret Vfalse
+                  match (l, r) with
+                  | (Vnormal l, Vnormal r) =>
+                    if (bool_val l m)
+                    then ret (Vnormal r)
+                    else ret Vfalse
+                  | _ => triggerNB "expr-And"
+                  end
     | Or a b => l <- denote_expr a ;; r <- denote_expr b ;;
                  m <- trigger GetMem ;;
-                  if (bool_val l m)
-                  then ret Vtrue
-                  else ret r
+                 match (l, r) with
+                 | (Vnormal l, Vnormal r) =>
+                   if (bool_val l m)
+                   then ret Vtrue
+                   else ret (Vnormal r)
+                 | _ => triggerNB "expr-Or"
+                 end
     | Not a => v <- denote_expr a ;;
                 m <- trigger GetMem ;;
+                match v with
+                | Vnormal v =>
                   match sem_notbool v m with
-                  | Some v => ret v
-                  | None => triggerNB "expr-Not"
-                 end
+                  | Some v => ret (Vnormal v)
+                  | None => triggerNB "expr-Not1"
+                  end
+                | _ => triggerNB "expr-Not2"
+                end
     (* JIEUNG: In here, we define those following bitwise operations without and bound (except not).
        defining bnot is impossible without boundary wordsize.
        For other things, we may need to check result values or original values (especially for shiftl and shiftr) to guarantee
        their validity *)
     | BAnd a b => l <- denote_expr a ;; r <- denote_expr b ;;
                    m <- trigger GetMem ;;
-                 match sem_and l r m with
-                 | Some v => ret v
-                 | _ => triggerNB "expr-And"
-                 end
+                   match (l, r) with
+                   | (Vnormal l, Vnormal r) =>
+                     match sem_and l r m with
+                     | Some v => ret (Vnormal v)
+                     | _ => triggerNB "expr-And1"
+                     end
+                   | _ => triggerNB "expr-And2"
+                   end
     | BOr a b => l <- denote_expr a ;; r <- denote_expr b ;;
                   m <- trigger GetMem ;;
-                 match sem_or l r m with
-                 | Some v => ret v
-                 | _ => triggerNB "expr-And"
-                 end
+                  match (l, r) with
+                  | (Vnormal l, Vnormal r) =>
+                    match sem_or l r m with
+                    | Some v => ret (Vnormal v)
+                    | _ => triggerNB "expr-Or1"
+                    end
+                  | _ => triggerNB "expr-Or2"
+                  end
     | BNot a => v <- denote_expr a ;;
-                 match sem_notint v with
-                 | Some v => ret v
-                 | _ => triggerNB "expr-Not"
+                 match v with
+                 | Vnormal v =>
+                   match sem_notint v with
+                   | Some v => ret (Vnormal v)
+                   | _ => triggerNB "expr-Not1"
+                   end
+                 | _ => triggerNB "expr-Not2"
                  end
     | ShiftL a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                    match sem_shl l r with
-                    | Some v => ret v
-                    | _ => triggerNB "expr-LShift"
-                    end
+                     match (l, r) with
+                     | (Vnormal l, Vnormal r) =>
+                       match sem_shl l r with
+                       | Some v => ret (Vnormal v)
+                       | _ => triggerNB "expr-LShift"
+                       end
+                     | _ => triggerNB "expr-LShift2"
+                     end
     | ShiftR a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                    match sem_shr l r with
-                    | Some v => ret v
-                    | _ => triggerNB "expr-LShift"
-                    end
+                     match (l, r) with
+                     | (Vnormal l, Vnormal r) =>
+                       match sem_shr l r with
+                       | Some v => ret (Vnormal v)
+                       | _ => triggerNB "expr-RShift1"
+                       end
+                     | _ => triggerNB "expr-RShift2"
+                     end
     | Load p => p <- denote_expr p ;;
                 match p with
-                | Vptr b ofs =>
+                | Vnormal (Vptr b ofs) =>
                   v <- trigger (LoadE b (Ptrofs.unsigned ofs)) ;;
                     match v with
-                    | Some v => ret v
+                    | Some v => ret (Vnormal v)
                     | _ => triggerNB "expr-load1"
                     end
                 | _ => triggerNB "expr-load2"
@@ -871,10 +956,14 @@ Section Denote.
     | PutOwnedHeap e => v <- (denote_expr e) ;; trigger (EPutOwnedHeap v) ;; ret Vnodef
     | Cast e tto => v <- denote_expr e ;;
                      m <- trigger GetMem ;;
-                   match sem_cast v tto m with
-                   | Some v' => ret v'
-                   | None => triggerNB "expr-cast"
-                   end
+                     match v with
+                     | Vnormal v =>
+                       match sem_cast v tto m with
+                       | Some v' => ret (Vnormal v')
+                       | None => triggerNB "expr-cast1"
+                       end
+                     | _ => triggerNB "expr-cast2"
+                     end
     (*     Ptr2Int e => v <- denote_expr e m ;; *)
     (*               match v with *)
     (*               | Vptr b ofs => *)
@@ -974,24 +1063,32 @@ Section Denote.
     | AssumeFail => triggerUB "stmt-assume"
     | GuaranteeFail => triggerNB "stmt-grnt"
     | Store p e => p <- denote_expr p ;; e <- denote_expr e ;;
-                    match p with
-                    | Vptr b ofs  => v <- trigger (StoreE b (Ptrofs.unsigned ofs) e) ;;
-                                    if (v: bool)
-                                    then ret (CNormal, Vnodef)
-                                    else triggerNB "stmt-store1"
-                    | _ => triggerNB "stmt-store2"
+                    match (p, e) with
+                    | (Vnormal p, Vnormal e) =>
+                      match p with
+                      | Vptr b ofs  => v <- trigger (StoreE b (Ptrofs.unsigned ofs) e) ;;
+                                        if (v: bool)
+                                        then ret (CNormal, Vnodef)
+                                        else triggerNB "stmt-store1"
+                      | _ => triggerNB "stmt-store2"
+                      end
+                    | _ =>  triggerNB "stmt-store3"
                     end
     | Alloc x e => e <- denote_expr e ;;
-                  match e with
-                  | Vint n => v <- trigger (AllocE (Int.unsigned n)) ;;
-                               triggerSetVar x v ;; ret (CNormal, Vnodef)
-                  | Vlong n => v <- trigger (AllocE (Int64.unsigned n)) ;;
-                                triggerSetVar x v ;; ret (CNormal, Vnodef)
-                  | __ => triggerNB "stmt-alloc"
-                  end
+                    match e with
+                    | Vnormal e =>
+                      match e with
+                      | Vint n => v <- trigger (AllocE (Int.unsigned n)) ;;
+                                   triggerSetVar x (Vnormal v) ;; ret (CNormal, Vnodef)
+                      | Vlong n => v <- trigger (AllocE (Int64.unsigned n)) ;;
+                                    triggerSetVar x (Vnormal v) ;; ret (CNormal, Vnodef)
+                      | __ => triggerNB "stmt-alloc1"
+                      end
+                    | _ => triggerNB "stmt-alloc2"
+                    end
     | Free p => p <- denote_expr p ;;
                  match p with
-                 | Vptr b ofs  => v <- trigger (FreeE b (Ptrofs.unsigned ofs)) ;;
+                 | Vnormal (Vptr b ofs)  => v <- trigger (FreeE b (Ptrofs.unsigned ofs)) ;;
                                    if (v: bool)
                                    then ret (CNormal, Vnodef)
                                    else triggerNB "stmt-free1"
@@ -1151,7 +1248,7 @@ How can we add error check here?
      **)
     let tl := tl lenv in
     match e with
-    | GetLvar x => Ret (lenv, (lookup_default x (Vint Int.zero) hd))
+    | GetLvar x => Ret (lenv, (lookup_default x (Vnormal (Vint Int.zero)) hd))
     | SetLvar x v => Ret ((Maps.add x v hd) :: tl, tt)
  
     (* JIEUNG: is it similar to stack push and pop? *)                        
@@ -1189,7 +1286,7 @@ Definition handle_GlobalE {E: Type -> Type}
   : GlobalE ~> stateT genv (itree E) :=
   fun _ e env =>
     match e with
-    | GetGvar x => Ret (env, (lookup_default x (Vint Int.zero) env))
+    | GetGvar x => Ret (env, (lookup_default x (Vnormal (Vint Int.zero)) env))
     | SetGvar x v => Ret (Maps.add x v env, tt)
     end.
 

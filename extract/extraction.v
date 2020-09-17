@@ -58,10 +58,10 @@ Separate Extraction
          LangTest.MultiModuleLocalState.isem
          LangTest.MultiModuleLocalStateSimple.isem1
          LangTest.MultiModuleLocalStateSimple.isem2
-         (* LangTest.MultiModuleLocalStateSimpleLang.isem *)
+         LangTest.MultiModuleLocalStateSimpleLang.isem
          LangTest.MultiModuleMultiCore.sem
          LangTest.MultiModuleMultiCoreLocalState.isem
-         (* LangTest.PrintAny.isem *)
+         LangTest.PrintAny.isem
          LangTest.PrintTest.string_gen
          LangTest.PrintTest.z_gen
          LangTest.PrintTest.Z_to_string_gen

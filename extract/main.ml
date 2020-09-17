@@ -348,9 +348,8 @@ let main =
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleLocalStateSimple.isem2) ;
   print_endline "-----------------------------------------------------------" ;
-(*  run (MultiModuleLocalStateSimpleLang.isem) ;
+  run (MultiModuleLocalStateSimpleLang.isem) ;
   print_endline "-----------------------------------------------------------" ;
-*)
   run (MultiModuleGenv.isem) ;
 
 (*
@@ -378,10 +377,9 @@ let main =
 *)
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleMultiCoreLocalState.isem) ;
-(*
+
   print_endline "-----------------------------------------------------------" ;
   run (PrintAny.isem) ;
-*)
 
   end;
 (*

@@ -48,10 +48,6 @@ Require Import sflib.
 Require Import ClassicalDescription.
 About excluded_middle_informative.
 
-(* From HafniumCore *)
-Require Import Lang Any.
-Import LangNotations.
-
 (** From CompCert *)
 Require Import AST.
 Require Import Memory.
@@ -60,6 +56,9 @@ Require Import Integers.
 Require Import Values.
 Require Import LangType Op.
 
+(* From HafniumCore *)
+Require Import Lang Any.
+Import LangNotations.
 
 (* Require Import Nat. *)
 (* Require Import Coq.Arith.PeanoNat. *)
@@ -77,27 +76,27 @@ Module LoadStore.
 
   Definition main x sum: stmt :=
     sum #= Vlong Int64.zero#;
-    Alloc x (Int64.repr (Z.mul 3 int_sz)) #;
-    Put "" x#;
-    (x @ Int64.zero #:= Int64.repr 10)#;
-    Put "" x#;
-    (x @ Int64.one  #:= Int64.repr 20)#;
-    Put "" x#;
-    (x @ (Int64.repr 2)  #:= Int64.repr 30)#;
-    Put "" x#;
-    Put "" sum#;
-    sum #= sum + (x #@ Int64.zero)#;
-    Put "" sum#;
-    sum #= sum + (x #@ Int64.one)#;
-    Put "" sum#;
-    sum #= sum + (x #@ (Int64.repr 2))#;
-    Put "" sum#;
-    Skip
+        Alloc x (Int64.repr (Z.mul 3 int_sz)) #;
+        Put "" x#;
+        (x @ Int64.zero #:= Int64.repr 10)#;
+        Put "" x#;
+        (x @ Int64.one  #:= Int64.repr 20)#;
+        Put "" x#;
+        (x @ (Int64.repr 2)  #:= Int64.repr 30)#;
+        Put "" x#;
+        Put "" sum#;
+        sum #= sum + (x #@ Int64.zero)#;
+                                      Put "" sum#;
+                                      sum #= sum + (x #@ Int64.one)#;
+                                                                   Put "" sum#;
+                                                                   sum #= sum + (x #@ (Int64.repr 2))#;
+                                                                                                     Put "" sum#;
+                                                                                                     Skip
   .
 
   Definition function: function. mk_function_tac main ([]: list var) ["x" ; "sum"]. Defined.
 
-  Definition program: Lang.program := [("main", function)].
+  Definition program: program := [("main", function)].
 
   (* Extraction "LangTest.ml" load_store_program. *)
   (* Check (eval_whole_program program). *)
@@ -166,8 +165,8 @@ Module Rec.
   Definition main_function: function.
     mk_function_tac main ([]:list var) ["local0" ; "local1"]. Defined.
 
-  Definition program: Lang.program := [("main", main_function) ;
-                                         ("f", f_function)].
+  Definition program: program := [("main", main_function) ;
+                                    ("f", f_function)].
 
 End Rec.
 
@@ -200,9 +199,9 @@ Module MutRec.
   Definition f_function: function. mk_function_tac f ["x"] ["local0" ; "local1"]. Defined.
   Definition g_function: function. mk_function_tac g ["x"] ["local0" ; "local1"]. Defined.
 
-  Definition program: Lang.program := [("main", Rec.main_function) ;
-                                         ("f", f_function) ;
-                                         ("g", g_function)].
+  Definition program: program := [("main", Rec.main_function) ;
+                                    ("f", f_function) ;
+                                    ("g", g_function)].
 End MutRec.
 
 
@@ -217,7 +216,7 @@ Module Move.
               unused #= (Call "f" [CBV y ; CBR accu]) #;
               (* Put "after call" accu #; *)
               accu #= accu + x #;
-                                Skip
+                               Skip
            )
       else
         (accu #= Int.zero)
@@ -238,8 +237,8 @@ Module Move.
   Definition main_function: function.
     mk_function_tac main ([]:list var) ["local0" ; "local1" ; "local2"]. Defined.
 
-  Definition program: Lang.program := [("main", main_function) ;
-                                         ("f", f_function)].
+  Definition program: program := [("main", main_function) ;
+                                    ("f", f_function)].
 
 End Move.
 
@@ -253,8 +252,8 @@ Module CoqCode.
     (fun v =>
        match v with
        | hd :: _ => if excluded_middle_informative (exists w, w * w = hd)
-                    then (Vtrue, nil)
-                    else (Vfalse, nil)
+                   then (Vtrue, nil)
+                   else (Vfalse, nil)
        | _ => (Vfalse, nil)
        end).
 
@@ -262,7 +261,7 @@ Module CoqCode.
   (* Extract Constant coqcode => "fun _ -> print_endline ""Is Prop true?"" ; *)
   (*                                     if (read_int() = 0) then coq_Vtrue else coq_Vfalse *)
   (*                                     ". *)
-  Extract Constant coqcode => "fun _ -> (coq_Vtrue, [])".
+  Extract Constant coqcode => "fun _ -> (Lang.coq_Vtrue, [])".
 
   Definition main x: stmt :=
     x #= (Int.repr 25) #;
@@ -274,7 +273,7 @@ Module CoqCode.
   Definition main_function: function.
     mk_function_tac main ([]: list var) ["local0"]. Defined.
 
-  Definition program: Lang.program := [("main", main_function)].
+  Definition program: program := [("main", main_function)].
 
 End CoqCode.
 
@@ -290,16 +289,16 @@ Module CoqCodeCBR.
 
   Definition main x: stmt :=
     x #= (Int.repr 0) #;
-    (CoqCode [CBR x] coqcode) #;
-    #assume (x == (Int.repr 50)) #;
-    Put "Test(CoqCodeCBR) passed" Vnull #;
-    Skip
+      (CoqCode [CBR x] coqcode) #;
+      #assume (x == (Int.repr 50)) #;
+      Put "Test(CoqCodeCBR) passed" Vnull #;
+      Skip
   .
 
   Definition main_function: function.
     mk_function_tac main ([]: list var) ["local0"]. Defined.
 
-  Definition program: Lang.program := [("main", main_function)].
+  Definition program: program := [("main", main_function)].
 
   Definition modsems: list ModSem :=
     List.map program_to_ModSem [program].
@@ -312,47 +311,47 @@ Module Control.
 
   Definition f ctrl ret iter: stmt :=
     iter #= (Int.repr 10) #;
-    ret #= (Int.repr 0) #;
-    (* Put "" ctrl #; *)
-    (* Put "" iter #; *)
-    (* Put "" ret #; *)
-    (* Put "" 7777777 #; *)
-    #while iter
-     do (
-          iter #= iter - (Int.repr 1)#;
-          (* 0 --> break *)
-          (* 1 --> continue *)
-          (* 2 --> return *)
-          (* 3 --> normal *)
-          #if ctrl == (Int.repr 0) then Break else Skip #;
-          (* Put "" 1111 #; *)
-          ret #= ret + (Int.repr 1) #;
-          #if ctrl == (Int.repr 1) then Continue else Skip #;
-          (* Put "" 2222 #; *)
-          ret #= ret + (Int.repr 10) #;
-          #if ctrl == (Int.repr 2) then (Return (ret + (Int.repr 100))) else Skip #;
-          (* Put "" 3333 #; *)
-          ret #= ret + (Int.repr 1000) #;
+         ret #= (Int.repr 0) #;
+         (* Put "" ctrl #; *)
+         (* Put "" iter #; *)
+         (* Put "" ret #; *)
+         (* Put "" 7777777 #; *)
+         #while iter
+         do (
+           iter #= iter - (Int.repr 1)#;
+                                      (* 0 --> break *)
+                                      (* 1 --> continue *)
+                                      (* 2 --> return *)
+                                      (* 3 --> normal *)
+                                      #if ctrl == (Int.repr 0) then Break else Skip #;
+                                                                                    (* Put "" 1111 #; *)
+                                                                                    ret #= ret + (Int.repr 1) #;
+                                                                                                              #if ctrl == (Int.repr 1) then Continue else Skip #;
+                                                                                                                                                               (* Put "" 2222 #; *)
+                                                                                                                                                               ret #= ret + (Int.repr 10) #;
+                                                                                                                                                                                          #if ctrl == (Int.repr 2) then (Return (ret + (Int.repr 100))) else Skip #;
+                                                                                                                                                                                                                                                                  (* Put "" 3333 #; *)
+                                                                                                                                                                                                                                                                  ret #= ret + (Int.repr 1000) #;
 
-          Skip
-          ) #;
-     Return ret
+                                                                                                                                                                                                                                                                                               Skip
+         ) #;
+         Return ret
   .
 
   Definition f_function: function. mk_function_tac f ["ctrl"] ["local0" ; "local1"]. Defined.
 
   Definition main r: stmt :=
     r #= (Call "f" [CBV (Int.repr 0)]) #; #assume (r == (Int.repr 0)) #;
-    r #= (Call "f" [CBV (Int.repr 1)]) #; #assume (r == (Int.repr 10)) #;
-    r #= (Call "f" [CBV (Int.repr 2)]) #; #assume (r == (Int.repr 111)) #;
-    r #= (Call "f" [CBV (Int.repr 3)]) #; #assume (r == (Int.repr 10110)) #;
-    Skip
+      r #= (Call "f" [CBV (Int.repr 1)]) #; #assume (r == (Int.repr 10)) #;
+      r #= (Call "f" [CBV (Int.repr 2)]) #; #assume (r == (Int.repr 111)) #;
+      r #= (Call "f" [CBV (Int.repr 3)]) #; #assume (r == (Int.repr 10110)) #;
+      Skip
   .
 
   Definition main_function: function. mk_function_tac main ([]: list var) ["local0"]. Defined.
 
-  Definition program: Lang.program := [("main", main_function) ;
-                                         ("f", f_function)].
+  Definition program: program := [("main", main_function) ;
+                                    ("f", f_function)].
 
 End Control.
 
@@ -369,14 +368,14 @@ Module DoubleReturn.
 
   Definition main r :=
     r #= (Call "f" []) #;
-    #assume (r == (Int.repr 0)) #;
-    Skip
+      #assume (r == (Int.repr 0)) #;
+      Skip
   .
 
   Definition main_function: function. mk_function_tac main ([]: list var) ["local0"]. Defined.
 
-  Definition program: Lang.program := [("main", main_function) ;
-                                         ("f", f_function)].
+  Definition program: program := [("main", main_function) ;
+                                    ("f", f_function)].
 
 End DoubleReturn.
 
@@ -387,20 +386,20 @@ Module MultiCore.
 
   Definition main (n: int): stmt :=
     Put "" (n + (Int.repr 1)) #;
-    Put "" (n + (Int.repr 2)) #;
-    Yield #;
-    Put "" (n + (Int.repr 3)) #;
-    Put "" (n + (Int.repr 4)) #;
-    Yield #;
-    Put "" (n + (Int.repr 5)) #;
-    Put "" (n + (Int.repr 6)) #;
-    Skip
+        Put "" (n + (Int.repr 2)) #;
+        Yield #;
+        Put "" (n + (Int.repr 3)) #;
+        Put "" (n + (Int.repr 4)) #;
+        Yield #;
+        Put "" (n + (Int.repr 5)) #;
+        Put "" (n + (Int.repr 6)) #;
+        Skip
   .
 
   Definition main_function (n: int): function.
     mk_function_tac (main n) ([]: list var) ([]: list var). Defined.
 
-  Definition program n: Lang.program := [("main", main_function n) ].
+  Definition program n: program := [("main", main_function n) ].
 
   Definition programs: list Lang.program :=
     [program (Int.repr 0) ; program (Int.repr 10); program (Int.repr 20)].
@@ -415,25 +414,25 @@ Module MultiCore2.
 
   Definition observer i: stmt :=
     i #= (Int.repr 20) #;
-    #while i
-    do (
-      i #= i - (Int.repr 1) #;
-      #assume ("GVAR" % (Int.repr 2) == (Int.repr 0)) #;
-      Yield
-    ) #;
-    #if "GVAR" == (Int.repr 0) then AssumeFail else Skip #; (* Test if GlobalE actually worked *)
-    Put "Test(MultiCore2) passed" Vnull
+      #while i
+      do (
+        i #= i - (Int.repr 1) #;
+                              #assume ("GVAR" % (Int.repr 2) == (Int.repr 0)) #;
+                              Yield
+      ) #;
+      #if "GVAR" == (Int.repr 0) then AssumeFail else Skip #; (* Test if GlobalE actually worked *)
+                                                           Put "Test(MultiCore2) passed" Vnull
   .
 
   Definition adder i: stmt :=
     i #= (Int.repr 20) #;
-    #while i
-    do (
-      i #= i - (Int.repr 1) #;
-      "GVAR" #= "GVAR" + (Int.repr 1) #;
-      "GVAR" #= "GVAR" + (Int.repr 1) #;
-      Yield
-    )
+      #while i
+      do (
+        i #= i - (Int.repr 1) #;
+                              "GVAR" #= "GVAR" + (Int.repr 1) #;
+                                                              "GVAR" #= "GVAR" + (Int.repr 1) #;
+                                                                                              Yield
+      )
   .
 
   (* Definition main: stmt := *)
@@ -444,16 +443,16 @@ Module MultiCore2.
   Definition adderF: function. mk_function_tac adder ([]: list var) (["i"]). Defined.
   (* Definition mainF: function. mk_function_tac main ([]: list var) ([]: list var). Defined. *)
 
-  Definition observerP: Lang.program := [("main", observerF) ].
-  Definition adderP: Lang.program := [("main", adderF) ].
+  Definition observerP: program := [("main", observerF) ].
+  Definition adderP: program := [("main", adderF) ].
   (* Definition mainP: program := [("main", mainF) ]. *)
 
-  (* Definition programs: list Lang.program := [ observerP ; adderP ; adderP ; mainP ]. *)
-  Definition programs: list Lang.program := [ observerP ; adderP ; adderP ].
+  (* Definition programs: list program := [ observerP ; adderP ; adderP ; mainP ]. *)
+  Definition programs: list program := [ observerP ; adderP ; adderP ].
 
   Definition sem :=
-   ITree.ignore
-     (interp_GlobalE (round_robin (List.map eval_single_program programs)) []).
+    ITree.ignore
+      (interp_GlobalE (round_robin (List.map eval_single_program programs)) []).
 
 End MultiCore2.
 
@@ -466,46 +465,46 @@ Module MultiCoreMPSC.
 
   Definition producer i: stmt :=
     i #= (Int.repr 10) #;
-    #while i
-    do (
-      Debug "PRODUCER: " i #;
-      #if "GVAR" == (Int.repr 0)
-       then ("GVAR" #= i #; i #= i - (Int.repr 1))
-       else Skip #;
-      Yield
-    ) #;
-    "SIGNAL" #= "SIGNAL" + (Int.repr 1)
+      #while i
+      do (
+        Debug "PRODUCER: " i #;
+              #if "GVAR" == (Int.repr 0)
+               then ("GVAR" #= i #; i #= i - (Int.repr 1))
+               else Skip #;
+                         Yield
+      ) #;
+      "SIGNAL" #= "SIGNAL" + (Int.repr 1)
   .
 
   Definition consumer s: stmt :=
     s #= (Int.repr 0) #;
-    #while true
-    do (
-      Debug "CONSUMER: " s #;
-      #if "GVAR" == (Int.repr 0)
-       then Skip
-       else s #= s + "GVAR" #;
-            "GVAR" #= (Int.repr 0)
-      #;
-      #if "SIGNAL" == (Int.repr 2) then Break else Skip #;
-      Yield
-    ) #;
-    (* Put "" s #; *)
-    #assume (s == (Int.repr 110)) #;
-    Put "Test(MultiCore3) passed" Vnull
+      #while true
+      do (
+        Debug "CONSUMER: " s #;
+              #if "GVAR" == (Int.repr 0)
+               then Skip
+               else s #= s + "GVAR" #;
+                                    "GVAR" #= (Int.repr 0)
+                                    #;
+                                    #if "SIGNAL" == (Int.repr 2) then Break else Skip #;
+                                                                                      Yield
+      ) #;
+      (* Put "" s #; *)
+      #assume (s == (Int.repr 110)) #;
+      Put "Test(MultiCore3) passed" Vnull
   .
 
   Definition producerF: function. mk_function_tac producer ([]: list var) (["i"]). Defined.
   Definition consumerF: function. mk_function_tac consumer ([]: list var) (["s"]). Defined.
 
-  Definition producerP: Lang.program := [("main", producerF) ].
-  Definition consumerP: Lang.program := [("main", consumerF) ].
+  Definition producerP: program := [("main", producerF) ].
+  Definition consumerP: program := [("main", consumerF) ].
 
-  Definition programs: list Lang.program := [ producerP ; consumerP ; producerP ].
+  Definition programs: list program := [ producerP ; consumerP ; producerP ].
 
   Definition sem :=
-   ITree.ignore
-     (interp_GlobalE (round_robin (List.map eval_single_program programs)) []).
+    ITree.ignore
+      (interp_GlobalE (round_robin (List.map eval_single_program programs)) []).
 
 End MultiCoreMPSC.
 
@@ -520,8 +519,8 @@ Module MultiModule.
               r #= r + x)
       else (r #= (Int.repr 0))
     )
-    #;
-    Return r
+      #;
+      Return r
   .
 
   Definition g x y r: stmt :=
@@ -531,16 +530,16 @@ Module MultiModule.
               r #= r + x)
       else (r #= (Int.repr 0))
     )
-    #;
-    Return r
+      #;
+      Return r
   .
 
   Definition f_function: function. mk_function_tac f ["x"] ["local0" ; "local1"]. Defined.
   Definition g_function: function. mk_function_tac g ["x"] ["local0" ; "local1"]. Defined.
 
-  Definition main_program: Lang.program := [("main", Rec.main_function)].
-  Definition f_program: Lang.program := [("f", f_function)].
-  Definition g_program: Lang.program := [("g", g_function)].
+  Definition main_program: program := [("main", Rec.main_function)].
+  Definition f_program: program := [("f", f_function)].
+  Definition g_program: program := [("g", g_function)].
 
   Definition modsems: list ModSem :=
     List.map program_to_ModSem [main_program ; f_program ; g_program].
@@ -556,19 +555,19 @@ Module MultiModuleGenv.
 
   Definition f: stmt :=
     "GVAR1" #= (Int.repr 1000) #;
-    Return "GVAR2"
+            Return "GVAR2"
   .
 
   Definition g: stmt :=
     "GVAR2" #= (Int.repr 2000) #;
-    Return "GVAR1"
+            Return "GVAR1"
   .
 
   Definition main: stmt :=
     (Call "f" []) #;
-    #assume ((Call "g" []) == (Int.repr 1000)) #;
-    #assume ((Call "f" []) == (Int.repr 2000)) #;
-    Put "Test(MultiModuleGenv) passed" Vnull
+                  #assume ((Call "g" []) == (Int.repr 1000)) #;
+                  #assume ((Call "f" []) == (Int.repr 2000)) #;
+                  Put "Test(MultiModuleGenv) passed" Vnull
   .
 
   Definition main_function: function.
@@ -576,9 +575,9 @@ Module MultiModuleGenv.
   Definition f_function: function. mk_function_tac f ([]: list var) ([]: list var). Defined.
   Definition g_function: function. mk_function_tac g ([]: list var) ([]: list var). Defined.
 
-  Definition main_program: Lang.program := [("main", main_function)].
-  Definition f_program: Lang.program := [("f", f_function)].
-  Definition g_program: Lang.program := [("g", g_function)].
+  Definition main_program: program := [("main", main_function)].
+  Definition f_program: program := [("f", f_function)].
+  Definition g_program: program := [("g", g_function)].
 
   Definition modsems: list ModSem :=
     List.map program_to_ModSem [main_program ; f_program ; g_program].
@@ -603,18 +602,19 @@ Module MultiModuleLocalState.
        | [Vint k] =>
          v <- trigger (GetM k) ;;
            match v with
-           | Some v => triggerSyscall "p" "HIT" [Vnull] ;; Ret (Vint v, [])
+           | Some v => triggerSyscall "p" "HIT" [Vnull] ;; Ret (Vnormal (Vint v), [])
            | None => triggerSyscall "p" "MISS" [Vnull] ;;
-             match (Int.eq k (Int.repr 0)) with
-             | true => Ret (Vint (Int.repr 0), [])
-             | _ => '(prev, _) <- trigger (CallExternal "g" [Vint (Int.sub k (Int.repr 1))]);;
-                                match prev with
-                                | Vint prev =>
-                                  let v := (Int.add prev k) in
-                                  trigger (SetM k v) ;; Ret (Vint v, [])
-                                | _ => triggerUB "memoizing_f"
-                                end
-             end
+                                   match (Int.eq k (Int.repr 0)) with
+                                   | true => Ret (Vnormal (Vint (Int.repr 0)), [])
+                                   | _ => '(prev, _) <- trigger
+                                          (CallExternal "g" [Vnormal (Vint (Int.sub k (Int.repr 1)))]);;
+                                          match prev with
+                                          | Vnormal (Vint prev) =>
+                                            let v := (Int.add prev k) in
+                                            trigger (SetM k v) ;; Ret (Vnormal (Vint v), [])
+                                          | _ => triggerUB "memoizing_f"
+                                          end
+                                   end
            end
        | _ => triggerUB "memoizing_f"
        end
@@ -651,14 +651,14 @@ Module MultiModuleLocalState.
               r #= r + x)
       else (r #= (Int.repr 0))
     )
-    #;
-    Return r
+      #;
+      Return r
   .
   Definition g_function: function. mk_function_tac g ["x"] ["local0" ; "local1"]. Defined.
-  Definition g_program: Lang.program := [("g", g_function)].
+  Definition g_program: program := [("g", g_function)].
 
   Definition main r: stmt :=
-      r #= (Call "f" [CBV (Int.repr 10)]) #;
+    r #= (Call "f" [CBV (Int.repr 10)]) #;
       Put "" r #;
 
       Put "" (Int.repr 99999) #;
@@ -686,7 +686,7 @@ Module MultiModuleLocalState.
   .
   Definition main_function: function.
     mk_function_tac main ([]: list var) ["local0"]. Defined.
-  Definition main_program: Lang.program := [("main", main_function)].
+  Definition main_program: program := [("main", main_function)].
 
   Definition modsems: list ModSem :=
     [f_ModSem] ++ List.map program_to_ModSem [main_program ; g_program].
@@ -735,29 +735,29 @@ Module MultiModuleLocalStateSimple.
     Return (Int.repr 10)
   .
   Definition g_function: function. mk_function_tac g ([]: list var) ([]: list var). Defined.
-  Definition g_program: Lang.program := [("g", g_function)].
+  Definition g_program: program := [("g", g_function)].
 
   Definition main r: stmt :=
-      (Call "f" [CBV (Int.repr 10)]) #;
-      (Call "g" []) #;
-      Yield #; r #= (Call "f" []) #;
-      #assume (r == (Int.repr 10)) #;
-      Debug "passed 1" Vnull #;
-      (Call "g" []) #;
-      Yield #; r #= (Call "f" []) #;
-      #assume (r == (Int.repr 10)) #;
-      Debug "passed 2" Vnull #;
-      Yield #; (Call "f" [CBV (Int.repr 20)]) #;
-      (Call "g" []) #;
-      Yield #; r #= (Call "f" []) #;
-      #assume (r == (Int.repr 20)) #;
-      Debug "passed 3" Vnull #;
-      Put "Test(MultiModuleLocalStateSimple) passed" Vnull #;
-      Skip
+    (Call "f" [CBV (Int.repr 10)]) #;
+                                   (Call "g" []) #;
+                                   Yield #; r #= (Call "f" []) #;
+                                   #assume (r == (Int.repr 10)) #;
+                                   Debug "passed 1" Vnull #;
+                                   (Call "g" []) #;
+                                   Yield #; r #= (Call "f" []) #;
+                                   #assume (r == (Int.repr 10)) #;
+                                   Debug "passed 2" Vnull #;
+                                   Yield #; (Call "f" [CBV (Int.repr 20)]) #;
+                                   (Call "g" []) #;
+                                   Yield #; r #= (Call "f" []) #;
+                                   #assume (r == (Int.repr 20)) #;
+                                   Debug "passed 3" Vnull #;
+                                   Put "Test(MultiModuleLocalStateSimple) passed" Vnull #;
+                                   Skip
   .
   Definition main_function: function.
     mk_function_tac main ([]:list var) ["local0"]. Defined.
-  Definition main_program: Lang.program := [("main", main_function)].
+  Definition main_program: program := [("main", main_function)].
 
   Definition modsems1: list ModSem :=
     (List.map program_to_ModSem [main_program ; g_program]) ++ [f_ModSem]
@@ -773,59 +773,59 @@ End MultiModuleLocalStateSimple.
 
 
 
-(* Module MultiModuleLocalStateSimpleLang. *)
+Module MultiModuleLocalStateSimpleLang.
 
-(*   Module M1. *)
-(*     Definition put v: stmt := *)
-(*       PutOwnedHeap v *)
-(*     . *)
-(*     Definition put_function: function. mk_function_tac put (["v"]: list var) ([]: list var). Defined. *)
+  Module M1.
+    Definition put v: stmt :=
+      PutOwnedHeap v
+    .
+    Definition put_function: function. mk_function_tac put (["v"]: list var) ([]: list var). Defined.
 
-(*     Definition get: stmt := *)
-(*       Return GetOwnedHeap *)
-(*     . *)
-(*     Definition get_function: function. mk_function_tac get ([]: list var) ([]: list var). Defined. *)
+    Definition get: stmt :=
+      Return GetOwnedHeap
+    .
+    Definition get_function: function. mk_function_tac get ([]: list var) ([]: list var). Defined.
 
-(*     Definition program: Lang.program := [("put", put_function) ; ("get", get_function)]. *)
-(*   End M1. *)
+    Definition program: program := [("put", put_function) ; ("get", get_function)].
+  End M1.
 
-(*   Module M2. *)
+  Module M2.
 
-(*     Inductive my_type: Type := RED | BLUE. *)
+    Inductive my_type: Type := RED | BLUE.
 
-(*     Definition check_red: list val@{Type} -> (val * list val) := *)
-(*       (fun v => *)
-(*          match v with *)
-(*          | Vabs a :: _ => *)
-(*            match downcast a my_type with *)
-(*            | Some Red => (Vtrue, nil) *)
-(*            | _ => (Vfalse, nil) *)
-(*            end *)
-(*          | _ => (Vfalse, nil) *)
-(*          end). *)
+    Definition check_red: list val -> (val * list val) :=
+      (fun v =>
+         match v with
+         | Vabs a :: _ =>
+           match downcast a my_type with
+           | Some Red => (Vtrue, nil)
+           | _ => (Vfalse, nil)
+           end
+         | _ => (Vfalse, nil)
+         end).
 
-(*     Definition main r: stmt := *)
-(*       (Call "put" [CBV 1]) #; *)
-(*       r #= (Call "get" []) #; *)
-(*       (* Put "r is: " r #; *) *)
-(*       #assume (r == 1) #; *)
-(*       (Call "put" [CBV (Vabs (upcast RED))]) #; *)
-(*       (* Put "r is: " r #; *) *)
-(*       r #= (Call "get" []) #; *)
-(*       #assume (CoqCode [CBV r] check_red) #; *)
-(*       Skip *)
-(*     . *)
-(*     Definition main_function: function. mk_function_tac main ([]: list var) (["r"]: list var). Defined. *)
-(*     Definition program: program := [("main", main_function)]. *)
-(*   End M2. *)
+    Definition main r: stmt :=
+      (Call "put" [CBV (Int.repr 1)]) #;
+      r #= (Call "get" []) #;
+      (* Put "r is: " r #; *)
+      #assume (r == (Int.repr 1)) #;
+      (Call "put" [CBV (Vabs (upcast RED))]) #;
+      (* Put "r is: " r #; *)
+      r #= (Call "get" []) #;
+      #assume (CoqCode [CBV r] check_red) #;
+      Skip
+    .
+    Definition main_function: function. mk_function_tac main ([]: list var) (["r"]: list var). Defined.
+    Definition program: program := [("main", main_function)].
+  End M2.
 
-(*   Definition modsems: list ModSem := *)
-(*     (List.map program_to_ModSem [M1.program ; M2.program]) *)
-(*   . *)
+  Definition modsems: list ModSem :=
+    (List.map program_to_ModSem [M1.program ; M2.program])
+  .
 
-(*   Definition isem: itree Event unit := eval_multimodule modsems. *)
+  Definition isem: itree Event unit := eval_multimodule modsems.
 
-(* End MultiModuleLocalStateSimpleLang. *)
+End MultiModuleLocalStateSimpleLang.
 
 
 
@@ -833,42 +833,42 @@ Module MultiModuleMultiCore.
 
   Definition producer i: stmt :=
     i #= (Int.repr 10) #;
-    #while i
-    do (
-      Debug "PRODUCER: " i #;
-      #if "GVAR" == (Int.repr 0)
-       then ("GVAR" #= i #; i #= i - (Int.repr 1))
-       else Skip #;
-      Yield
-    ) #;
-    "SIGNAL" #= "SIGNAL" + (Int.repr 1)
+      #while i
+      do (
+        Debug "PRODUCER: " i #;
+              #if "GVAR" == (Int.repr 0)
+               then ("GVAR" #= i #; i #= i - (Int.repr 1))
+               else Skip #;
+                         Yield
+      ) #;
+      "SIGNAL" #= "SIGNAL" + (Int.repr 1)
   .
 
   Definition consumer s: stmt :=
     s #= (Int.repr 0) #;
-    #while true
-    do (
-      Debug "CONSUMER: " s #;
-      #if "GVAR" == (Int.repr 0)
-       then Skip
-       else s #= s + "GVAR" #;
-            "GVAR" #= (Int.repr 0)
-      #;
-      #if "SIGNAL" == (Int.repr 2) then Break else Skip #;
-      Yield
-    ) #;
-    (* Put "" s #; *)
-    #assume (s == (Int.repr 110)) #;
-    Put "Test(MultiCore3) passed" Vnull
+      #while true
+      do (
+        Debug "CONSUMER: " s #;
+              #if "GVAR" == (Int.repr 0)
+               then Skip
+               else s #= s + "GVAR" #;
+                                    "GVAR" #= (Int.repr 0)
+                                    #;
+                                    #if "SIGNAL" == (Int.repr 2) then Break else Skip #;
+                                                                                      Yield
+      ) #;
+      (* Put "" s #; *)
+      #assume (s == (Int.repr 110)) #;
+      Put "Test(MultiCore3) passed" Vnull
   .
 
   Definition producerF: function. mk_function_tac producer ([]: list var) (["i"]). Defined.
   Definition consumerF: function. mk_function_tac consumer ([]: list var) (["s"]). Defined.
 
-  Definition producerP: Lang.program := [("producer", producerF) ].
-  Definition consumerP: Lang.program := [("consumer", consumerF) ].
+  Definition producerP: program := [("producer", producerF) ].
+  Definition consumerP: program := [("consumer", consumerF) ].
 
-  Definition programs: list Lang.program := [ producerP ; consumerP ].
+  Definition programs: list program := [ producerP ; consumerP ].
   Definition modsems: list ModSem := List.map program_to_ModSem programs.
 
   Definition sem: itree Event unit :=
@@ -912,24 +912,24 @@ Module MultiModuleMultiCoreLocalState.
 
   Definition setter: stmt :=
     (Call "f" [CBV (Int.repr 10)]) #;
-    "SIGNAL" #= (Int.repr 1) #;
-    Skip
+                                   "SIGNAL" #= (Int.repr 1) #;
+                                   Skip
   .
 
   Definition getter: stmt :=
     #while "SIGNAL" == (Int.repr 0) do Yield #;
-    #assume ((Call "f" []) == (Int.repr 10)) #;
-    Put "Test(MultiModuleMultiCoreLocalState) passed" Vnull #;
-    Skip
+                                    #assume ((Call "f" []) == (Int.repr 10)) #;
+                                    Put "Test(MultiModuleMultiCoreLocalState) passed" Vnull #;
+                                    Skip
   .
 
   Definition setterF: function.
     mk_function_tac setter ([]:list var) ([]:list var). Defined.
-  Definition setterP: Lang.program := [("setter", setterF)].
+  Definition setterP: program := [("setter", setterF)].
 
   Definition getterF: function.
     mk_function_tac getter ([]:list var) ([]:list var). Defined.
-  Definition getterP: Lang.program := [("getter", getterF)].
+  Definition getterP: program := [("getter", getterF)].
 
   Definition modsems: list ModSem :=
     (List.map program_to_ModSem [setterP ; getterP]) ++ [f_ModSem]
@@ -941,46 +941,46 @@ Module MultiModuleMultiCoreLocalState.
 End MultiModuleMultiCoreLocalState.
 
 
-(* Module PrintAny. *)
- 
-(*   Inductive my_type: Type := RED | BLUE. *)
-(*   Instance my_type_Showable: Showable my_type := { show := fun x => match x with | RED => "RED" | BLUE => "BLUE" end }. *)
- 
-(*     Definition main: stmt := *)
-(*       Put "Red is: " (Vabs (upcast RED)) #; *)
-(*       Put "Blue is: " (Vabs (upcast BLUE)) #; *)
-(*       Put "Test(PrintAny) passed" Vnull #; *)
-(*       Skip *)
-(*     . *)
-(*     Definition main_function: function. mk_function_tac main ([]: list var) ([]: list var). Defined. *)
-(*     Definition program: program := [("main", main_function)]. *)
- 
-(*   Definition modsems: list ModSem := *)
-(*     (List.map program_to_ModSem [program]) *)
-(*   . *)
- 
-(*   Definition isem: itree Event unit := eval_multimodule modsems. *)
- 
-(* End PrintAny. *)
+Module PrintAny.
+
+  Inductive my_type: Type := RED | BLUE.
+  Instance my_type_Showable: Showable my_type := { show := fun x => match x with | RED => "RED" | BLUE => "BLUE" end }.
+
+    Definition main: stmt :=
+      Put "Red is: " (Vabs (upcast RED)) #;
+      Put "Blue is: " (Vabs (upcast BLUE)) #;
+      Put "Test(PrintAny) passed" Vnull #;
+      Skip
+    .
+    Definition main_function: function. mk_function_tac main ([]: list var) ([]: list var). Defined.
+    Definition program: program := [("main", main_function)].
+
+  Definition modsems: list ModSem :=
+    (List.map program_to_ModSem [program])
+  .
+
+  Definition isem: itree Event unit := eval_multimodule modsems.
+
+End PrintAny.
 
 
 Module PrintTest.
 
-Require Import BinaryString.
+  Require Import BinaryString.
 
-Include Raw.
-Definition string_gen (n: N): string :=
-  of_N n.
+  Include Raw.
+  Definition string_gen (n: N): string :=
+    of_N n.
 
-From Coq Require Import
-     ZArith
-     ZArith.Znat.
+  From Coq Require Import
+       ZArith
+       ZArith.Znat.
 
-Definition z_gen (n: N) : Z :=
-  Z.of_N n.
+  Definition z_gen (n: N) : Z :=
+    Z.of_N n.
 
 
-Definition Z_to_string_gen (n : Z) : string :=
-  of_Z n.
+  Definition Z_to_string_gen (n : Z) : string :=
+    of_Z n.
   
 End PrintTest.
