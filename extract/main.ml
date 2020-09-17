@@ -307,6 +307,8 @@ let main =
   Random.self_init();
 
   print_endline "-----------------------------------" ;
+  run (eval_whole_program IntPtr.program) ; 
+  print_endline "-----------------------------------" ;
   run (eval_whole_program LoadStore.program) ;
   print_endline "-----------------------------------" ;
   run (eval_whole_program Rec.program) ;

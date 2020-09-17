@@ -653,6 +653,7 @@ Section Denote.
   .
 
   Definition tint := if Archi.ptr64 then Tlong Unsigned noattr else Tint I32 Unsigned noattr.
+  Definition tptr := Tpointer tint noattr.
   Definition int_sz : Z := if Archi.ptr64 then 8 else 4.
   Definition chunk := if Archi.ptr64 then Mint64 else Mint32.
   

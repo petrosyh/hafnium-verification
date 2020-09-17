@@ -41,6 +41,7 @@ Separate Extraction
          Lang.eval_single_program
          Values.Vtrue
          Values.Vfalse
+         LangTest.IntPtr.program
          LangTest.LoadStore.program
          LangTest.Rec.program
          LangTest.MutRec.program

@@ -73,7 +73,6 @@ Local Open Scope N_scope.
 Set Implicit Arguments.
 
 
-
 Module LoadStore.
 
   Definition main x sum: stmt :=
@@ -105,6 +104,28 @@ Module LoadStore.
 
 End LoadStore.
 
+Module IntPtr.
+
+  Definition main p i q res: stmt :=
+    p #= Vptr 1%positive (Ptrofs.repr 400) #;
+    Put "" p#;
+    (p @ Int64.zero #:= Int64.repr 10)#;
+    Put "aaaa" p#;
+    i #= Cast p tint #;
+    Put "bbbb" i#;
+    q #= Cast i tptr #;
+    Put "cccc" q#;
+    res #= (q #@ Int64.zero) #;
+    Skip.
+
+  Definition function: function. mk_function_tac main ([]: list var) ["p" ; "i" ; "q" ; "res"]. Defined.
+
+  Definition program: Lang.program := [("main", function)].
+
+  (* Extraction "LangTest.ml" load_store_program. *)
+  (* Check (eval_whole_program program). *)
+
+End IntPtr.
 
 Section TMP.
   Variable a: var.
