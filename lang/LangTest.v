@@ -110,12 +110,13 @@ Module IntPtr.
     p #= Vptr 1%positive (Ptrofs.repr 400) #;
     Put "" p#;
     (p @ Int64.zero #:= Int64.repr 10)#;
-    Put "aaaa" p#;
+    Put "" p#;
     i #= Cast p tint #;
-    Put "bbbb" i#;
+    Put " " i#;
     q #= Cast i tptr #;
-    Put "cccc" q#;
+    Put "" q#;
     res #= (q #@ Int64.zero) #;
+    Put "res: " res#;
     Skip.
 
   Definition function: function. mk_function_tac main ([]: list var) ["p" ; "i" ; "q" ; "res"]. Defined.

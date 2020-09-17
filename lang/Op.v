@@ -175,7 +175,7 @@ Definition sem_cast (v: val) (t2: type) (m: mem): option val :=
     match v with
     | Vptr b ofs =>
       if (Pos.eqb b 1%positive)
-      then Some (Vint (Ptrofs.to_int ofs))
+      then (if Archi.ptr64 then Some (Vlong (Ptrofs.to_int64 ofs)) else  Some (Vint (Ptrofs.to_int ofs)))
       else None
     | _ => None
     end
