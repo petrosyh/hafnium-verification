@@ -206,7 +206,7 @@ Module LOCK.
   
 
   (*
-  Variable nat_printer : nat -> unit. 
+  Variable nat_printer : nat -> unit.
   Extract Constant nat_printer =>
   "
   let rec nat_to_int = function | O -> 0 | S n -> succ (nat_to_int n) in
