@@ -56,7 +56,7 @@ Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
-Import Int64.
+Import Int.
 
 Set Implicit Arguments.
 
@@ -74,7 +74,7 @@ Section STORELOADSYNTACTICSUGAR.
   
 End STORELOADSYNTACTICSUGAR.
   
-Module MPOOLCONCUR.
+Module MPOOLCONCURSTRUCT.
 
   (*
   struct mpool_chunk {
@@ -109,6 +109,14 @@ Module MPOOLCONCUR.
   Definition chunk_list_loc := 2.
   Definition entry_list_loc := 3.
   Definition fallback_loc := 4.
+
+
+End MPOOLCONCURSTRUCT.
+
+
+Module MPOOLCONCUR.
+
+  Import MPOOLCONCURSTRUCT.
 
   Definition mpool_locks_enabled := "mpool_locks_enabled".
 
@@ -460,4 +468,3 @@ Module MPOOLCONCUR.
          Return Vnull.
 
 End MPOOLCONCUR.
-

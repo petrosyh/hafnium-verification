@@ -56,7 +56,7 @@ Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
-Import Int64.
+Import Int.
 
 (* Some operations *)
 (* #define UINT64_C(x)  ((x) + (UINT64_MAX - UINT64_MAX)) *)
@@ -80,10 +80,10 @@ Definition UINT32_C (val : int) := val.
  *)
 
 (* XXX: I first set them as dummy values *)
-Definition HEAP_PAGES := repr 100000.
-Definition MAX_CPUS := repr 32.
-Definition MAX_VMS := repr 32.
-Definition LOG_LEVEL := repr 10000.
+Definition HEAP_PAGES : int := repr 100000.
+Definition MAX_CPUS : int := repr 32.
+Definition MAX_VMS : int := repr 32.
+Definition LOG_LEVEL : int := repr 10000.
 
 (* From the definition in [inc/vmapi/hf/types.h:#define] 
 #define HF_HYPERVISOR_VM_ID 0
@@ -105,9 +105,9 @@ Definition LOG_LEVEL := repr 10000.
 ...
 *)
 
-Definition HF_VM_ID_OFFSET := one.
-Definition HF_PRIMARY_VM_INDEX := zero.
-Definition HF_PRIMARY_VM_ID := (HF_VM_ID_OFFSET + HF_PRIMARY_VM_INDEX).
+Definition HF_VM_ID_OFFSET : int := one.
+Definition HF_PRIMARY_VM_INDEX : int := zero.
+Definition HF_PRIMARY_VM_ID : int := (add HF_VM_ID_OFFSET HF_PRIMARY_VM_INDEX).
 
 (* From the definition in [src/arch/aarch64/inc/hf/arch/types.h] 
 #define PAGE_LEVEL_BITS 9 
@@ -118,23 +118,22 @@ Definition HF_PRIMARY_VM_ID := (HF_VM_ID_OFFSET + HF_PRIMARY_VM_INDEX).
 ...
 *)
 
-Definition PAGE_LEVEL_BITS := repr 9.
-Definition PAGE_BITS := repr 12.
-Definition STACK_ALIGN := repr 16.
-Definition FLOAT_REG_BYTES := repr 16.
-Definition NUM_GP_REGS := repr 31.
+Definition PAGE_LEVEL_BITS : int := repr 9.
+Definition PAGE_BITS : int := repr 12.
+Definition STACK_ALIGN : int := repr 16.
+Definition FLOAT_REG_BYTES : int := repr 16.
+Definition NUM_GP_REGS : int := repr 31.
 
 
 (* typedef uint64_t pte_t; *)
 
-Definition sizeof_pte_t := repr 8.
+Definition sizeof_pte_t : int := repr 8.
 
 (* From the definition in [inc/hf/mm.h]
 #define PAGE_SIZE (1 << PAGE_BITS)
 ...
 *)
-Definition MM_FLAG_STAGE1 := repr 4.
-Definition PAGE_SIZE := (one #>> PAGE_BITS).
+Definition PAGE_SIZE : int := (shl one PAGE_BITS).
 
 (*
 /* The following are arch-independent page mapping modes. */
@@ -143,16 +142,16 @@ Definition PAGE_SIZE := (one #>> PAGE_BITS).
 #define MM_MODE_X UINT32_C(0x0004) /* execute */
 #define MM_MODE_D UINT32_C(0x0008) /* device */
  *)
-Definition MM_MODE_R := one.
-Definition MM_MODE_W := repr 2. 
-Definition MM_MODE_X := repr 4.
-Definition MM_MODE_D := repr 8.
+Definition MM_MODE_R : int := one.
+Definition MM_MODE_W : int := repr 2. 
+Definition MM_MODE_X : int := repr 4.
+Definition MM_MODE_D : int := repr 8.
 
 (*
 #define MM_PTE_PER_PAGE (PAGE_SIZE / sizeof(pte_t))
 *)
 
-Definition MM_PTE_PER_PAGE := (PAGE_SIZE / sizeof_pte_t). (* 512 *)
+Definition MM_PTE_PER_PAGE := (divu PAGE_SIZE sizeof_pte_t). (* 512 *)
  
 (* From the definition in [inc/hf/mm.h]
 #define MM_MODE_INVALID UINT32_C(0x0010)
@@ -168,17 +167,19 @@ Definition MM_PTE_PER_PAGE := (PAGE_SIZE / sizeof_pte_t). (* 512 *)
 *)
 
 (* JIEUNG: FIXED -- coercion is not working very well in here. We need to fix that *)
-Definition MM_MODE_UNOWNED := UINT32_C (repr 16).
-Definition MM_MODE_INVALID := UINT32_C (repr 32).
-Definition MM_MODE_SHARED := UINT32_C (repr 64).
+Definition MM_MODE_UNOWNED : int := UINT32_C (repr 16).
+Definition MM_MODE_INVALID : int := UINT32_C (repr 32).
+Definition MM_MODE_SHARED : int := UINT32_C (repr 64).
 
-Definition MM_MODE_UNMAPPED_MASK := repr 48.
+Definition MM_MODE_UNMAPPED_MASK : int := repr 48.
 
 
-Definition MM_FLAG_COMMIT := repr 1.
-Definition MM_FLAG_UNMAP := repr 2.
+Definition MM_FLAG_COMMIT : int := repr 1.
+Definition MM_FLAG_UNMAP : int := repr 2.
+Definition MM_FLAG_STAGE1 : int := repr 4.
 
-(* I manually calculate the result. I may need some way? *)
+
+(* XXX: I manually calculate the result. I may need some way? *)
 
 
 
