@@ -1,5 +1,5 @@
 (*
- * Copyright 2020 Youngju Song
+ * Copyright 2020 Youngju Song/ Jieung Kim
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,8 @@ Import Int64.
 
 Set Implicit Arguments.
 
+
+(* XXX: Need to move this part into Lang.v file *)
 Section STORELOADSYNTACTICSUGAR.
   
   Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt :=
