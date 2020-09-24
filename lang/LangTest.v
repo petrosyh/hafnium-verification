@@ -140,7 +140,28 @@ End TMP.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
+Module CBVCBR.
+  Definition f x: stmt :=
+    x #= (Int.repr 10)
+  .
 
+  Definition main x: stmt :=
+    x #= (Int.repr 0) #;
+      (Call "f" [CBV x]) #;
+      Put "CBV " x #;
+      (Call "f" [CBR x]) #;
+      Put "CBR " x
+  .
+
+  Definition f_function: function. mk_function_tac f ["x"] ([]:list var). Defined.
+
+  Definition main_function: function.
+    mk_function_tac main ([]:list var) ["local0"]. Defined.
+
+  Definition program: program := [("main", main_function) ;
+                                    ("f", f_function)].
+End CBVCBR.
+  
 Module Rec.
 
   Definition f x y r: stmt :=
