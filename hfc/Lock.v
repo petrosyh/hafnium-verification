@@ -22,14 +22,12 @@ From Coq Require Import
      RelationClasses.
 
 From ExtLib Require Import
-     RelDec
      Data.String
      Structures.Monad
      Structures.Traversable
-     Data.List
-     Data.Option
-     Data.Monads.OptionMonad.
-
+     Structures.Foldable
+     Structures.Reducible
+     Data.List.
 
 From ITree Require Import
      ITree
@@ -45,21 +43,26 @@ Import Monads.
 Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope string_scope.
-Require Import Coqlib sflib.
+Require Import sflib.
 
+Require Import ClassicalDescription.
+About excluded_middle_informative.
+
+(** From CompCert *)
+Require Import AST.
+Require Import Memory.
+Require Import Integers.
+(* Require Import Floats. *)
+Require Import Values.
+Require Import LangType Op.
 
 (* From HafniumCore *)
-Require Import Lang.
-Require Import Values.
-Require Import Integers.
+Require Import Lang Any.
 Import LangNotations.
-Local Open Scope expr_scope.
-Local Open Scope stmt_scope.
 
+Require Import ZArith.
 
 Set Implicit Arguments.
-
-
 
 From ExtLib Require Import
      Core.RelDec
@@ -78,7 +81,7 @@ Local Open Scope N_scope.
 
 Module LOCK.
 
-  Notation ident := int.
+  Notation ident := int64.
 
   Inductive LockEvent: Type -> Type :=
   | TryLockE (id: ident): LockEvent (unit + Lang.val) (* inl: is already running, inr: not *)
@@ -90,7 +93,7 @@ Module LOCK.
   Definition get_id (v: Lang.val): option ident :=
     match v with
     | Vnormal n => match n with
-                   | Vint n' => Some n'
+                   | Vlong n' => Some n'
                    | _ => None
                    end
     | _ => None
@@ -125,11 +128,11 @@ Module LOCK.
          (* v <- (unwrapN (nth_error args 0)) ;; *)
          (* id <- trigger (InitE v) ;; *)
          id <- trigger (NewE) ;;
-         Ret (Vnormal (Vint id), [])             
+         Ret (Vnormal (Vlong id), [])             
        | case_release =>
          id <- (unwrapN (nth_error args 0 >>= get_id)) ;;
             v <- (unwrapN (nth_error args 1)) ;;
-            triggerSyscall "d" "lock-unlock <--- " [Vnormal (Vint id) ; v] ;;
+            triggerSyscall "d" "lock-unlock <--- " [Vnormal (Vlong id) ; v] ;;
             trigger (UnlockE id v) ;;
             trigger EYield ;;
             Ret (Vnodef, [])
@@ -149,7 +152,7 @@ Module LOCK.
             (*                       | inr v => Ret (inr v) *)
             (*                       end) tt) ;; *)
 
-            triggerSyscall "d" "lock-lock   ---> " [Vnormal (Vint id) ; v] ;;
+            triggerSyscall "d" "lock-lock   ---> " [Vnormal (Vlong id) ; v] ;;
             Ret (v, [])
             (* v <- trigger (TryLockE id) ;; *)
             (* match v with *)
@@ -167,7 +170,7 @@ Module LOCK.
        end)
   .
 
-  Definition owned_heap := (int * (alist ident Lang.val))%type.
+  Definition owned_heap := (int64 * (alist ident Lang.val))%type.
 
   (* Definition extract_to_print (al: alist ident val): unit := tt. *)
   
@@ -177,7 +180,7 @@ Module LOCK.
   (* "fun printer content -> printer content ; content" *)
   "fun printer content -> content"
   .
-
+  (*
   Variable alist_printer: alist ident Lang.val -> unit.
   (* Variable dummy_client: unit -> unit. *)
   (* Extract Constant dummy_client => "fun x -> x". *)
@@ -189,6 +192,7 @@ Module LOCK.
   let cl2s = fun cl -> String.concat """" (List.map (String.make 1) cl) in
   fun al -> print_string ""<LOCKSTATE> "" ; print_int (nat_to_int (length al)) ; print_string "" "" ; (List.iter (fun kv -> print_string (cl2s (BinaryString.of_N (fst kv))) ; print_string "" "") al) ; print_endline "" "" "
   .
+  *)
 
   (*
   Extract Constant alist_printer =>
@@ -227,8 +231,8 @@ Module LOCK.
 
   
   (* JIEUNG: TODO : Do we have pre-defined instance for the following one? *)
-  Global Instance RelDec_eq : RelDec (@eq int) :=
-    { rel_dec := Int.eq_dec }.
+  Global Instance RelDec_eq : RelDec (@eq int64) :=
+    { rel_dec := Int64.eq_dec }.
 
   (*
   Goal (Maps.lookup (Map:= Map_alist RelDec_eq int) 1 (Maps.add 1 10 Maps.empty)) = Some 10. ss. Qed.
@@ -244,8 +248,40 @@ Module LOCK.
 
   (* Local Instance MyMap {V}: (Map int V (alist int V)) := Map_alist Int.RelDec_eq V. *)
   (* Goal (Maps.lookup 2 (Maps.add 1 10 (Maps.empty (Map:=Map_alist _ _)))) = Some 10. ss. Abort. *)
-  Local Instance MyMap: (Map int Lang.val (alist int Lang.val)) := Map_alist RelDec_eq Lang.val.
+  Local Instance MyMap: (Map int64 Lang.val (alist int64 Lang.val)) := Map_alist RelDec_eq Lang.val.
 
+
+  Definition handler: LockEvent ~> stateT owned_heap (itree (GlobalE +'  MemoryE +' Event)) :=
+    (* State.interp_state  *)
+    fun _ e '(ctr, m) =>
+      match e with
+      | UnlockE k v =>
+        (* let k := debug_print nat_printer k in *)
+        let m' := (Maps.add k v m) in
+        match Maps.lookup k m with
+        | Some _ => failwith "UNLOCKING TWICE"
+        | None => Ret ((ctr, m'), tt)
+        end
+      | TryLockE k =>
+        match Maps.lookup k m with
+        | Some v =>
+          let m' := (Maps.remove k m) in
+          Ret ((ctr, m'), inr v)
+          (* Ret ((ctr, Maps.remove k m), inr v) *)
+        | None => Ret ((ctr, m), inl tt)
+        end
+      (* | WHY_ANY_NAME_WORKS_HERE_THIS_IS_WEIRD => Ret ((S ctr, m), ctr) *)
+      (* | InitE v => *)
+      (*   let m := debug_print alist_printer m in *)
+      (*   let m' := debug_print alist_printer (Maps.add ctr v m) in *)
+      (*   Ret ((S ctr, m'), ctr) *)
+      | NewE =>
+        let val := Int64.add ctr Int64.one in
+        Ret ((val, m), ctr)
+      end
+  .
+
+  (*
   Definition handler: LockEvent ~> stateT owned_heap (itree (GlobalE +'  MemoryE +' Event)) :=
     (* State.interp_state  *)
     fun _ e '(ctr, m) =>
@@ -278,14 +314,14 @@ Module LOCK.
         Ret ((val, m), ctr)
       end
   .
-
+  *)
             
-  Definition modsem: ModSem :=
+  Definition lock_modsem: ModSem :=
     mk_ModSem
       (fun s => existsb (string_dec s) ["Lock.release" ; "Lock.acquire" ; "Lock.new"])
       (* in_dec Strings.String.string_dec s ["Lock.unlock" ; "Lock.lock" ; "Lock.init"]) *)
       _
-      (Int.zero, Maps.empty)
+      (Int64.zero, Maps.empty)
       LockEvent
       handler
       sem

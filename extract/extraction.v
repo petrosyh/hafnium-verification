@@ -19,6 +19,7 @@ Require Extraction.
 (* YJ: Having some makefile problem. (dependency checking) need to solve that !! *)
 Require Import Lang LangTest BinaryString.
 (* Require Import MpoolSeq MpoolConcur CPUSeq MM MMStageOne MMHighStageOne. *)
+Require Import Lock Mpool MpoolTest MemoryManagement MemoryManagementTest.
 
 Require Import
         ExtrOcamlBasic
@@ -71,6 +72,7 @@ Separate Extraction
          (* LangTest.handle_Event *)
          (* LangTest.cl2s *)
 
+         MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem
          (* MpoolSeq.TEST.TEST1.program *)
          (* MpoolSeq.TEST.TEST2.program *)
          (* MpoolSeq.TEST.TEST3.program *)

@@ -68,7 +68,9 @@ Require Import Op.
 Require Import ClassicalDescription EquivDec.
 About excluded_middle_informative.
 
+(*
 Local Open Scope N_scope.
+ *)
 
 Set Implicit Arguments.
 (* Set Typeclasess Depth 4. *)
@@ -97,7 +99,7 @@ Class BitOps :=
    *)
 
 
-
+(*
 Local Open Scope N.
 
 
@@ -116,7 +118,7 @@ Module Make(WS: WORDSIZE).
   Definition max_unsigned : N := modulus - 1.
   
 End Make.
-
+*)
 
 (* JIEUNG: We cannot use this one due to stack overflow. For the short term, we can use reduced size. But we may need to change
 this value as Z type values to run realistic test cases 
@@ -150,6 +152,7 @@ Strategy opaque [Wordsize_12.wordsize].
 Import Int12. 
 *)
 
+(*
 Module Wordsize_64.
   Definition wordsize := 64%N.
   Remark wordsize_not_zero: wordsize <> 0%N.
@@ -160,10 +163,11 @@ Module Int64 := Make(Wordsize_64).
 
 Strategy 0 [Wordsize_64.wordsize].
 Strategy opaque [Wordsize_64.wordsize].
-
 Import Int64.
-
+ 
 Definition llnot (l : N) := N.lxor l max_unsigned.
+*)
+
 
   
 (*
@@ -489,7 +493,7 @@ Module LangNotations.
   Bind Scope stmt_scope with stmt.
 
   Notation "x '#=' e" :=
-    (Assign x e) (at level 60, e at level 50): stmt_scope.
+    (Assign x e) (at level 60, e at level 50 ): stmt_scope.
 
   Notation "a '#;' b" :=
     (Seq a b)
@@ -519,12 +523,12 @@ Module LangNotations.
     (#if e then Skip else GuaranteeFail) (at level 60, e at level 50): stmt_scope.
 
   (** TODO add store & load notations **)
+  
   Notation "x '@' ofs '#:=' e" :=
-    (Store (x+ofs) e) (at level 60, e at level 50): stmt_scope.
+    (Store (x + ofs) e) (at level 60, e at level 50): stmt_scope.
 
   Notation "x '#@' ofs" :=
     (Load (x + ofs)) (at level 99): expr_scope.
-
   (* Notation "#put e" := *)
   (*   (Put "" e) (at level 60, e at level 50): stmt_scope. *)
 

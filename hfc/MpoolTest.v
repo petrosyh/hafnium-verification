@@ -52,22 +52,75 @@ Require Import Coqlib sflib.
 Require Import Lang.
 Require Import Values.
 Require Import Integers.
+Require Import Constant.
+Require Import Lock.
 Require Import Mpool.
-
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
-Import Int.
+Import LOCK.
 Import MPOOLCONCURSTRUCT.
 Import MPOOLCONCUR.
 
+Import Int64.
+
 Set Implicit Arguments.
 
-Section MPOOLTEST.
+(****** TODO: move to Lang *****)
+Fixpoint INSERT_YIELD (s: stmt): stmt :=
+  match s with
+  | Seq s0 s1 => Seq (INSERT_YIELD s0) (INSERT_YIELD s1)
+  | If c s0 s1 => If c (INSERT_YIELD s0) (INSERT_YIELD s1)
+  | While c s => While c (INSERT_YIELD s)
+  | _ => Yield #; s
+  end
+.
+
+Module MPOOLTEST.
+
+  Module MPOOLTEST_ONE.
+
+    Definition main (p begin res r1 r2 r3: var) : stmt :=
+      (* Put "test plus" (Plus (Vnormal (Vint (repr 1))) (Vnormal (Vint (repr 5)))) #; *)
+      (Call "MPOOL.mpool_init_locks" [])
+        #;
+        (Call "MPOOL.mpool_enable_locks" [])
+        #;
+        #assume mpool_locks_enabled #;        
+        p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
+        Put "before init: " p #;
+        Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (repr 8))] #;
+        Put "after init: " p #;
+        (*
+        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 8000))) #;
+        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (repr 20)])
+        #;
+        Put "add_chunk done: " p #;
+        r1 #= (Call "MPOOL.mpool_alloc_contiguous" [CBR p; CBV (repr 12); CBV (repr 4)]) #;
+        Put "alloc_contiguous done: " p #;
+        #assume r1 #;
+        r2 #= Call "MPOOL.mpool_alloc_contiguous" [CBR p ; CBV (repr 8); CBV (repr 4)] #;
+        Put "alloc_contiguous done: " p #;
+        #assume r2 #;
+        r3 #= Call "MPOOL.mpool_alloc_contiguous" [CBR p ; CBV (repr 4); CBV (repr 4)] #;
+        Put "alloc_contiguous done: " p #; 
+        #assume (!r3). *)
+    Skip.
+
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) ["p" ; "begin" ; "res"; "r1"; "r2"; "r3"]. Defined.
+
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
+    
+  End MPOOLTEST_ONE. 
 
   
-  
-  
-
 End MPOOLTEST.

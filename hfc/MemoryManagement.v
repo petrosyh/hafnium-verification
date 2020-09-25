@@ -57,20 +57,17 @@ Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
-Import Int.
+Import Int64.
 
 Set Implicit Arguments.
 
-(* XXX: Need to move this part into Lang.v file *)
 Section STORELOADSYNTACTICSUGAR.
   
   Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt :=
-    (* Put " " i#; *)
-    Store (Cast (Plus (Cast p tint) (repr offset)) tptr) e.
-
+    ((Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr (offset * 8)%Z)))) tptr) @ Int64.zero #:= e).
+  
   Definition load_at_i (p : var) (offset : Z) : expr :=
-    (* Put " " i#; *)
-    Load (Cast (Plus (Cast p tint) (repr offset)) tptr).
+    (Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr offset)))) tptr) #@ Int64.zero.
   
 End STORELOADSYNTACTICSUGAR.
 
@@ -417,7 +414,7 @@ Module MMCONCUR.
   Definition expr_to_int (e : expr) :=
     match e with
     | Val n => match n with
-               | Vnormal (Vint n') => n'
+               | Vnormal (Vlong n') => n'
                | _ => (repr max_unsigned)
                end
     | _ => (repr max_unsigned)

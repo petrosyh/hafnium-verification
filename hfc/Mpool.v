@@ -52,25 +52,44 @@ Require Import Coqlib sflib.
 Require Import Lang.
 Require Import Values.
 Require Import Integers.
+Require Import Constant.
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
-Import Int.
-
-Set Implicit Arguments.
+Import Int64.
 
 
 (* XXX: Need to move this part into Lang.v file *)
 Section STORELOADSYNTACTICSUGAR.
+
+  (*
+  Definition temp := "temp".
+  Definition temp2 := "temp2".
+  Definition temp3 := "temp3".
+  Locate sem_cast.
+
+  Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt :=
+    Put "store_at_i p loc" p #;
+        Put "store_at_i p loc after casting" (Cast p tint) #;
+        Put "offset" (Vnormal (Vint (Int.repr (offset * 4)))) #;
+        Put "added_value_test" (Plus (Vnormal (Vint (Int.repr 4))) (Vnormal (Vint (Int.repr 4)))) #;
+        temp #=(Cast p tint) #;
+        Put "casted" temp #;
+        temp2 #= ((Vnormal (Vlong (Int64.repr (offset))))) #;
+        Put "temp2" temp2 #;
+        Put "added_value" (Plus temp temp2) #;
+        temp3 #= (Cast (repr 16) tptr) #;
+        Put "temp3" temp3 #;
+        Put "e value" e #;
+        (temp3 @ Int64.zero #:= (Int64.repr 100)).
+  *)
   
   Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt :=
-    (* Put " " i#; *)
-    Store (Cast (Plus (Cast p tint) (repr offset)) tptr) e.
-
+    ((Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr (offset * 8)%Z)))) tptr) @ Int64.zero #:= e).
+  
   Definition load_at_i (p : var) (offset : Z) : expr :=
-    (* Put " " i#; *)
-    Load (Cast (Plus (Cast p tint) (repr offset)) tptr).
+    (Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr offset)))) tptr) #@ Int64.zero.
   
 End STORELOADSYNTACTICSUGAR.
   
@@ -83,8 +102,8 @@ Module MPOOLCONCURSTRUCT.
   };
    *)
   
-  Definition next_chunk_loc := 0.
-  Definition limit_loc := 1.
+  Definition next_chunk_loc := 0%Z.
+  Definition limit_loc := 1%Z.
 
   (*
   struct mpool_entry {
@@ -92,7 +111,7 @@ Module MPOOLCONCURSTRUCT.
   };  
   *)
 
-  Definition next_loc := 0.
+  Definition next_loc := 0%Z.
   
   (*
   struct mpool {
@@ -104,11 +123,11 @@ Module MPOOLCONCURSTRUCT.
   };
   *)
 
-  Definition lock_loc := 0.
-  Definition entry_size_loc := 1.
-  Definition chunk_list_loc := 2.
-  Definition entry_list_loc := 3.
-  Definition fallback_loc := 4.
+  Definition lock_loc := 0%Z.
+  Definition entry_size_loc := 1%Z.
+  Definition chunk_list_loc := 2%Z.
+  Definition entry_list_loc := 3%Z.
+  Definition fallback_loc := 4%Z.
 
 
 End MPOOLCONCURSTRUCT.
@@ -117,6 +136,7 @@ End MPOOLCONCURSTRUCT.
 Module MPOOLCONCUR.
 
   Import MPOOLCONCURSTRUCT.
+  Import LangNotations.
 
   Definition mpool_locks_enabled := "mpool_locks_enabled".
 
@@ -158,6 +178,7 @@ Module MPOOLCONCUR.
   *)
   
   Definition mpool_unlock (p : var) :=
+    Put "lock unlock" (load_at_i p lock_loc) #;
     #if mpool_locks_enabled
      then (Call "Lock.release" [CBV (load_at_i p lock_loc) ; CBV p])
      else Skip.
@@ -174,12 +195,18 @@ Module MPOOLCONCUR.
   *)
   
   Definition mpool_init (p:var) (entry_size : var): stmt :=
+    Put "mpool init start" p #;
     store_at_i p entry_size_loc entry_size #;
                store_at_i p chunk_list_loc Vnull #;
                store_at_i p entry_list_loc Vnull #;
                store_at_i p fallback_loc Vnull #;
+               Put "store: mpool init end" p #;
                store_at_i p lock_loc (Call "Lock.new" []) #;
-               (Call "MPOOL.mpool_unlock" [CBR p]).
+               Put "Lock new" p #;
+               (Call "MPOOL.mpool_unlock" [CBR p]) #;
+               Put "Lock new" p #;
+               Put "mpool init end" p.
+               
 
   (*
   void mpool_init_from(struct mpool *p, struct mpool *from)
@@ -322,6 +349,7 @@ Module MPOOLCONCUR.
     #if ((new_end <= new_begin) #|| ((load_at_i p entry_size_loc) < (new_end - new_begin))) 
      then Return Vfalse
      else
+       (Call "MPOOL.mpool_lock" [CBR p]) #;       
        chunk #= (Cast new_begin tptr) #;
              (store_at_i chunk limit_loc (Cast new_end tptr)) #;
              (store_at_i p chunk_list_loc chunk) #;
@@ -491,17 +519,17 @@ Module MPOOLCONCUR.
 
   Definition mpool_program: program :=
       [
-        ("mpool_init_locks", mpool_init_locksF) ;
-      ("mpool_enable_locks", mpool_enable_locksF) ;
-      ("mpool_lock", mpool_lockF) ;
-      ("mpool_unlock", mpool_unlockF) ;
-      ("mpool_init", mpool_initF) ;
-      ("mpool_init_from", mpool_init_fromF) ;
-      ("mpool_init_with_fallback", mpool_init_with_fallbackF) ;
-      ("mpool_add_chunk", mpool_add_chunkF) ;
-      ("mpool_free", mpool_freeF) ;
-      ("mpool_alloc_contiguous_no_fallback", mpool_alloc_contiguous_no_fallbackF) ;
-      ("mpool_alloc_contiguous",  mpool_alloc_contiguousF)
+        ("MPOOL.mpool_init_locks", mpool_init_locksF) ;
+      ("MPOOL.mpool_enable_locks", mpool_enable_locksF) ;
+      ("MPOOL.mpool_lock", mpool_lockF) ;
+      ("MPOOL.mpool_unlock", mpool_unlockF) ;
+      ("MPOOL.mpool_init", mpool_initF) ;
+      ("MPOOL.mpool_init_from", mpool_init_fromF) ;
+      ("MPOOL.mpool_init_with_fallback", mpool_init_with_fallbackF) ;
+      ("MPOOL.mpool_add_chunk", mpool_add_chunkF) ;
+      ("MPOOL.mpool_free", mpool_freeF) ;
+      ("MPOOL.mpool_alloc_contiguous_no_fallback", mpool_alloc_contiguous_no_fallbackF) ;
+      ("MPOOL.mpool_alloc_contiguous",  mpool_alloc_contiguousF)
       ].
   
   Definition mpool_modsem : ModSem := program_to_ModSem mpool_program.
