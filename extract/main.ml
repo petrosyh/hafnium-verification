@@ -311,6 +311,8 @@ let main =
   print_endline "-----------------------------------" ;
   run (eval_whole_program LoadStore.program) ;
   print_endline "-----------------------------------" ;
+  run (eval_whole_program CBVCBR.program) ;
+  print_endline "-----------------------------------" ;
   run (eval_whole_program Rec.program) ;
   print_endline "-----------------------------------" ;
   run (eval_whole_program MutRec.program) ;

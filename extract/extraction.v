@@ -43,6 +43,7 @@ Separate Extraction
          Values.Vfalse
          LangTest.IntPtr.program
          LangTest.LoadStore.program
+         LangTest.CBVCBR.program
          LangTest.Rec.program
          LangTest.MutRec.program
          LangTest.Move.program
