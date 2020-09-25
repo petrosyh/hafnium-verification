@@ -52,18 +52,22 @@ Require Import Coqlib sflib.
 Require Import Lang.
 Require Import Values.
 Require Import Integers.
+Require Import Mpool.
+
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
-Import Int64.
-
-Require Import Mpool.
+Import Int.
+Import MPOOLCONCURSTRUCT.
+Import MPOOLCONCUR.
 
 Set Implicit Arguments.
 
 Section MPOOLTEST.
 
-
+  
+  
+  
 
 End MPOOLTEST.

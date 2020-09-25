@@ -31,6 +31,7 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-R flocq $(COQMODULE)"; \
          echo "-R lib $(COQMODULE)"; \
 	 echo "-R lang $(COQMODULE)"; \
+	 echo "-R hfc $(COQMODULE)"; \
    echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 

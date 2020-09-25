@@ -52,7 +52,7 @@ Require Import Coqlib sflib.
 Require Import Lang.
 Require Import Values.
 Require Import Integers.
-Require Import Types.
+Require Import Constant.
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.

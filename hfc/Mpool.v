@@ -467,4 +467,44 @@ Module MPOOLCONCUR.
        ) #;
          Return Vnull.
 
+
+  Definition mpool_init_locksF: function. mk_function_tac mpool_init_locks ([]: list var) ([]: list var). Defined.
+  Definition mpool_enable_locksF: function. mk_function_tac mpool_enable_locks ([]: list var) ([]: list var). Defined.
+  Definition mpool_lockF: function. mk_function_tac mpool_lock ["p"] ([]: list var). Defined. 
+  Definition mpool_unlockF: function. mk_function_tac mpool_unlock ["p"] ([]: list var). Defined.
+  Definition mpool_initF: function. mk_function_tac mpool_init ["p"; "entry_size"] ([]: list var). Defined.
+  Definition mpool_init_fromF: function. mk_function_tac mpool_init_from ["p"; "from"] ([]: list var). Defined.
+  Definition mpool_init_with_fallbackF: function.
+    mk_function_tac mpool_init_with_fallback ["p"; "fallback"] ([]: list var). Defined.
+  Definition mpool_finiF: function.
+    mk_function_tac mpool_fini ["p"] ["entry"; "chunk"; "ptr"; "size"]. Defined.
+  Definition mpool_add_chunkF: function.
+    mk_function_tac mpool_add_chunk ["p"; "begin"; "size"] ["new_begin"; "new_end"; "chunk"]. Defined.
+  Definition mpool_freeF: function.
+    mk_function_tac mpool_free ["p"; "ptr"] ["e"]. Defined.
+  Definition mpool_alloc_contiguous_no_fallbackF: function.
+    mk_function_tac mpool_alloc_contiguous_no_fallback ["p"; "count"; "align"]
+                    ["prev"; "ret"; "chunk"; "start"; "new_chunk"]. Defined.
+  Definition mpool_alloc_contiguousF: function.
+    mk_function_tac mpool_alloc_contiguous ["p"; "count"; "align"] ["ret"]. Defined.
+
+
+  Definition mpool_program: program :=
+      [
+        ("mpool_init_locks", mpool_init_locksF) ;
+      ("mpool_enable_locks", mpool_enable_locksF) ;
+      ("mpool_lock", mpool_lockF) ;
+      ("mpool_unlock", mpool_unlockF) ;
+      ("mpool_init", mpool_initF) ;
+      ("mpool_init_from", mpool_init_fromF) ;
+      ("mpool_init_with_fallback", mpool_init_with_fallbackF) ;
+      ("mpool_add_chunk", mpool_add_chunkF) ;
+      ("mpool_free", mpool_freeF) ;
+      ("mpool_alloc_contiguous_no_fallback", mpool_alloc_contiguous_no_fallbackF) ;
+      ("mpool_alloc_contiguous",  mpool_alloc_contiguousF)
+      ].
+  
+  Definition mpool_modsem : ModSem := program_to_ModSem mpool_program.
+    
 End MPOOLCONCUR.
+

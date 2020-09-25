@@ -52,13 +52,15 @@ Require Import Coqlib sflib.
 Require Import Lang.
 Require Import Values.
 Require Import Integers.
+Require Import MemoryManagement.
+
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
-Import Int64.
-
-Require Import MM.
+Import Int.
+Import MMCONCURSTRUCT.
+Import MMCONCUR.
 
 Set Implicit Arguments.
 
