@@ -31,6 +31,7 @@ open MMHighStageOne
 open Lock
 open Mpool
 open MpoolTest
+open MemoryManagementTest
 open LangTest
 
 open List
@@ -360,6 +361,11 @@ let main =
   print_endline "-----------------------------------------------------------" ;
   print_endline "--------------------   MPOOL   ----------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem) ;
+
+  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------   MM UNIT TEST   ----------------------------" ;
+  run (MemoryManagementTest.MMTEST.PageTableFromPa.program) ;
+
 (*
   print_endline "-----------------------------------------------------------" ;
   run (eval_whole_program MpoolSeq.TEST.TEST2.program) ;

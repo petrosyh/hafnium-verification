@@ -64,8 +64,26 @@ Import MMCONCUR.
 
 Set Implicit Arguments.
 
-Section MMTEST.
+Module MMTEST.
 
+(* some unit tests *)
 
+Module PageTableFromPa.
+
+  Definition main pa pt: stmt :=
+    pa #= (Vlong (Int64.repr 3500)) #;
+    Put "pa: " pa#;
+    pt #= (Call "MM.mm_page_table_from_pa" [CBV pa]) #;
+    Put "pt: " pt#;
+    Skip.
+
+  Definition function: function. mk_function_tac main ([]: list var) ["pa" ; "pt"]. Defined.
+
+  Definition program: Lang.program := [("main", function)].
+
+  (* Extraction "LangTest.ml" load_store_program. *)
+  (* Check (eval_whole_program program). *)
+
+End PageTableFromPa.
 
 End MMTEST.
