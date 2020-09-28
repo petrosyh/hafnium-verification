@@ -776,18 +776,20 @@ Section Denote.
                   m <- trigger GetMem ;;
                   match (l, r) with
                   | (Vnormal l, Vnormal r) =>
-                    if (bool_val l m)
-                    then ret (Vnormal r)
-                    else ret Vfalse
+                    match (bool_val l m) with
+                    | Some true => ret (Vnormal r)
+                    | _ => ret Vfalse
+                    end
                   | _ => triggerNB "expr-And"
                   end
     | Or a b => l <- denote_expr a ;; r <- denote_expr b ;;
                  m <- trigger GetMem ;;
                  match (l, r) with
                  | (Vnormal l, Vnormal r) =>
-                   if (bool_val l m)
-                   then ret Vtrue
-                   else ret (Vnormal r)
+                   match (bool_val l m) with
+                   | Some true => ret Vtrue
+                   | _ => ret (Vnormal r)
+                   end
                  | _ => triggerNB "expr-Or"
                  end
     | Not a => v <- denote_expr a ;;
