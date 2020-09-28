@@ -89,24 +89,27 @@ Module MPOOLTEST.
         #;
         #assume mpool_locks_enabled #;        
         p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
-        Put "before init: " p #;
-        Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (repr 8))] #;
-        Put "after init: " p #;
-        (*
+        Put "main: before init: " p #;
+        Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (Int64.repr 8))] #;
+        Put "main: after init: " p #;
         begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 8000))) #;
-        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (repr 20)])
+        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 20)])
         #;
-        Put "add_chunk done: " p #;
+        Put "main: add_chunk done: " p #;
         r1 #= (Call "MPOOL.mpool_alloc_contiguous" [CBR p; CBV (repr 12); CBV (repr 4)]) #;
-        Put "alloc_contiguous done: " p #;
+        Put "main: alloc_contiguous done: " r1 #;
+        Put "main: alloc 1 done: succeed" r1 #;
+        (* 
         #assume r1 #;
         r2 #= Call "MPOOL.mpool_alloc_contiguous" [CBR p ; CBV (repr 8); CBV (repr 4)] #;
-        Put "alloc_contiguous done: " p #;
+        Put "main: alloc_contiguous done: " r2 #;
+        Put "main: alloc 2 done: succeed " r3 #;
         #assume r2 #;
         r3 #= Call "MPOOL.mpool_alloc_contiguous" [CBR p ; CBV (repr 4); CBV (repr 4)] #;
-        Put "alloc_contiguous done: " p #; 
-        #assume (!r3). *)
-    Skip.
+        Put "main: alloc_contiguous done: " r3 #; 
+        Put "main: alloc 3 done: fail " r3 #;
+        #assume (!r3) #; *)
+        Skip.
 
 
     Definition mainF: function.

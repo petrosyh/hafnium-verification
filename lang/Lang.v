@@ -216,10 +216,10 @@ Extract Constant show_val =>
   match v with
   | Vnormal v2 ->
     (match v2 with
-    | Vint n -> cl2s (BinaryString.of_Z (Int.unsigned n)) ^ "" ""
-    | Vlong n -> cl2s (BinaryString.of_Z (Int64.unsigned n)) ^ "" ""
+    | Vint n -> ""[32bit]: "" ^ cl2s (BinaryString.of_Z (Int.unsigned n)) ^ "" ""
+    | Vlong n -> ""[64bit]: "" ^ cl2s (BinaryString.of_Z (Int64.unsigned n)) ^ "" ""
     | Vptr(block, ofs) ->
-       ""(*) ("" ^ cl2s (BinaryString.of_pos block) ^
+       ""[ptr] (*) ("" ^ cl2s (BinaryString.of_pos block) ^
        "") ("" ^ cl2s (BinaryString.of_Z ofs) ^ "") ""
     | Vundef -> ""Undef "")
   | Vabs a -> cl2s (string_of_Any a) in
