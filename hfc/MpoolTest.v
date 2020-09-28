@@ -96,6 +96,12 @@ Module MPOOLTEST.
         begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 32)])
         #;
+        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 240))) #;
+        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBV begin; CBV (Int64.repr 32)])
+        #;
+        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 320))) #;
+        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBV begin; CBV (Int64.repr 32)])
+        #;
         (*
         Put "main: add_chunk done: " p #;
         r1 #= (Call "MPOOL.mpool_alloc_contiguous" [CBR p; CBV (repr 12); CBV (repr 4)]) #;

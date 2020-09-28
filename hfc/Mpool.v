@@ -387,6 +387,7 @@ Module MPOOLCONCUR.
                   Put "mpool_add_chunk: load_at_i p entry_size_loc" (load_at_i p entry_size_loc) #;
                   Put "mpool_add_chunk: load_at_i p chunk_list" (load_at_i p chunk_list_loc) #;
                   Put "mpool_add_chunk: chunk" chunk #;
+                  Put "mpool_add_chunk: load_at_it chunk next_chunk_loc" (load_at_i chunk next_chunk_loc) #;
                   Put "mpool_add_chunk: load_at_i chunk limit" (load_at_i chunk limit_loc) #;
                   Put "mpool_add_chunk: load_at_i p entry_list" (load_at_i p entry_list_loc) #;
                   Put "mpool_add_chunk: load_at_i p fallback_loc" (load_at_i p fallback_loc) #;
