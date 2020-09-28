@@ -251,9 +251,9 @@ Module MMCONCUR.
 
   
   Definition  mm_pa_start_of_next_block (pa block_size : var) :=
-    Return (Call "ADDR.PA_INIT" [CBV ((Call "ADDR.pa_init"
-                                            [CBV ((Call "ADDR.pa_addr" [CBV pa]) + block_size)])
-                                        #& (#~ (block_size - one)))]).
+    Return (Call "ADDR.pa_init"
+                 [CBV (((Call "ADDR.pa_addr" [CBV pa]) + block_size)
+                         #& (#~ (block_size - one)))]).
   
   (* 
   /**
@@ -315,13 +315,13 @@ Module MMCONCUR.
   (* XXX: original version
   Definition mm_alloc_page_tables (count ppool : var) :=
     #if (count == one)
-     then (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV one])
-     else (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV count]).
+     then (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV one; CBV one])
+     else (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV count; CBV count]).
   *)  
 
   (* XXX: simplified version *)
   Definition mm_alloc_page_tables (count ppool : var) :=
-    (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV count]).
+    (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV count; CBV count]).
   
   (*
   // JIEUNG: this function is an auxiliary function to find out max level of both
@@ -732,7 +732,8 @@ Module MMCONCUR.
       i #= zero #;
       #while (i < MM_PTE_PER_PAGE)
       do (
-          (store_at_i ntable (unsigned (expr_to_int (Var i))) new_pte) #;
+        (store_at_i ntable (unsigned (expr_to_int (Var i))) new_pte) #;
+          new_pte #= (new_pte + inc) #;
           i #= (i + one)
         ) #;
           (Call "MM.mm_replace_entry" [CBV a_begin; CBR pte;
@@ -1263,7 +1264,7 @@ Module MMCONCUR.
                                                         CBV (level - one); CBR ppool]))
             #;
             present #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV (load_at_i table (unsigned (expr_to_int (Var i))));
-                                                             CBV (level - one); CBR ppool]) #;
+                                                             CBV (level - one)]) #;
             (* XXX: refactoring that one due to continue *)
             (#if (#! (present == base_present))
               then mergeable #= Vfalse
@@ -1646,7 +1647,7 @@ Module MMCONCUR.
   }
   *)
 
-  Definition mm_vm_unma (t a_begin a_end ppool : var) (mode : var):=
+  Definition mm_vm_unmap (t a_begin a_end ppool : var) (mode : var):=
     mode #= MM_MODE_UNMAPPED_MASK #;
          Return (Call "MM.mm_vm_identity_map" [CBR t; CBV a_begin; CBV a_end; CBV mode; CBR ppool; CBV Vnull]).
   

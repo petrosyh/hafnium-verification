@@ -343,20 +343,20 @@ static inline void *ptr_from_va(vaddr_t va)
   
   Definition addr_program: program :=
     [
-      ("pa_init", pa_initF) ;
-    ("pa_addr", pa_addrF) ;
-    ("pa_add", pa_addF) ;
-    ("pa_difference", pa_differenceF) ;
-    ("ipa_init", ipa_initF) ;
-    ("ipa_addr", ipa_addrF) ;
-    ("va_init", va_initF) ;
-    ("va_addr", va_addrF) ;
-    ("va_from_pa", va_from_paF) ;
-    ("ipa_from_pa", ipa_from_paF) ;
-    ("pa_from_va", pa_from_vaF) ;
-    ("pa_from_ipa", pa_from_ipaF) ;
-    ("va_from_ptr", va_from_ptrF) ;
-    ("ptr_from_va", ptr_from_vaF)
+      ("ADDR.pa_init", pa_initF) ;
+        ("ADDR.pa_addr", pa_addrF) ;
+        ("ADDR.pa_add", pa_addF) ;
+        ("ADDR.pa_difference", pa_differenceF) ;
+        ("ADDR.ipa_init", ipa_initF) ;
+        ("ADDR.ipa_addr", ipa_addrF) ;
+        ("ADDR.va_init", va_initF) ;
+        ("ADDR.va_addr", va_addrF) ;
+        ("ADDR.va_from_pa", va_from_paF) ;
+        ("ADDR.ipa_from_pa", ipa_from_paF) ;
+        ("ADDR.pa_from_va", pa_from_vaF) ;
+        ("ADDR.pa_from_ipa", pa_from_ipaF) ;
+        ("ADDR.va_from_ptr", va_from_ptrF) ;
+        ("ADDR.ptr_from_va", ptr_from_vaF)
     ].
 
   Definition addr_modsem :=  program_to_ModSem addr_program.
