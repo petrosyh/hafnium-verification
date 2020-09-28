@@ -90,13 +90,14 @@ Module MPOOLTEST.
         #assume mpool_locks_enabled #;        
         p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
         Put "main: before init: " p #;
+        (* initialize it with the entry size - 8 *)
         Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (Int64.repr 8))] #;
         Put "main: after init: " p #;
-        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 8000))) #;
-        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 20)])
+        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
+        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 32)])
         #;
-        Put "main: add_chunk done: " p #;
         (*
+        Put "main: add_chunk done: " p #;
         r1 #= (Call "MPOOL.mpool_alloc_contiguous" [CBR p; CBV (repr 12); CBV (repr 4)]) #;
         Put "main: alloc_contiguous done: " r1 #;
         Put "main: alloc 1 done: succeed" r1 #;

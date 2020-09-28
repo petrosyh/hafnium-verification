@@ -350,48 +350,48 @@ Module MPOOLCONCUR.
   }
   *)
   
-  Definition mpool_add_chunk (p begin size : var) (new_begin new_end chunk: var) : stmt :=
-    Put "mpool_add_chunk: start" p #;
-        Put "mpool_add_chunk: load_at_i entry_size_loc" (load_at_i p entry_size_loc) #;
+  Definition mpool_add_chunk (p begin size : var) (new_begin new_end chunk temp: var) : stmt :=
+    Put "===== mpool_add_chunk: start ====" p #;
+        (* Put "mpool_add_chunk: load_at_i entry_size_loc" (load_at_i p entry_size_loc) #; *)
         new_begin #= (((Cast begin tint) + (load_at_i p entry_size_loc) - (Int64.repr 1))
                         / (load_at_i p entry_size_loc) * (load_at_i p entry_size_loc))
         #;
         new_end #= (((Cast begin tint) + size)
                       / (load_at_i p entry_size_loc) * (load_at_i p entry_size_loc))
         #;
+        (*
         Put "mpool_add_chunk: new_begin" new_begin #;
         Put "mpool_add_chunk: new_end" new_end #;
         Put "mpool_add_chunk: load_at_limit_loc" (load_at_i p limit_loc) #;
         Put "mpool_add_chunk: condition1" (new_end <= new_begin) #;
         Put "mpool_add_chunk: condition2" ((new_end - new_begin) < (load_at_i p entry_size_loc)) #;
-        Put "mpool_add_chunk: combined condition"
+        Put "mpool_add_chunk: combined condition" *)
+        Put "mpool_add_chunk: load_at_i limit" (load_at_i p limit_loc) #;
+        Put "mpool_add_chunk: load_at_i entry_size_loc" (load_at_i p entry_size_loc) #;
+        Put "mpool_add_chunk: load_at_i chunk_list" (load_at_i p chunk_list_loc) #;
+        Put "mpool_add_chunk: load_at_i entry_list" (load_at_i p entry_list_loc) #;
+        Put "mpool_add_chunk: load_at_i fallback_loc" (load_at_i p fallback_loc) #;  
         ((new_end <= new_begin) #|| ((new_end - new_begin) < (load_at_i p entry_size_loc))) #;
         (#if (((new_end <= new_begin) #|| ((new_end - new_begin) < (load_at_i p entry_size_loc))))
           then
             Put "mpool_add_chunk: failed" p #;
             Return Vfalse
           else
-            (Call "MPOOL.mpool_lock" [CBR p])
-              #;
-              (* (store_and_load_at_i_debug chunk limit_loc) #; *)
-              (store_at_i_debug chunk limit_loc (Cast new_end tptr)) #;
-              Put "mpool_add_chunk: store new_end" (Cast new_end tptr) #;
-              (store_at_i chunk limit_loc (Cast new_end tptr)) #;
-              
-              (* It works now *)
-              chunk #= (Cast new_begin tptr) #;
-              (store_at_i p chunk_list_loc chunk) #;
-
-              
-              (Call "MPOOL.mpool_unlock" [CBR p]) #;
-              Put "mpool_add_chunk: store chunk" chunk #;
-              Put "mpool_add_chunk: succeed" p #;
-              Put "mpool_add_chunk: end" (load_at_i p limit_loc) #;
-              Put "mpool_add_chunk: load_at_i entry_size_loc" (load_at_i p entry_size_loc) #;
-              Put "mpool_add_chunk: load_at_i chunk_list" (load_at_i p chunk_list_loc) #;
-              Put "mpool_add_chunk: load_at_i entry_list" (load_at_i p entry_list_loc) #;
-              Put "mpool_add_chunk: load_at_i entry_list" (load_at_i p fallback_loc) #;
-              Return Vtrue).
+            chunk #= (Cast new_begin tptr) #;
+                  (store_at_i chunk limit_loc (Cast new_end tptr)) #;              
+                  (Call "MPOOL.mpool_lock" [CBR p]) #;
+                  (store_at_i chunk next_chunk_loc (load_at_i p chunk_list_loc)) #;
+                  (store_at_i p chunk_list_loc chunk) #;              
+                  (Call "MPOOL.mpool_unlock" [CBR p]) #;
+                  Put "mpool_add_chunk: load_at_i limit" (load_at_i p limit_loc) #;
+                  Put "mpool_add_chunk: load_at_i p entry_size_loc" (load_at_i p entry_size_loc) #;
+                  Put "mpool_add_chunk: load_at_i p chunk_list" (load_at_i p chunk_list_loc) #;
+                  Put "mpool_add_chunk: chunk" chunk #;
+                  Put "mpool_add_chunk: load_at_i chunk limit" (load_at_i chunk limit_loc) #;
+                  Put "mpool_add_chunk: load_at_i p entry_list" (load_at_i p entry_list_loc) #;
+                  Put "mpool_add_chunk: load_at_i p fallback_loc" (load_at_i p fallback_loc) #;
+                  Put "==== mpool_add_chunk: finish ====" p #;
+                  Return Vtrue).
   
   (*
   void mpool_free(struct mpool *p, void *ptr)
@@ -561,7 +561,7 @@ Module MPOOLCONCUR.
   Definition mpool_finiF: function.
     mk_function_tac mpool_fini ["p"] ["entry"; "chunk"; "ptr"; "size"]. Defined.
   Definition mpool_add_chunkF: function.
-    mk_function_tac mpool_add_chunk ["p"; "begin"; "size"] ["new_begin"; "new_end"; "chunk"]. Defined.
+    mk_function_tac mpool_add_chunk ["p"; "begin"; "size"] ["new_begin"; "new_end"; "chunk"; "temp"]. Defined.
   Definition mpool_freeF: function.
     mk_function_tac mpool_free ["p"; "ptr"] ["e"]. Defined.
   Definition mpool_alloc_contiguous_no_fallbackF: function.
