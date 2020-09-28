@@ -63,31 +63,32 @@ Import Int64.
 (* XXX: Need to move this part into Lang.v file *)
 Section STORELOADSYNTACTICSUGAR.
 
-  (* XXX: add for testing 
-  Definition temp := "temp".
-  Definition temp2 := "temp2".
-  Definition temp3 := "temp3".
-  Locate sem_cast.
+  Definition debug_1 := "debug1".
+  Definition debug_2 := "debug2".
+  Definition debug_3 := "debug3".
 
-  Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt :=
-    Put "store_at_i p loc" p #;
-        Put "store_at_i p loc after casting" (Cast p tint) #;
-        Put "offset" (Vnormal (Vint (Int.repr (offset * 4)))) #;
-        Put "added_value_test" (Plus (Vnormal (Vint (Int.repr 4))) (Vnormal (Vint (Int.repr 4)))) #;
-        temp #=(Cast p tint) #;
-        Put "casted" temp #;
-        temp2 #= ((Vnormal (Vlong (Int64.repr (offset))))) #;
-        Put "temp2" temp2 #;
-        Put "added_value" (Plus temp temp2) #;
-        temp3 #= (Cast (repr 16) tptr) #;
-        Put "temp3" temp3 #;
-        Put "e value" e #;
-        (temp3 @ Int64.zero #:= (Int64.repr 100)).
-  *)
+  Definition store_and_load_at_i_debug  (p : var) (offset : Z) : stmt := 
+    debug_1 #=  (Cast p tint) #;
+            Put "store_at_i_debug: debug_1" debug_1 #;
+            debug_2 #= (Vnormal (Vlong (Int64.repr (offset * 8)%Z))) #;
+            Put "store_at_i_debug: debug_2" debug_2 #;
+            debug_3 #= (debug_1 + debug_2) #;
+            Put "store_at_i_debug: debug_3" debug_3 #;
+            Put "store_at_i_debug: debug_3 ptr" (Cast debug_3 tptr).
+
+  Definition store_at_i_debug  (p : var) (offset : Z) (e: expr): stmt := 
+    debug_1 #=  (Cast p tint) #;
+            Put "store_at_i_debug: debug_1" debug_1 #;
+            debug_2 #= (Vnormal (Vlong (Int64.repr (offset * 8)%Z))) #;
+            Put "store_at_i_debug: debug_2" debug_2 #;
+            debug_3 #= (debug_1 + debug_2) #;
+            Put "store_at_i_debug: debug_3" debug_3 #;
+            Put "store_at_i_debug: debug_3 ptr" (Cast debug_3 tptr) #;
+            (Cast debug_3 tptr) @ Int64.zero #:= e.
   
   Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt :=
     ((Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr (offset * 8)%Z)))) tptr) @ Int64.zero #:= e).
-  
+    
   Definition load_at_i (p : var) (offset : Z) : expr :=
     (Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr (offset * 8))))) tptr) #@ Int64.zero.
   
@@ -363,7 +364,6 @@ Module MPOOLCONCUR.
         Put "mpool_add_chunk: load_at_limit_loc" (load_at_i p limit_loc) #;
         Put "mpool_add_chunk: condition1" (new_end <= new_begin) #;
         Put "mpool_add_chunk: condition2" ((new_end - new_begin) < (load_at_i p entry_size_loc)) #;
-        Put "mpool_add_chunk: condition check" (Or (Int64.repr 0) (Int64.repr 0)) #;
         Put "mpool_add_chunk: combined condition"
         ((new_end <= new_begin) #|| ((new_end - new_begin) < (load_at_i p entry_size_loc))) #;
         (#if (((new_end <= new_begin) #|| ((new_end - new_begin) < (load_at_i p entry_size_loc))))
@@ -372,11 +372,19 @@ Module MPOOLCONCUR.
             Return Vfalse
           else
             (Call "MPOOL.mpool_lock" [CBR p])
-              #;       
-              chunk #= (Cast new_begin tptr) #;
+              #;
+              (* (store_and_load_at_i_debug chunk limit_loc) #; *)
+              (store_at_i_debug chunk limit_loc (Cast new_end tptr)) #;
+              Put "mpool_add_chunk: store new_end" (Cast new_end tptr) #;
               (store_at_i chunk limit_loc (Cast new_end tptr)) #;
+              
+              (* It works now *)
+              chunk #= (Cast new_begin tptr) #;
               (store_at_i p chunk_list_loc chunk) #;
+
+              
               (Call "MPOOL.mpool_unlock" [CBR p]) #;
+              Put "mpool_add_chunk: store chunk" chunk #;
               Put "mpool_add_chunk: succeed" p #;
               Put "mpool_add_chunk: end" (load_at_i p limit_loc) #;
               Put "mpool_add_chunk: load_at_i entry_size_loc" (load_at_i p entry_size_loc) #;

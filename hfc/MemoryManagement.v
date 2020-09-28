@@ -62,6 +62,19 @@ Import Int64.
 Set Implicit Arguments.
 
 Section STORELOADSYNTACTICSUGAR.
+
+  Definition debug_1 := "debug1".
+  Definition debug_2 := "debug2".
+  Definition debug_3 := "debug3".
+
+  Definition store_and_load_at_i_debug  (p : var) (offset : Z) : stmt := 
+    debug_1 #=  (Cast p tint) #;
+            Put "store_at_i_debug: debug_1" debug_1 #;
+            debug_2 #= (Vnormal (Vlong (Int64.repr (offset * 8)%Z))) #;
+            Put "store_at_i_debug: debug_2" debug_2 #;
+            debug_3 #= (debug_1 + debug_2) #;
+            Put "store_at_i_debug: debug_3" debug_3 #;
+            Put "store_at_i_debug: debug_3 ptr" (Cast debug_3 tptr).
   
   Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt :=
     ((Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr (offset * 8)%Z)))) tptr) @ Int64.zero #:= e).

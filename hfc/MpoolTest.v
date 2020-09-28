@@ -96,11 +96,12 @@ Module MPOOLTEST.
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 20)])
         #;
         Put "main: add_chunk done: " p #;
+        (*
         r1 #= (Call "MPOOL.mpool_alloc_contiguous" [CBR p; CBV (repr 12); CBV (repr 4)]) #;
         Put "main: alloc_contiguous done: " r1 #;
         Put "main: alloc 1 done: succeed" r1 #;
+        #assume r1 #; *)
         (* 
-        #assume r1 #;
         r2 #= Call "MPOOL.mpool_alloc_contiguous" [CBR p ; CBV (repr 8); CBV (repr 4)] #;
         Put "main: alloc_contiguous done: " r2 #;
         Put "main: alloc 2 done: succeed " r3 #;
