@@ -1119,29 +1119,29 @@ bool arch_mm_init(paddr_t table)
   
   Definition arch_mm_program: program :=
     [
-      ("arch_mm_absent_pte", arch_mm_absent_pteF) ;
-    ("arch_mm_table_pte", arch_mm_table_pteF) ;
-    ("arch_mm_block_pte", arch_mm_block_pteF) ;
-    ("arch_mm_is_block_allowed", arch_mm_is_block_allowedF) ;
-    ("arch_mm_pte_is_present", arch_mm_pte_is_presentF) ;
-    ("arch_mm_pte_is_valid", arch_mm_pte_is_validF) ;
-    ("arch_mm_pte_is_block", arch_mm_pte_is_blockF) ;
-    ("arch_mm_pte_is_table", arch_mm_pte_is_tableF) ;
-    ("pte_addr", pte_addrF) ;
-    ("arch_mm_clear_pa", arch_mm_clear_paF) ;
-    ("arch_mm_block_from_pte", arch_mm_block_from_pteF) ;
-    ("arch_mm_table_from_pte", arch_mm_table_from_pteF) ;
-    ("arch_mm_pte_attrs", arch_mm_pte_attrsF) ;
-    ("arch_mm_invalidate_stage1_range", arch_mm_invalidate_stage1_rangeF) ;
-    ("arch_mm_invalidate_stage2_range", arch_mm_invalidate_stage2_rangeF) ;
-    ("arch_mm_mode_to_stage1_attrs", arch_mm_mode_to_stage1_attrsF) ;
-    ("arch_mm_mode_to_stage2_attrs", arch_mm_mode_to_stage2_attrsF) ;
-    ("arch_mm_stage2_attrs_to_mode", arch_mm_stage2_attrs_to_modeF) ;
-    ("arch_mm_stage1_max_level", arch_mm_stage1_max_levelF) ;
-    ("arch_mm_stage2_max_level", arch_mm_stage2_max_levelF) ;
-    ("arch_mm_stage1_root_table_count", arch_mm_stage1_root_table_countF) ;
-    ("arch_mm_stage2_root_table_count", arch_mm_stage2_root_table_countF) ;
-    ("arch_mm_combine_table_entry_attrs", arch_mm_combine_table_entry_attrsF)
+      ("ARCHMM.arch_mm_absent_pte", arch_mm_absent_pteF) ;
+    ("ARCHMM.arch_mm_table_pte", arch_mm_table_pteF) ;
+    ("ARCHMM.arch_mm_block_pte", arch_mm_block_pteF) ;
+    ("ARCHMM.arch_mm_is_block_allowed", arch_mm_is_block_allowedF) ;
+    ("ARCHMM.arch_mm_pte_is_present", arch_mm_pte_is_presentF) ;
+    ("ARCHMM.arch_mm_pte_is_valid", arch_mm_pte_is_validF) ;
+    ("ARCHMM.arch_mm_pte_is_block", arch_mm_pte_is_blockF) ;
+    ("ARCHMM.arch_mm_pte_is_table", arch_mm_pte_is_tableF) ;
+    ("ARCHMM.pte_addr", pte_addrF) ;
+    ("ARCHMM.arch_mm_clear_pa", arch_mm_clear_paF) ;
+    ("ARCHMM.arch_mm_block_from_pte", arch_mm_block_from_pteF) ;
+    ("ARCHMM.arch_mm_table_from_pte", arch_mm_table_from_pteF) ;
+    ("ARCHMM.arch_mm_pte_attrs", arch_mm_pte_attrsF) ;
+    ("ARCHMM.arch_mm_invalidate_stage1_range", arch_mm_invalidate_stage1_rangeF) ;
+    ("ARCHMM.arch_mm_invalidate_stage2_range", arch_mm_invalidate_stage2_rangeF) ;
+    ("ARCHMM.arch_mm_mode_to_stage1_attrs", arch_mm_mode_to_stage1_attrsF) ;
+    ("ARCHMM.arch_mm_mode_to_stage2_attrs", arch_mm_mode_to_stage2_attrsF) ;
+    ("ARCHMM.arch_mm_stage2_attrs_to_mode", arch_mm_stage2_attrs_to_modeF) ;
+    ("ARCHMM.arch_mm_stage1_max_level", arch_mm_stage1_max_levelF) ;
+    ("ARCHMM.arch_mm_stage2_max_level", arch_mm_stage2_max_levelF) ;
+    ("ARCHMM.arch_mm_stage1_root_table_count", arch_mm_stage1_root_table_countF) ;
+    ("ARCHMM.arch_mm_stage2_root_table_count", arch_mm_stage2_root_table_countF) ;
+    ("ARCHMM.arch_mm_combine_table_entry_attrs", arch_mm_combine_table_entry_attrsF)
     ].
 
   Definition arch_mm_modsem :=  program_to_ModSem arch_mm_program.
