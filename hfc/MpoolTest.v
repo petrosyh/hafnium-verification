@@ -177,29 +177,29 @@ Module MPOOLTEST.
                               Skip
            ).
     
-    Definition alloc_and_free (sz : N) (p i r0 r1 r2 temp_p: var) : stmt :=
+    Definition alloc_and_free (sz : N) (p i r0 r1 r2: var) : stmt :=
       Eval compute in
         INSERT_YIELD (
             (Put "Start" Int.zero) #;
             (#while (GLOBAL_START == Int.zero)
               do
                 (Debug "waiting for GMPOOL" GMPOOL))
-              #;
+            #;
+            p #= Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N sz) * 320))) #;
+            
               (Call "MPOOL.mpool_init_with_fallback" [CBR p; CBR GMPOOL]) #;
               Put "(Local Mpool) After init-with-fallback" p #;
-              temp_p #= p #;
               r0 #= (Call "MPOOL.mpool_alloc_contiguous"
-                    [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
-              p #= temp_p #;
+                          [CBV p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
+              (*
               r1 #= (Call "MPOOL.mpool_alloc_contiguous"
                     [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
-              p #= temp_p #;
               r2 #= (Call "MPOOL.mpool_alloc_contiguous"
-                    [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
-              p #= temp_p #;
+                    [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #; *)
               (Call "MPOOL.mpool_free" [CBR p; CBR r0]) #;
-              p #= temp_p #;
+              (*
               (Call "MPOOL.mpool_free" [CBR p; CBR r1]) #;
+              *)
               SIGNAL #= (SIGNAL + Int.one) #;
               Skip
           ).
@@ -208,10 +208,10 @@ Module MPOOLTEST.
     Definition mainF: function.
       mk_function_tac main ([]: list var) ["p" ; "i" ; "r"; "next_chunk"]. Defined.
     Definition alloc_and_free2F: function.
-      mk_function_tac (alloc_and_free 1) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"; "temp_p"].
+      mk_function_tac (alloc_and_free 1) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"].
     Defined.
     Definition alloc_and_free3F: function.
-      mk_function_tac (alloc_and_free 2) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"; "temp_p"].
+      mk_function_tac (alloc_and_free 2) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"].
     Defined.
 
     Definition main_program: program :=

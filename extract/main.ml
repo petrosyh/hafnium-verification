@@ -363,6 +363,10 @@ let main =
   run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem) ;
 
   print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------   MPOOL   ----------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem) ;
+
+  print_endline "-----------------------------------------------------------" ;
   print_endline "--------------------   MM UNIT TEST   ----------------------------" ;
   run (MemoryManagementTest.MMTEST.PageTableFromPa.isem) ;
   print_endline "-----------------------------------------------------------" ;
@@ -374,13 +378,6 @@ let main =
   print_endline "-----------------------------------------------------------" ;
   run (MemoryManagementTest.MMTEST.TLBI.isem) ;
   print_endline "-----------------------------------------------------------" ;
-
-
-  (*
-  print_endline "-----------------------------------------------------------" ;
-  print_endline "--------------------   MPOOL   ----------------------------" ;
-  run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem) ;
-  *)
   
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleMultiCoreLocalState.isem) ;
