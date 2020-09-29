@@ -247,7 +247,7 @@ Module MMCONCUR.
   }
    *)
   
-  Definition  mm_start_of_next_block (addr block_size : var) :=
+  Definition mm_start_of_next_block (addr block_size : var) :=
     Return ((addr + block_size) #& (#~ (block_size - one))).
   
   (*   
@@ -263,7 +263,7 @@ Module MMCONCUR.
 
 
   
-  Definition  mm_pa_start_of_next_block (pa block_size : var) :=
+  Definition mm_pa_start_of_next_block (pa block_size : var) :=
     Return (Call "ADDR.pa_init"
                  [CBV (((Call "ADDR.pa_addr" [CBV pa]) + block_size)
                          #& (#~ (block_size - one)))]).

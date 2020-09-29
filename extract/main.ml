@@ -365,6 +365,15 @@ let main =
   print_endline "-----------------------------------------------------------" ;
   print_endline "--------------------   MM UNIT TEST   ----------------------------" ;
   run (MemoryManagementTest.MMTEST.PageTableFromPa.isem) ;
+  print_endline "-----------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.PaStartOfNextBlk.isem) ;
+  print_endline "-----------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.MaxLv.isem) ;
+  print_endline "-----------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.RootTableCount.isem) ;
+  print_endline "-----------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.TLBI.isem) ;
+  print_endline "-----------------------------------------------------------" ;
 
 (*
   print_endline "-----------------------------------------------------------" ;
