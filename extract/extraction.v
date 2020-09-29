@@ -86,7 +86,7 @@ Separate Extraction
 
          (* CPUSeq.CPUTEST.program *)
 
-         MemoryManagementTest.MMTEST.PageTableFromPa.program
+         MemoryManagementTest.MMTEST.PageTableFromPa.isem
          (* MMStageOne.MMTEST1.isem *)
          (* MMStageOne.MMTESTAUX.isem *)
          (* MMStageOne.MMTEST3.isem *)

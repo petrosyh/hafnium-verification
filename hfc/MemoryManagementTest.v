@@ -53,6 +53,7 @@ Require Import Lang.
 Require Import Values.
 Require Import Integers.
 Require Import MemoryManagement.
+Require Import ADDR.
 
 Import LangNotations.
 Local Open Scope expr_scope.
@@ -61,6 +62,7 @@ Local Open Scope stmt_scope.
 Import Int.
 Import MMCONCURSTRUCT.
 Import MMCONCUR.
+Import ADDR.
 
 Set Implicit Arguments.
 
@@ -77,12 +79,15 @@ Module PageTableFromPa.
     Put "pt: " pt#;
     Skip.
 
-  Definition function: function. mk_function_tac main ([]: list var) ["pa" ; "pt"]. Defined.
+  Definition mainF: function. mk_function_tac main ([]: list var) ["pa" ; "pt"]. Defined.
+  
+  Definition main_program: program :=
+    [
+      ("main", mainF)
+    ].
 
-  Definition program: Lang.program := [("main", function)].
-
-  (* Extraction "LangTest.ml" load_store_program. *)
-  (* Check (eval_whole_program program). *)
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ADDR.addr_modsem].
 
 End PageTableFromPa.
 

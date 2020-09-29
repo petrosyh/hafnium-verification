@@ -364,7 +364,7 @@ let main =
 
   print_endline "-----------------------------------------------------------" ;
   print_endline "--------------------   MM UNIT TEST   ----------------------------" ;
-  run (MemoryManagementTest.MMTEST.PageTableFromPa.program) ;
+  run (MemoryManagementTest.MMTEST.PageTableFromPa.isem) ;
 
 (*
   print_endline "-----------------------------------------------------------" ;

@@ -333,7 +333,7 @@ Module MMCONCUR.
   *)  
 
   (* XXX: simplified version *)
-  Definition mm_alloc_page_tables (count ppool : var) :=
+  Definition mm_alloc_page_tables (count ppool : var) : stmt :=
     (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV count; CBV count]).
   
   (*
@@ -1885,5 +1885,48 @@ Module MMCONCUR.
                                              CBV (Call "LAYOUT.layout_data_end" []);
                                              CBV (MM_MODE_R #| MM_MODE_W); CBR ppool]) #;
                   Return (Call "ARCHMM.arch_mm_init" [CBV (load_at_i ptable root_loc)]).
-                           
+
+  Definition mm_stage2_invalidate_falseF: function. mk_function_tac mm_stage2_invalidate_false ([]: list var) ([]: list var). Defined.
+  Definition mm_vm_enable_invalidationF: function. mk_function_tac mm_stage2_invalidate_false ([]: list var) ([]: list var). Defined.
+  Definition mm_page_table_from_paF: function. mk_function_tac mm_page_table_from_pa ["pa"] ([]:list var). Defined.
+  Definition mm_round_down_to_pageF: function. mk_function_tac mm_round_down_to_page ["addr"] ([]:list var). Defined.
+  Definition mm_round_up_to_pageF: function. mk_function_tac mm_round_up_to_page ["addr"] ([]:list var). Defined.
+  Definition mm_entry_sizeF: function. mk_function_tac mm_entry_size ["level"] ([]:list var). Defined.
+  Definition mm_start_of_next_blockF: function. mk_function_tac mm_start_of_next_block ["addr"; "block_size"] ([]:list var). Defined.
+  Definition mm_pa_start_of_next_blockF: function. mk_function_tac mm_pa_start_of_next_block ["pa"; "block_size"] ([]:list var). Defined.
+  Definition mm_level_endF: function. mk_function_tac mm_level_end ["addr"; "level"] (["offset"]:list var). Defined.
+  Definition mm_indexF: function. mk_function_tac mm_index ["addr"; "level"] (["v"]:list var). Defined.
+  Definition mm_alloc_page_tablesF: function. mk_function_tac mm_alloc_page_tables ["count"; "ppool"] ([]:list var). Defined.
+  Definition mm_max_levelF: function. mk_function_tac mm_max_level ["flags"] ([]:list var). Defined.
+  Definition mm_root_table_countF: function. mk_function_tac mm_root_table_count ["flags"] ([]:list var). Defined.
+  Definition mm_invalidate_tlbF: function. mk_function_tac mm_invalidate_tlb ["a_begin"; "a_end"; "flags"] ([]:list var). Defined.
+  Definition mm_free_page_pteF: function. mk_function_tac mm_free_page_pte ["pte"; "level"; "ppool"] ["table"; "i"]. Defined.
+  Definition mm_ptable_addr_space_endF: function. mk_function_tac mm_ptable_addr_space_end ["flags"] ([]:list var). Defined.
+  Definition mm_ptable_initF: function. mk_function_tac mm_ptable_init ["t"; "flags"; "ppool"] ["root_table_count"; "tables"; "i"; "j"]. Defined.
+  Definition mm_ptable_finiF: function. mk_function_tac mm_ptable_fini ["t"; "flags"; "ppool"] ["tables"; "root_table_count"; "level"; "i"; "j"]. Defined.
+
+  Definition mm_program: program :=
+    [
+      ("MM.mm_stage2_invalidate_false", mm_stage2_invalidate_falseF) ;
+        ("MM.mm_vm_enable_invalidation", mm_vm_enable_invalidationF) ;
+        ("MM.mm_page_table_from_pa", mm_page_table_from_paF) ;
+        ("MM.mm_round_down_to_page", mm_round_down_to_pageF) ;
+        ("MM.mm_round_up_to_page", mm_round_up_to_pageF) ;
+        ("MM.mm_entry_size", mm_entry_sizeF) ;
+        ("MM.mm_start_of_next_block", mm_start_of_next_blockF) ;
+        ("MM.mm_pa_start_of_next_block", mm_pa_start_of_next_blockF) ;
+        ("MM.mm_level_end", mm_level_endF) ;
+        ("MM.mm_index", mm_indexF) ;
+        ("MM.mm_alloc_page_tables", mm_alloc_page_tablesF) ;
+        ("MM.mm_max_level", mm_max_levelF) ;
+        ("MM.mm_root_table_count", mm_root_table_countF) ;
+        ("MM.mm_invalidate_tlb", mm_invalidate_tlbF) ;        
+        ("MM.mm_free_page_pte", mm_free_page_pteF) ;
+        ("MM.mm_ptable_addr_space_end", mm_ptable_addr_space_endF) ;
+        ("MM.mm_ptable_init", mm_ptable_initF) ;
+        ("MM.mm_ptable_fini", mm_ptable_finiF)      
+    ].
+  
+  Definition mm_modsem : ModSem := program_to_ModSem mm_program.
+
 End MMCONCUR.
