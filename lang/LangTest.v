@@ -86,12 +86,12 @@ Module LoadStore.
         Put "" x#;
         Put "" sum#;
         sum #= sum + (x #@ Int64.zero)#;
-                                      Put "" sum#;
-                                      sum #= sum + (x #@ Int64.one)#;
-                                                                   Put "" sum#;
-                                                                   sum #= sum + (x #@ (Int64.repr 2))#;
-                                                                                                     Put "" sum#;
-                                                                                                     Skip
+        Put "" sum#;
+        sum #= sum + (x #@ Int64.one)#;
+        Put "" sum#;
+        sum #= sum + (x #@ (Int64.repr 2))#;
+        Put "" sum#;
+        Skip
   .
 
   Definition function: function. mk_function_tac main ([]: list var) ["x" ; "sum"]. Defined.

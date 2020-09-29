@@ -53,6 +53,8 @@ Require Import Lang.
 Require Import Values.
 Require Import Integers.
 Require Import MemoryManagement.
+Require Import ADDR.
+Require Import ArchMM.
 
 Import LangNotations.
 Local Open Scope expr_scope.
@@ -61,11 +63,120 @@ Local Open Scope stmt_scope.
 Import Int.
 Import MMCONCURSTRUCT.
 Import MMCONCUR.
+Import ADDR.
+Import ArchMM.
 
 Set Implicit Arguments.
 
-Section MMTEST.
+Module MMTEST.
 
+(* some unit tests *)
 
+Module PageTableFromPa.
+
+  Definition main pa pt: stmt :=
+    pa #= (Vlong (Int64.repr 3500)) #;
+    Put "pa: " pa#;
+    pt #= (Call "MM.mm_page_table_from_pa" [CBV pa]) #;
+    Put "pt: " pt#;
+    Skip.
+
+  Definition mainF: function. mk_function_tac main ([]: list var) ["pa" ; "pt"]. Defined.
+  
+  Definition main_program: program :=
+    [
+      ("main", mainF)
+    ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ADDR.addr_modsem].
+
+End PageTableFromPa.
+
+Module PaStartOfNextBlk.
+
+  Definition main pa blk_sz res: stmt :=
+    pa #= (Vlong (Int64.repr 3500)) #;
+    Put "pa: " pa#;
+    blk_sz #= (Vlong (Int64.repr 8)) #;
+    Put "block size: " blk_sz#;
+    res #= (Call "MM.mm_pa_start_of_next_block" [CBV pa; CBV blk_sz]) #; 
+    Put "res: " res#;
+    Skip.
+
+  Definition mainF: function. mk_function_tac main ([]: list var) ["pa" ; "blk_sz" ; "res"]. Defined.
+  
+  Definition main_program: program :=
+    [
+      ("main", mainF)
+    ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ADDR.addr_modsem].
+
+End PaStartOfNextBlk.
+
+Module MaxLv.
+
+  Definition main flag res: stmt :=
+    flag #= Vlong (Int64.repr 0) #;
+    Put "flag: " flag#;
+    res #= (Call "MM.mm_max_level" [CBV flag]) #; 
+    Put "res: " res#;
+    Skip.
+
+  Definition mainF: function. mk_function_tac main ([]: list var) ["flag" ; "res"]. Defined.
+  
+  Definition main_program: program :=
+    [
+      ("main", mainF)
+    ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem].
+
+End MaxLv.
+
+Module RootTableCount.
+
+  Definition main flag res: stmt :=
+    flag #= Vlong (Int64.repr 0) #;
+    Put "flag: " flag#;
+    res #= (Call "MM.mm_root_table_count" [CBV flag]) #; 
+    Put "res: " res#;
+    Skip.
+
+  Definition mainF: function. mk_function_tac main ([]: list var) ["flag" ; "res"]. Defined.
+  
+  Definition main_program: program :=
+    [
+      ("main", mainF)
+    ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem].
+
+End RootTableCount.
+
+Module TLBI.
+
+  Definition main flag res: stmt :=
+    flag #= Vlong (Int64.repr 0) #;
+    Put "flag: " flag#;
+    res #= (Call "MM.mm_invalidate_tlb" [CBV flag]) #; 
+    Put "res: " res#;
+    Skip.
+
+  Definition mainF: function. mk_function_tac main ([]: list var) ["flag" ; "res"]. Defined.
+  
+  Definition main_program: program :=
+    [
+      ("main", mainF)
+    ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem].
+
+End TLBI.
 
 End MMTEST.
