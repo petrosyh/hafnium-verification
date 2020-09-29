@@ -81,7 +81,7 @@ Module MPOOLTEST.
 
   Module MPOOLTEST_ONE.
 
-    Definition main (p begin res r1 r2 r3: var) : stmt :=
+    Definition main (p begin res r1 r2: var) : stmt :=
       (* Put "test plus" (Plus (Vnormal (Vint (repr 1))) (Vnormal (Vint (repr 5)))) #; *)
       (Call "MPOOL.mpool_init_locks" [])
         #;
@@ -91,37 +91,26 @@ Module MPOOLTEST.
         p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
         Put "main: before init: " p #;
         (* initialize it with the entry size - 8 *)
-        Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (Int64.repr 8))] #;
+        Call "MPOOL.mpool_init" [CBV p; CBV (Int64.repr 8)] #;
         Put "main: after init: " p #;
         begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
-        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 32)])
+        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 64)])
         #;
         begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 240))) #;
-        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBV begin; CBV (Int64.repr 32)])
+        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 64)])
         #;
-        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 320))) #;
-        res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBV begin; CBV (Int64.repr 32)])
-        #;
-        (*
         Put "main: add_chunk done: " p #;
-        r1 #= (Call "MPOOL.mpool_alloc_contiguous" [CBR p; CBV (repr 12); CBV (repr 4)]) #;
-        Put "main: alloc_contiguous done: " r1 #;
+        r1 #= (Call "MPOOL.mpool_alloc_contiguous" [CBV p; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
         Put "main: alloc 1 done: succeed" r1 #;
-        #assume r1 #; *)
-        (* 
-        r2 #= Call "MPOOL.mpool_alloc_contiguous" [CBR p ; CBV (repr 8); CBV (repr 4)] #;
-        Put "main: alloc_contiguous done: " r2 #;
-        Put "main: alloc 2 done: succeed " r3 #;
-        #assume r2 #;
-        r3 #= Call "MPOOL.mpool_alloc_contiguous" [CBR p ; CBV (repr 4); CBV (repr 4)] #;
-        Put "main: alloc_contiguous done: " r3 #; 
-        Put "main: alloc 3 done: fail " r3 #;
-        #assume (!r3) #; *)
+        r2 #= Call "MPOOL.mpool_alloc_contiguous" [CBV p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]  #;
+        Put "main: alloc 2 done: succeed " r2 #;
+        (Call "MPOOL.mpool_free" [CBV p; CBV r1]) #;
+        (Call "MPOOL.mpool_free" [CBV p; CBV r2]) #;
         Skip.
 
 
     Definition mainF: function.
-      mk_function_tac main ([]: list var) ["p" ; "begin" ; "res"; "r1"; "r2"; "r3"]. Defined.
+      mk_function_tac main ([]: list var) ["p" ; "begin" ; "res"; "r1"; "r2"]. Defined.
 
     Definition main_program: program :=
       [
@@ -133,5 +122,112 @@ Module MPOOLTEST.
     
   End MPOOLTEST_ONE. 
 
+
+  Fixpoint INSERT_YIELD (s: stmt): stmt :=
+    match s with
+    | Seq s0 s1 => Seq (INSERT_YIELD s0) (INSERT_YIELD s1)
+    | If c s0 s1 => If c (INSERT_YIELD s0) (INSERT_YIELD s1)
+    | While c s => While c (INSERT_YIELD s)
+    | _ => Yield #; s
+    end
+  .
+
+  Module MPOOLTEST_TWO.
+
+    Definition GMPOOL := "GMPOOL".
+    Definition SIGNAL := "SIGNAL".
+    Definition GLOBAL_START := "GLOBAL_START".
+    
+    Definition main (p i r next_chunk: var): stmt :=
+      Eval compute
+      in INSERT_YIELD (
+             GLOBAL_START #= (Int.zero) #;    
+                          (Call "MPOOL.mpool_init_locks" [])
+                          #;
+                          (Call "MPOOL.mpool_enable_locks" [])
+                          #;
+                          #assume mpool_locks_enabled #;        
+                          p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
+                          Put "main: before init: " p #;
+                          (* initialize it with the entry size - 8 *)
+                          Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (Int64.repr 8))] #;
+                          Put "main: after init: " p #;
+                          next_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
+                          r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR next_chunk; CBV (Int64.repr 160)])
+                          #;               
+                          GMPOOL #= p #;
+                          (Put "GMPOOL_result" GMPOOL) #;
+                          SIGNAL #= (Int.zero) #;
+                          GLOBAL_START #= (Int.one) #;
+                          (#while (SIGNAL <= (Int.repr 1))
+                            do
+                              (Debug "waiting for SIGNAL" Vnull))
+                          #;
+                          i #= (Int.repr 3) #;
+                          #while (i)
+                          do (
+                              i #= (i - (Int.repr 1)) #;
+                                r #= (Call "MPOOL.mpool_alloc_contiguous"
+                                      [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)])
+                                #;
+                                (Put "allocation is done" r) #;
+                                p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) 
+                            ) #;
+                              Put "Test Passed " Vnull #;
+                              Skip
+           ).
+    
+    Definition alloc_and_free (sz : N) (p i r0 r1 r2 temp_p: var) : stmt :=
+      Eval compute in
+        INSERT_YIELD (
+            (Put "Start" Int.zero) #;
+            (#while (GLOBAL_START == Int.zero)
+              do
+                (Debug "waiting for GMPOOL" GMPOOL))
+              #;
+              (Call "MPOOL.mpool_init_with_fallback" [CBR p; CBR GMPOOL]) #;
+              Put "(Local Mpool) After init-with-fallback" p #;
+              temp_p #= p #;
+              r0 #= (Call "MPOOL.mpool_alloc_contiguous"
+                    [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
+              p #= temp_p #;
+              r1 #= (Call "MPOOL.mpool_alloc_contiguous"
+                    [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
+              p #= temp_p #;
+              r2 #= (Call "MPOOL.mpool_alloc_contiguous"
+                    [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
+              p #= temp_p #;
+              (Call "MPOOL.mpool_free" [CBR p; CBR r0]) #;
+              p #= temp_p #;
+              (Call "MPOOL.mpool_free" [CBR p; CBR r1]) #;
+              SIGNAL #= (SIGNAL + Int.one) #;
+              Skip
+          ).
+
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) ["p" ; "i" ; "r"; "next_chunk"]. Defined.
+    Definition alloc_and_free2F: function.
+      mk_function_tac (alloc_and_free 1) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"; "temp_p"].
+    Defined.
+    Definition alloc_and_free3F: function.
+      mk_function_tac (alloc_and_free 2) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"; "temp_p"].
+    Defined.
+
+    Definition main_program: program :=
+      [
+        ("main", mainF) ;
+          ("alloc_and_free2", alloc_and_free2F) ;
+          ("alloc_and_free3", alloc_and_free3F) 
+      ].
+
+    Definition modsems: list ModSem :=
+      [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule_multicore
+        modsems [ "main" ; "alloc_and_free2" ; "alloc_and_free3" ].
+    
+  End MPOOLTEST_TWO.
   
 End MPOOLTEST.

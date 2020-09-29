@@ -73,6 +73,7 @@ Separate Extraction
          (* LangTest.cl2s *)
 
          MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem
+         MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem
          (* MpoolSeq.TEST.TEST1.program *)
          (* MpoolSeq.TEST.TEST2.program *)
          (* MpoolSeq.TEST.TEST3.program *)

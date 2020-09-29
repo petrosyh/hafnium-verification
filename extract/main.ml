@@ -360,29 +360,13 @@ let main =
   print_endline "-----------------------------------------------------------" ;
   print_endline "--------------------   MPOOL   ----------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem) ;
-(*
-  print_endline "-----------------------------------------------------------" ;
-  run (eval_whole_program MpoolSeq.TEST.TEST2.program) ;
 
+  (*
   print_endline "-----------------------------------------------------------" ;
-  run (eval_whole_program MpoolSeq.TEST.TEST3.program) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (eval_whole_program MpoolSeq.TEST.TEST4.program) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (eval_whole_program CPUSeq.CPUTEST.program) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (MpoolConcur.TEST.TEST1.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (MpoolConcur.TEST.TEST2.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (MpoolConcur.TEST.TEST3.isem1) ;
-  run (MpoolConcur.TEST.TEST3.isem2) ;
-*)
+  print_endline "--------------------   MPOOL   ----------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem) ;
+  *)
+  
   print_endline "-----------------------------------------------------------" ;
   run (MultiModuleMultiCoreLocalState.isem) ;
 
@@ -390,26 +374,5 @@ let main =
   run (PrintAny.isem) ;
 
   end;
-(*
-  print_endline "-----------------------------------------------------------" ;
-  run (MpoolConcur.TEST.TEST4.isem) ;
 
-  print_endline "-----------------------------------------------------------" ;
-  run (MMStageOne.MMTEST1.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (MMStageOne.MMTESTAUX.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (MMStageOne.MMTEST3.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (MMStageOne.POPULATE.isem) ;
-
-  (*print_endline "-----------------------------------------------------------" ;
-  run (eval_whole_program MMHighStageOne.HighSpecDummyTest.program) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  run (MMHighStageOne.PTHIGHTEST.isem) ;*)
-*)
   ()
