@@ -115,7 +115,7 @@ Module MPOOLTEST.
                           Skip
            ).
     
-    Definition alloc_by_thread (tid : N) (p r new_chunk: var) : stmt :=
+    Definition alloc_by_thread (tid : N) (p p1 r new_chunk: var) : stmt :=
       Eval compute in
         INSERT_YIELD (
             (Put "Start" (Int64.repr (Z.of_N tid))) #;
@@ -124,9 +124,15 @@ Module MPOOLTEST.
                 (Debug "waiting for GMPOOL" GMPOOL))
             #;
             p #= GMPOOL #;
-            new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
+            new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid * 320) + 80)))) #;
             r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;
-            r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;              
+            p1 #= Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid) * 320))) #;
+            (Call "MPOOL.mpool_init_with_fallback" [CBR p1; CBR GMPOOL]) #;
+            new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
+            r #= (Call "MPOOL.mpool_add_chunk" [CBR p1; CBR new_chunk; CBV (Int64.repr 16)]) #;
+            Put "(Local Mpool) After init-with-fallback" p #;
+            (Call "MPOOL.mpool_free" [CBV p; CBV p1]) #;
+            Put "alloc_by_thread : next_chunk_loc" (load_at_i p entry_list_loc) #;
             SIGNAL #= (SIGNAL + Int.one) #;
             Skip
             ).
@@ -135,10 +141,10 @@ Module MPOOLTEST.
     Definition mainF: function.
       mk_function_tac main ([]: list var) ["p" ; "i" ; "r"; "next_chunk"]. Defined.
     Definition alloc_by_thread1F: function.
-      mk_function_tac (alloc_by_thread 1) ([]: list var) ["p" ; "r"; "new_chunk"].
+      mk_function_tac (alloc_by_thread 1) ([]: list var) ["p" ; "p1" ; "r"; "new_chunk"].
     Defined.
     Definition alloc_by_thread2F: function.
-      mk_function_tac (alloc_by_thread 2) ([]: list var) ["p" ; "r"; "new_chunk"].
+      mk_function_tac (alloc_by_thread 2) ([]: list var) ["p" ; "p1" ; "r"; "new_chunk"].
     Defined.
 
     Definition main_program: program :=
