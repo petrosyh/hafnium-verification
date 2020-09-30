@@ -79,7 +79,86 @@ Fixpoint INSERT_YIELD (s: stmt): stmt :=
 
 Module MPOOLTEST.
 
+
   Module MPOOLTEST_ONE.
+
+    Definition GMPOOL := "GMPOOL".
+    Definition SIGNAL := "SIGNAL".
+    Definition GLOBAL_START := "GLOBAL_START".
+    
+    Definition main (p i r next_chunk: var): stmt :=
+      Eval compute
+      in INSERT_YIELD (
+             GLOBAL_START #= (Int.zero) #;    
+                          (Call "MPOOL.mpool_init_locks" [])
+                          #;
+                          (Call "MPOOL.mpool_enable_locks" [])
+                          #;
+                          #assume mpool_locks_enabled #;        
+                          p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
+                          Put "main: before init: " p #;
+                          (* initialize it with the entry size - 8 *)
+                          Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (Int64.repr 8))] #;
+                          Put "main: after init: " p #;
+                          next_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
+                          r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR next_chunk; CBV (Int64.repr 160)])
+                          #;               
+                          GMPOOL #= p #;
+                          (Put "GMPOOL_result" GMPOOL) #;
+                          SIGNAL #= (Int.zero) #;
+                          GLOBAL_START #= (Int.one) #;
+                          (#while (SIGNAL <= (Int.repr 1))
+                            do
+                              (Debug "waiting for SIGNAL" Vnull))
+                          #;
+                          Put "Test Passed " Vnull #;
+                          Skip
+           ).
+    
+    Definition alloc_by_thread (tid : N) (p r new_chunk: var) : stmt :=
+      Eval compute in
+        INSERT_YIELD (
+            (Put "Start" (Int64.repr (Z.of_N tid))) #;
+            (#while (GLOBAL_START == Int.zero)
+              do
+                (Debug "waiting for GMPOOL" GMPOOL))
+            #;
+            p #= GMPOOL #;
+            new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
+            r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;
+            r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;              
+            SIGNAL #= (SIGNAL + Int.one) #;
+            Skip
+            ).
+
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) ["p" ; "i" ; "r"; "next_chunk"]. Defined.
+    Definition alloc_by_thread1F: function.
+      mk_function_tac (alloc_by_thread 1) ([]: list var) ["p" ; "r"; "new_chunk"].
+    Defined.
+    Definition alloc_by_thread2F: function.
+      mk_function_tac (alloc_by_thread 2) ([]: list var) ["p" ; "r"; "new_chunk"].
+    Defined.
+
+    Definition main_program: program :=
+      [
+        ("main", mainF) ;
+      ("alloc_by_thread1", alloc_by_thread1F) ;
+      ("alloc_by_thread2", alloc_by_thread2F) 
+      ].
+
+    Definition modsems: list ModSem :=
+      [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule_multicore
+        modsems [ "main" ; "alloc_by_thread1" ; "alloc_by_thread2" ].
+    
+  End MPOOLTEST_ONE.
+  
+
+  Module MPOOLTEST_TWO.
 
     Definition main (p begin res r1 r2: var) : stmt :=
       (* Put "test plus" (Plus (Vnormal (Vint (repr 1))) (Vnormal (Vint (repr 5)))) #; *)
@@ -120,19 +199,9 @@ Module MPOOLTEST.
     Definition isem: itree Event unit :=
       eval_multimodule [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
     
-  End MPOOLTEST_ONE. 
+  End MPOOLTEST_TWO. 
 
-
-  Fixpoint INSERT_YIELD (s: stmt): stmt :=
-    match s with
-    | Seq s0 s1 => Seq (INSERT_YIELD s0) (INSERT_YIELD s1)
-    | If c s0 s1 => If c (INSERT_YIELD s0) (INSERT_YIELD s1)
-    | While c s => While c (INSERT_YIELD s)
-    | _ => Yield #; s
-    end
-  .
-
-  Module MPOOLTEST_TWO.
+  Module MPOOLTEST_THREE.
 
     Definition GMPOOL := "GMPOOL".
     Definition SIGNAL := "SIGNAL".
@@ -177,7 +246,7 @@ Module MPOOLTEST.
                               Skip
            ).
     
-    Definition alloc_and_free (sz : N) (p i r r0 r1 r2 new_chunk: var) : stmt :=
+    Definition alloc_and_free (tid : N) (p i r r0 r1 r2 new_chunk: var) : stmt :=
       Eval compute in
         INSERT_YIELD (
             (Put "Start" Int.zero) #;
@@ -185,10 +254,10 @@ Module MPOOLTEST.
               do
                 (Debug "waiting for GMPOOL" GMPOOL))
             #;
-            p #= Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N sz) * 320))) #;
+            p #= Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid) * 320))) #;
             
               (Call "MPOOL.mpool_init_with_fallback" [CBR p; CBR GMPOOL]) #;
-              new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N sz * 320) + 16)))) #;
+              new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
               r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;
               Put "(Local Mpool) After init-with-fallback" p #;
               r0 #= (Call "MPOOL.mpool_alloc_contiguous"
@@ -209,18 +278,18 @@ Module MPOOLTEST.
 
     Definition mainF: function.
       mk_function_tac main ([]: list var) ["p" ; "i" ; "r"; "next_chunk"]. Defined.
-    Definition alloc_and_free2F: function.
+    Definition alloc_and_free1F: function.
       mk_function_tac (alloc_and_free 1) ([]: list var) ["p" ; "i" ; "r"; "r0" ; "r1" ; "r2"; "new_chunk"].
     Defined.
-    Definition alloc_and_free3F: function.
+    Definition alloc_and_free2F: function.
       mk_function_tac (alloc_and_free 2) ([]: list var) ["p" ; "i" ; "r"; "r0" ; "r1" ; "r2"; "new_chunk"].
     Defined.
 
     Definition main_program: program :=
       [
         ("main", mainF) ;
-      ("alloc_and_free2", alloc_and_free2F) ;
-      ("alloc_and_free3", alloc_and_free3F) 
+      ("alloc_and_free1", alloc_and_free1F) ;
+      ("alloc_and_free2", alloc_and_free2F) 
       ].
 
     Definition modsems: list ModSem :=
@@ -228,8 +297,8 @@ Module MPOOLTEST.
 
     Definition isem: itree Event unit :=
       eval_multimodule_multicore
-        modsems [ "main" ; "alloc_and_free2" ; "alloc_and_free3" ].
+        modsems [ "main" ; "alloc_and_free1" ; "alloc_and_free2" ].
     
-  End MPOOLTEST_TWO.
+  End MPOOLTEST_THREE.
   
 End MPOOLTEST.

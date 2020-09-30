@@ -359,14 +359,18 @@ let main =
   run (MultiModuleGenv.isem) ;
 
   print_endline "-----------------------------------------------------------" ;
-  print_endline "--------------------   MPOOL   ----------------------------" ;
+  print_endline "----------------   MPOOL TEST 1  --------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem) ;
 
   print_endline "-----------------------------------------------------------" ;
-  print_endline "--------------------   MPOOL   ----------------------------" ;
+  print_endline "----------------   MPOOL TEST 2  --------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem) ;
 
   print_endline "-----------------------------------------------------------" ;
+  print_endline "----------------   MPOOL TEST 3  --------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem) ;
+  print_endline "-----------------------------------------------------------" ;
+
   print_endline "--------------------   MM UNIT TEST   ----------------------------" ;
   run (MemoryManagementTest.MMTEST.PageTableFromPa.isem) ;
   print_endline "-----------------------------------------------------------" ;
