@@ -177,7 +177,7 @@ Module MPOOLTEST.
                               Skip
            ).
     
-    Definition alloc_and_free (sz : N) (p i r0 r1 r2: var) : stmt :=
+    Definition alloc_and_free (sz : N) (p i r r0 r1 r2 new_chunk: var) : stmt :=
       Eval compute in
         INSERT_YIELD (
             (Put "Start" Int.zero) #;
@@ -188,6 +188,8 @@ Module MPOOLTEST.
             p #= Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N sz) * 320))) #;
             
               (Call "MPOOL.mpool_init_with_fallback" [CBR p; CBR GMPOOL]) #;
+              new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N sz * 320) + 16)))) #;
+              r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;
               Put "(Local Mpool) After init-with-fallback" p #;
               r0 #= (Call "MPOOL.mpool_alloc_contiguous"
                           [CBV p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
@@ -208,17 +210,17 @@ Module MPOOLTEST.
     Definition mainF: function.
       mk_function_tac main ([]: list var) ["p" ; "i" ; "r"; "next_chunk"]. Defined.
     Definition alloc_and_free2F: function.
-      mk_function_tac (alloc_and_free 1) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"].
+      mk_function_tac (alloc_and_free 1) ([]: list var) ["p" ; "i" ; "r"; "r0" ; "r1" ; "r2"; "new_chunk"].
     Defined.
     Definition alloc_and_free3F: function.
-      mk_function_tac (alloc_and_free 2) ([]: list var) ["p" ; "i" ; "r0" ; "r1" ; "r2"].
+      mk_function_tac (alloc_and_free 2) ([]: list var) ["p" ; "i" ; "r"; "r0" ; "r1" ; "r2"; "new_chunk"].
     Defined.
 
     Definition main_program: program :=
       [
         ("main", mainF) ;
-          ("alloc_and_free2", alloc_and_free2F) ;
-          ("alloc_and_free3", alloc_and_free3F) 
+      ("alloc_and_free2", alloc_and_free2F) ;
+      ("alloc_and_free3", alloc_and_free3F) 
       ].
 
     Definition modsems: list ModSem :=

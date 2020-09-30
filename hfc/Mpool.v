@@ -537,6 +537,7 @@ Module MPOOLCONCUR.
   Definition mpool_alloc_contiguous_no_fallback
              (p count align: var)
              (prev_address prev ret chunk start new_chunk temp: var): stmt :=
+    (Put "mpool_alloc_contiguous_no_fallback: start" p) #;
     ret #= Vnull #;
     align #= (align * (load_at_i p entry_size_loc))
     #;
@@ -545,6 +546,7 @@ Module MPOOLCONCUR.
     prev #= (load_at_i p chunk_list_loc) #;
     #while (#! (prev == Vnull))
     do (
+        (Put "mpool_alloc_contiguous_no_fallback: while" p) #;
         chunk #= prev #;
               start #= ((((Cast chunk tint) + align - (Int64.repr 1)) / align) * align)
               #;
@@ -638,6 +640,7 @@ Module MPOOLCONCUR.
     #while Vtrue
      do (
          (* Put "mpool_alloc_contiguous: looping mpool_alloc_contiguous" p #; *)
+         Put "while loop in the mpool_alloc" p #;
          ret #= (Call "MPOOL.mpool_alloc_contiguous_no_fallback" [CBR p ; CBV count; CBV align]) #;
              (* Put "mpool_alloc_contiguous: looping mpool_alloc_contiguous_no_fallback" ret #; *)
              (#if (ret)
