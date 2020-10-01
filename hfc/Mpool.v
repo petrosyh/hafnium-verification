@@ -421,8 +421,6 @@ Module MPOOLCONCUR.
       Put "mpool_free: end" p #;
       Skip.
       
-      
-  
   (* Instead of defining [mpool_alloc] and [mpool_alloc_contiguous], 
      I only define [mpool_alloc_contiguous] because it is possible for us to use 
      [mpool_alloc_contiguous] for both purposes *)
@@ -478,8 +476,10 @@ Module MPOOLCONCUR.
   }
   *)
 
-  (* XXX: This is the original version. It has a problem of pointer alaising. 
-          It cannot update the previous chunk information. It need to be resolved 
+  (* XXX: This is the original version. It has a problem of pointer alaising, so it cannot 
+          update the values in the p after it allocate a new memory ( It cannot update the previous
+          chunk information). We have to rewrite programs when we have pointer alaising in it. *)
+  (*
   Definition mpool_alloc_contiguous_no_fallback
              (p count align: var)
              (prev_address prev ret chunk start new_chunk temp: var): stmt :=
@@ -533,7 +533,8 @@ Module MPOOLCONCUR.
         Return ret.
    *)
 
-  (* XXX: The version that we try to solve the problem *)
+  (* XXX: This version is a really simplified version to make it work first. we have to 
+          replace this version after we properly modify the original version above *)  
   Definition mpool_alloc_contiguous_no_fallback
              (p count align: var)
              (prev_address prev ret chunk start new_chunk temp: var): stmt :=
@@ -544,50 +545,25 @@ Module MPOOLCONCUR.
     (Call "MPOOL.mpool_lock" [CBR p]) #;
     (* 	prev = &p->chunk_list; *)
     prev #= (load_at_i p chunk_list_loc) #;
-    #while (#! (prev == Vnull))
-    do (
-        (Put "mpool_alloc_contiguous_no_fallback: while" p) #;
-        chunk #= prev #;
-              start #= ((((Cast chunk tint) + align - (Int64.repr 1)) / align) * align)
-              #;
-              new_chunk #= (Cast (start + (count * (load_at_i p entry_size_loc))) tptr) #;
-              Put "mpool_alloc_contiguous_no_fallback: start" start #;
-              Put "mpool_alloc_contiguous_no_fallback: new_chunk" new_chunk #;
-              (*
-            Put "mpool_alloc_contiguous_no_fallback: chunk" chunk #;
-            Put "mpool_alloc_contiguous_no_fallback: start" start #;
-            Put "mpool_alloc_contiguous_no_fallback: new_chunk" new_chunk #;
-            Put "mpool_alloc_contiguous_no_fallback: limit_loc" (Cast (load_at_i chunk limit_loc) tint) #; 
-            #;
-            Put "mpool_alloc_contiguous_no_fallback: cond1"
-            ((Cast new_chunk tint) <= (Cast (load_at_i chunk limit_loc) tint)) #;
-            Put "mpool_alloc_contiguous_no_fallback: cond1"
-            ((Cast new_chunk tint) <= (Cast (load_at_i chunk limit_loc) tint)) #; *)
-              (#if ((Cast new_chunk tint) <= (Cast (load_at_i chunk limit_loc) tint))
-                then (#if ((Cast new_chunk tint) == (Cast (load_at_i chunk limit_loc) tint))
-                       then
-                         prev #= (load_at_i chunk next_chunk_loc)
-                       else temp #= chunk #;
-                                 prev #= new_chunk #;
-                                 new_chunk #= temp)
-                       #;
-                       Put "mpool_alloc_contiguous_no_fallback: updated prev" prev #;
-                       Put "mpool_alloc_contiguous_no_fallback: new_chunk" new_chunk #;
-                       (#if ((load_at_i p entry_size_loc) <= start - (Cast chunk tint))
-                         then (store_at_i chunk next_chunk_loc prev)
-                                #;
-                                prev #= chunk #; 
-                                (store_at_i chunk limit_loc (Cast start tptr))
-                         else Skip) #;
-                       ret #= (Cast start tptr) #;
-                       Break
-                else Skip) #;
-              prev #= (load_at_i chunk next_chunk_loc)
-      ) #;
-        (Call "MPOOL.mpool_unlock" [CBR p]) #;
-        (* Put "mpool_alloc_contiguous_no_fallback: return value" ret #;  *)
-        (store_at_i prev 0 (load_at_i chunk next_chunk_loc)) #;
-        Return ret.
+    (* simplified version *)
+    chunk #= prev #;
+    start #= (Cast chunk tint) #;
+    new_chunk #= (Cast (start + (count * (load_at_i p entry_size_loc))) tptr) #;
+    Put "mpool_alloc_contiguous_no_fallback: start" start #;
+    Put "mpool_alloc_contiguous_no_fallback: new_chunk" new_chunk #;
+    (*
+      Put "mpool_alloc_contiguous_no_fallback: chunk" chunk #;
+      Put "mpool_alloc_contiguous_no_fallback: start" start #;
+      Put "mpool_alloc_contiguous_no_fallback: new_chunk" new_chunk #;
+      Put "mpool_alloc_contiguous_no_fallback: limit_loc" (Cast (load_at_i chunk limit_loc) tint) #; 
+      #;
+      Put "mpool_alloc_contiguous_no_fallback: cond1"
+      ((Cast new_chunk tint) <= (Cast (load_at_i chunk limit_loc) tint)) #;
+      Put "mpool_alloc_contiguous_no_fallback: cond1"
+          ((Cast new_chunk tint) <= (Cast (load_at_i chunk limit_loc) tint)) #; *)
+    (store_at_i p chunk_list_loc (Cast new_chunk tptr)) #;
+    (Call "MPOOL.mpool_unlock" [CBR p]) #;
+    Return start.
          
   (*
   void *mpool_alloc_contiguous(struct mpool *p, size_t count, size_t align)
@@ -606,9 +582,13 @@ Module MPOOLCONCUR.
   }
   *)  
 
-  (* XXX: This one raises an error because of Return statement in the middle of while body. 
-     It seesm when we call this funciton, it will always walk throuogh at the end of 
-     the p and return Vnull as its result. Therefore, when we call it in our test cases, 
+  (* XXX: it cannot properly call "MPOOL.mpool_alloc_contiguous_no_fallback" in the current case. 
+      We need to resolve this one.
+  
+     This one raises an error because of Return statement in the middle of while body. 
+     It seesm when we call this funciton, it will always walk until the end of 
+     the function (even though we have Return in the middle) 
+     and return Vnull as its result. Therefore, when we call it in our test cases, 
      it will always return 0 for the ret and p will become 0 when we call it via call by reference *)
   (*
   Definition mpool_alloc_contiguous (p count align: var) (ret : var) : stmt :=
@@ -633,8 +613,6 @@ Module MPOOLCONCUR.
          Return Vnull.
    *)
 
-   (* XXX: it cannot properly call "MPOOL.mpool_alloc_contiguous_no_fallback" in the current case. 
-      We need to resolve this one. *)
    Definition mpool_alloc_contiguous (p count align: var) (ret : var) : stmt :=
     Put "mpool_alloc_contiguous: start" p #;            
     #while Vtrue
@@ -657,7 +635,6 @@ Module MPOOLCONCUR.
          Put "mpool_alloc_contiguous: end" ret #;         
          Return ret.
         
-
   Definition mpool_init_locksF: function. mk_function_tac mpool_init_locks ([]: list var) ([]: list var). Defined.
   Definition mpool_enable_locksF: function. mk_function_tac mpool_enable_locks ([]: list var) ([]: list var). Defined.
   Definition mpool_lockF: function. mk_function_tac mpool_lock ["p"] ([]: list var). Defined. 
