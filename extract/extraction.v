@@ -67,6 +67,9 @@ Separate Extraction
          LangTest.PrintTest.string_gen
          LangTest.PrintTest.z_gen
          LangTest.PrintTest.Z_to_string_gen
+         LangTest.HexPrintTest.string_gen
+         LangTest.HexPrintTest.z_gen
+         LangTest.HexPrintTest.Z_to_string_gen
          (* LangTest.print_val *)
          (* LangTest.main *)
          (* LangTest.handle_Event *)
@@ -75,6 +78,7 @@ Separate Extraction
          MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem
          MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem
          MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem
+         MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem
          (* MpoolSeq.TEST.TEST1.program *)
          (* MpoolSeq.TEST.TEST2.program *)
          (* MpoolSeq.TEST.TEST3.program *)

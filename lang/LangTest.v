@@ -1005,3 +1005,25 @@ Module PrintTest.
     of_Z n.
   
 End PrintTest.
+
+
+Module HexPrintTest.
+
+  Require Import HexString.
+
+  Include Raw.
+  Definition string_gen (n: N): string :=
+    of_N n.
+
+  From Coq Require Import
+       ZArith
+       ZArith.Znat.
+
+  Definition z_gen (n: N) : Z :=
+    Z.of_N n.
+
+
+  Definition Z_to_string_gen (n : Z) : string :=
+    of_Z n.
+  
+End HexPrintTest.

@@ -246,7 +246,9 @@ let handle_Event = fun e k ->
   | EYield ->
      (* print_endline "yielding" ; *) 
      k (Obj.magic ())
+     (*
   | _ -> failwith "NO MATCH"
+  *)
 
 let rec run t =
   match observe t with
@@ -310,25 +312,26 @@ let rec my_rr q =
 let main =
   Random.self_init();
 
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "---------------------  LANG TEST ----------------------------" ;
   run (eval_whole_program IntPtr.program) ; 
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (eval_whole_program LoadStore.program) ;
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (eval_whole_program CBVCBR.program) ;
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (eval_whole_program Rec.program) ;
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (eval_whole_program MutRec.program) ;
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (eval_whole_program Move.program) ;
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (eval_whole_program CoqCode.program) ;
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (eval_whole_program Control.program) ;
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiModule.isem) ;
-  print_endline "-----------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiModuleLocalState.isem) ;
   (* print_endline "-----------------------------------" ;
    * my_rr (List.map eval_program Concur.programs) ; *)
@@ -339,55 +342,56 @@ let main =
   then begin
 
   run (CoqCodeCBR.isem) ;
-  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiCore2.sem) ;
-  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiCoreMPSC.sem) ;
-  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiModuleMultiCore.sem) ;
-
-  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (eval_whole_program DoubleReturn.program) ;
-
-  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiModuleLocalStateSimple.isem1) ;
-  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiModuleLocalStateSimple.isem2) ;
-  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiModuleLocalStateSimpleLang.isem) ;
-  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiModuleGenv.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  print_endline "----------------   MPOOL TEST 1  --------------------------" ;
-  run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  print_endline "----------------   MPOOL TEST 2  --------------------------" ;
-  run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem) ;
-
-  print_endline "-----------------------------------------------------------" ;
-  print_endline "----------------   MPOOL TEST 3  --------------------------" ;
-  run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem) ;
-  print_endline "-----------------------------------------------------------" ;
-
-  print_endline "--------------------   MM UNIT TEST   ----------------------------" ;
-  run (MemoryManagementTest.MMTEST.PageTableFromPa.isem) ;
-  print_endline "-----------------------------------------------------------" ;
-  run (MemoryManagementTest.MMTEST.PaStartOfNextBlk.isem) ;
-  print_endline "-----------------------------------------------------------" ;
-  run (MemoryManagementTest.MMTEST.MaxLv.isem) ;
-  print_endline "-----------------------------------------------------------" ;
-  run (MemoryManagementTest.MMTEST.RootTableCount.isem) ;
-  print_endline "-----------------------------------------------------------" ;
-  run (MemoryManagementTest.MMTEST.TLBI.isem) ;
-  print_endline "-----------------------------------------------------------" ;
-  
-  print_endline "-----------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
   run (MultiModuleMultiCoreLocalState.isem) ;
-
   print_endline "-----------------------------------------------------------" ;
   run (PrintAny.isem) ;
+  print_endline "-----------------  LANG TEST Passed --------------------------" ;
+
+
+  print_endline "---------------------- MPOOL TEST ----------------------------" ;
+  print_endline "-------- MPOOL TEST 1 (concurrent mpool add chunk) -----------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "------ MPOOL TEST 2 (mpool add chunk and mpool fini) ---------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "---- MPOOL TEST 3 (mpool add chunk, alloc, and free) ---------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "- MPOOL TEST 4 (concurrent mpool add chunk, alloc, and free) -" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem) ;
+  print_endline "------------------   MPOOL TEST Passed  ----------------------" ;
+
+
+  print_endline "----------------------   MM TEST  ----------------------------" ;
+  run (MemoryManagementTest.MMTEST.PageTableFromPa.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.PaStartOfNextBlk.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.MaxLv.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.RootTableCount.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.TLBI.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "-------------------   MM TEST Passed  ------------------------" ;
 
   end;
 
