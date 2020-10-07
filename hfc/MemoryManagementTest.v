@@ -52,7 +52,9 @@ Require Import Coqlib sflib.
 Require Import Lang.
 Require Import Values.
 Require Import Integers.
+Require Import Lock.
 Require Import MemoryManagement.
+Require Import Mpool.
 Require Import ADDR.
 Require Import ArchMM.
 
@@ -160,14 +162,16 @@ End RootTableCount.
 
 Module TLBI.
 
-  Definition main flag res: stmt :=
+  Definition main a_begin a_end flag res: stmt :=
+    a_begin #= Int64.repr 123 #;
+    a_end #= Int64.repr 456 #;
     flag #= Vlong (Int64.repr 0) #;
     Put "flag: " flag#;
-    res #= (Call "MM.mm_invalidate_tlb" [CBV flag]) #; 
+    res #= (Call "MM.mm_invalidate_tlb" [CBV a_begin; CBV a_end; CBV flag]) #;
     Put "res: " res#;
     Skip.
 
-  Definition mainF: function. mk_function_tac main ([]: list var) ["flag" ; "res"]. Defined.
+  Definition mainF: function. mk_function_tac main ([]: list var) ["a_begin"; "a_end"; "flag" ; "res"]. Defined.
   
   Definition main_program: program :=
     [
@@ -178,5 +182,33 @@ Module TLBI.
       eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem].
 
 End TLBI.
+
+Module INIT.
+
+  Definition main t flags ppool next_chunk r res: stmt :=
+    Alloc t (Int.repr 8) #;
+    flags #= Vlong (Int64.repr 4) #;
+    Put "flags: " flags #;
+    ppool #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
+    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
+    next_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
+    r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 160)]) #;
+    res #= (Call "MM.mm_ptable_init" [CBR t; CBV flags; CBR ppool]) #;
+    Put "res: " res #;
+    Skip.
+
+  Definition mainF: function.
+    mk_function_tac main ([]: list var) ["t"; "flags"; "ppool"; "next_chunk"; "r"; "res"].
+  Defined.
+
+  Definition main_program: program :=
+    [
+      ("main", mainF)
+    ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem; MPOOLCONCUR.mpool_modsem; LOCK.lock_modsem].
+
+End INIT.
 
 End MMTEST.

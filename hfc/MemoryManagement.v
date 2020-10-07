@@ -78,6 +78,9 @@ Section STORELOADSYNTACTICSUGAR.
   
   Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt :=
     ((Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr (offset * 8)%Z)))) tptr) @ Int64.zero #:= e).
+
+  Definition store_at_i2 (p : var) (offset : expr) (e: expr) : stmt :=
+    p @ (offset * (Int64.repr 8)) #:= e.
   
   Definition load_at_i (p : var) (offset : Z) : expr :=
     (Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr offset)))) tptr) #@ Int64.zero.
@@ -368,10 +371,10 @@ Module MMCONCUR.
   *)
 
   Definition mm_root_table_count (flags: var) :=
-    #if (flags #& MM_FLAG_STAGE1) 
+    #if (flags #& MM_FLAG_STAGE1)
      then Return (Call "ARCHMM.arch_mm_stage1_root_table_count" [])
      else Return (Call "ARCHMM.arch_mm_stage2_root_table_count" []).
-  
+
   (*
   // JIEUNG: we will not model the following function
   /**
@@ -548,18 +551,16 @@ Module MMCONCUR.
                          j #= zero #;
                            #while (j < MM_PTE_PER_PAGE)
                            do (
-                               (store_at_i
+                               (store_at_i2
                                   (* XXX: can we simplify this line or can we make thie one with better readability? *)
-                                  tables ((unsigned (expr_to_int (Var i))) * entries_size +
-                                          (unsigned (expr_to_int (Var j))))
+                                  tables (i * (Int64.repr entries_size) + j)
                                   (Call "ARCHMM.arch_mm_absent_pte" [CBV (Call "MM.mm_max_level" [CBV flags])])) #;
                                j #= j + one
                              ) #;
                                i #= i + one
                        ) #;
-                         (store_at_i t root_loc (Call "ADDR.pa_init" [CBV (Cast tables tint)])) #;
-                         Return Vtrue.                       
-  
+                         (store_at_i2 t (Int64.repr root_loc) (Call "ADDR.pa_init" [CBV (Cast tables tint)])) #;
+                         Return Vtrue.
 
   (*
   /**

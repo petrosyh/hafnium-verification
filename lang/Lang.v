@@ -268,7 +268,7 @@ Extract Constant show_val => "
   | Vabs(a) -> cl2s (string_of_Any a) in
   fun x -> s2cl (string_of_val x)
 ".
-*)    
+*)
 Instance val_Showable: @Showable val := {
   show := show_val;
 }
@@ -307,6 +307,8 @@ Definition is_true (v : val) : bool :=
   | Vnormal v =>
     match v with
     | Vint n => if (Int.eq n Int.zero) then false else true
+    | Vlong n => if (Int64.eq n Int64.zero) then false else true
+    | _ => false
     (* YJ: THIS IS TEMPORARY HACKING *)
     (* | Vptr _ (_ :: _) => true (* nonnull pointer *) *)
     (* | Vptr _ _ => false (* null pointer *) *)
@@ -318,7 +320,6 @@ Definition is_true (v : val) : bool :=
     (*   | _ => true *)
     (*   end *)
     (* YH: is this true? *)
-    | _ => false
     end
   | Vabs _ => false
   end.

@@ -251,7 +251,7 @@ pte_t arch_mm_table_pte(uint8_t level, paddr_t pa)
   Definition arch_mm_table_pte (level pa:var)
              (pa_addr_res pte_table_res res :var) : stmt :=
     (* (void)level; : just Compiler warning suppress *)
-    pa_addr_res #= (Call "pa_addr" [CBV pa]) #;
+    pa_addr_res #= (Call "ADDR.pa_addr" [CBV pa]) #;
                 pte_table_res #= pa_addr_res #| PTE_TABLE #;
                 res #= pte_table_res #| PTE_VALID #;
                 Return res.
@@ -277,7 +277,7 @@ pte_t arch_mm_block_pte(uint8_t level, paddr_t pa, uint64_t attrs)
    *)
 
   Definition arch_mm_block_pte (level pa attrs:var) (pa_addr_res pte:var) :=
-    pa_addr_res #= (Call "pa_addr" [CBV pa]) #;
+    pa_addr_res #= (Call "ADDR.pa_addr" [CBV pa]) #;
                 pte #= pa_addr_res #| attrs #;
                 (#if (level == (repr 0))
                   then pte #= pte #| PTE_LEVEL0_BLOCK
@@ -314,7 +314,7 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
    *)
 
   Definition arch_mm_pte_is_present (pte level:var) (pte_valid sw_owned res:var) :=
-    pte_valid #= (Call "arch_mm_pte_is_valid" [CBV pte; CBV level]) #;
+    pte_valid #= (Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #;
               sw_owned #= BAnd pte STAGE2_SW_OWNED #;
               res #= pte_valid #|| sw_owned #;
               #if (res == (repr 0))
@@ -356,13 +356,13 @@ bool arch_mm_pte_is_block(pte_t pte, uint8_t level)
    *)
 
   Definition arch_mm_pte_is_block (pte level:var) (blk_allowed ret is_blk is_present is_table:var) :=
-    blk_allowed #= (Call "arch_mm_is_block_allowed" [CBV level]) #;
+    blk_allowed #= (Call "ARCHMM.arch_mm_is_block_allowed" [CBV level]) #;
                 (#if (level == (repr 0))
                   then (#if (pte #& PTE_LEVEL0_BLOCK)
                          then (ret #= Val Vfalse)
                          else (ret #= Val Vtrue))
-                  else (is_present #= (Call "arch_mm_pte_is_present" [CBV pte; CBV level]) #;
-                                   is_table #= (Call "arch_mm_pte_is_present" [CBV pte; CBV level]) #;
+                  else (is_present #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV pte; CBV level]) #;
+                                   is_table #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV pte; CBV level]) #;
                                    ret #= (is_present #&& (#! is_table)))) #;
                 Return (blk_allowed #&& ret).
 
@@ -379,7 +379,7 @@ bool arch_mm_pte_is_table(pte_t pte, uint8_t level)
    *)
 
   Definition arch_mm_pte_is_table (pte level:var) (is_valid :var) :=
-    is_valid #= (Call "arch_mm_pte_is_valid" [CBV pte; CBV level]) #;
+    is_valid #= (Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #;
              Return ((#! (level == (repr 0))) #&& is_valid #&& (#! (pte #& PTE_TABLE) == (repr 0))).
   
   (*
@@ -406,9 +406,9 @@ paddr_t arch_mm_clear_pa(paddr_t pa)
    *)
 
   Definition arch_mm_clear_pa (pa:var) (addr1 addr2 res:var) :=
-    addr1 #= (Call "pa_addr" [CBV pa]) #;
-          addr2 #= (Call "pte_addr" [CBV addr1]) #;
-          res #= (Call "pa_init" [CBV addr2]) #;
+    addr1 #= (Call "ADDR.pa_addr" [CBV pa]) #;
+          addr2 #= (Call "ARCHMM.pte_addr" [CBV addr1]) #;
+          res #= (Call "ADDR.pa_init" [CBV addr2]) #;
           Return res.
 
   (*
@@ -425,8 +425,8 @@ paddr_t arch_mm_block_from_pte(pte_t pte, uint8_t level)
    *)
 
   Definition arch_mm_block_from_pte (pte level:var) (addr res:var) :=
-    addr #= (Call "pte_addr" [CBV pte]) #;
-         res #= (Call "pa_init" [CBV addr]) #;
+    addr #= (Call "ARCHMM.pte_addr" [CBV pte]) #;
+         res #= (Call "ADDR.pa_init" [CBV addr]) #;
          Return res.
 
   (*
@@ -443,8 +443,8 @@ paddr_t arch_mm_table_from_pte(pte_t pte, uint8_t level)
    *)
 
   Definition arch_mm_table_from_pte (pte level:var) (addr res:var) :=
-    addr #= (Call "pte_addr" [CBV pte]) #;
-         res #= (Call "pa_init" [CBV addr]) #;
+    addr #= (Call "ARCHMM.pte_addr" [CBV pte]) #;
+         res #= (Call "ADDR.pa_init" [CBV addr]) #;
          Return res.
 
   (*
@@ -510,8 +510,8 @@ void arch_mm_invalidate_stage1_range(vaddr_t va_begin, vaddr_t va_end)
    *)
 
   Definition arch_mm_invalidate_stage1_range (va_begin va_end:var) (begin_v end_v:var) :=
-    begin_v #= (Call "va_addr" [CBV va_begin]) #;
-            end_v #= (Call "va_addr" [CBV va_end]).
+    begin_v #= (Call "ADDR.va_addr" [CBV va_begin]) #;
+            end_v #= (Call "ADDR.va_addr" [CBV va_end]).
 
   (*
 /**
@@ -579,8 +579,8 @@ void arch_mm_invalidate_stage2_range(ipaddr_t va_begin, ipaddr_t va_end)
    *)
 
   Definition arch_mm_invalidate_stage2_range (va_begin va_end:var) (begin_v end_v:var) :=
-    begin_v #= (Call "ipa_addr" [CBV va_begin]) #;
-            end_v #= (Call "ipa_addr" [CBV va_end]).
+    begin_v #= (Call "ADDR.ipa_addr" [CBV va_begin]) #;
+            end_v #= (Call "ADDR.ipa_addr" [CBV va_end]).
 
   (*
 /**

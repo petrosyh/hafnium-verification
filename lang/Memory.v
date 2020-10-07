@@ -430,12 +430,12 @@ Qed.
 Program Definition empty: mem :=
   mkmem (PMap.init (ZMap.init Undef))
         (PMap.set 1%positive
-                  (fun ofs k => if zle 0 ofs && zlt ofs 4000 then Some Freeable else None)
+                  (fun ofs k => if zle 0 ofs && zlt ofs 40000 then Some Freeable else None)
                   (PMap.init (fun ofs k => None)))
         2%positive _ _ _.
 Next Obligation.
   repeat rewrite PMap.gsspec. destruct (peq b 1).
-  subst b. destruct (zle 0 ofs && zlt ofs 4000); red; auto with mem.
+  subst b. destruct (zle 0 ofs && zlt ofs 40000); red; auto with mem.
   repeat rewrite PMap.gi. red; auto. 
 Qed.
 Next Obligation.
