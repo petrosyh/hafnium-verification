@@ -296,7 +296,7 @@ Module MPOOLTEST.
                           do (
                               i #= (i - (Int.repr 1)) #;
                                 r #= (Call "MPOOL.mpool_alloc_contiguous"
-                                      [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)])
+                                      [CBR p ; CBV (Int64.repr 4); CBV (Int64.repr 1)])
                                 #;
                                 (Put "allocation is done" r) #;
                                 p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) 
@@ -316,20 +316,15 @@ Module MPOOLTEST.
             p #= Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid) * 320))) #;
             
               (Call "MPOOL.mpool_init_with_fallback" [CBR p; CBR GMPOOL]) #;
+              Put "(Local Mpool) After init-with-fallback" p #;
               new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
               r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;
-              Put "(Local Mpool) After init-with-fallback" p #;
               r0 #= (Call "MPOOL.mpool_alloc_contiguous"
                           [CBV p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
-              (*
               r1 #= (Call "MPOOL.mpool_alloc_contiguous"
-                    [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
-              r2 #= (Call "MPOOL.mpool_alloc_contiguous"
-                    [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #; *)
+                          [CBR p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
               (Call "MPOOL.mpool_free" [CBR p; CBR r0]) #;
-              (*
               (Call "MPOOL.mpool_free" [CBR p; CBR r1]) #;
-              *)
               SIGNAL #= (SIGNAL + Int.one) #;
               Skip
           ).

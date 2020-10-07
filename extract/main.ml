@@ -376,7 +376,7 @@ let main =
   run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem) ;
   print_endline "--------------------------------------------------------------" ;
   print_endline "- MPOOL TEST 4 (concurrent mpool add chunk, alloc, and free) -" ;
-  run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem) ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem) ;
   print_endline "------------------   MPOOL TEST Passed  ----------------------" ;
 
 
