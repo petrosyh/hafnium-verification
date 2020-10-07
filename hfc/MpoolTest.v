@@ -133,7 +133,7 @@ Module MPOOLTEST.
             r #= (Call "MPOOL.mpool_add_chunk" [CBR p1; CBR new_chunk; CBV (Int64.repr 16)]) #;
             Put "(Local Mpool) After init-with-fallback" p #;
             (Call "MPOOL.mpool_free" [CBV p; CBV p1]) #;
-            Put "alloc_by_thread : next_chunk_loc" (load_at_i p entry_list_loc) #;
+            Put "alloc_by_thread : next_chunk_loc" (p #@ entry_list_loc) #;
             SIGNAL #= (SIGNAL + Int.one) #;
             Skip
             ).
