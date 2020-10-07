@@ -189,6 +189,10 @@ Module MPOOLCONCUR.
     #if mpool_locks_enabled
      then (Call "Lock.release" [CBV (p #@ lock_loc) ; CBV p])
      else Skip.
+
+  (************************************************)
+  (*           Mpool init functions               *)
+  (************************************************)
   
   (*
   void mpool_init(struct mpool *p, size_t entry_size)
@@ -200,10 +204,6 @@ Module MPOOLCONCUR.
 	sl_init(&p->lock);
   }
   *)
-
-  (************************************************)
-  (*           Mpool init functions               *)
-  (************************************************)
   
   Definition mpool_init (p:var) (entry_size : var): stmt :=
     Put "mpool_init: start" p #;
@@ -258,6 +258,10 @@ Module MPOOLCONCUR.
         Call "MPOOL.mpool_init" [CBR p; CBV (fallback #@ entry_size_loc)] #;
         p @ fallback_loc #:= fallback #;
         Put "mpool_init_with_fallback: end" p.
+
+  (************************************************)
+  (*                 Mpool fini                   *)
+  (************************************************)
     
   (*
   void mpool_fini(struct mpool *p)
@@ -297,10 +301,6 @@ Module MPOOLCONCUR.
 	mpool_unlock(p);
   }
   *)
-
-  (************************************************)
-  (*                 Mpool fini                   *)
-  (************************************************)
   
   Definition mpool_fini (p : var) (entry chunk ptr size: var) : stmt :=
     Put "mpool_fini: start" p #;
