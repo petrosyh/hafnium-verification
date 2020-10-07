@@ -98,6 +98,7 @@ Separate Extraction
          MemoryManagementTest.MMTEST.RootTableCount.isem
          MemoryManagementTest.MMTEST.TLBI.isem
          MemoryManagementTest.MMTEST.INIT.isem
+         MemoryManagementTest.MMTEST.INITFINI.isem
 
          (* MMStageOne.MMTEST1.isem *)
          (* MMStageOne.MMTESTAUX.isem *)

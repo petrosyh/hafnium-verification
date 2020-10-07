@@ -305,16 +305,20 @@ Module MPOOLCONCUR.
   Definition mpool_fini (p : var) (entry chunk ptr size: var) : stmt :=
     Put "mpool_fini: start" p #;
     (Call "MPOOL.mpool_lock" [CBR p]) #;
-    entry #= (p #@ entry_list_loc) #; 
+    entry #= (p #@ entry_list_loc) #;
+    Put "entry : " entry #;
     #while (#! (entry == Vnull))  
     do (
+        Put "debug0 : " Vnull #;
         ptr #= entry #;
             entry #= (entry #@ next_loc) #;
             (Call "MPOOL.mpool_free" [CBV (p #@ fallback_loc); CBR ptr])
       ) #;
         chunk #= (p #@ chunk_list_loc) #;
+        Put "chunk : " chunk #;
         #while (#! (chunk == Vnull))
         do (
+            Put "debug1 : " Vnull #;
             Put "mpool_fini: chunk that will be added" chunk #;
             ptr #= chunk #;
                 size #= ((Cast (chunk #@ limit_loc) tint) - (Cast chunk tint))
@@ -369,9 +373,11 @@ Module MPOOLCONCUR.
         new_begin #= (((Cast begin tint) + (p #@ entry_size_loc) - (Int64.repr 1))
                         / (p #@ entry_size_loc) * (p #@ entry_size_loc))
         #;
+        Put "mpool add chunk debug0" Vnull #;
         new_end #= (((Cast begin tint) + size)
-                      / (p #@ entry_size_loc) * (p #@ entry_size_loc))
-        #;
+                      / (p #@ entry_size_loc) * (p #@ entry_size_loc)) #;
+        Put "mpool add chunk debug1" Vnull #;
+        
         (* Debugging messages *)
         (*
         Put "mpool_add_chunk: new_begin" new_begin #;
@@ -520,6 +526,7 @@ Module MPOOLCONCUR.
     (*
     Put "mpool_alloc_contiguous_no_fallback: prev address: " prev #;
     Put "mpool_alloc_contiguous_no_fallback: value in the prev: " (prev_cast #@ (Int64.repr 0)) #; *)
+    Put "checker : " (prev_cast #@ (Int64.repr 0)) #;
     #while (#! ((prev_cast #@ (Int64.repr 0)) == Vnull))
     do (
         chunk #= (prev_cast #@ (Int64.repr 0)) #;
@@ -546,6 +553,7 @@ Module MPOOLCONCUR.
                       (prev_cast @ (Int64.repr 0) #:= new_chunk))
                     #;
                     ret #= (Cast start tptr) #;
+                    Put "RET: " ret #;
                     Break 
                 else
                   prev #= ((Cast chunk tint) +
@@ -560,6 +568,7 @@ Module MPOOLCONCUR.
               ) 
       ) #;
         (Call "MPOOL.mpool_unlock" [CBR p]) #;
+        Put "RET final: " ret #;
         Return ret.
 
   (* XXX: The following version is a naively translated version, but it has an error.
@@ -638,12 +647,14 @@ Module MPOOLCONCUR.
              (* Debugging messages *)
              (*
              Put "mpool_alloc_contiguous: looping mpool_alloc_contiguous_no_fallback" ret #; *)
+             Put "ret before : " ret #;
              (#if (ret)
                then
                  (* Debugging messages *)
                  (* Put "mpool_alloc_contiguous: end" ret #; *)
                  Break
                else Skip) #;
+             Put "fallback" (p #@ fallback_loc) #;
              p #= (p #@ fallback_loc)
              #;
              #if (p)

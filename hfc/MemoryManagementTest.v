@@ -189,9 +189,9 @@ Module INIT.
     Alloc t (Int.repr 8) #;
     flags #= Vlong (Int64.repr 4) #;
     Put "flags: " flags #;
-    ppool #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
+    ppool #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
     Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
-    next_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
+    next_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr 160))) #;
     r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 160)]) #;
     res #= (Call "MM.mm_ptable_init" [CBR t; CBV flags; CBR ppool]) #;
     Put "res: " res #;
@@ -210,5 +210,37 @@ Module INIT.
       eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem; MPOOLCONCUR.mpool_modsem; LOCK.lock_modsem].
 
 End INIT.
+
+Module INITFINI.
+
+  Definition main t flags ppool next_chunk r res: stmt :=
+    Alloc t (Int.repr 8) #;
+    flags #= Vlong (Int64.repr 4) #;
+    Put "flags: " flags #;
+    ppool #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
+    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
+    Put "ppool in test-1: " ppool #;
+    next_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr 160))) #;
+    r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 160)]) #;
+    Put "ppool in test0: " ppool #;
+    res #= (Call "MM.mm_ptable_init" [CBR t; CBV flags; CBR ppool]) #;
+    Put "res: " res #;
+    Put "ppool in test: " ppool #;
+    (Call "MM.mm_ptable_fini" [CBR t; CBV flags; CBR ppool]) #;
+    Skip.
+
+  Definition mainF: function.
+    mk_function_tac main ([]: list var) ["t"; "flags"; "ppool"; "next_chunk"; "r"; "res"].
+  Defined.
+
+  Definition main_program: program :=
+    [
+      ("main", mainF)
+    ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem; MPOOLCONCUR.mpool_modsem; LOCK.lock_modsem].
+
+End INITFINI.
 
 End MMTEST.

@@ -429,17 +429,17 @@ Qed.
 
 Program Definition empty: mem :=
   mkmem (PMap.init (ZMap.init Undef))
-        (PMap.set 1%positive
+        (PMap.set 2%positive
                   (fun ofs k => if zle 0 ofs && zlt ofs 40000 then Some Freeable else None)
                   (PMap.init (fun ofs k => None)))
-        2%positive _ _ _.
+        3%positive _ _ _.
 Next Obligation.
-  repeat rewrite PMap.gsspec. destruct (peq b 1).
+  repeat rewrite PMap.gsspec. destruct (peq b 2).
   subst b. destruct (zle 0 ofs && zlt ofs 40000); red; auto with mem.
   repeat rewrite PMap.gi. red; auto. 
 Qed.
 Next Obligation.
-  rewrite PMap.gsspec. destruct (peq b 1).
+  rewrite PMap.gsspec. destruct (peq b 2).
   subst b. elim H. apply Plt_succ.
   rewrite PMap.gi. auto.
 Qed.
@@ -631,7 +631,7 @@ Qed.
 
 (** Properties of the empty store. *)
 
-Theorem nextblock_empty: nextblock empty = 2%positive.
+Theorem nextblock_empty: nextblock empty = 3%positive.
 Proof. reflexivity. Qed.
 
 (* Theorem perm_empty: forall b ofs k p, ~perm empty b ofs k p. *)

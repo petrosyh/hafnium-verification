@@ -246,7 +246,6 @@ Extract Constant show_val =>
 ".
 *)
 
-
 (*
 Extract Constant show_val => "
   let rec nat_to_int = function | O -> 0 | S n -> succ (nat_to_int n) in
@@ -308,6 +307,7 @@ Definition is_true (v : val) : bool :=
     match v with
     | Vint n => if (Int.eq n Int.zero) then false else true
     | Vlong n => if (Int64.eq n Int64.zero) then false else true
+    | Vptr b ofs => if Pos.eqb b 1%positive then false else true
     | _ => false
     (* YJ: THIS IS TEMPORARY HACKING *)
     (* | Vptr _ (_ :: _) => true (* nonnull pointer *) *)

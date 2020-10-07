@@ -174,7 +174,7 @@ Definition sem_cast (v: val) (t2: type) (m: mem): option val :=
   | cast_case_ptr2int =>
     match v with
     | Vptr b ofs =>
-      if (Pos.eqb b 1%positive)
+      if (Pos.eqb b 2%positive)
       then (if Archi.ptr64 then Some (Vlong (Ptrofs.to_int64 ofs)) else  Some (Vint (Ptrofs.to_int ofs)))
       else None
     | _ => None
@@ -182,9 +182,9 @@ Definition sem_cast (v: val) (t2: type) (m: mem): option val :=
   | cast_case_int2ptr =>
     match v with
     | Vint n =>
-      if Archi.ptr64 then None else Some (Vptr 1%positive (Ptrofs.of_int n))
+      if Archi.ptr64 then None else Some (Vptr 2%positive (Ptrofs.of_int n))
     | Vlong n =>
-      if Archi.ptr64 then Some (Vptr 1%positive (Ptrofs.of_int64s n)) else None
+      if Archi.ptr64 then Some (Vptr 2%positive (Ptrofs.of_int64s n)) else None
     | _ => None                                                                       
     end
   | cast_case_ptr2ptr =>
@@ -364,6 +364,8 @@ Definition classify_binarith (v1: val) (v2: val) : binarith_cases :=
   match v1, v2 with
   | Vint n1, Vint n2 => bin_case_i Unsigned
   | Vlong n1, Vlong n2 => bin_case_l Unsigned
+  | Vint _, Vlong _ => bin_case_l Unsigned
+  | Vlong _, Vint _ => bin_case_l Unsigned 
   | _, _ => bin_default
   end.
 

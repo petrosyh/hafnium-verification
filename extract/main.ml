@@ -391,7 +391,11 @@ let main =
   print_endline "--------------------------------------------------------------" ;
   run (MemoryManagementTest.MMTEST.TLBI.isem) ;
   print_endline "--------------------------------------------------------------" ;
+  print_endline "-------------------   MM ptable init  ------------------------" ;
   run (MemoryManagementTest.MMTEST.INIT.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "-------------------   MM ptable fini  ------------------------" ;
+  run (MemoryManagementTest.MMTEST.INITFINI.isem) ;
   print_endline "--------------------------------------------------------------" ;
   print_endline "-------------------   MM TEST Passed  ------------------------" ;
 

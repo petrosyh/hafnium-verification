@@ -84,7 +84,12 @@ Section STORELOADSYNTACTICSUGAR.
   
   Definition load_at_i (p : var) (offset : Z) : expr :=
     (Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr offset)))) tptr) #@ Int64.zero.
-  
+
+  Definition load_at_i2 (p : var) (offset : expr) : expr :=
+    (* Put "p :=" p #; *)
+    (*     Put "offset :=" offset #; *)
+    p #@ (offset * (Int64.repr 8)).
+
 End STORELOADSYNTACTICSUGAR.
 
 (* Some dependencies: 
@@ -437,24 +442,38 @@ Module MMCONCUR.
     end.
 
     
-  Definition mm_free_page_pte (pte level ppool : var) (table i : var) :=
+  Definition mm_free_page_pte (pte level ppool : var) (check table i : var) :=
     (* XXX: This condition should be written as a pre condition  
           if (!arch_mm_pte_is_table(pte, level)) {
           	return;
           }
      *)
-    table #= (Call "MM.mm_page_table_from_pa"
-                   [CBV (Call "ARCHMM.arch_mm_table_from_pte" [CBR pte; CBV level])]) #;
-          i #= zero #;
-          #while (i < MM_PTE_PER_PAGE)
-          do (
-              (* XXX :CBV at the first one is a little bit wierd, because it is a pointer... 
-                      Need to set the criteria for CBV and CBR *) 
-              (Call "MM.mm_free_page_pte"
-                    [CBV (load_at_i table (unsigned (expr_to_int (Var i)))); CBV (level - one); CBR ppool]) #;
-                i #= i + one
-            ) #;
-              (Call "MPOOL.mpool_free" [CBR ppool; CBR table]).
+    (* Put "pte : " pte #; *)
+    (*     Put "level : " level #; *)
+    (*     Put "ppool : " ppool #; *)
+    check #= (Call "ARCHMM.arch_mm_pte_is_table" [CBV pte; CBR level]) #;
+          (* Put "check : " check #; *)
+    #if (check)
+     then      
+       (  
+         table #= (Call "MM.mm_page_table_from_pa"
+                        [CBV (Call "ARCHMM.arch_mm_table_from_pte" [CBR pte; CBV level])]) #;
+               (* Put "table : " table #; *)
+               i #= zero #;
+               #while (i < MM_PTE_PER_PAGE)
+               do (
+                   (* XXX :CBV at the first one is a little bit wierd, because it is a pointer... 
+                      Ne  ed to set the criteria for CBV and CBR *)
+                   (* Put "Hi :" i#; *)
+                   (* Put "ddddd : " (load_at_i2 table i) #; *)
+                   (Call "MM.mm_free_page_pte"
+                         [CBV (load_at_i2 table i); CBV (level - one); CBR ppool]) #;
+                                                                                   (* Put "Hiiiii :" i #; *)
+                                                                                   i #= i + one
+                 ) #;
+                   (Call "MPOOL.mpool_free" [CBR ppool; CBR table])
+       )
+     else Skip.
      
   (*
   // JIEUNG: this sets the range of address space 
@@ -535,8 +554,10 @@ Module MMCONCUR.
 
   
   Definition mm_ptable_init (t flags ppool: var) (root_table_count tables i j: var) :=
+    Put "PPOOL before init : " ppool #;
     root_table_count #= (Call "MM.mm_root_table_count" [CBV flags]) #;
                      tables #= (Call "MM.mm_alloc_page_tables" [CBV root_table_count; CBR ppool]) #;
+                     Put "PPOOL before init 0  : " ppool #;
                      (#if (tables == Vnull)
                       then
                         Return Vfalse
@@ -555,10 +576,12 @@ Module MMCONCUR.
                                   (* XXX: can we simplify this line or can we make thie one with better readability? *)
                                   tables (i * (Int64.repr entries_size) + j)
                                   (Call "ARCHMM.arch_mm_absent_pte" [CBV (Call "MM.mm_max_level" [CBV flags])])) #;
+                                  (* Put "zzz : " (load_at_i2 tables (i * (Int64.repr entries_size) + j)) #; *)
                                j #= j + one
                              ) #;
                                i #= i + one
                        ) #;
+                         Put "ttt ;= " (Call "ADDR.pa_init" [CBV (Cast tables tint)]) #;
                          (store_at_i2 t (Int64.repr root_loc) (Call "ADDR.pa_init" [CBV (Cast tables tint)])) #;
                          Return Vtrue.
 
@@ -593,23 +616,29 @@ Module MMCONCUR.
   Definition  mm_page_table_size := MM_PPOOL_ENTRY_SIZE.                         
   Definition  mm_ptable_fini (t flags ppool : var) (tables root_table_count level i j : var) := 
     (* XXX: CBV in here is somewhat wierd *)
-    tables #= (Call "MM.mm_page_table_from_pa" [CBV (load_at_i t root_loc)]) #;
+    Put "load1" Vnull #;
+    tables #= (Call "MM.mm_page_table_from_pa" [CBV (load_at_i2 t (Int64.repr root_loc))]) #;
            level #= (Call "MM.mm_max_level" [CBV flags]) #;
            root_table_count #= (Call "MM.mm_root_table_count" [CBV flags]) #;
            i #= zero #;
            #while (i < root_table_count)
            do (
                j #= zero #;
+                 (* Put "MM_PTE_PER_PAGE: " MM_PTE_PER_PAGE #; *)
+                 (* Put "entries_size: " (Int64.repr entries_size) #; *)
                  #while (j < MM_PTE_PER_PAGE)
                  do (
+                     (* Put "table : " tables #; *)
+                     (* Put "offset : " (i * (Int64.repr entries_size) + j) #; *)
+                     (* Put "SSS: " (load_at_i2 tables (i * (Int64.repr entries_size) + j)) #;     *)
                      (Call "MM.mm_free_page_pte"
-                           [CBV (load_at_i tables ((unsigned (expr_to_int (Var i))) * entries_size +
-                                                   (unsigned (expr_to_int (Var j)))));
+                           [CBV (load_at_i2 tables (i * (Int64.repr entries_size) + j));
                            CBV level; CBR ppool]) #;
                                                   j #= j + one
                    ) #;
                      i #= i + one
              ) #;
+               Put "PPOOL : " ppool #;
                (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR tables; CBV (mm_page_table_size * root_table_count)]).
     
   
@@ -1901,7 +1930,7 @@ Module MMCONCUR.
   Definition mm_max_levelF: function. mk_function_tac mm_max_level ["flags"] ([]:list var). Defined.
   Definition mm_root_table_countF: function. mk_function_tac mm_root_table_count ["flags"] ([]:list var). Defined.
   Definition mm_invalidate_tlbF: function. mk_function_tac mm_invalidate_tlb ["a_begin"; "a_end"; "flags"] ([]:list var). Defined.
-  Definition mm_free_page_pteF: function. mk_function_tac mm_free_page_pte ["pte"; "level"; "ppool"] ["table"; "i"]. Defined.
+  Definition mm_free_page_pteF: function. mk_function_tac mm_free_page_pte ["pte"; "level"; "ppool"] ["check" ; "table"; "i"]. Defined.
   Definition mm_ptable_addr_space_endF: function. mk_function_tac mm_ptable_addr_space_end ["flags"] ([]:list var). Defined.
   Definition mm_ptable_initF: function. mk_function_tac mm_ptable_init ["t"; "flags"; "ppool"] ["root_table_count"; "tables"; "i"; "j"]. Defined.
   Definition mm_ptable_finiF: function. mk_function_tac mm_ptable_fini ["t"; "flags"; "ppool"] ["tables"; "root_table_count"; "level"; "i"; "j"]. Defined.

@@ -106,7 +106,7 @@ End LoadStore.
 Module IntPtr.
 
   Definition main p i q res: stmt :=
-    p #= Vptr 1%positive (Ptrofs.repr 400) #;
+    p #= Vptr 2%positive (Ptrofs.repr 400) #;
     Put "" p#;
     (p @ Int64.zero #:= Int64.repr 10)#;
     Put "" p#;

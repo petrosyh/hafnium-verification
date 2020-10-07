@@ -318,8 +318,8 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
               sw_owned #= BAnd pte STAGE2_SW_OWNED #;
               res #= pte_valid #|| sw_owned #;
               #if (res == (repr 0))
-               then Return Vfalse
-               else Return Vtrue.
+               then Return (repr 0)
+               else Return (repr 1).
 
   (*
 /**
@@ -337,8 +337,8 @@ bool arch_mm_pte_is_valid(pte_t pte, uint8_t level)
   Definition arch_mm_pte_is_valid (pte level:var) (pte_valid:var) :=
     pte_valid #= BAnd pte PTE_VALID #;
               #if (pte_valid == (repr 0))
-               then Return Vfalse
-               else Return Vtrue.
+               then Return (repr 0)
+               else Return (repr 1).
 
   (*
 /**
@@ -359,8 +359,8 @@ bool arch_mm_pte_is_block(pte_t pte, uint8_t level)
     blk_allowed #= (Call "ARCHMM.arch_mm_is_block_allowed" [CBV level]) #;
                 (#if (level == (repr 0))
                   then (#if (pte #& PTE_LEVEL0_BLOCK)
-                         then (ret #= Val Vfalse)
-                         else (ret #= Val Vtrue))
+                         then (ret #= (repr 0))
+                         else (ret #= (repr 1)))
                   else (is_present #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV pte; CBV level]) #;
                                    is_table #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV pte; CBV level]) #;
                                    ret #= (is_present #&& (#! is_table)))) #;
@@ -380,6 +380,7 @@ bool arch_mm_pte_is_table(pte_t pte, uint8_t level)
 
   Definition arch_mm_pte_is_table (pte level:var) (is_valid :var) :=
     is_valid #= (Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #;
+             (* Put "is_valid" is_valid #; *)
              Return ((#! (level == (repr 0))) #&& is_valid #&& (#! (pte #& PTE_TABLE) == (repr 0))).
   
   (*

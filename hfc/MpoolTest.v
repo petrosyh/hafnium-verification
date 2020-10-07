@@ -97,12 +97,12 @@ Module MPOOLTEST.
                           (Call "MPOOL.mpool_enable_locks" [])
                           #;
                           #assume mpool_locks_enabled #;        
-                          p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
+                          p #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
                           Put "main: before init: " p #;
                           (* initialize it with the entry size - 8 *)
                           Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (Int64.repr 8))] #;
                           Put "main: after init: " p #;
-                          next_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
+                          next_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr 160))) #;
                           r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR next_chunk; CBV (Int64.repr 160)])
                           #;
                           GMPOOL #= p #;
@@ -125,11 +125,11 @@ Module MPOOLTEST.
                 (Debug "Waiting for GMPOOL" GMPOOL))
             #;
             p #= GMPOOL #;
-            new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid * 320) + 80)))) #;
+            new_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid * 320) + 80)))) #;
             r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;
-            p1 #= Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid) * 320))) #;
+            p1 #= Vnormal (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid) * 320))) #;
             (Call "MPOOL.mpool_init_with_fallback" [CBR p1; CBR GMPOOL]) #;
-            new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
+            new_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
             r #= (Call "MPOOL.mpool_add_chunk" [CBR p1; CBR new_chunk; CBV (Int64.repr 16)]) #;
             Put "(Local Mpool) After init-with-fallback" p #;
             (Call "MPOOL.mpool_free" [CBV p; CBV p1]) #;
@@ -175,23 +175,23 @@ Module MPOOLTEST.
         (Call "MPOOL.mpool_enable_locks" [])
         #;
         #assume mpool_locks_enabled #;        
-        p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
+        p #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
         Put "main: before init: " p #;
         (* initialize it with the entry size - 8 *)
         Call "MPOOL.mpool_init" [CBV p; CBV (Int64.repr 8)] #;
-        p_fallback #= Vnormal (Vptr 1%positive (Ptrofs.repr 160)) #;
+        p_fallback #= Vnormal (Vptr 2%positive (Ptrofs.repr 160)) #;
         (Call "MPOOL.mpool_init_with_fallback" [CBR p_fallback; CBR p]) #;        
         Put "main: after init: " p #;
-        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 240))) #;
+        begin #= (Vnormal (Vptr 2%positive (Ptrofs.repr 240))) #;
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback; CBR begin; CBV (Int64.repr 32)])
         #;
-        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 280))) #;
+        begin #= (Vnormal (Vptr 2%positive (Ptrofs.repr 280))) #;
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback; CBR begin; CBV (Int64.repr 32)])
         #;
-        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 320))) #;
+        begin #= (Vnormal (Vptr 2%positive (Ptrofs.repr 320))) #;
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback; CBR begin; CBV (Int64.repr 64)])
         #;
-        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 400))) #;
+        begin #= (Vnormal (Vptr 2%positive (Ptrofs.repr 400))) #;
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback; CBR begin; CBV (Int64.repr 64)])
         #;
         (Call "MPOOL.mpool_fini" [CBR p_fallback]) #;
@@ -221,15 +221,15 @@ Module MPOOLTEST.
         (Call "MPOOL.mpool_enable_locks" [])
         #;
         #assume mpool_locks_enabled #;        
-        p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
+        p #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
         Put "main: before init: " p #;
         (* initialize it with the entry size - 8 *)
         Call "MPOOL.mpool_init" [CBV p; CBV (Int64.repr 8)] #;
         Put "main: after init: " p #;
-        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
+        begin #= (Vnormal (Vptr 2%positive (Ptrofs.repr 160))) #;
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 64)])
         #;
-        begin #= (Vnormal (Vptr 1%positive (Ptrofs.repr 240))) #;
+        begin #= (Vnormal (Vptr 2%positive (Ptrofs.repr 240))) #;
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 64)])
         #;
         Put "main: add_chunk done: " p #;
@@ -275,12 +275,12 @@ Module MPOOLTEST.
                           (Call "MPOOL.mpool_enable_locks" [])
                           #;
                           #assume mpool_locks_enabled #;        
-                          p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) #;
+                          p #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
                           Put "main: before init: " p #;
                           (* initialize it with the entry size - 8 *)
                           Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (Int64.repr 8))] #;
                           Put "main: after init: " p #;
-                          next_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr 160))) #;
+                          next_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr 160))) #;
                           r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR next_chunk; CBV (Int64.repr 160)])
                           #;               
                           GMPOOL #= p #;
@@ -299,7 +299,7 @@ Module MPOOLTEST.
                                       [CBR p ; CBV (Int64.repr 4); CBV (Int64.repr 1)])
                                 #;
                                 (Put "allocation is done" r) #;
-                                p #= Vnormal (Vptr 1%positive (Ptrofs.repr 80)) 
+                                p #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) 
                             ) #;
                               Put "Test Passed " Vnull #;
                               Skip
@@ -313,11 +313,11 @@ Module MPOOLTEST.
               do
                 (Debug "waiting for GMPOOL" GMPOOL))
             #;
-            p #= Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid) * 320))) #;
+            p #= Vnormal (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid) * 320))) #;
             
               (Call "MPOOL.mpool_init_with_fallback" [CBR p; CBR GMPOOL]) #;
               Put "(Local Mpool) After init-with-fallback" p #;
-              new_chunk #= (Vnormal (Vptr 1%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
+              new_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
               r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;
               r0 #= (Call "MPOOL.mpool_alloc_contiguous"
                           [CBV p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]) #;
