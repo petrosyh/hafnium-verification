@@ -99,6 +99,7 @@ Separate Extraction
          MemoryManagementTest.MMTEST.TLBI.isem
          MemoryManagementTest.MMTEST.INIT.isem
          MemoryManagementTest.MMTEST.INITFINI.isem
+         MemoryManagementTest.MMTEST.POPULATE.isem
 
          (* MMStageOne.MMTEST1.isem *)
          (* MMStageOne.MMTESTAUX.isem *)

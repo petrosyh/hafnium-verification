@@ -309,6 +309,7 @@ Module MMCONCUR.
    *)
 
   Definition mm_index (addr level : var) (v : var) :=
+    Put "addr : " addr #;
     v #= (addr #>> (PAGE_BITS + (level * PAGE_LEVEL_BITS))) #;
       Return (v #& ((UINT64_C(one) #<< PAGE_LEVEL_BITS) - one)).
 
@@ -554,10 +555,10 @@ Module MMCONCUR.
 
   
   Definition mm_ptable_init (t flags ppool: var) (root_table_count tables i j: var) :=
-    Put "PPOOL before init : " ppool #;
+    (* Put "PPOOL before init : " ppool #; *)
     root_table_count #= (Call "MM.mm_root_table_count" [CBV flags]) #;
                      tables #= (Call "MM.mm_alloc_page_tables" [CBV root_table_count; CBR ppool]) #;
-                     Put "PPOOL before init 0  : " ppool #;
+                     (* Put "PPOOL before init 0  : " ppool #; *)
                      (#if (tables == Vnull)
                       then
                         Return Vfalse
@@ -581,7 +582,7 @@ Module MMCONCUR.
                              ) #;
                                i #= i + one
                        ) #;
-                         Put "ttt ;= " (Call "ADDR.pa_init" [CBV (Cast tables tint)]) #;
+                         (* Put "ttt ;= " (Call "ADDR.pa_init" [CBV (Cast tables tint)]) #; *)
                          (store_at_i2 t (Int64.repr root_loc) (Call "ADDR.pa_init" [CBV (Cast tables tint)])) #;
                          Return Vtrue.
 
@@ -616,7 +617,6 @@ Module MMCONCUR.
   Definition  mm_page_table_size := MM_PPOOL_ENTRY_SIZE.                         
   Definition  mm_ptable_fini (t flags ppool : var) (tables root_table_count level i j : var) := 
     (* XXX: CBV in here is somewhat wierd *)
-    Put "load1" Vnull #;
     tables #= (Call "MM.mm_page_table_from_pa" [CBV (load_at_i2 t (Int64.repr root_loc))]) #;
            level #= (Call "MM.mm_max_level" [CBV flags]) #;
            root_table_count #= (Call "MM.mm_root_table_count" [CBV flags]) #;

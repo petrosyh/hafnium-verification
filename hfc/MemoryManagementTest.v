@@ -219,13 +219,9 @@ Module INITFINI.
     Put "flags: " flags #;
     ppool #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
     Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
-    Put "ppool in test-1: " ppool #;
     next_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr 160))) #;
     r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 160)]) #;
-    Put "ppool in test0: " ppool #;
     res #= (Call "MM.mm_ptable_init" [CBR t; CBV flags; CBR ppool]) #;
-    Put "res: " res #;
-    Put "ppool in test: " ppool #;
     (Call "MM.mm_ptable_fini" [CBR t; CBV flags; CBR ppool]) #;
     Skip.
 
@@ -242,5 +238,40 @@ Module INITFINI.
       eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem; MPOOLCONCUR.mpool_modsem; LOCK.lock_modsem].
 
 End INITFINI.
+
+Module POPULATE.
+
+  Definition dummy_long : expr := Vlong (Int64.repr 0).
+
+  Definition main t flags ppool next_chunk r res table pte: stmt :=
+    Alloc t (Int.repr 8) #;
+    flags #= Vlong (Int64.repr 4) #;
+    Put "flags: " flags #;
+    ppool #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
+    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
+    next_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr 160))) #;
+    r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 160)]) #;
+    Put "debug1 " Vnull #;
+    res #= (Call "MM.mm_ptable_init" [CBR t; CBV flags; CBR ppool]) #;
+    Put "debug2 " Vnull #;
+    table #= (Call "MM.mm_page_table_from_pa" [CBV (load_at_i2 t (Int64.repr root_loc))]) #;
+    Put "debug3 " Vnull #;
+    pte #= (load_at_i2 table (Int64.repr 4)) #;
+    Put "pte : " pte #;
+    Skip.
+
+  Definition mainF: function.
+    mk_function_tac main ([]: list var) ["t"; "flags"; "ppool"; "next_chunk"; "r"; "res" ; "table" ; "pte"].
+  Defined.
+
+  Definition main_program: program :=
+    [
+      ("main", mainF)
+    ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem; MPOOLCONCUR.mpool_modsem; LOCK.lock_modsem].
+
+End POPULATE.
 
 End MMTEST.

@@ -526,7 +526,6 @@ Module MPOOLCONCUR.
     (*
     Put "mpool_alloc_contiguous_no_fallback: prev address: " prev #;
     Put "mpool_alloc_contiguous_no_fallback: value in the prev: " (prev_cast #@ (Int64.repr 0)) #; *)
-    Put "checker : " (prev_cast #@ (Int64.repr 0)) #;
     #while (#! ((prev_cast #@ (Int64.repr 0)) == Vnull))
     do (
         chunk #= (prev_cast #@ (Int64.repr 0)) #;
@@ -553,7 +552,6 @@ Module MPOOLCONCUR.
                       (prev_cast @ (Int64.repr 0) #:= new_chunk))
                     #;
                     ret #= (Cast start tptr) #;
-                    Put "RET: " ret #;
                     Break 
                 else
                   prev #= ((Cast chunk tint) +
@@ -568,7 +566,6 @@ Module MPOOLCONCUR.
               ) 
       ) #;
         (Call "MPOOL.mpool_unlock" [CBR p]) #;
-        Put "RET final: " ret #;
         Return ret.
 
   (* XXX: The following version is a naively translated version, but it has an error.
@@ -647,14 +644,12 @@ Module MPOOLCONCUR.
              (* Debugging messages *)
              (*
              Put "mpool_alloc_contiguous: looping mpool_alloc_contiguous_no_fallback" ret #; *)
-             Put "ret before : " ret #;
              (#if (ret)
                then
                  (* Debugging messages *)
                  (* Put "mpool_alloc_contiguous: end" ret #; *)
                  Break
                else Skip) #;
-             Put "fallback" (p #@ fallback_loc) #;
              p #= (p #@ fallback_loc)
              #;
              #if (p)
