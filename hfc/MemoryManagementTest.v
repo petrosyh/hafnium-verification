@@ -189,9 +189,9 @@ Module INIT.
     Alloc t (Int.repr 8) #;
     flags #= Vlong (Int64.repr 4) #;
     Put "flags: " flags #;
-    ppool #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
+    ppool #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
     Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
-    next_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr 160))) #;
+    next_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr 160))) #;
     r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 160)]) #;
     res #= (Call "MM.mm_ptable_init" [CBR t; CBV flags; CBR ppool]) #;
     Put "res: " res #;
@@ -217,10 +217,10 @@ Module INITFINI.
     Alloc t (Int.repr 8) #;
     flags #= Vlong (Int64.repr 4) #;
     Put "flags: " flags #;
-    ppool #= Vnormal (Vptr 2%positive (Ptrofs.repr 80)) #;
+    ppool #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
     Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
     Put "ppool in test-1: " ppool #;
-    next_chunk #= (Vnormal (Vptr 2%positive (Ptrofs.repr 160))) #;
+    next_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr 160))) #;
     r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 160)]) #;
     Put "ppool in test0: " ppool #;
     res #= (Call "MM.mm_ptable_init" [CBR t; CBV flags; CBR ppool]) #;

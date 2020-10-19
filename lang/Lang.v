@@ -202,7 +202,7 @@ Definition var : Set := string.
 (* . *)
 
 Inductive val: Type :=
-  | Vnormal: Values.val -> val
+  | Vcomp: Values.val -> val
   | Vabs: Any -> val
 .
 
@@ -213,7 +213,7 @@ Extract Constant show_val =>
   let s2cl = fun s -> List.init (String.length s) (String.get s) in
   let rec string_of_val v =
   match v with
-  | Vnormal v2 ->
+  | Vcomp v2 ->
     (match v2 with
     | Vint n -> ""[32bit]: "" ^ cl2s (HexString.of_Z (Int.unsigned n)) ^ "" ""
     | Vlong n -> ""[64bit]: ""  ^ cl2s (HexString.of_Z (Int.unsigned n)) ^ "" ""
@@ -233,7 +233,7 @@ Extract Constant show_val =>
   let s2cl = fun s -> List.init (String.length s) (String.get s) in
   let rec string_of_val v =
   match v with
-  | Vnormal v2 ->
+  | Vcomp v2 ->
     (match v2 with
     | Vint n -> ""[32bit]: "" ^ cl2s (HexString.of_Z (Int.unsigned n)) ^ ""["" ^ cl2s (BinaryString.of_Z (Int.unsigned n)) ^ ""]""
     | Vlong n -> ""[64bit]: ""  ^ cl2s (HexString.of_Z (Int.unsigned n)) ^ ""["" ^  cl2s (BinaryString.of_Z (Int64.unsigned n)) ^ ""]""
@@ -288,9 +288,9 @@ Instance val_Showable: @Showable val := {
 (*   - eapply Any_dec; eauto. *)
 (* Defined. *)
 
-Definition Vnull := Vnormal Vnullptr. (* Vptr (Some 0) []. *)
-Definition Vtrue := Vnormal Vtrue. (* Vptr (Some 0) []. *)
-Definition Vfalse := Vnormal Vfalse. (* Vptr (Some 0) []. *)
+Definition Vnull := Vcomp Vnullptr. (* Vptr (Some 0) []. *)
+Definition Vtrue := Vcomp Vtrue. (* Vptr (Some 0) []. *)
+Definition Vfalse := Vcomp Vfalse. (* Vptr (Some 0) []. *)
 (* YJ: (Some 0) or None?
 Some 0 로 하면 처음에 ptable_buf 넣는거는 Vnull 이 아님을 (i.e. paddr <> 0) 알아야 함 *)
 (* YJ: is it really the same with nodef? or do we need explicit nodef? *)
@@ -303,7 +303,7 @@ Definition Vnodef := Vnull.
       val corresponds to [true].  *)
 Definition is_true (v : val) : bool :=
   match v with
-  | Vnormal v =>
+  | Vcomp v =>
     match v with
     | Vint n => if (Int.eq n Int.zero) then false else true
     | Vlong n => if (Int64.eq n Int64.zero) then false else true
@@ -357,14 +357,14 @@ Inductive expr : Type :=
 | Mod   (_ _ : expr)
 | Div   (_ _ : expr)
 | Equal (_ _: expr)
-| Neg (_: expr)
+| Neg (_: expr) (* means -x *)
 | LE (_ _: expr)
 (* added *)
 | LT (_ _: expr)
 (* added *)
 | And (_ _: expr)
 | Or (_ _: expr)
-| Not (_ : expr)
+| Not (_ : expr) (* means !x *)
 (* bitwise opreations *)
 | BAnd  (_ _ : expr)
 | BOr (_ _ : expr)
@@ -470,9 +470,9 @@ Module LangNotations.
   Definition Expr_coerce: expr -> stmt := Expr.
   Definition Var_coerce: string -> expr := Var.
   Definition Val_coerce: val -> expr := Val.
-  Definition int_coerce: int -> val := fun i => Vnormal (Vint i).
-  Definition long_coerce: int64 -> val := fun i => Vnormal (Vlong i).
-  Definition values_coerce: Values.val -> val := Vnormal.
+  Definition int_coerce: int -> val := fun i => Vcomp (Vint i).
+  Definition long_coerce: int64 -> val := fun i => Vcomp (Vlong i).
+  Definition values_coerce: Values.val -> val := Vcomp.
   Coercion Expr_coerce: expr >-> stmt.
   Coercion Var_coerce: string >-> expr.
   Coercion Val_coerce: val >-> expr.
@@ -509,7 +509,7 @@ Module LangNotations.
   Notation "#false" :=
     (Val (Vint Int.zero)) (at level 50): stmt_scope.
 
-  Notation "'!' e" :=
+  Notation "'#-' e" :=
     (Neg e) (at level 40, e at level 50): stmt_scope.
 
   Bind Scope stmt_scope with stmt.
@@ -543,14 +543,13 @@ Module LangNotations.
 
   Notation "#guarantee e" :=
     (#if e then Skip else GuaranteeFail) (at level 60, e at level 50): stmt_scope.
-
-  (** TODO add store & load notations **)
   
   Notation "x '@' ofs '#:=' e" :=
     (Store (x + ofs) e) (at level 60, e at level 50): stmt_scope.
 
   Notation "x '#@' ofs" :=
     (Load (x + ofs)) (at level 99): expr_scope.
+
   (* Notation "#put e" := *)
   (*   (Put "" e) (at level 60, e at level 50): stmt_scope. *)
 
@@ -587,7 +586,6 @@ Variant MemoryE : Type -> Type :=
 | StoreE (b: block) (ofs: Z) (v : Values.val) : MemoryE bool
 | AllocE (sz: Z) : MemoryE Values.val
 | FreeE (b: block) (ofs: Z) : MemoryE bool
-| GetMem : MemoryE mem
 .
 
 (* JIEUNG (comments):
@@ -706,120 +704,109 @@ Section Denote.
     | Var v     => triggerGetVar v
     | Val n     => ret n
     | Plus a b  => l <- denote_expr a ;; r <- denote_expr b ;;
-                    m <- trigger GetMem ;;
                     match (l, r) with
-                    | (Vnormal l, Vnormal r) =>
-                      match sem_add l r m with
-                      | Some v => ret (Vnormal v)
+                    | (Vcomp l, Vcomp r) =>
+                      match sem_add l r with
+                      | Some v => ret (Vcomp v)
                       | _ => triggerNB "expr-plus1"
                       end
                     | _ => triggerNB "expr-plus2"
                     end
     | Minus a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                    m <- trigger GetMem ;;
                     match (l, r) with
-                    | (Vnormal l, Vnormal r) =>
-                      match sem_sub l r m with
-                      | Some v => ret (Vnormal v)
+                    | (Vcomp l, Vcomp r) =>
+                      match sem_sub l r with
+                      | Some v => ret (Vcomp v)
                       | _ => triggerNB "expr-sub1"
                       end
                     | _ => triggerNB "expr-sub2"
                     end
     | Mult a b  => l <- denote_expr a ;; r <- denote_expr b ;;
-                    m <- trigger GetMem ;;
                     match (l, r) with
-                    | (Vnormal l, Vnormal r) =>
-                      match sem_mul l r m with
-                      | Some v => ret (Vnormal v)
+                    | (Vcomp l, Vcomp r) =>
+                      match sem_mul l r with
+                      | Some v => ret (Vcomp v)
                       | _ => triggerNB "expr-mult1"
                       end
                     | _ => triggerNB "expr-mult2"
                     end
     | Mod a b   => l <- denote_expr a ;; r <- denote_expr b ;;
-                    m <- trigger GetMem ;;
                     match (l, r) with
-                    | (Vnormal l, Vnormal r) =>
-                      match sem_mod l r m with
-                      | Some v => ret (Vnormal v)
+                    | (Vcomp l, Vcomp r) =>
+                      match sem_mod l r with
+                      | Some v => ret (Vcomp v)
                       | _ => triggerNB "expr-mod1"
                       end
                     | _ => triggerNB "expr-mod2"
                     end
     | Div a b   => l <- denote_expr a ;; r <- denote_expr b ;;
-                    m <- trigger GetMem ;;
                     match (l, r) with
-                    | (Vnormal l, Vnormal r) =>
-                      match sem_div l r m with
-                      | Some v => ret (Vnormal v)
+                    | (Vcomp l, Vcomp r) =>
+                      match sem_div l r with
+                      | Some v => ret (Vcomp v)
                       | _ => triggerNB "expr-div1"
                       end
                     | _ => triggerNB "expr-div2"
                     end
     | Equal a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                    m <- trigger GetMem ;;
                     match (l, r) with
-                    | (Vnormal l, Vnormal r) =>
-                      match sem_cmp Ceq l r m with
-                      | Some v => ret (Vnormal v)
+                    | (Vcomp l, Vcomp r) =>
+                      match sem_cmp Ceq l r with
+                      | Some v => ret (Vcomp v)
                       | _ => triggerNB "expr-eq1"
                       end
                     | _ => triggerNB "expr-eq2"
                     end
     | Neg a => v <- denote_expr a ;;
                 match v with
-                | Vnormal v =>
+                | Vcomp v =>
                   match sem_neg v with
-                  | Some v => ret (Vnormal v)
+                  | Some v => ret (Vcomp v)
                   | _ => triggerNB "expr-neg1"
                   end
                 | _ => triggerNB "expr-neg2"
                 end
     | LE a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                 m <- trigger GetMem ;;
                  match (l, r) with
-                 | (Vnormal l, Vnormal r) =>
-                   match sem_cmp Cle l r m with
-                   | Some v => ret (Vnormal v)
+                 | (Vcomp l, Vcomp r) =>
+                   match sem_cmp Cle l r with
+                   | Some v => ret (Vcomp v)
                    | _ => triggerNB "expr-le1"
                    end
                  | _ => triggerNB "expr-le2"
                  end
     | LT a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                 m <- trigger GetMem ;;
                  match (l, r) with
-                 | (Vnormal l, Vnormal r) =>
-                   match sem_cmp Clt l r m with
-                   | Some v => ret (Vnormal v)
+                 | (Vcomp l, Vcomp r) =>
+                   match sem_cmp Clt l r with
+                   | Some v => ret (Vcomp v)
                    | _ => triggerNB "expr-lt1"
                    end
                  | _ => triggerNB "expr-lt2"
                  end
     | And a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                  m <- trigger GetMem ;;
                   match (l, r) with
-                  | (Vnormal l, Vnormal r) =>
-                    match (bool_val l m) with
-                    | Some true => ret (Vnormal r)
+                  | (Vcomp l, Vcomp r) =>
+                    match (bool_val l) with
+                    | Some true => ret (Vcomp r)
                     | _ => ret Vfalse
                     end
                   | _ => triggerNB "expr-And"
                   end
     | Or a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                 m <- trigger GetMem ;;
                  match (l, r) with
-                 | (Vnormal l, Vnormal r) =>
-                   match (bool_val l m) with
+                 | (Vcomp l, Vcomp r) =>
+                   match (bool_val l) with
                    | Some true => ret Vtrue
-                   | _ => ret (Vnormal r)
+                   | _ => ret (Vcomp r)
                    end
                  | _ => triggerNB "expr-Or"
                  end
     | Not a => v <- denote_expr a ;;
-                m <- trigger GetMem ;;
                 match v with
-                | Vnormal v =>
-                  match sem_notbool v m with
-                  | Some v => ret (Vnormal v)
+                | Vcomp v =>
+                  match sem_notbool v with
+                  | Some v => ret (Vcomp v)
                   | None => triggerNB "expr-Not1"
                   end
                 | _ => triggerNB "expr-Not2"
@@ -829,58 +816,56 @@ Section Denote.
        For other things, we may need to check result values or original values (especially for shiftl and shiftr) to guarantee
        their validity *)
     | BAnd a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                   m <- trigger GetMem ;;
                    match (l, r) with
-                   | (Vnormal l, Vnormal r) =>
-                     match sem_and l r m with
-                     | Some v => ret (Vnormal v)
+                   | (Vcomp l, Vcomp r) =>
+                     match sem_and l r with
+                     | Some v => ret (Vcomp v)
                      | _ => triggerNB "expr-And1"
                      end
                    | _ => triggerNB "expr-And2"
                    end
     | BOr a b => l <- denote_expr a ;; r <- denote_expr b ;;
-                  m <- trigger GetMem ;;
                   match (l, r) with
-                  | (Vnormal l, Vnormal r) =>
-                    match sem_or l r m with
-                    | Some v => ret (Vnormal v)
+                  | (Vcomp l, Vcomp r) =>
+                    match sem_or l r with
+                    | Some v => ret (Vcomp v)
                     | _ => triggerNB "expr-Or1"
                     end
                   | _ => triggerNB "expr-Or2"
                   end
     | BNot a => v <- denote_expr a ;;
                  match v with
-                 | Vnormal v =>
+                 | Vcomp v =>
                    match sem_notint v with
-                   | Some v => ret (Vnormal v)
+                   | Some v => ret (Vcomp v)
                    | _ => triggerNB "expr-Not1"
                    end
                  | _ => triggerNB "expr-Not2"
                  end
     | ShiftL a b => l <- denote_expr a ;; r <- denote_expr b ;;
                      match (l, r) with
-                     | (Vnormal l, Vnormal r) =>
+                     | (Vcomp l, Vcomp r) =>
                        match sem_shl l r with
-                       | Some v => ret (Vnormal v)
+                       | Some v => ret (Vcomp v)
                        | _ => triggerNB "expr-LShift"
                        end
                      | _ => triggerNB "expr-LShift2"
                      end
     | ShiftR a b => l <- denote_expr a ;; r <- denote_expr b ;;
                      match (l, r) with
-                     | (Vnormal l, Vnormal r) =>
+                     | (Vcomp l, Vcomp r) =>
                        match sem_shr l r with
-                       | Some v => ret (Vnormal v)
+                       | Some v => ret (Vcomp v)
                        | _ => triggerNB "expr-RShift1"
                        end
                      | _ => triggerNB "expr-RShift2"
                      end
     | Load p => p <- denote_expr p ;;
                 match p with
-                | Vnormal (Vptr b ofs) =>
+                | Vcomp (Vptr b ofs) =>
                   v <- trigger (LoadE b (Ptrofs.unsigned ofs)) ;;
                     match v with
-                    | Some v => ret (Vnormal v)
+                    | Some v => ret (Vcomp v)
                     | _ => triggerNB "expr-load1"
                     end
                 | _ => triggerNB "expr-load2"
@@ -983,11 +968,10 @@ Section Denote.
     | GetOwnedHeap => trigger EGetOwnedHeap
     | PutOwnedHeap e => v <- (denote_expr e) ;; trigger (EPutOwnedHeap v) ;; ret Vnodef
     | Cast e tto => v <- denote_expr e ;;
-                     m <- trigger GetMem ;;
                      match v with
-                     | Vnormal v =>
-                       match sem_cast v tto m with
-                       | Some v' => ret (Vnormal v')
+                     | Vcomp v =>
+                       match sem_cast v tto with
+                       | Some v' => ret (Vcomp v')
                        | None => triggerNB "expr-cast1"
                        end
                      | _ => triggerNB "expr-cast2"
@@ -1092,7 +1076,7 @@ Section Denote.
     | GuaranteeFail => triggerNB "stmt-grnt"
     | Store p e => p <- denote_expr p ;; e <- denote_expr e ;;
                     match (p, e) with
-                    | (Vnormal p, Vnormal e) =>
+                    | (Vcomp p, Vcomp e) =>
                       match p with
                       | Vptr b ofs  => v <- trigger (StoreE b (Ptrofs.unsigned ofs) e) ;;
                                         if (v: bool)
@@ -1104,19 +1088,19 @@ Section Denote.
                     end
     | Alloc x e => e <- denote_expr e ;;
                     match e with
-                    | Vnormal e =>
+                    | Vcomp e =>
                       match e with
                       | Vint n => v <- trigger (AllocE (Int.unsigned n)) ;;
-                                   triggerSetVar x (Vnormal v) ;; ret (CNormal, Vnodef)
+                                   triggerSetVar x (Vcomp v) ;; ret (CNormal, Vnodef)
                       | Vlong n => v <- trigger (AllocE (Int64.unsigned n)) ;;
-                                    triggerSetVar x (Vnormal v) ;; ret (CNormal, Vnodef)
+                                    triggerSetVar x (Vcomp v) ;; ret (CNormal, Vnodef)
                       | __ => triggerNB "stmt-alloc1"
                       end
                     | _ => triggerNB "stmt-alloc2"
                     end
     | Free p => p <- denote_expr p ;;
                  match p with
-                 | Vnormal (Vptr b ofs)  => v <- trigger (FreeE b (Ptrofs.unsigned ofs)) ;;
+                 | Vcomp (Vptr b ofs)  => v <- trigger (FreeE b (Ptrofs.unsigned ofs)) ;;
                                    if (v: bool)
                                    then ret (CNormal, Vnodef)
                                    else triggerNB "stmt-free1"
@@ -1276,7 +1260,7 @@ How can we add error check here?
      **)
     let tl := tl lenv in
     match e with
-    | GetLvar x => Ret (lenv, (lookup_default x (Vnormal (Vint Int.zero)) hd))
+    | GetLvar x => Ret (lenv, (lookup_default x (Vcomp (Vint Int.zero)) hd))
     | SetLvar x v => Ret ((Maps.add x v hd) :: tl, tt)
  
     (* JIEUNG: is it similar to stack push and pop? *)                        
@@ -1314,7 +1298,7 @@ Definition handle_GlobalE {E: Type -> Type}
   : GlobalE ~> stateT genv (itree E) :=
   fun _ e env =>
     match e with
-    | GetGvar x => Ret (env, (lookup_default x (Vnormal (Vint Int.zero)) env))
+    | GetGvar x => Ret (env, (lookup_default x (Vcomp (Vint Int.zero)) env))
     | SetGvar x v => Ret (Maps.add x v env, tt)
     end.
 
@@ -1337,7 +1321,7 @@ Definition handle_MemoryE {E: Type -> Type}
       | _ => Ret (mem, false)
       end
     | AllocE sz =>
-      let '(mem', b) := Mem.alloc mem 0 sz in
+      let '(mem', b) := Mem.alloc mem 0 (int_sz * sz) in
       Ret (mem', Vptr b Ptrofs.zero)
     | FreeE b ofs =>
       let mem' := Mem.free mem b 0 ofs in
@@ -1345,7 +1329,6 @@ Definition handle_MemoryE {E: Type -> Type}
       | Some mem' => Ret (mem', true)
       | _ => Ret (mem, false)
       end
-    | GetMem => Ret (mem, mem)
     end.
 
 Definition interp_MemoryE {E A} (t : itree (MemoryE +' E) A) :
@@ -1794,26 +1777,7 @@ End CONCURRENCY.
 (*   t *)
 (* . *)
 
-Definition assoc_l {A B C}: itree (A +' B +' C) ~> itree ((A +' B) +' C) :=
-  interp (fun _ (e: (A +' B +' C) _) =>
-            match e with
-            | inl1 a => trigger (inl1 (inl1 a))
-            | inr1 (inl1 b) => trigger (inr1 (inl1 b))
-            | inr1 (inr1 c) => trigger (inr1 c)
-            end)
-.
-(* Arguments assoc_l [A B C]. *)
-
-Definition assoc_r {A B C}: itree ((A +' B) +' C) ~> itree (A +' B +' C) :=
-  interp (fun _ (e: ((A +' B) +' C) _) =>
-            match e with
-            | (inl1 (inl1 a)) => trigger (inl1 a)
-            | (inl1 (inr1 b)) => trigger (inr1 (inl1 b))
-            | (inr1 c) => trigger (inr1 (inr1 c))
-            end)
-.
-
-Definition assoc_l2 {A B C D}: itree (A +' B +' C +' D) ~> itree ((A +' B +' C) +' D) :=
+Definition assoc_l {A B C D}: itree (A +' B +' C +' D) ~> itree ((A +' B +' C) +' D) :=
   interp (fun _ (e: (A +' B +' C +' D) _) =>
             match e with
             | inl1 a => trigger (inl1 (inl1 a))
@@ -1823,7 +1787,7 @@ Definition assoc_l2 {A B C D}: itree (A +' B +' C +' D) ~> itree ((A +' B +' C) 
             end)
 .
 
-Definition assoc_r2 {A B C D}: itree ((A +' B +' C) +' D) ~> itree (A +' B +' C +' D) :=
+Definition assoc_r {A B C D}: itree ((A +' B +' C) +' D) ~> itree (A +' B +' C +' D) :=
   interp (fun _ (e: ((A +' B +' C) +' D) _) =>
             match e with
             | (inl1 (inl1 a)) => trigger (inl1 a)
@@ -1840,7 +1804,7 @@ Definition eval_multimodule_multicore (mss: list ModSem) (entries: list var)
   let ts: list (itree (sum_all1 (List.map customE mss) +' GlobalE +' MemoryE +' Event) _) :=
       List.map (eval_multimodule_aux mss) entries in
   let t: itree (sum_all1 (List.map customE mss) +' GlobalE +' MemoryE +' Event) _ :=
-      assoc_r2 (round_robin (List.map (fun t => assoc_l2 t) ts)) in
+      assoc_r (round_robin (List.map (fun t => assoc_l t) ts)) in
   (*** TODO: I want to write it in point-free style ***)
   let t: itree (GlobalE +' MemoryE +' Event) _ :=
       State.interp_state (case_ (HANDLE2 mss) State.pure_state) t (INITIAL2 mss) in

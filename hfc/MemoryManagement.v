@@ -61,36 +61,36 @@ Import Int64.
 
 Set Implicit Arguments.
 
-Section STORELOADSYNTACTICSUGAR.
+(* Section STORELOADSYNTACTICSUGAR. *)
 
-  Definition debug_1 := "debug1".
-  Definition debug_2 := "debug2".
-  Definition debug_3 := "debug3".
+(*   Definition debug_1 := "debug1". *)
+(*   Definition debug_2 := "debug2". *)
+(*   Definition debug_3 := "debug3". *)
 
-  Definition store_and_load_at_i_debug  (p : var) (offset : Z) : stmt := 
-    debug_1 #=  (Cast p tint) #;
-            Put "store_at_i_debug: debug_1" debug_1 #;
-            debug_2 #= (Vnormal (Vlong (Int64.repr (offset * 8)%Z))) #;
-            Put "store_at_i_debug: debug_2" debug_2 #;
-            debug_3 #= (debug_1 + debug_2) #;
-            Put "store_at_i_debug: debug_3" debug_3 #;
-            Put "store_at_i_debug: debug_3 ptr" (Cast debug_3 tptr).
+(*   Definition store_and_load_at_i_debug  (p : var) (offset : Z) : stmt :=  *)
+(*     debug_1 #=  (Cast p tint) #; *)
+(*             Put "store_at_i_debug: debug_1" debug_1 #; *)
+(*             debug_2 #= (Vcomp (Vlong (Int64.repr (offset * 8)%Z))) #; *)
+(*             Put "store_at_i_debug: debug_2" debug_2 #; *)
+(*             debug_3 #= (debug_1 + debug_2) #; *)
+(*             Put "store_at_i_debug: debug_3" debug_3 #; *)
+(*             Put "store_at_i_debug: debug_3 ptr" (Cast debug_3 tptr). *)
   
-  Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt :=
-    ((Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr (offset * 8)%Z)))) tptr) @ Int64.zero #:= e).
+(*   Definition store_at_i (p : var) (offset : Z) (e: expr) : stmt := *)
+(*     ((Cast (Plus (Cast p tint) (Vcomp (Vlong (Int64.repr (offset * 8)%Z)))) tptr) @ Int64.zero #:= e). *)
 
-  Definition store_at_i2 (p : var) (offset : expr) (e: expr) : stmt :=
-    p @ (offset * (Int64.repr 8)) #:= e.
+(*   Definition store_at_i2 (p : var) (offset : expr) (e: expr) : stmt := *)
+(*     p @ (offset * (Int64.repr 8)) #:= e. *)
   
-  Definition load_at_i (p : var) (offset : Z) : expr :=
-    (Cast (Plus (Cast p tint) (Vnormal (Vlong (Int64.repr offset)))) tptr) #@ Int64.zero.
+(*   Definition load_at_i (p : var) (offset : Z) : expr := *)
+(*     (Cast (Plus (Cast p tint) (Vcomp (Vlong (Int64.repr offset)))) tptr) #@ Int64.zero. *)
 
-  Definition load_at_i2 (p : var) (offset : expr) : expr :=
-    (* Put "p :=" p #; *)
-    (*     Put "offset :=" offset #; *)
-    p #@ (offset * (Int64.repr 8)).
+(*   Definition load_at_i2 (p : var) (offset : expr) : expr := *)
+(*     (* Put "p :=" p #; *) *)
+(*     (*     Put "offset :=" offset #; *) *)
+(*     p #@ (offset * (Int64.repr 8)). *)
 
-End STORELOADSYNTACTICSUGAR.
+(* End STORELOADSYNTACTICSUGAR. *)
 
 (* Some dependencies: 
    1. inc/hf/addr.h - some address translations and type definitions such as paddr_t and so on 
@@ -119,9 +119,9 @@ Module MMCONCURSTRUCT.
   };
   *)
 
-  Definition entries_size := (unsigned MM_PTE_PER_PAGE)%Z.
-  Definition entries_head_loc := 0%Z.
-  Definition entries_tail_loc := ((unsigned MM_PTE_PER_PAGE) - 1)%Z.
+  Definition entries_size := MM_PTE_PER_PAGE.
+  Definition entries_head_loc := Int64.zero.
+  Definition entries_tail_loc := (Int64.sub MM_PTE_PER_PAGE Int64.one).
 
   (*
   struct mm_ptable {
@@ -130,7 +130,7 @@ Module MMCONCURSTRUCT.
   };
    *)
   
-  Definition root_loc := 0%Z.
+  Definition root_loc := Int64.zero.
 
   (*
   /** The type of addresses stored in the page table. */
@@ -143,7 +143,7 @@ Module MMCONCURSTRUCT.
 	struct mm_ptable *ptable;
   };
    *)
-  Definition ptable_loc := 0%Z.
+  Definition ptable_loc := Int64.zero.
 
  
 End MMCONCURSTRUCT.
@@ -429,18 +429,6 @@ Module MMCONCUR.
   }
    *)
 
-
-
-  (* XXX: Need to refactor this definition *) 
-  Definition expr_to_int (e : expr) :=
-    match e with
-    | Val n => match n with
-               | Vnormal (Vlong n') => n'
-               | _ => (repr max_unsigned)
-               end
-    | _ => (repr max_unsigned)
-    end.
-
     
   Definition mm_free_page_pte (pte level ppool : var) (check table i : var) :=
     (* XXX: This condition should be written as a pre condition  
@@ -467,7 +455,7 @@ Module MMCONCUR.
                    (* Put "Hi :" i#; *)
                    (* Put "ddddd : " (load_at_i2 table i) #; *)
                    (Call "MM.mm_free_page_pte"
-                         [CBV (load_at_i2 table i); CBV (level - one); CBR ppool]) #;
+                         [CBV (table #@ i); CBV (level - one); CBR ppool]) #;
                                                                                    (* Put "Hiiiii :" i #; *)
                                                                                    i #= i + one
                  ) #;
@@ -572,17 +560,14 @@ Module MMCONCUR.
                          j #= zero #;
                            #while (j < MM_PTE_PER_PAGE)
                            do (
-                               (store_at_i2
-                                  (* XXX: can we simplify this line or can we make thie one with better readability? *)
-                                  tables (i * (Int64.repr entries_size) + j)
-                                  (Call "ARCHMM.arch_mm_absent_pte" [CBV (Call "MM.mm_max_level" [CBV flags])])) #;
-                                  (* Put "zzz : " (load_at_i2 tables (i * (Int64.repr entries_size) + j)) #; *)
-                               j #= j + one
+                             tables @ (i * entries_size + j) #:=
+                               (Call "ARCHMM.arch_mm_absent_pte" [CBV (Call "MM.mm_max_level" [CBV flags])]) #;
+                             j #= j + one
                              ) #;
                                i #= i + one
                        ) #;
                          Put "ttt ;= " (Call "ADDR.pa_init" [CBV (Cast tables tint)]) #;
-                         (store_at_i2 t (Int64.repr root_loc) (Call "ADDR.pa_init" [CBV (Cast tables tint)])) #;
+                         t @ root_loc #:= (Call "ADDR.pa_init" [CBV (Cast tables tint)]) #;
                          Return Vtrue.
 
   (*
@@ -617,7 +602,7 @@ Module MMCONCUR.
   Definition  mm_ptable_fini (t flags ppool : var) (tables root_table_count level i j : var) := 
     (* XXX: CBV in here is somewhat wierd *)
     Put "load1" Vnull #;
-    tables #= (Call "MM.mm_page_table_from_pa" [CBV (load_at_i2 t (Int64.repr root_loc))]) #;
+    tables #= (Call "MM.mm_page_table_from_pa" [CBV (t #@ root_loc)]) #;
            level #= (Call "MM.mm_max_level" [CBV flags]) #;
            root_table_count #= (Call "MM.mm_root_table_count" [CBV flags]) #;
            i #= zero #;
@@ -632,7 +617,7 @@ Module MMCONCUR.
                      (* Put "offset : " (i * (Int64.repr entries_size) + j) #; *)
                      (* Put "SSS: " (load_at_i2 tables (i * (Int64.repr entries_size) + j)) #;     *)
                      (Call "MM.mm_free_page_pte"
-                           [CBV (load_at_i2 tables (i * (Int64.repr entries_size) + j));
+                           [CBV (tables #@ (i * entries_size + j));
                            CBV level; CBR ppool]) #;
                                                   j #= j + one
                    ) #;
@@ -775,9 +760,9 @@ Module MMCONCUR.
       i #= zero #;
       #while (i < MM_PTE_PER_PAGE)
       do (
-        (store_at_i ntable (unsigned (expr_to_int (Var i))) new_pte) #;
-          new_pte #= (new_pte + inc) #;
-          i #= (i + one)
+        ntable @ i #:= new_pte #;
+        new_pte #= (new_pte + inc) #;
+        i #= (i + one)
         ) #;
           (Call "MM.mm_replace_entry" [CBV a_begin; CBR pte;
                                       CBV (Call "ARCHMM.arch_mm_table_pte"
@@ -870,7 +855,7 @@ Module MMCONCUR.
   Definition mm_map_level (a_begin a_end pa attrs table level flags ppool n: var) 
              (pte level_end entry_size commit unmap new_pte nt cond: var) :=
     (* XXX: How can we handle this aliasing? *)
-    pte #= (load_at_i table (unsigned (expr_to_int (Call "MM.mm_index" [CBV a_begin; CBV level])))) #;
+    pte #= (table #@ (Call "MM.mm_index" [CBV a_begin; CBV level])) #;
         level_end #= (Call "MM.mm_level_end" [CBV a_begin; CBV level]) #;
         entry_size #= (Call "MM.mm_entry_size" [CBV level]) #;
         commit #= (flags #& MM_FLAG_COMMIT) #;
@@ -946,9 +931,9 @@ Module MMCONCUR.
               (root_table_size table mm_ptable mm_index: var) := 
      root_table_size #= (Call "MM.mm_entry_size" [CBV root_level]) #;
                      (* XXX: need to think about this alaising *)
-                     mm_ptable #= (Call "MM.mm_page_table_from_pa" [CBV (load_at_i t root_loc)]) #;
+                     mm_ptable #= (Call "MM.mm_page_table_from_pa" [CBV (t #@ root_loc)]) #;
                      mm_index #= (Call "MM.mm_index" [CBV a_begin; CBV root_level]) #;
-                     table #= (load_at_i mm_ptable (unsigned (expr_to_int (Var mm_index)))) #;
+                     table #= (mm_ptable #@ mm_index) #;
                      #while (a_begin < a_end)
                      do (
                          (#if (#! (Call "MM.mm_map_level" [CBV a_begin; CBV a_end;
@@ -1200,7 +1185,7 @@ Module MMCONCUR.
   Definition mm_merge_table_pte (table_pte level ppool : var)
              (table block_attrs table_attrs combined_attrs block_address : var) :=
     table #= (Call "MM.mm_page_table_from_pa" [CBV (Call "ARCHMM.arch_mm_table_from_pte" [CBR table_pte; CBV level])]) #;
-          (#if (#! (Call "ARCHMM.arch_mm_pte_is_present" [CBV (load_at_i table 0); CBV (level - one)]))
+          (#if (#! (Call "ARCHMM.arch_mm_pte_is_present" [CBV (table #@ Int.zero); CBV (level - one)]))
             then (Call "MPOOL.mpool_free" [CBR ppool; CBR table])
                    #;
                    Return (Call "ARCHMM.arch_mm_absent_pte" [CBV level])
@@ -1208,10 +1193,10 @@ Module MMCONCUR.
           (#if (#! (Call "ARCHMM.arch_mm_is_block_allowed" [CBV level]))
             then Return table_pte
             else Skip) #;
-          block_attrs #= (Call "ARCHMM.arch_mm_pte_attrs" [CBV (load_at_i table 0); CBV (level - one)]) #;
+          block_attrs #= (Call "ARCHMM.arch_mm_pte_attrs" [CBV (table #@ Int.zero); CBV (level - one)]) #;
           table_attrs #= (Call "ARCHMM.arch_mm_pte_attrs" [CBV table_pte; CBV level]) #;
           combined_attrs #= (Call "ARCHMM.arch_mm_combine_table_entry_attrs" [CBV table_attrs; CBV block_attrs]) #;
-          block_address #= (Call "ARCHMM.arch_mm_block_from_pte" [CBV (load_at_i table 0); CBV (level - one)]) #;
+          block_address #= (Call "ARCHMM.arch_mm_block_from_pte" [CBV (table #@ Int.zero); CBV (level - one)]) #;
           (Call "MPOOL.mpool_free" [CBR ppool; CBR table]) #;
           Return (Call "ARCHMM.arch_mm_block_pte" [CBV level; CBV block_address; CBV combined_attrs]).
   
@@ -1295,18 +1280,18 @@ Module MMCONCUR.
       table #= (Call "MM.mm_page_table_from_pa" [CBV (Call "ARCHMM.arch_mm_table_from_pte" [CBV entry; CBV level])]) #;
       (* XXX: Need to add the following condition as an assertion 
       static_assert(MM_PTE_PER_PAGE >= 1, "There must be at least one PTE."); *)
-      (store_at_i table 0 (Call "MM.mm_ptable_defrag_entry" [CBV (load_at_i table 0); CBV (level - one); CBR ppool])) #;
-      base_present #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV (load_at_i table 0); CBV (level - one)]) #;
-      base_attrs #= (Call "ARCHMM.arch_mm_pte_attrs" [CBV (load_at_i table 0); CBV (level - one)]) #;
+      (table @ Int.zero #:= (Call "MM.mm_ptable_defrag_entry" [CBV (table #@ Int.zero); CBV (level - one); CBR ppool])) #;
+      base_present #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV (table #@ Int.zero); CBV (level - one)]) #;
+      base_attrs #= (Call "ARCHMM.arch_mm_pte_attrs" [CBV (table #@ Int.zero); CBV (level - one)]) #;
       mergeable #= Vtrue #;
       i #= zero #;
       #while (i < MM_PTE_PER_PAGE)
       do (
-          (store_at_i table (unsigned (expr_to_int (Var i)))
-                      (Call "MM.mm_ptable_defrag_entry" [CBV (load_at_i table (unsigned (expr_to_int (Var i))));
-                                                        CBV (level - one); CBR ppool]))
+          (table @ i #:=
+                 (Call "MM.mm_ptable_defrag_entry" [CBV (table #@ i);
+                                                      CBV (level - one); CBR ppool]))
             #;
-            present #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV (load_at_i table (unsigned (expr_to_int (Var i))));
+            present #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV (table #@ i);
                                                              CBV (level - one)]) #;
             (* XXX: refactoring that one due to continue *)
             (#if (#! (present == base_present))
@@ -1314,11 +1299,11 @@ Module MMCONCUR.
               else (#if (#! present)
                      then Skip
                      else (#if (#! (Call "ARCHMM.arch_mm_pte_is_block"
-                                         [CBV (load_at_i table (unsigned (expr_to_int (Var i))));
+                                         [CBV (table #@ i);
                                          CBV (level - one)]))
                             then mergeable #= Vfalse
                             else (#if (#! ((Call "ARCHMM.arch_mm_pte_attrs"
-                                                [CBV (load_at_i table (unsigned (expr_to_int (Var i))));
+                                                [CBV (table #@ i);
                                                 CBV (level - one)]) == base_attrs))
                                    then mergeable #= Vfalse
                                    else Skip)))) #;
@@ -1357,7 +1342,7 @@ Module MMCONCUR.
    *)
 
   Definition mm_ptable_defrag (t flags ppool : var) (tables level root_table_count i j : var):=
-    tables #= (Call "MM.mm_page_table_from_pa" [CBV (load_at_i t root_loc)]) #;
+    tables #= (Call "MM.mm_page_table_from_pa" [CBV (t #@ root_loc)]) #;
            level #= (Call "MM.mm_max_level" [CBV flags]) #;
            root_table_count #= (Call "MM.mm_root_table_count" [CBV flags]) #;
            i #= zero #;
@@ -1366,13 +1351,10 @@ Module MMCONCUR.
                j #= zero #;
                  #while (j < MM_PTE_PER_PAGE)
                  do (
-                     (store_at_i tables ((unsigned (expr_to_int (Var i))) * entries_size +
-                                         (unsigned (expr_to_int (Var j))))
-                                 (Call "MM.mm_ptable_defrag_entries"
-                                       [CBV (load_at_i tables
-                                                       ((unsigned (expr_to_int (Var i))) * entries_size +
-                                                        (unsigned (expr_to_int (Var j)))));
-                                       CBV level; CBR ppool]))
+                     (tables @ (i * entries_size + j) #:=
+                             (Call "MM.mm_ptable_defrag_entries"
+                                   [CBV (tables #@ (i * entries_size + j));
+                                      CBV level; CBR ppool]))
                        #;
                        j #= j + one 
                    )  #;
@@ -1437,7 +1419,7 @@ Module MMCONCUR.
   Definition mm_ptable_get_attrs_level (table a_begin a_end level got_attrs attrs: var) 
              (pte level_end entry_size : var) :=
     (* XXX: How can we handle this aliasing? *)
-    pte #= (load_at_i table (unsigned (expr_to_int (Call "MM.mm_index" [CBV a_begin; CBV level])))) #;
+    pte #= (table #@ (Call "MM.mm_index" [CBV a_begin; CBV level])) #;
         level_end #= (Call "MM.mm_level_end" [CBV a_begin; CBV level]) #;
         entry_size #= (Call "MM.mm_entry_size" [CBV level]) #;
         (#if (level_end < a_end)
@@ -1524,9 +1506,9 @@ Module MMCONCUR.
             then Return Vfalse
             else Skip) #;
           (* XXX: How can we handle this alaising? *)
-          mm_ptable #= (Call "MM.mm_page_table_from_pa" [CBV (load_at_i t root_loc)]) #;
+          mm_ptable #= (Call "MM.mm_page_table_from_pa" [CBV (t #@ root_loc)]) #;
           mm_index #= (Call "MM.mm_index" [CBV a_begin; CBV root_level]) #;
-          table #= (load_at_i mm_ptable (unsigned (expr_to_int (Var mm_index)))) #;
+          table #= (mm_ptable #@ mm_index) #;
           #while (a_begin < a_end)
           do (
               (#if (#! (Call "MM.mm_ptable_get_attrs_level"
@@ -1762,7 +1744,7 @@ Module MMCONCUR.
    *)
 
   Definition mm_stage1_lock_unsafe (res : var):=
-    (store_at_i res ptable_loc (Cast ptable tint)) #; Return res.
+    (res @ ptable_loc #:= (Cast ptable tint)) #; Return res.
 
   (*
   struct mm_stage1_locked mm_lock_stage1(void)
@@ -1774,7 +1756,7 @@ Module MMCONCUR.
 
   
   Definition mm_lock_stage1 (p : var) :=
-    (Call "Lock.acquire" [CBV (load_at_i ptable_lock 0) ; CBV ptable_lock]) #;
+    (Call "Lock.acquire" [CBV (ptable_lock #@ Int.zero) ; CBV ptable_lock]) #;
       Return (Call "MM.mm_stage1_locked" []).
 
   
@@ -1790,7 +1772,8 @@ Module MMCONCUR.
   Definition mm_unlock_stage1 (lock : var) :=
     (* XXX: add safety condition in here 
           CHECK(lock->ptable == &ptable); *)
-    (Call "Lock.release" [CBV (load_at_i ptable_lock 0) ; CBV ptable_lock]) #; (store_at_i lock ptable_loc Vnull).
+    (Call "Lock.release" [CBV (ptable_lock #@ Int.zero) ; CBV ptable_lock]) #;
+    (lock @ ptable_loc #:= Vnull).
 
   (* 
   /**
@@ -1815,7 +1798,7 @@ Module MMCONCUR.
 
   Definition mm_identity_map (stage1_locked a_begin a_end mode ppool: var) (flags : var):=
     flags #= (MM_FLAG_STAGE1 #| (Call "MM.mm_mode_to_flags" [CBV mode])) #;
-          (#if (Call "MM.mm_ptable_identity_update" [CBV (load_at_i stage1_locked ptable_loc);
+          (#if (Call "MM.mm_ptable_identity_update" [CBV (stage1_locked #@ ptable_loc);
                                                     CBV a_begin; CBV a_end;
                                                     CBV (Call "ARCHMM.arch_mm_mode_to_stage1_attrs" [CBV mode]);
                                                     CBV flags; CBR ppool])
@@ -1852,7 +1835,7 @@ Module MMCONCUR.
   *)
    
   Definition mm_defrag (stage1_locked ppool : var) :=
-    (Call "MM.mm_ptable_defrag" [CBV (load_at_i stage1_locked ptable_loc); CBV MM_FLAG_STAGE1; CBR ppool]).
+    (Call "MM.mm_ptable_defrag" [CBV (stage1_locked #@ ptable_loc); CBV MM_FLAG_STAGE1; CBR ppool]).
   
   (*
   // JIEUNG: This one is about initialization, but we will ignore most of this
@@ -1914,7 +1897,7 @@ Module MMCONCUR.
                                              CBV (Call "LAYOUT.layout_data_begin" []);
                                              CBV (Call "LAYOUT.layout_data_end" []);
                                              CBV (MM_MODE_R #| MM_MODE_W); CBR ppool]) #;
-                  Return (Call "ARCHMM.arch_mm_init" [CBV (load_at_i ptable root_loc)]).
+                  Return (Call "ARCHMM.arch_mm_init" [CBV (ptable #@ root_loc)]).
 
   Definition mm_stage2_invalidate_falseF: function. mk_function_tac mm_stage2_invalidate_false ([]: list var) ([]: list var). Defined.
   Definition mm_vm_enable_invalidationF: function. mk_function_tac mm_stage2_invalidate_false ([]: list var) ([]: list var). Defined.

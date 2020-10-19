@@ -60,31 +60,31 @@ Local Open Scope stmt_scope.
 Import Int64.
 
 (* XXX: Need to move this part into Lang.v file *)
-Section STORELOADSYNTACTICSUGAR.
+(* Section STORELOADSYNTACTICSUGAR. *)
 
-  (* The following two accessors for debugging *)
+(*   (* The following two accessors for debugging *) *)
 
-  Definition store_at_i (p : var) (offset : Int64.int) (e: expr) : stmt :=
-    ((Cast (Plus (Cast p tint) (offset * (Int64.repr 8))) tptr) @ Int64.zero #:= e).
+(*   Definition store_at_i (p : var) (offset : Int64.int) (e: expr) : stmt := *)
+(*     ((Cast (Plus (Cast p tint) (offset * (Int64.repr 8))) tptr) @ Int64.zero #:= e). *)
   
-  Definition load_at_i (p : var) (offset : Int64.int) : expr :=
-    (Cast (Plus (Cast p tint) (offset * (Int64.repr 8))) tptr) #@ Int64.zero.  
+(*   Definition load_at_i (p : var) (offset : Int64.int) : expr := *)
+(*     (Cast (Plus (Cast p tint) (offset * (Int64.repr 8))) tptr) #@ Int64.zero.   *)
   
-  (* The following two accessors for debugging *)
-  Definition debug_1 := "debug1".
-  Definition debug_2 := "debug2".
-  Definition debug_3 := "debug3".
+(*   (* The following two accessors for debugging *) *)
+(*   Definition debug_1 := "debug1". *)
+(*   Definition debug_2 := "debug2". *)
+(*   Definition debug_3 := "debug3". *)
 
-  Definition store_and_load_at_i_debug  (p : var) (offset : Int64.int) : stmt := 
-    debug_1 #=  (Cast p tint) #;
-            Put "accessor_debug: debug_1" debug_1 #;
-            debug_2 #= (offset * (Int64.repr 8)%Z) #;
-            Put "accessor_debug: debug_2" debug_2 #;
-            debug_3 #= (debug_1 + debug_2) #;
-            Put "accessor_debug: debug_3" debug_3 #;
-            Put "accessor_debug: debug_3 ptr" (Cast debug_3 tptr).
+(*   Definition store_and_load_at_i_debug  (p : var) (offset : Int64.int) : stmt :=  *)
+(*     debug_1 #=  (Cast p tint) #; *)
+(*             Put "accessor_debug: debug_1" debug_1 #; *)
+(*             debug_2 #= (offset * (Int64.repr 8)%Z) #; *)
+(*             Put "accessor_debug: debug_2" debug_2 #; *)
+(*             debug_3 #= (debug_1 + debug_2) #; *)
+(*             Put "accessor_debug: debug_3" debug_3 #; *)
+(*             Put "accessor_debug: debug_3 ptr" (Cast debug_3 tptr). *)
   
-End STORELOADSYNTACTICSUGAR.
+(* End STORELOADSYNTACTICSUGAR. *)
   
 Module MPOOLCONCURSTRUCT.
 

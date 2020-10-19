@@ -92,7 +92,7 @@ Module LOCK.
 
   Definition get_id (v: Lang.val): option ident :=
     match v with
-    | Vnormal n => match n with
+    | Vcomp n => match n with
                    | Vlong n' => Some n'
                    | _ => None
                    end
@@ -128,11 +128,11 @@ Module LOCK.
          (* v <- (unwrapN (nth_error args 0)) ;; *)
          (* id <- trigger (InitE v) ;; *)
          id <- trigger (NewE) ;;
-         Ret (Vnormal (Vlong id), [])             
+         Ret (Vcomp (Vlong id), [])
        | case_release =>
          id <- (unwrapN (nth_error args 0 >>= get_id)) ;;
             v <- (unwrapN (nth_error args 1)) ;;
-            triggerSyscall "d" "lock-unlock <--- " [Vnormal (Vlong id) ; v] ;;
+            triggerSyscall "d" "lock-unlock <--- " [Vcomp (Vlong id) ; v] ;;
             trigger (UnlockE id v) ;;
             trigger EYield ;;
             Ret (Vnodef, [])
@@ -152,7 +152,7 @@ Module LOCK.
             (*                       | inr v => Ret (inr v) *)
             (*                       end) tt) ;; *)
 
-            triggerSyscall "d" "lock-lock   ---> " [Vnormal (Vlong id) ; v] ;;
+            triggerSyscall "d" "lock-lock   ---> " [Vcomp (Vlong id) ; v] ;;
             Ret (v, [])
             (* v <- trigger (TryLockE id) ;; *)
             (* match v with *)

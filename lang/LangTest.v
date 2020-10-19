@@ -76,21 +76,18 @@ Module LoadStore.
 
   Definition main x sum: stmt :=
     sum #= Vlong Int64.zero#;
-        Alloc x (Int64.repr (Z.mul 3 int_sz)) #;
-        Put "" x#;
+        Alloc x (Int64.repr 3) #;
+        Put "x :=" x#;
         (x @ Int64.zero #:= Int64.repr 10)#;
-        Put "" x#;
-        (x @ Int64.one  #:= Int64.repr 20)#;
-        Put "" x#;
-        (x @ (Int64.repr 2)  #:= Int64.repr 30)#;
-        Put "" x#;
-        Put "" sum#;
+        (x @ Int64.one #:= Int64.repr 20)#;
+        (x @ (Int64.repr 2) #:= Int64.repr 30)#;
+        Put "sum :=" sum#;
         sum #= sum + (x #@ Int64.zero)#;
-        Put "" sum#;
+        Put "sum :=" sum#;
         sum #= sum + (x #@ Int64.one)#;
-        Put "" sum#;
+        Put "sum :=" sum#;
         sum #= sum + (x #@ (Int64.repr 2))#;
-        Put "" sum#;
+        Put "sum :=" sum#;
         Skip
   .
 
@@ -107,13 +104,12 @@ Module IntPtr.
 
   Definition main p i q res: stmt :=
     p #= Vptr 2%positive (Ptrofs.repr 400) #;
-    Put "" p#;
+    Put "p :=" p#;
     (p @ Int64.zero #:= Int64.repr 10)#;
-    Put "" p#;
     i #= Cast p tint #;
-    Put " " i#;
+    Put "i :=" i#;
     q #= Cast i tptr #;
-    Put "" q#;
+    Put "q :=" q#;
     res #= (q #@ Int64.zero) #;
     Put "res: " res#;
     Skip.
@@ -623,16 +619,16 @@ Module MultiModuleLocalState.
        | [Vint k] =>
          v <- trigger (GetM k) ;;
            match v with
-           | Some v => triggerSyscall "p" "HIT" [Vnull] ;; Ret (Vnormal (Vint v), [])
+           | Some v => triggerSyscall "p" "HIT" [Vnull] ;; Ret (Vcomp (Vint v), [])
            | None => triggerSyscall "p" "MISS" [Vnull] ;;
                                    match (Int.eq k (Int.repr 0)) with
-                                   | true => Ret (Vnormal (Vint (Int.repr 0)), [])
+                                   | true => Ret (Vcomp (Vint (Int.repr 0)), [])
                                    | _ => '(prev, _) <- trigger
-                                          (CallExternal "g" [Vnormal (Vint (Int.sub k (Int.repr 1)))]);;
+                                          (CallExternal "g" [Vcomp (Vint (Int.sub k (Int.repr 1)))]);;
                                           match prev with
-                                          | Vnormal (Vint prev) =>
+                                          | Vcomp (Vint prev) =>
                                             let v := (Int.add prev k) in
-                                            trigger (SetM k v) ;; Ret (Vnormal (Vint v), [])
+                                            trigger (SetM k v) ;; Ret (Vcomp (Vint v), [])
                                           | _ => triggerUB "memoizing_f"
                                           end
                                    end

@@ -169,7 +169,7 @@ Definition cast_int_long (si: signedness) (i: int) : int64 :=
   | Unsigned => Int64.repr (Int.unsigned i)
   end.
 
-Definition sem_cast (v: val) (t2: type) (m: mem): option val :=
+Definition sem_cast (v: val) (t2: type) : option val :=
   match classify_cast v t2 with
   | cast_case_ptr2int =>
     match v with
@@ -201,18 +201,18 @@ Definition sem_cast (v: val) (t2: type) (m: mem): option val :=
       match v with
       | Vint n =>
           Some(Vint(if Int.eq n Int.zero then Int.zero else Int.one))
-      | Vptr b ofs =>
-          if Archi.ptr64 then None else
-          if Mem.weak_valid_pointer m b (Ptrofs.unsigned ofs) then Some Vone else None
+      (* | Vptr b ofs => *)
+      (*     if Archi.ptr64 then None else *)
+      (*     if Mem.weak_valid_pointer m b (Ptrofs.unsigned ofs) then Some Vone else None *)
       | _ => None
       end
   | cast_case_l2bool =>
       match v with
       | Vlong n =>
           Some(Vint(if Int64.eq n Int64.zero then Int.zero else Int.one))
-      | Vptr b ofs =>
-          if negb Archi.ptr64 then None else
-          if Mem.weak_valid_pointer m b (Ptrofs.unsigned ofs) then Some Vone else None
+      (* | Vptr b ofs => *)
+      (*     if negb Archi.ptr64 then None else *)
+      (*     if Mem.weak_valid_pointer m b (Ptrofs.unsigned ofs) then Some Vone else None *)
       | _ => None
       end
   | cast_case_l2l =>
@@ -260,7 +260,7 @@ Definition classify_bool (v: val) : classify_bool_cases :=
   considered as true.  The integer zero (which also represents
   the null pointer) and the float 0.0 are false. *)
 
-Definition bool_val (v: val) (m: mem) : option bool :=
+Definition bool_val (v: val) : option bool :=
   match classify_bool v with
   | bool_case_i =>
       match v with
@@ -274,8 +274,9 @@ Definition bool_val (v: val) (m: mem) : option bool :=
       end
   | bool_case_p =>
       match v with
-      | Vptr b ofs =>
-        if Mem.weak_valid_pointer m b (Ptrofs.unsigned ofs) then Some true else None
+      (* | Vptr b ofs => *)
+      (*   if Mem.weak_valid_pointer m b (Ptrofs.unsigned ofs) then Some true else None *)
+      | Vptr b ofs => if Pos.eqb b 1%positive then Some false else Some true
       | _ => None
       end
   | bool_default => None
@@ -285,8 +286,8 @@ Definition bool_val (v: val) (m: mem) : option bool :=
 
 (** *** Boolean negation *)
 
-Definition sem_notbool (v: val) (m: mem): option val :=
-  option_map (fun b => Val.of_bool (negb b)) (bool_val v m).
+Definition sem_notbool (v: val) : option val :=
+  option_map (fun b => Val.of_bool (negb b)) (bool_val v).
 
 (** *** Opposite and absolute value *)
 
@@ -382,13 +383,13 @@ Definition binarith_type (c: binarith_cases) : type :=
 Definition sem_binarith
     (sem_int: signedness -> int -> int -> option val)
     (sem_long: signedness -> int64 -> int64 -> option val)
-    (v1: val) (v2: val) (m: mem): option val :=
+    (v1: val) (v2: val) : option val :=
   let c := classify_binarith v1 v2 in
   let t := binarith_type c in
-  match sem_cast v1 t m with
+  match sem_cast v1 t with
   | None => None
   | Some v1' =>
-  match sem_cast v2 t m with
+  match sem_cast v2 t with
   | None => None
   | Some v2' =>
   match c with
@@ -457,7 +458,7 @@ Definition sem_add_ptr_long (v1 v2: val): option val :=
   | _,  _ => None
   end.
 
-Definition sem_add (v1:val) (v2: val) (m: mem): option val :=
+Definition sem_add (v1:val) (v2: val) : option val :=
   match classify_add v1 v2 with
   | add_case_pi =>             (**r pointer plus integer *)
       sem_add_ptr_int Unsigned v1 v2
@@ -471,7 +472,7 @@ Definition sem_add (v1:val) (v2: val) (m: mem): option val :=
       sem_binarith
         (fun sg n1 n2 => Some(Vint(Int.add n1 n2)))
         (fun sg n1 n2 => Some(Vlong(Int64.add n1 n2)))
-        v1 v2 m
+        v1 v2
   end.
 
 (** *** Subtraction *)
@@ -490,7 +491,7 @@ Definition classify_sub (v1: val) (v2: val) :=
   | _, _ => sub_default
   end.
 
-Definition sem_sub (v1:val) (v2: val) (m:mem): option val :=
+Definition sem_sub (v1:val) (v2: val) : option val :=
   match classify_sub v1 v2 with
   | sub_case_pi =>            (**r pointer minus integer *)
       match v1, v2 with
@@ -531,18 +532,18 @@ Definition sem_sub (v1:val) (v2: val) (m:mem): option val :=
       sem_binarith
         (fun sg n1 n2 => Some(Vint(Int.sub n1 n2)))
         (fun sg n1 n2 => Some(Vlong(Int64.sub n1 n2)))
-       v1 v2 m
+       v1 v2
   end.
 
 (** *** Multiplication, division, modulus *)
 
-Definition sem_mul (v1:val) (v2: val) (m:mem) : option val :=
+Definition sem_mul (v1:val) (v2: val) : option val :=
   sem_binarith
     (fun sg n1 n2 => Some(Vint(Int.mul n1 n2)))
     (fun sg n1 n2 => Some(Vlong(Int64.mul n1 n2)))
-    v1 v2 m.
+    v1 v2.
 
-Definition sem_div (v1:val) (v2: val) (m:mem) : option val :=
+Definition sem_div (v1:val) (v2: val) : option val :=
   sem_binarith
     (fun sg n1 n2 =>
       match sg with
@@ -564,9 +565,9 @@ Definition sem_div (v1:val) (v2: val) (m:mem) : option val :=
           if Int64.eq n2 Int64.zero
           then None else Some(Vlong(Int64.divu n1 n2))
       end)
-    v1 v2 m.
+    v1 v2.
 
-Definition sem_mod (v1:val) (v2: val) (m:mem) : option val :=
+Definition sem_mod (v1:val) (v2: val) : option val :=
   sem_binarith
     (fun sg n1 n2 =>
       match sg with
@@ -588,25 +589,25 @@ Definition sem_mod (v1:val) (v2: val) (m:mem) : option val :=
           if Int64.eq n2 Int64.zero
           then None else Some(Vlong(Int64.modu n1 n2))
       end)
-    v1 v2 m.
+    v1 v2.
 
-Definition sem_and (v1:val) (v2: val) (m:mem) : option val :=
+Definition sem_and (v1:val) (v2: val) : option val :=
   sem_binarith
     (fun sg n1 n2 => Some(Vint(Int.and n1 n2)))
     (fun sg n1 n2 => Some(Vlong(Int64.and n1 n2)))
-    v1 v2 m.
+    v1 v2.
 
-Definition sem_or (v1:val) (v2: val) (m:mem) : option val :=
+Definition sem_or (v1:val) (v2: val) : option val :=
   sem_binarith
     (fun sg n1 n2 => Some(Vint(Int.or n1 n2)))
     (fun sg n1 n2 => Some(Vlong(Int64.or n1 n2)))
-    v1 v2 m.
+    v1 v2.
 
-Definition sem_xor (v1:val) (v2: val) (m:mem) : option val :=
+Definition sem_xor (v1:val) (v2: val) : option val :=
   sem_binarith
     (fun sg n1 n2 => Some(Vint(Int.xor n1 n2)))
     (fun sg n1 n2 => Some(Vlong(Int64.xor n1 n2)))
-    v1 v2 m.
+    v1 v2.
 
 (** *** Shifts *)
 
@@ -698,65 +699,88 @@ Definition classify_cmp (v1: val) (v2: val) :=
   | _, _ => cmp_default
   end.
 
-Definition cmp_ptr (m: mem) (c: comparison) (v1 v2: val): option val :=
-  option_map Val.of_bool
-   (if Archi.ptr64
-    then Val.cmplu_bool (Mem.valid_pointer m) c v1 v2
-    else Val.cmpu_bool (Mem.valid_pointer m) c v1 v2).
+(* Definition cmp_ptr (m: mem) (c: comparison) (v1 v2: val): option val := *)
+(*   option_map Val.of_bool *)
+(*    (if Archi.ptr64 *)
+(*     then Val.cmplu_bool (Mem.valid_pointer m) c v1 v2 *)
+(*     else Val.cmpu_bool (Mem.valid_pointer m) c v1 v2). *)
+
+(* Definition sem_cmp (c:comparison) *)
+(*                   (v1: val) (v2: val) *)
+(*                   (m: mem): option val := *)
+(*   match classify_cmp v1 v2 with *)
+(*   | cmp_case_pp => *)
+(*       cmp_ptr m c v1 v2 *)
+(*   | cmp_case_pi si => *)
+(*       match v2 with *)
+(*       | Vint n2 => *)
+(*           let v2' := Vptrofs (ptrofs_of_int si n2) in *)
+(*           cmp_ptr m c v1 v2' *)
+(*       | Vptr b ofs => *)
+(*           if Archi.ptr64 then None else cmp_ptr m c v1 v2 *)
+(*       | _ => *)
+(*           None *)
+(*       end *)
+(*   | cmp_case_ip si => *)
+(*       match v1 with *)
+(*       | Vint n1 => *)
+(*           let v1' := Vptrofs (ptrofs_of_int si n1) in *)
+(*           cmp_ptr m c v1' v2 *)
+(*       | Vptr b ofs => *)
+(*           if Archi.ptr64 then None else cmp_ptr m c v1 v2 *)
+(*       | _ => *)
+(*           None *)
+(*       end *)
+(*   | cmp_case_pl => *)
+(*       match v2 with *)
+(*       | Vlong n2 => *)
+(*           let v2' := Vptrofs (Ptrofs.of_int64 n2) in *)
+(*           cmp_ptr m c v1 v2' *)
+(*       | Vptr b ofs => *)
+(*           if Archi.ptr64 then cmp_ptr m c v1 v2 else None *)
+(*       | _ => *)
+(*           None *)
+(*       end *)
+(*   | cmp_case_lp => *)
+(*       match v1 with *)
+(*       | Vlong n1 => *)
+(*           let v1' := Vptrofs (Ptrofs.of_int64 n1) in *)
+(*           cmp_ptr m c v1' v2 *)
+(*       | Vptr b ofs => *)
+(*           if Archi.ptr64 then cmp_ptr m c v1 v2 else None *)
+(*       | _ => *)
+(*           None *)
+(*       end *)
+(*   | cmp_default => *)
+(*       sem_binarith *)
+(*         (fun sg n1 n2 => *)
+(*             Some(Val.of_bool(match sg with Signed => Int.cmp c n1 n2 | Unsigned => Int.cmpu c n1 n2 end))) *)
+(*         (fun sg n1 n2 => *)
+(*             Some(Val.of_bool(match sg with Signed => Int64.cmp c n1 n2 | Unsigned => Int64.cmpu c n1 n2 end))) *)
+(*         v1 v2 m *)
+(*   end. *)
+
+Definition cmp_ptr (c: comparison) (v1 v2: val): option val :=
+  match v1, v2 with
+  | Vptr b1 ofs1, Vptr b2 ofs2 => if (eq_block b1 b2) && (Ptrofs.eq ofs1 ofs2)
+                                 then Some Vtrue else Some Vfalse
+  | _, _ => None
+  end.
 
 Definition sem_cmp (c:comparison)
                   (v1: val) (v2: val)
-                  (m: mem): option val :=
+                  : option val :=
   match classify_cmp v1 v2 with
   | cmp_case_pp =>
-      cmp_ptr m c v1 v2
-  | cmp_case_pi si =>
-      match v2 with
-      | Vint n2 =>
-          let v2' := Vptrofs (ptrofs_of_int si n2) in
-          cmp_ptr m c v1 v2'
-      | Vptr b ofs =>
-          if Archi.ptr64 then None else cmp_ptr m c v1 v2
-      | _ =>
-          None
-      end
-  | cmp_case_ip si =>
-      match v1 with
-      | Vint n1 =>
-          let v1' := Vptrofs (ptrofs_of_int si n1) in
-          cmp_ptr m c v1' v2
-      | Vptr b ofs =>
-          if Archi.ptr64 then None else cmp_ptr m c v1 v2
-      | _ =>
-          None
-      end
-  | cmp_case_pl =>
-      match v2 with
-      | Vlong n2 =>
-          let v2' := Vptrofs (Ptrofs.of_int64 n2) in
-          cmp_ptr m c v1 v2'
-      | Vptr b ofs =>
-          if Archi.ptr64 then cmp_ptr m c v1 v2 else None
-      | _ =>
-          None
-      end
-  | cmp_case_lp =>
-      match v1 with
-      | Vlong n1 =>
-          let v1' := Vptrofs (Ptrofs.of_int64 n1) in
-          cmp_ptr m c v1' v2
-      | Vptr b ofs =>
-          if Archi.ptr64 then cmp_ptr m c v1 v2 else None
-      | _ =>
-          None
-      end
+      cmp_ptr c v1 v2
   | cmp_default =>
       sem_binarith
         (fun sg n1 n2 =>
             Some(Val.of_bool(match sg with Signed => Int.cmp c n1 n2 | Unsigned => Int.cmpu c n1 n2 end)))
         (fun sg n1 n2 =>
             Some(Val.of_bool(match sg with Signed => Int64.cmp c n1 n2 | Unsigned => Int64.cmpu c n1 n2 end)))
-        v1 v2 m
+        v1 v2
+  | _ => Some Vfalse
   end.
 
 (** ** Function applications *)
@@ -799,9 +823,9 @@ Definition sem_switch_arg (v: val): option Z :=
 (** * Combined semantics of unary and binary operators *)
 
 Definition sem_unary_operation
-            (op: unary_operation) (v: val) (m: mem): option val :=
+            (op: unary_operation) (v: val) : option val :=
   match op with
-  | Onotbool => sem_notbool v m
+  | Onotbool => sem_notbool v
   | Onotint => sem_notint v
   | Oneg => sem_neg v
   end.
@@ -809,30 +833,30 @@ Definition sem_unary_operation
 Definition sem_binary_operation
     (op: binary_operation)
     (v1: val) (v2: val)
-    (m: mem): option val :=
+    : option val :=
   match op with
-  | Oadd => sem_add v1 v2 m
-  | Osub => sem_sub v1 v2 m
-  | Omul => sem_mul v1 v2 m
-  | Omod => sem_mod v1 v2 m
-  | Odiv => sem_div v1 v2 m
-  | Oand => sem_and v1 v2 m
-  | Oor  => sem_or v1 v2 m
-  | Oxor  => sem_xor v1 v2 m
+  | Oadd => sem_add v1 v2
+  | Osub => sem_sub v1 v2
+  | Omul => sem_mul v1 v2
+  | Omod => sem_mod v1 v2
+  | Odiv => sem_div v1 v2
+  | Oand => sem_and v1 v2
+  | Oor  => sem_or v1 v2
+  | Oxor  => sem_xor v1 v2
   | Oshl => sem_shl v1 v2 
   | Oshr  => sem_shr v1 v2 
-  | Oeq => sem_cmp Ceq v1 v2 m
-  | One => sem_cmp Cne v1 v2 m
-  | Olt => sem_cmp Clt v1 v2 m
-  | Ogt => sem_cmp Cgt v1 v2 m
-  | Ole => sem_cmp Cle v1 v2 m
-  | Oge => sem_cmp Cge v1 v2 m
+  | Oeq => sem_cmp Ceq v1 v2
+  | One => sem_cmp Cne v1 v2
+  | Olt => sem_cmp Clt v1 v2
+  | Ogt => sem_cmp Cgt v1 v2
+  | Ole => sem_cmp Cle v1 v2
+  | Oge => sem_cmp Cge v1 v2
   end.
 
-Definition sem_incrdecr (id: incr_or_decr) (v: val) (m: mem) :=
+Definition sem_incrdecr (id: incr_or_decr) (v: val) :=
   match id with
-  | Incr => sem_add v (Vint Int.one) m
-  | Decr => sem_sub v (Vint Int.one) m
+  | Incr => sem_add v (Vint Int.one)
+  | Decr => sem_sub v (Vint Int.one)
   end.
 
 (* Definition incrdecr_type (ty: type) := *)
