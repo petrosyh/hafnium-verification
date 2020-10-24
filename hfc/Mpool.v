@@ -750,3 +750,31 @@ Module MPOOLCONCUR.
     
 End MPOOLCONCUR.
 
+
+Section MPOOLHIGHSPEC.
+
+Variable A: Type.
+Definition chunk : Type := list A.
+Definition entry : Type := list A.
+    
+Inductive Mpool : Type :=
+  mkMpool {
+      entry_size : Z;
+      chunk_list : list chunk;
+      entry_list : list entry;
+      fallback: option Mpool
+    }.
+
+Definition mpool_init_spec (p:Mpool) (entry_size:Z) :=
+  mkMpool entry_size [] [] None.
+
+Definition mpool_free (p:Mpool) (ptr:list A) :=
+  mkMpool (entry_size p) (chunk_list p) (ptr::entry_list p) (fallback p).
+
+Definition mpool_add_chunk_spec (p:Mpool) (c:chunk) :=
+  mkMpool (entry_size p) (c::(chunk_list p)) (entry_list p) (fallback p).
+
+Definition mpool_fini_spec (p:Mpool) :=
+Definition mpool_alloc_fallback (
+
+End MPOOLHIGHSPEC.
