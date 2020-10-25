@@ -750,8 +750,10 @@ Module MPOOLCONCUR.
     
 End MPOOLCONCUR.
 
+Require Import Maps.
+Set Implicit Arguments.
 
-Section MPOOLHIGHSPEC.
+Section ABSTSTATE.
 
 Variable A: Type.
 Definition chunk : Type := list A.
@@ -762,19 +764,73 @@ Inductive Mpool : Type :=
       entry_size : Z;
       chunk_list : list chunk;
       entry_list : list entry;
-      fallback: option Mpool
+      fallback: option positive
     }.
 
-Definition mpool_init_spec (p:Mpool) (entry_size:Z) :=
-  mkMpool entry_size [] [] None.
+Record MpoolAbstState : Type :=
+  mkMpoolAbstState {
+      mpool_map : PMap.t Mpool; (* id -> mpool *)
+      addr_to_id : ZMap.t positive; (* mem addr -> id *)
+      next_id : positive; (* new mpool id *)
+    }.
 
-Definition mpool_free (p:Mpool) (ptr:list A) :=
-  mkMpool (entry_size p) (chunk_list p) (ptr::entry_list p) (fallback p).
+End ABSTSTATE.
 
-Definition mpool_add_chunk_spec (p:Mpool) (c:chunk) :=
-  mkMpool (entry_size p) (c::(chunk_list p)) (entry_list p) (fallback p).
+Section HIGHSPEC.
 
-Definition mpool_fini_spec (p:Mpool) :=
+Variable A: Type.
+Variable st: MpoolAbstState A.
+
+Definition mpool_init_spec (p entry_size:Z) : MpoolAbstState A :=
+  let mp := mkMpool entry_size [] [] None in
+  let i := next_id st in
+  mkMpoolAbstState (PMap.set i mp (mpool_map st)) (ZMap.set p i (addr_to_id st)) (Pos.succ i).
+                    
+Definition mpool_free_spec (p:Z) (ptr:list A) :=
+  let i := ZMap.get p (addr_to_id st) in
+  let mp := (mpool_map st) !! i in
+  let mp' := mkMpool (entry_size mp) (chunk_list mp) (ptr::entry_list mp) (fallback mp) in
+  mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i.
+
+Definition mpool_add_chunk_spec (p:Z) (c:chunk A) (size:Z) :=
+  let i := ZMap.get p (addr_to_id st) in
+  let mp := (mpool_map st) !! i in
+  let mp' := mkMpool (entry_size mp) (c::(chunk_list mp)) (entry_list mp) (fallback mp) in
+  (mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i, true).
+
+Definition mpool_alloc_no_fallback_spec (p:Z) :=
+  let i := ZMap.get p (addr_to_id st) in
+  let mp := (mpool_map st) !! i in
+  let entry := (entry_list mp) in
+  if negb (Nat.eqb (length entry) O)
+  then (
+      let mp' := mkMpool (entry_size mp) (chunk_list mp) (tl (entry_list mp)) (fallback mp) in
+      (mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i, Some (hd (entry_list mp)))
+    )
+  else
+    (
+      let chunk := (chunk_list mp) in
+      if (Nat.eqb (length chunk) O)
+      then (st, None)
+      else
+    (* should handle ugly case *)
+      let mp' := mkMpool (entry_size mp) (tl (chunk_list mp)) (entry_list mp) (fallback mp) in
+      (mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i, Some (hd (chunk_list mp)))
+    ).        
+
+Fixpoint mpool_alloc_spec_aux (
+Definition mpool_alloc_spec (p:Z) :=
+    
+(* Definition mpool_fini_spec (p:Z) := *)
+(*   let i := ZMap.get p (addr_to_id st) in *)
+(*   let mp := (mpool_map st) !! i in *)
+(*   match (fallback mp) with *)
+(*   | None => st *)
+(*   | Some fb => *)
+    
+(*   end *)
+
+
 Definition mpool_alloc_fallback (
 
 End MPOOLHIGHSPEC.
