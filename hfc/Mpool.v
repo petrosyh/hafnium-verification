@@ -805,7 +805,7 @@ Definition mpool_alloc_no_fallback_spec (p:Z) :=
   if negb (Nat.eqb (length entry) O)
   then (
       let mp' := mkMpool (entry_size mp) (chunk_list mp) (tl (entry_list mp)) (fallback mp) in
-      (mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i, Some (hd (entry_list mp)))
+      (mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i, Some (hd entry))
     )
   else
     (
@@ -815,10 +815,30 @@ Definition mpool_alloc_no_fallback_spec (p:Z) :=
       else
     (* should handle ugly case *)
       let mp' := mkMpool (entry_size mp) (tl (chunk_list mp)) (entry_list mp) (fallback mp) in
-      (mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i, Some (hd (chunk_list mp)))
-    ).        
+      ((mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i), (Some (hd chunk)))
+    ). 
 
-Fixpoint mpool_alloc_spec_aux (
+End HIGHSPEC.
+
+Section AA.
+  
+Context {iteration_bound: nat}.
+Variable A: Type.
+Hypothesis id_to_addr : positive -> Z.
+
+Fixpoint mpool_alloc_spec_aux (st:MpoolAbstState A) (p:Z) (n:nat) :=
+  if Nat.eqb iteration_bound n then (st, None) else
+  let i := ZMap.get p (addr_to_id st) in
+  let mp := (mpool_map st) !! i in
+  let (st', ret) := mpool_alloc_no_fallback_spec st p in
+  match ret with
+  | Some ret => (st', Some ret)
+  | None => match (fallback mp) with
+           | None => (st', None)
+           | Some mp' => mpool_alloc_spec_aux st' (id_to_addr mp') (S n)
+           end
+  end.
+
 Definition mpool_alloc_spec (p:Z) :=
     
 (* Definition mpool_fini_spec (p:Z) := *)
