@@ -816,41 +816,43 @@ Definition mpool_alloc_no_fallback_spec (p:Z) :=
     (* should handle ugly case *)
       let mp' := mkMpool (entry_size mp) (tl (chunk_list mp)) (entry_list mp) (fallback mp) in
       ((mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i), (Some (hd chunk)))
-    ). 
+    ).
 
+(* Definition mpool_fini_spec (p:Z) := *)
+(*   let i := ZMap.get p (addr_to_id st) in *)
+(*   let mp := (mpool_map st) !! i in *)
+(*   let entry := (entry_list mp) in *)
+(*   match fallback mp with *)
+(*   | None => st *)
+(*   | Some fb =>  *)
+    
 End HIGHSPEC.
 
-Section AA.
+Section ALLOC.
   
 Context {iteration_bound: nat}.
 Variable A: Type.
 Hypothesis id_to_addr : positive -> Z.
 
 Fixpoint mpool_alloc_spec_aux (st:MpoolAbstState A) (p:Z) (n:nat) :=
-  if Nat.eqb iteration_bound n then (st, None) else
-  let i := ZMap.get p (addr_to_id st) in
-  let mp := (mpool_map st) !! i in
-  let (st', ret) := mpool_alloc_no_fallback_spec st p in
-  match ret with
-  | Some ret => (st', Some ret)
-  | None => match (fallback mp) with
-           | None => (st', None)
-           | Some mp' => mpool_alloc_spec_aux st' (id_to_addr mp') (S n)
-           end
+  match n with
+  | O => (st, None)
+  | S n' =>
+    let i := ZMap.get p (addr_to_id st) in
+    let mp := (mpool_map st) !! i in
+    let (st', ret) := mpool_alloc_no_fallback_spec st p in
+    match ret with
+    | Some ret => (st', Some ret)
+    | None => match (fallback mp) with
+             | None => (st', None)
+             | Some mp' => mpool_alloc_spec_aux st' (id_to_addr mp') n'
+             end
+    end
   end.
 
-Definition mpool_alloc_spec (p:Z) :=
-    
-(* Definition mpool_fini_spec (p:Z) := *)
-(*   let i := ZMap.get p (addr_to_id st) in *)
-(*   let mp := (mpool_map st) !! i in *)
-(*   match (fallback mp) with *)
-(*   | None => st *)
-(*   | Some fb => *)
-    
-(*   end *)
+Definition mpool_alloc_spec (st:MpoolAbstState A) (p:Z) :=
+  mpool_alloc_spec_aux st p iteration_bound.
 
-
-Definition mpool_alloc_fallback (
+End ALLOC.
 
 End MPOOLHIGHSPEC.
