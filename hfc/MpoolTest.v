@@ -96,8 +96,8 @@ Module MPOOLTEST.
                           #;
                           (Call "MPOOL.mpool_enable_locks" [])
                           #;
-                          #assume mpool_locks_enabled #;        
-                          p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
+                          #assume mpool_locks_enabled #;
+                          Alloc p (Int.repr 5) #;
                           Put "main: before init: " p #;
                           (* initialize it with the entry size - 8 *)
                           Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (Int64.repr 8))] #;
@@ -127,7 +127,7 @@ Module MPOOLTEST.
             p #= GMPOOL #;
             new_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid * 320) + 80)))) #;
             r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR new_chunk; CBV (Int64.repr 160)]) #;
-            p1 #= Vcomp (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid) * 320))) #;
+            Alloc p1 (Int.repr 5) #;
             (Call "MPOOL.mpool_init_with_fallback" [CBR p1; CBR GMPOOL]) #;
             new_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;
             r #= (Call "MPOOL.mpool_add_chunk" [CBR p1; CBR new_chunk; CBV (Int64.repr 16)]) #;
@@ -174,12 +174,12 @@ Module MPOOLTEST.
         #;
         (Call "MPOOL.mpool_enable_locks" [])
         #;
-        #assume mpool_locks_enabled #;        
-        p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
+        #assume mpool_locks_enabled #;
+        Alloc p (Int.repr 5) #;
         Put "main: before init: " p #;
         (* initialize it with the entry size - 8 *)
         Call "MPOOL.mpool_init" [CBV p; CBV (Int64.repr 8)] #;
-        p_fallback #= Vcomp (Vptr 2%positive (Ptrofs.repr 160)) #;
+        Alloc p_fallback (Int.repr 5) #;
         (Call "MPOOL.mpool_init_with_fallback" [CBR p_fallback; CBR p]) #;        
         Put "main: after init: " p #;
         begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 240))) #;
@@ -220,8 +220,8 @@ Module MPOOLTEST.
         #;
         (Call "MPOOL.mpool_enable_locks" [])
         #;
-        #assume mpool_locks_enabled #;        
-        p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
+        #assume mpool_locks_enabled #;
+        Alloc p (Int.repr 5) #;
         Put "main: before init: " p #;
         (* initialize it with the entry size - 8 *)
         Call "MPOOL.mpool_init" [CBV p; CBV (Int64.repr 8)] #;
@@ -270,12 +270,10 @@ Module MPOOLTEST.
       Eval compute
       in INSERT_YIELD (
              GLOBAL_START #= (Int.zero) #;    
-                          (Call "MPOOL.mpool_init_locks" [])
-                          #;
-                          (Call "MPOOL.mpool_enable_locks" [])
-                          #;
+                          (Call "MPOOL.mpool_init_locks" []) #;
+                          (Call "MPOOL.mpool_enable_locks" []) #;
                           #assume mpool_locks_enabled #;        
-                          p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
+                          Alloc p (Int.repr 5) #;
                           Put "main: before init: " p #;
                           (* initialize it with the entry size - 8 *)
                           Call "MPOOL.mpool_init" [CBR p; CBV (Vlong (Int64.repr 8))] #;
@@ -298,8 +296,7 @@ Module MPOOLTEST.
                                 r #= (Call "MPOOL.mpool_alloc_contiguous"
                                       [CBR p ; CBV (Int64.repr 4); CBV (Int64.repr 1)])
                                 #;
-                                (Put "allocation is done" r) #;
-                                p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80))
+                                (Put "allocation is done" r)
                             ) #;
                               Put "Test Passed " Vnull #;
                               Skip
@@ -313,8 +310,7 @@ Module MPOOLTEST.
               do
                 (Debug "waiting for GMPOOL" GMPOOL))
             #;
-            p #= Vcomp (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid) * 320))) #;
-            
+            Alloc p (Int.repr 5) #;            
               (Call "MPOOL.mpool_init_with_fallback" [CBR p; CBR GMPOOL]) #;
               Put "(Local Mpool) After init-with-fallback" p #;
               new_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr ((Z.of_N tid * 320) + 16)))) #;

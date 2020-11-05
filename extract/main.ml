@@ -397,6 +397,9 @@ let main =
   print_endline "-------------------   MM ptable fini  ------------------------" ;
   run (MemoryManagementTest.MMTEST.INITFINI.isem) ;
   print_endline "--------------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.DEFRAG.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.POPULATE.isem) ;
   print_endline "-------------------   MM TEST Passed  ------------------------" ;
 
   end;
