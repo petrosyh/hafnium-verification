@@ -817,19 +817,29 @@ Definition mpool_alloc_no_fallback_spec (p:Z) :=
       let mp' := mkMpool (entry_size mp) (tl (chunk_list mp)) (entry_list mp) (fallback mp) in
       ((mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i), (Some (hd chunk)))
     ).
-
-(* Definition mpool_fini_spec (p:Z) := *)
-(*   let i := ZMap.get p (addr_to_id st) in *)
-(*   let mp := (mpool_map st) !! i in *)
-(*   let entry := (entry_list mp) in *)
-(*   match fallback mp with *)
-(*   | None => st *)
-(*   | Some fb =>  *)
     
 End HIGHSPEC.
 
 Section ALLOC.
-  
+
+Definition E := void1.
+
+Inductive terminate {E} {R} (it:itree E R) : Prop :=
+| TermRet
+    v
+    (RET: observe it = Ret v)
+  :
+    terminate it.
+| 
+
+Definition fact_body (x : nat) : itree (callE nat nat +' E) nat :=
+ match x with
+  | O => Ret 1%nat
+  | S m =>
+    y <- call m ;;  (* Recursively compute [y := m!] *)
+    Ret (x * y)
+  end.
+
 Context {iteration_bound: nat}.
 Variable A: Type.
 Hypothesis id_to_addr : positive -> Z.
