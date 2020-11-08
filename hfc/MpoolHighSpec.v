@@ -263,26 +263,38 @@ Section ALLOC2.
 Variable A: Type.
 Hypothesis id_to_addr : positive -> Z.
 
-Definition mpool_alloc_spec_body (stp: MpoolAbstState A * Z) : itree
-                                                               ((callE ((MpoolAbstState A) * Z) ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A)))) +' E)
-                                                               ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A))) :=
+(* Definition mpool_alloc_spec_body (stp: MpoolAbstState A * Z) : itree *)
+(*                                                                ((callE ((MpoolAbstState A) * Z) ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A)))) +' E) *)
+(*                                                                ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A))) := *)
   
-  let st := fst stp in
-  let p := snd stp in
-  i <- ZTree.get p (addr_to_id st) ;;
-  mp <- PTree.get i (mpool_map st) ;;
-  stret <- mpool_alloc_no_fallback_spec st p ;;
-  let (st', ret) := (fst stret, snd stret) in
-  match ret with
-  | Some ret => Ret (st', Some ret)
-  | None => match (fallback mp) with
-           | None => Ret (st', None)
-           | Some mp' => call (st', (id_to_addr mp'))
-           end
-  end.
+(*   let st := fst stp in *)
+(*   let p := snd stp in *)
+(*   let i := ZTree.get p (addr_to_id st) in *)
+(*   match i with *)
+(*   | None => Ret None *)
+(*   | Some i => *)
+(*     let mp := PTree.get i (mpool_map st) in *)
+(*     match mp with *)
+(*     | None => Ret None *)
+(*     | Some mp => *)
+(*       let stret := mpool_alloc_no_fallback_spec st p in *)
+(*       match stret with *)
+(*       | None => Ret None *)
+(*       | Some stret => *)
+(*         let (st', ret) := (fst stret, snd stret) in *)
+(*         match ret with *)
+(*         | Some ret => Ret (st', Some ret) *)
+(*         | None => match (fallback mp) with *)
+(*                  | None => Ret (st', None) *)
+(*                  | Some mp' => call (st', (id_to_addr mp')) *)
+(*                  end *)
+(*         end *)
+(*       end *)
+(*     end *)
+(*   end. *)
 
-Definition mpool_alloc_spec' (st:MpoolAbstState A) (p:Z) :=
-  rec mpool_alloc_spec_body (st, p).
+(* Definition mpool_alloc_spec' (st:MpoolAbstState A) (p:Z) := *)
+(*   rec mpool_alloc_spec_body (st, p). *)
 
 
 End ALLOC2.                                                          
