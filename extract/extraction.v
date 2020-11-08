@@ -79,6 +79,7 @@ Separate Extraction
          MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem
          MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem
          MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem
+         MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem
          (* MpoolSeq.TEST.TEST1.program *)
          (* MpoolSeq.TEST.TEST2.program *)
          (* MpoolSeq.TEST.TEST3.program *)

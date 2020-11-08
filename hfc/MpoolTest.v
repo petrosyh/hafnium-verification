@@ -350,5 +350,82 @@ Module MPOOLTEST.
         modsems [ "main" ; "alloc_and_free1" ; "alloc_and_free2" ].
     
   End MPOOLTEST_FOUR.
+
+  Module MPOOLTEST_FIVE.
+
+    (* Test with HighSpec *)
+
+    Definition print_mpool (p chunk entry i:var) : stmt :=
+      Put "------------print mpool------------" Vnull #;
+      Put "mpool pointer:" p #;
+      Put "entry_size:" (p #@ entry_size_loc) #;
+      chunk #= (p #@ chunk_list_loc) #;
+      i #= (Int.repr 0) #;
+      (#while chunk
+        do
+        (Put "  chunk" i #;
+         Put "    start:" chunk #;
+         Put "    end:" (chunk #@ limit_loc) #;
+         Put "    size:" ((Cast (chunk #@ limit_loc) tint) - (Cast chunk tint)) #;
+         chunk #= (chunk #@ next_chunk_loc) #;
+         i #= i + (Int.repr 1)))
+      #;
+      entry #= (p #@ entry_list_loc) #;
+      i #= (Int.repr 0) #;
+      (#while entry
+        do
+        (Put "  entry " i #;
+         Put "    " entry #;
+         entry #= (entry #@ next_loc) #;
+         i #= i + (Int.repr 1)))
+      #;
+      Put "fallback:" (p #@ fallback_loc).
+
+    Definition main (p p_fallback p_fallback2 begin res: var) : stmt :=
+      (* Put "test plus" (Plus (Vcomp (Vint (repr 1))) (Vcomp (Vint (repr 5)))) #; *)
+      (Call "MPOOL.mpool_init_locks" []) #;
+      (Call "MPOOL.mpool_enable_locks" []) #;
+      #assume mpool_locks_enabled #;
+      Alloc p (Int.repr 5) #;
+      Put "main: before init: " p #;
+      (* initialize it with the entry size - 8 *)
+      Call "MPOOL.mpool_init" [CBV p; CBV (Int64.repr 8)] #;
+      Alloc p_fallback (Int.repr 5) #;
+      (Call "MPOOL.mpool_init_with_fallback" [CBR p_fallback; CBR p]) #;
+      Put "main: after init: " p #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 160))) #;
+      res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback; CBR begin; CBV (Int64.repr 24)]) #;
+      Alloc p_fallback2 (Int.repr 5) #;
+      (Call "MPOOL.mpool_init_from" [CBR p_fallback2; CBR p_fallback]) #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 184))) #;
+      res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 16)]) #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 200))) #;
+      res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback2; CBR begin; CBV (Int64.repr 16)]) #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 216))) #;
+      res #= (Call "MPOOL.mpool_free" [CBR p; CBR begin]) #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 224))) #;
+      res #= (Call "MPOOL.mpool_free" [CBR p_fallback2; CBR begin]) #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 232))) #;
+      res #= (Call "MPOOL.mpool_free" [CBR p_fallback2; CBR begin]) #;
+      (Call "MPOOL.mpool_fini" [CBR p_fallback2]) #;
+      (Call "print_mpool" [CBR p]) #;
+      Skip.
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) ["p" ; "p_fallback" ; "p_fallback2" ; "begin" ; "res"]. Defined.
+
+    Definition print_mpoolF: function.
+      mk_function_tac print_mpool ["p"] ["chunk"; "entry"; "i"]. Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF);
+        ("print_mpool", print_mpoolF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
+
+  End MPOOLTEST_FIVE.
   
 End MPOOLTEST.

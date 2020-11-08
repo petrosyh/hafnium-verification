@@ -311,6 +311,13 @@ let rec my_rr q =
 
 let main =
   Random.self_init();
+  print_endline "- MPOOL TEST 5 (Test with HIGHSPEC) -" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem) ;
+  print_endline "------------------   MPOOL TEST Passed  ----------------------" ;
+  ()
+
+let main t =
+  Random.self_init();
 
   print_endline "--------------------------------------------------------------" ;
   print_endline "---------------------  LANG TEST ----------------------------" ;
