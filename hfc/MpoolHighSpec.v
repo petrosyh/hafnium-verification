@@ -152,6 +152,43 @@ Definition mpool_init_spec (p entry_size:Z) : MpoolAbstState A :=
   let i := next_id st in
   mkMpoolAbstState (PTree.set i  mp (mpool_map st)) (ZTree.set p i (addr_to_id st)) (Pos.succ i).
 
+Definition mpool_init_from_spec (p from:Z) :=
+  i <- ZTree.get from (addr_to_id st);;
+  mp <- PTree.get i (mpool_map st);;
+  mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (entry_list mp) None);;
+  Some (mkMpoolAbstState
+          (PTree.set (next_id st) mp' (PTree.remove i (mpool_map st)))
+          (ZTree.set p (next_id st) (ZTree.remove from (addr_to_id st)))
+          (Pos.succ i)).
+
+Definition mpool_init_with_fallback_spec (p fallback:Z) :=
+  i <- ZTree.get fallback (addr_to_id st);;
+  mp <- (mpool_map st) ! i;;
+  mp' <- Some (mkMpool (entry_size mp) [] [] (Some i));;
+  Some (mkMpoolAbstState (PTree.set (next_id st) mp' (mpool_map st))
+                         (ZTree.set p (next_id st) (addr_to_id st))
+                         (Pos.succ i)).
+
+Definition mpool_fini_spec (p:Z) :=
+  i <- ZTree.get p (addr_to_id st);;
+  mp <- (mpool_map st) ! i;;
+  mpool_map' <-
+  Some (match fallback mp with
+        | Some i_fallback =>
+          match (mpool_map st) ! i_fallback with
+          | Some mp_fallback =>
+            (PTree.set i_fallback (mkMpool (entry_size mp_fallback)
+                                           ((rev (chunk_list mp)) ++ (chunk_list mp_fallback))
+                                           ((rev (entry_list mp)) ++ (entry_list mp_fallback))
+                                           (fallback mp_fallback))
+                       (mpool_map st))
+          | None => (mpool_map st) (* Can't reachable *)
+          end
+        | None => (mpool_map st)
+        end);;
+  Some (mkMpoolAbstState (PTree.remove i mpool_map') (ZTree.remove p (addr_to_id st))
+                         (next_id st)).
+
 Definition mpool_free_spec (p:Z) (ptr:list A) :=
   i <- ZTree.get p (addr_to_id st);;
   mp <- PTree.get i (mpool_map st);;
