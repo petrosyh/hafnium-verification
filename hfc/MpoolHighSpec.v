@@ -147,35 +147,36 @@ Section HIGHSPEC.
 Variable A: Type.
 Variable st: MpoolAbstState A.
 
-Definition mpool_init_spec (p entry_size:Z) : MpoolAbstState A :=
+Definition mpool_init_spec (p entry_size:Z) :=
   let mp := mkMpool entry_size [] [] None in
   let i := next_id st in
-  mkMpoolAbstState (PTree.set i  mp (mpool_map st)) (ZTree.set p i (addr_to_id st)) (Pos.succ i).
+  Some (mkMpoolAbstState (PTree.set i mp (mpool_map st))
+                         (ZTree.set p i (addr_to_id st)) (Pos.succ i)).
 
 Definition mpool_init_from_spec (p from:Z) :=
   i <- ZTree.get from (addr_to_id st);;
   mp <- PTree.get i (mpool_map st);;
-  mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (entry_list mp) None);;
+  mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (entry_list mp) (fallback mp));;
   Some (mkMpoolAbstState
           (PTree.set (next_id st) mp' (PTree.remove i (mpool_map st)))
           (ZTree.set p (next_id st) (ZTree.remove from (addr_to_id st)))
-          (Pos.succ i)).
+          (Pos.succ (next_id st))).
 
 Definition mpool_init_with_fallback_spec (p fallback:Z) :=
   i <- ZTree.get fallback (addr_to_id st);;
-  mp <- (mpool_map st) ! i;;
+  mp <- PTree.get i (mpool_map st);;
   mp' <- Some (mkMpool (entry_size mp) [] [] (Some i));;
   Some (mkMpoolAbstState (PTree.set (next_id st) mp' (mpool_map st))
                          (ZTree.set p (next_id st) (addr_to_id st))
-                         (Pos.succ i)).
+                         (Pos.succ (next_id st))).
 
 Definition mpool_fini_spec (p:Z) :=
   i <- ZTree.get p (addr_to_id st);;
-  mp <- (mpool_map st) ! i;;
+  mp <- PTree.get i (mpool_map st);;
   mpool_map' <-
   Some (match fallback mp with
         | Some i_fallback =>
-          match (mpool_map st) ! i_fallback with
+          match PTree.get i_fallback (mpool_map st) with
           | Some mp_fallback =>
             (PTree.set i_fallback (mkMpool (entry_size mp_fallback)
                                            ((rev (chunk_list mp)) ++ (chunk_list mp_fallback))
@@ -249,6 +250,40 @@ End HIGHSPEC.
 (*   mpool_alloc_spec_aux st p iteration_bound. *)
 
 (* End ALLOC. *)
+
+Section TEST.
+  
+  Definition main :=
+    st1 <- mpool_init_spec (initial_state Z) 400 8;;
+    st2 <- mpool_init_with_fallback_spec st1 200 400;;
+    st3 <- mpool_init_from_spec st2 100 200;;
+    res_st4 <- mpool_add_chunk_spec st3 100 [1;2;3] 3;;
+    st4 <- Some (fst res_st4);;
+    res_st5 <- mpool_add_chunk_spec st4 100 [4;5] 2;;
+    st5 <- Some (fst res_st5);;
+    res_st6 <- mpool_add_chunk_spec st5 400 [6;7] 2;;
+    st6 <- Some (fst res_st6);;
+    st7 <- mpool_fini_spec st6 100;;
+    Some st6
+  .
+
+  Compute main.
+
+  Fixpoint print_mpool_aux {A} (mpool_map: PTree.t (Mpool A)) (n: nat):=
+    match n with
+    | S n => append "Mpool %d" (print_mpool_aux mpool_map n)
+    | O => ""
+    end.
+
+  Definition print_mpool {A} (mpool: option (MpoolAbstState A)) :=
+    match mpool with
+    | None => "ERROR"
+    | Some mpool => print_mpool_aux (mpool_map mpool) (Pos.to_nat (next_id mpool))
+    end.
+
+  Compute (print_mpool main).
+  
+End TEST.
 
 Section ALLOC2.
 
