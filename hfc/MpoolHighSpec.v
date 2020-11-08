@@ -33,6 +33,49 @@ Local Open Scope string_scope.
 Require Import Coqlib sflib.
 
 
+Inductive terminate {E} {R} (it:itree E R) : Prop :=
+| TermRet
+    v
+    (RET: observe it = RetF v)
+| TermTau
+    (TAU: observe it = TauF it).
+
+Definition E := void1.
+
+(* Definition fact_body (x : nat) : itree (callE nat nat +' E) nat := *)
+(*  match x with *)
+(*   | O => Ret 1%nat *)
+(*   | S m => *)
+(*     y <- call m ;;  (* Recursively compute [y := m!] *) *)
+(*     Ret (x * y)%nat *)
+(*   end. *)
+
+(* Definition factorial (n : nat) : itree E nat := *)
+(*   rec fact_body n. *)
+
+(* Lemma unfold_factorial : forall x, *)
+(*     factorial x ≈ match x with *)
+(*                   | O => Ret 1%nat *)
+(*                   | S m => *)
+(*                     y <- factorial m ;; *)
+(*                     Ret (x * y)%nat *)
+(*                   end. *)
+(* Proof. *)
+(*   intros x. *)
+(*   unfold factorial. *)
+(*   induction x; simpl in *. *)
+(*   - rewrite rec_as_interp. ss. *)
+(*     unfold interp. ss. *)
+
+(* Lemma aa *)
+(*       n *)
+(*   : *)
+(*     terminate (factorial n). *)
+(* Proof. *)
+(*   destruct n. *)
+(*   - econs. instantiate (1:=1%nat). *)
+    
+
 (* From HafniumCore *)
 Require Import Lang.
 Require Import Values.
@@ -116,37 +159,153 @@ Definition mpool_alloc_no_fallback_spec (p:Z) :=
 
 End HIGHSPEC.
 
-Section AA.
-  
-Context {iteration_bound: nat}.
+(* Section ALLOC. *)
+
+(* Context {iteration_bound: nat}. *)
+(* Variable A: Type. *)
+(* Hypothesis id_to_addr : positive -> Z. *)
+
+(* Fixpoint mpool_alloc_spec_aux (st:MpoolAbstState A) (p:Z) (n:nat) := *)
+(*   match n with *)
+(*   | O => (st, None) *)
+(*   | S n' => *)
+(*     let i := ZMap.get p (addr_to_id st) in *)
+(*     let mp := (mpool_map st) !! i in *)
+(*     let (st', ret) := mpool_alloc_no_fallback_spec st p in *)
+(*     match ret with *)
+(*     | Some ret => (st', Some ret) *)
+(*     | None => match (fallback mp) with *)
+(*              | None => (st', None) *)
+(*              | Some mp' => mpool_alloc_spec_aux st' (id_to_addr mp') n' *)
+(*              end *)
+(*     end *)
+(*   end. *)
+
+(* Definition mpool_alloc_spec (st:MpoolAbstState A) (p:Z) := *)
+(*   mpool_alloc_spec_aux st p iteration_bound. *)
+
+(* End ALLOC. *)
+
+Section ALLOC2.
+
+(* Definition fact_body (x : nat) : itree (callE nat nat +' E) nat := *)
+(*  match x with *)
+(*   | O => Ret 1%nat *)
+(*   | S m => *)
+(*     y <- call m ;;  (* Recursively compute [y := m!] *) *)
+(*     Ret (x * y)%nat *)
+(*   end. *)
+
 Variable A: Type.
 Hypothesis id_to_addr : positive -> Z.
 
-Fixpoint mpool_alloc_spec_aux (st:MpoolAbstState A) (p:Z) (n:nat) :=
-  if Nat.eqb iteration_bound n then (st, None) else
+Definition mpool_alloc_spec_body (stp: MpoolAbstState A * Z) : itree
+                                                               ((callE ((MpoolAbstState A) * Z) ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A)))) +' E)
+                                                               ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A))) :=
+  
+  let st := fst stp in
+  let p := snd stp in
   let i := ZMap.get p (addr_to_id st) in
   let mp := (mpool_map st) !! i in
   let (st', ret) := mpool_alloc_no_fallback_spec st p in
   match ret with
-  | Some ret => (st', Some ret)
+  | Some ret => Ret (st', Some ret)
   | None => match (fallback mp) with
-           | None => (st', None)
-           | Some mp' => mpool_alloc_spec_aux st' (id_to_addr mp') (S n)
+           | None => Ret (st', None)
+           | Some mp' => call (st', (id_to_addr mp'))
            end
   end.
 
-Definition mpool_alloc_spec (p:Z) :=
-    
-(* Definition mpool_fini_spec (p:Z) := *)
+Definition mpool_alloc_spec' (st:MpoolAbstState A) (p:Z) :=
+  rec mpool_alloc_spec_body (st, p).
+
+
+End ALLOC2.                                                          
+
+(* Definition fact_body (x : nat) : itree (callE nat nat +' E) nat := *)
+(*   match x with *)
+(*   | 0 => Ret 1 *)
+(*   | S m => *)
+(*     y <- call m ;;  (* Recursively compute [y := m!] *) *)
+(*     Ret (x * y) *)
+(*   end. *)
+
+
+
+(* Definition mpool_alloc_spec_body : (MpoolAbstState A * Z) -> itree E (MpoolAbstState A * option (entry A)) := *)
+(*   rec-fix mpool_alloc_body stp := *)
+(*     let st := fst stp in *)
+(*     let p := snd stp in *)
+(*     let i := ZMap.get p (addr_to_id st) in *)
+(*     let mp := (mpool_map st) !! i in *)
+(*     let (st', ret) := mpool_alloc_no_fallback_spec st p in *)
+(*     match ret with *)
+(*     | Some ret => Ret (st', Some ret) *)
+(*     | None => match (fallback mp) with *)
+(*              | None => Ret (st', None) *)
+(*              | Some mp' => mpool_alloc_body (st', (id_to_addr mp')) *)
+(*              end *)
+(*     end. *)
+
+(*     match x with *)
+(*     | 0 => Ret 1 *)
+(*     | S m => y <- fact m ;; Ret (x * y) *)
+(*     end. *)
+
+(* Definition mpool_alloc_body (ST:MpoolAbstState A) (p:Z) : itree (callE  *)
+
+
+(* Fixpoint mpool_alloc_spec_aux (st:MpoolAbstState A) (p:Z) (n:nat) := *)
+(*   match n with *)
+(*   | O => (st, None) *)
+(*   | S n' => *)
+(*     let i := ZMap.get p (addr_to_id st) in *)
+(*     let mp := (mpool_map st) !! i in *)
+(*     let (st', ret) := mpool_alloc_no_fallback_spec st p in *)
+(*     match ret with *)
+(*     | Some ret => (st', Some ret) *)
+(*     | None => match (fallback mp) with *)
+(*              | None => (st', None) *)
+(*              | Some mp' => mpool_alloc_spec_aux st' (id_to_addr mp') n' *)
+(*              end *)
+(*     end *)
+(*   end. *)
+
+
+(* Definition mpool_alloc_spec (st:MpoolAbstState A) (p:Z) := *)
+(*   mpool_alloc_spec_aux st p iteration_bound. *)
+
+(* End MPOOLHIGHSPEC. *)
+
+(* Section AA. *)
+  
+(* Context {iteration_bound: nat}. *)
+(* Variable A: Type. *)
+(* Hypothesis id_to_addr : positive -> Z. *)
+
+(* Fixpoint mpool_alloc_spec_aux (st:MpoolAbstState A) (p:Z) (n:nat) := *)
+(*   if Nat.eqb iteration_bound n then (st, None) else *)
 (*   let i := ZMap.get p (addr_to_id st) in *)
 (*   let mp := (mpool_map st) !! i in *)
-(*   match (fallback mp) with *)
-(*   | None => st *)
-(*   | Some fb => *)
+(*   let (st', ret) := mpool_alloc_no_fallback_spec st p in *)
+(*   match ret with *)
+(*   | Some ret => (st', Some ret) *)
+(*   | None => match (fallback mp) with *)
+(*            | None => (st', None) *)
+(*            | Some mp' => mpool_alloc_spec_aux st' (id_to_addr mp') (S n) *)
+(*            end *)
+(*   end. *)
+
+(* Definition mpool_alloc_spec (p:Z) := *)
     
-(*   end *)
+(* (* Definition mpool_fini_spec (p:Z) := *) *)
+(* (*   let i := ZMap.get p (addr_to_id st) in *) *)
+(* (*   let mp := (mpool_map st) !! i in *) *)
+(* (*   match (fallback mp) with *) *)
+(* (*   | None => st *) *)
+(* (*   | Some fb => *) *)
+    
+(* (*   end *) *)
 
 
-Definition mpool_alloc_fallback (
-
-End MPOOLHIGHSPEC.
+(* Definition mpool_alloc_fallback ( *)

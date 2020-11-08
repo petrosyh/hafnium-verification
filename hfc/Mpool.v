@@ -822,24 +822,6 @@ End HIGHSPEC.
 
 Section ALLOC.
 
-Definition E := void1.
-
-Inductive terminate {E} {R} (it:itree E R) : Prop :=
-| TermRet
-    v
-    (RET: observe it = Ret v)
-  :
-    terminate it.
-| 
-
-Definition fact_body (x : nat) : itree (callE nat nat +' E) nat :=
- match x with
-  | O => Ret 1%nat
-  | S m =>
-    y <- call m ;;  (* Recursively compute [y := m!] *)
-    Ret (x * y)
-  end.
-
 Context {iteration_bound: nat}.
 Variable A: Type.
 Hypothesis id_to_addr : positive -> Z.
