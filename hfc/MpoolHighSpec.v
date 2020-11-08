@@ -106,55 +106,82 @@ Inductive Mpool : Type :=
 
 Record MpoolAbstState : Type :=
   mkMpoolAbstState {
-      mpool_map : PMap.t Mpool; (* id -> mpool *)
-      addr_to_id : ZMap.t positive; (* mem addr -> id *)
+      mpool_map : PTree.t Mpool; (* id -> mpool *)
+      addr_to_id : ZTree.t positive; (* mem addr -> id *)
       next_id : positive; (* new mpool id *)
     }.
 
+Definition initial_state : MpoolAbstState :=
+  mkMpoolAbstState (PTree.empty Mpool) (ZTree.empty positive) 1%positive.
+
 End ABSTSTATE.
+
+(** Error monad with options or lists *)
+
+(* Notation "'do' X <- A ; B" := (match A with Some X => B | None => None end) *)
+(*   (at level 200, X ident, A at level 100, B at level 200) *)
+(*   : option_monad_scope. *)
+
+(* Notation "'do' X , Y <- A ; B" := (match A with Some (X, Y) => B | None => None end) *)
+(*   (at level 200, X ident, Y ident, A at level 100, B at level 200) *)
+(*   : option_monad_scope. *)
+
+(* Notation "'do' X , Y , Z <- A ; B" := (match A with Some (X, Y, Z) => B | None => None end) *)
+(*   (at level 200, X ident, Y ident, Z ident, A at level 100, B at level 200) *)
+(*   : option_monad_scope. *)
+
+(* Notation " 'check' A ; B" := (if A then B else None) *)
+(*   (at level 200, A at level 100, B at level 200) *)
+(*   : option_monad_scope. *)
+
+(* Notation "'do' X <- A ; B" := (match A with Some X => B | None => nil end) *)
+(*   (at level 200, X ident, A at level 100, B at level 200) *)
+(*   : list_monad_scope. *)
+
+(* Notation " 'check' A ; B" := (if A then B else nil) *)
+(*   (at level 200, A at level 100, B at level 200) *)
+(*   : list_monad_scope. *)
 
 Section HIGHSPEC.
 
 Variable A: Type.
 Variable st: MpoolAbstState A.
 
-
-
 Definition mpool_init_spec (p entry_size:Z) : MpoolAbstState A :=
   let mp := mkMpool entry_size [] [] None in
   let i := next_id st in
-  mkMpoolAbstState (PMap.set i mp (mpool_map st)) (ZMap.set p i (addr_to_id st)) (Pos.succ i).
-                    
+  mkMpoolAbstState (PTree.set i  mp (mpool_map st)) (ZTree.set p i (addr_to_id st)) (Pos.succ i).
+
 Definition mpool_free_spec (p:Z) (ptr:list A) :=
-  let i := ZMap.get p (addr_to_id st) in
-  let mp := (mpool_map st) !! i in
-  let mp' := mkMpool (entry_size mp) (chunk_list mp) (ptr::entry_list mp) (fallback mp) in
-  mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i.
+  i <- ZTree.get p (addr_to_id st);;
+  mp <- PTree.get i (mpool_map st);;
+  mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (ptr::entry_list mp) (fallback mp));;
+  Some (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i).
 
 Definition mpool_add_chunk_spec (p:Z) (c:chunk A) (size:Z) :=
-  let i := ZMap.get p (addr_to_id st) in
-  let mp := (mpool_map st) !! i in
-  let mp' := mkMpool (entry_size mp) (c::(chunk_list mp)) (entry_list mp) (fallback mp) in
-  (mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i, true).
+  i <- ZTree.get p (addr_to_id st);;
+  mp <- PTree.get i (mpool_map st);;
+  mp' <- Some (mkMpool (entry_size mp) (c::(chunk_list mp)) (entry_list mp) (fallback mp));;
+  Some (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i, true).
 
 Definition mpool_alloc_no_fallback_spec (p:Z) :=
-  let i := ZMap.get p (addr_to_id st) in
-  let mp := (mpool_map st) !! i in
-  let entry := (entry_list mp) in
+  i <- ZTree.get p (addr_to_id st);;
+  mp <- PTree.get i (mpool_map st);;
+  entry <- Some (entry_list mp);;
   if negb (Nat.eqb (length entry) O)
   then (
       let mp' := mkMpool (entry_size mp) (chunk_list mp) (tl (entry_list mp)) (fallback mp) in
-      (mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i, Some (hd entry))
+      Some (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i, Some (hd entry))
     )
   else
     (
       let chunk := (chunk_list mp) in
       if (Nat.eqb (length chunk) O)
-      then (st, None)
+      then Some (st, None)
       else
     (* should handle ugly case *)
       let mp' := mkMpool (entry_size mp) (tl (chunk_list mp)) (entry_list mp) (fallback mp) in
-      ((mkMpoolAbstState (PMap.set i mp' (mpool_map st)) (addr_to_id st) i), (Some (hd chunk)))
+      Some ((mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i), (Some (hd chunk)))
     ). 
 
 End HIGHSPEC.
@@ -205,9 +232,10 @@ Definition mpool_alloc_spec_body (stp: MpoolAbstState A * Z) : itree
   
   let st := fst stp in
   let p := snd stp in
-  let i := ZMap.get p (addr_to_id st) in
-  let mp := (mpool_map st) !! i in
-  let (st', ret) := mpool_alloc_no_fallback_spec st p in
+  i <- ZTree.get p (addr_to_id st) ;;
+  mp <- PTree.get i (mpool_map st) ;;
+  stret <- mpool_alloc_no_fallback_spec st p ;;
+  let (st', ret) := (fst stret, snd stret) in
   match ret with
   | Some ret => Ret (st', Some ret)
   | None => match (fallback mp) with
