@@ -1,4 +1,4 @@
-From Coq Require Import
+ From Coq Require Import
      Arith.PeanoNat
      Lists.List
      Strings.String
@@ -107,12 +107,13 @@ Inductive Mpool : Type :=
 Record MpoolAbstState : Type :=
   mkMpoolAbstState {
       mpool_map : PTree.t Mpool; (* id -> mpool *)
-      addr_to_id : ZTree.t positive; (* mem addr -> id *)
+      addr_to_id : PTree.t (ZTree.t positive); (* block -> offset -> id *)
+      id_to_addr : PTree.t (positive * Z); (* id -> (block, offset *)
       next_id : positive; (* new mpool id *)
     }.
 
 Definition initial_state : MpoolAbstState :=
-  mkMpoolAbstState (PTree.empty Mpool) (ZTree.empty positive) 1%positive.
+  mkMpoolAbstState (PTree.empty Mpool) (PTree.empty (ZTree.t positive)) (PTree.empty (positive * Z)) 1%positive.
 
 (* m1: child, m2:parent *)
 Inductive child_mpool (st:MpoolAbstState) (m1: Mpool) : Mpool -> Prop :=
@@ -164,6 +165,18 @@ End ABSTSTATE.
 (*   (at level 200, A at level 100, B at level 200) *)
 (*   : list_monad_scope. *)
 
+Section HIGHSPECITREE.
+
+Variable A: Type.
+Variable st: MpoolAbstState A.
+
+Definition mpool_init_spec (p: positive * Z) (entry_size: Z) :=
+  let i := next_id st in
+  let mp := mkMpool entry_size [] [] None in
+  
+  let mp 
+
+End HIGHSPECITREE.
 Section HIGHSPEC.
 
 Variable A: Type.

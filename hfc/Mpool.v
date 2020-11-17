@@ -846,5 +846,3 @@ Definition mpool_alloc_spec (st:MpoolAbstState A) (p:Z) :=
   mpool_alloc_spec_aux st p iteration_bound.
 
 End ALLOC.
-
-End MPOOLHIGHSPEC.
