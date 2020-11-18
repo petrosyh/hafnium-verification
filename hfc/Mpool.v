@@ -847,4 +847,3 @@ Definition mpool_alloc_spec (st:MpoolAbstState A) (p:Z) :=
 
 End ALLOC.
 
-End MPOOLHIGHSPEC.
