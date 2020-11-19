@@ -168,7 +168,61 @@ End ABSTSTATE.
 Section HIGHSPECITREE.
 
 Variable A: Type.
-Variable st: MpoolAbstState A.
+Definition state := MpoolAbstState A.
+
+Inductive updateStateE: Type -> Type :=
+| GetState : updateStateE (MpoolAbstState A)
+| SetState (st:MpoolAbstState A): updateStateE bool.
+
+
+Definition updateState_handler: updateStateE ~> stateT state (itree updateStateE) :=
+  fun _ e st =>
+    match e with
+    | GetState => Ret (
+      
+
+
+Definition handle_MemoryE {E: Type -> Type}
+  : MemoryE ~> stateT mem (itree E) :=
+  fun _ e mem =>
+    match e with
+    | LoadE b ofs => Ret (mem, Mem.load chunk mem b ofs)
+    | StoreE b ofs v =>
+      let mem' := Mem.store chunk mem b ofs v in
+      match mem' with
+      | Some mem' => Ret (mem', true)
+      | _ => Ret (mem, false)
+      end
+    | AllocE sz =>
+      let '(mem', b) := Mem.alloc mem 0 (int_sz * sz) in
+      Ret (mem', Vptr b Ptrofs.zero)
+    | FreeE b ofs =>
+      let mem' := Mem.free mem b 0 ofs in
+      match mem' with
+      | Some mem' => Ret (mem', true)
+      | _ => Ret (mem, false)
+      end
+    end.
+
+Definition f_handler: memoizeE ~> stateT f_owned_heap (itree (GlobalE +' MemoryE +' Event)) :=
+  fun T e oh =>
+    match e with
+    | GetM k => Ret (oh, oh k)
+    | SetM k v => Ret (update oh k v, tt)
+    end
+.
+
+Inductive 
+
+Definition f_ModSem: ModSem :=
+  mk_ModSem
+    (fun s => string_dec s "f")
+    _
+    (fun (_: int) => None: option int)
+    memoizeE
+    f_handler
+    f_sem
+.
 
 Definition mpool_init_spec (p: positive * Z) (entry_size: Z) :=
   let i := next_id st in
