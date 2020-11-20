@@ -170,15 +170,65 @@ Section HIGHSPECITREE.
 Variable A: Type.
 Definition state := MpoolAbstState A.
 
+
 Inductive updateStateE: Type -> Type :=
 | GetState : updateStateE (MpoolAbstState A)
-| SetState (st:MpoolAbstState A): updateStateE bool.
-
+| SetState (st1:MpoolAbstState A): updateStateE unit.
 
 Definition updateState_handler: updateStateE ~> stateT state (itree updateStateE) :=
   fun _ e st =>
     match e with
-    | GetState => Ret (
+    | GetState => Ret (st, st)
+    | SetState st' => Ret (st', tt)
+    end.
+
+Variable st: MpoolAbstState A.
+(* return type is needed? *)
+
+Definition mpool_init_spec (p: positive * Z) (entry_size: Z) :=
+  let i := next_id st in
+  let mp := mkMpool entry_size [] [] None in
+  let id2addr := (PTree.set i p (id_to_addr st)) in
+  match (PTree.get (fst p) (addr_to_id st)) with
+  | None =>
+    let blk_map := (ZTree.set (snd p) i (ZTree.empty positive)) in
+    let addr2id := (PTree.set (fst p) blk_map (addr_to_id st)) in
+    let st' := (mkMpoolAbstState (PTree.set i mp (mpool_map st))
+                                 addr2id
+                                 id2addr
+                                 (Pos.succ i)) in
+    trigger (SetState st')
+  | Some blk_map =>
+    let addr2id := (PTree.set (fst p) blk_map (addr_to_id st)) in
+    let st' := (mkMpoolAbstState (PTree.set i mp (mpool_map st))
+                                 addr2id
+                                 id2addr
+                                 (Pos.succ i)) in
+    trigger (SetState st')
+  end.
+
+
+
+
+
+(* Definition handle_OwnedHeapE {E: Type -> Type} *)
+(*   : OwnedHeapE ~> stateT Any (itree E) := *)
+(*   fun _ e oh => *)
+(*     match e with *)
+(*     | EGetOwnedHeap => *)
+(*       match downcast oh val with *)
+(*       | Some v => Ret (oh, v) *)
+(*       | _ => Ret (oh, Vnodef) (* TODO: error handling? *) *)
+(*       end *)
+(*     | EPutOwnedHeap v => Ret (upcast v, tt) *)
+(*     end *)
+(* . *)
+
+(* Variant OwnedHeapE: Type -> Type := *)
+(* | EGetOwnedHeap : OwnedHeapE val *)
+(* | EPutOwnedHeap (v: val) : OwnedHeapE unit *)
+(* . *)
+
       
 
 
@@ -211,8 +261,6 @@ Definition f_handler: memoizeE ~> stateT f_owned_heap (itree (GlobalE +' MemoryE
     | SetM k v => Ret (update oh k v, tt)
     end
 .
-
-Inductive 
 
 Definition f_ModSem: ModSem :=
   mk_ModSem
