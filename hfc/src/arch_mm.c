@@ -27,6 +27,7 @@
 /* Keep macro alignment */
 /* clang-format off */
 
+// The followings are used with STAGE2_SH and STAGE1_SH
 #define NON_SHAREABLE   UINT64_C(0)
 #define OUTER_SHAREABLE UINT64_C(2)
 #define INNER_SHAREABLE UINT64_C(3)
@@ -35,6 +36,8 @@
 #define PTE_LEVEL0_BLOCK (UINT64_C(1) << 1)
 #define PTE_TABLE        (UINT64_C(1) << 1)
 
+
+// stage 1
 #define STAGE1_XN          (UINT64_C() << 54)
 #define STAGE1_PXN         (UINT64_C(1) << 53)
 #define STAGE1_CONTIGUOUS  (UINT64_C(1) << 52)
@@ -48,12 +51,16 @@
 #define STAGE1_NS          (UINT64_C(1) << 5)
 #define STAGE1_ATTRINDX(x) ((x) << 2)
 
+// It is used with STAGE1_AP
 #define STAGE1_READONLY  UINT64_C(2)
 #define STAGE1_READWRITE UINT64_C(0)
 
+// It is used with STAGE1_ATTRINDX
 #define STAGE1_DEVICEINDX UINT64_C(0)
 #define STAGE1_NORMALINDX UINT64_C(1)
 
+
+// stage 2
 #define STAGE2_XN(x)      ((x) << 53)
 #define STAGE2_CONTIGUOUS (UINT64_C(1) << 52)
 #define STAGE2_DBM        (UINT64_C(1) << 51)
@@ -61,10 +68,12 @@
 #define STAGE2_SH(x)      ((x) << 8)
 #define STAGE2_S2AP(x)    ((x) << 6)
 
+// The followings are used for STAGE2_XN */
 #define STAGE2_EXECUTE_ALL  UINT64_C(0)
 #define STAGE2_EXECUTE_EL0  UINT64_C(1)
 #define STAGE2_EXECUTE_NONE UINT64_C(2)
 #define STAGE2_EXECUTE_EL1  UINT64_C(3)
+// The following is only for masks
 #define STAGE2_EXECUTE_MASK UINT64_C(3)
 
 /* Table attributes only apply to stage 1 translations. */
@@ -78,6 +87,7 @@
 #define STAGE2_SW_OWNED     (UINT64_C(1) << 55)
 #define STAGE2_SW_EXCLUSIVE (UINT64_C(1) << 56)
 
+// The following two are used for MEMATTR in the below
 /* The following are stage-2 memory attributes for normal memory. */
 #define STAGE2_DEVICE_MEMORY UINT64_C(0)
 #define STAGE2_NONCACHEABLE  UINT64_C(1)
@@ -90,10 +100,12 @@
 #define STAGE2_MEMATTR_DEVICE_nGRE   UINT64_C(2)
 #define STAGE2_MEMATTR_DEVICE_GRE    UINT64_C(3)
 
+// They are only for attributes. They are not stored in the pte
 /* The following construct and destruct stage-2 memory attributes. */
 #define STAGE2_MEMATTR(outer, inner) ((((outer) << 2) | (inner)) << 2)
 #define STAGE2_MEMATTR_TYPE_MASK UINT64_C(3 << 4)
 
+// The followings are used with STAGE2_S2AP
 #define STAGE2_ACCESS_READ  UINT64_C(1)
 #define STAGE2_ACCESS_WRITE UINT64_C(2)
 
