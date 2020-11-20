@@ -30,6 +30,8 @@ Require Import
 (* Avoid name clashes *)
 Extraction Blacklist List String Int.
 
+Require Import Toy.
+
 Cd "extract".
 
 (*** TODO: I just want to write as below, but it does NOT work!!!!! ***)
@@ -113,6 +115,9 @@ Separate Extraction
          Lang.my_rr_match
          
          ITreeDefinition.observe
+
+         Toy.FACTTEST.isem
+         Toy.MAPTEST.isem
 .
 
 Cd "..".

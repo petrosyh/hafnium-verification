@@ -77,10 +77,10 @@ Definition E := void1.
     
 
 (* From HafniumCore *)
-Require Import Lang.
 Require Import Values.
 Require Import Integers.
 Require Import Constant.
+Require Import Lang.
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
@@ -92,9 +92,10 @@ Set Implicit Arguments.
 
 Section ABSTSTATE.
 
-Variable A: Type.
-Definition chunk : Type := list A.
-Definition entry : Type := list A.
+Definition chunk : Type := Values.val.
+Definition entry : Type := Values.val.
+
+Definition PtrTree := (PTree.t (ZTree.t positive)).
     
 Inductive Mpool : Type :=
   mkMpool {
@@ -107,12 +108,34 @@ Inductive Mpool : Type :=
 Record MpoolAbstState : Type :=
   mkMpoolAbstState {
       mpool_map : PTree.t Mpool; (* id -> mpool *)
-      addr_to_id : ZTree.t positive; (* mem addr -> id *)
+      addr_to_id : PtrTree; (* memory ptr -> id *)
       next_id : positive; (* new mpool id *)
     }.
 
 Definition initial_state : MpoolAbstState :=
-  mkMpoolAbstState (PTree.empty Mpool) (ZTree.empty positive) 1%positive.
+  mkMpoolAbstState (PTree.empty Mpool) (PTree.empty (ZTree.t positive)) 1%positive.
+
+Definition PtrTree_set (b: block) (ofs: ptrofs) (v: positive) (map: PtrTree) :=
+  let zt := match PTree.get b map with
+            | Some zt => zt
+            | None => (ZTree.empty positive)
+            end in
+  PTree.set b (ZTree.set (Ptrofs.unsigned ofs) v zt) map
+.
+
+Definition PtrTree_get (b: block) (ofs: ptrofs) (map: PtrTree) :=
+  match PTree.get b map with
+  | Some zt => ZTree.get (Ptrofs.unsigned ofs) zt
+  | None => None
+  end
+.
+
+Definition PtrTree_remove (b: block) (ofs: ptrofs) (map: PtrTree) :=
+  match PTree.get b map with
+  | Some zt => PTree.set b (ZTree.remove (Ptrofs.unsigned ofs) zt) map
+  | None => map
+  end
+.
 
 (* m1: child, m2:parent *)
 Inductive child_mpool (st:MpoolAbstState) (m1: Mpool) : Mpool -> Prop :=
@@ -133,7 +156,13 @@ Inductive child_mpool (st:MpoolAbstState) (m1: Mpool) : Mpool -> Prop :=
 Record wf_state (st:MpoolAbstState) : Prop :=
   mkWfState {
       no_cycle:
-        forall id mp, PTree.get id (mpool_map st) = Some mp -> ~ child_mpool st mp mp
+        forall id mp, PTree.get id (mpool_map st) = Some mp -> ~ child_mpool st mp mp;
+      map_addr:
+        forall id mp, PTree.get id (mpool_map st) = Some mp ->
+                 exists b ofs, PtrTree_get b ofs (addr_to_id st) = Some id;
+      addr_map:
+        forall b ofs id, PtrTree_get b ofs (addr_to_id st) = Some id ->
+                    exists mp, PTree.get id (mpool_map st) = Some mp
   }.
 
 End ABSTSTATE.
@@ -166,83 +195,124 @@ End ABSTSTATE.
 
 Section HIGHSPEC.
 
-Variable A: Type.
-Variable st: MpoolAbstState A.
+Variable st: MpoolAbstState.
+Context {eff : Type -> Type}.
+Context {HasEvent : Event -< eff}.
 
-Definition mpool_init_spec (p entry_size:Z) :=
-  let i := next_id st in
-  let mp := mkMpool entry_size [] [] None in
-  Some (mkMpoolAbstState (PTree.set i mp (mpool_map st))
-                         (ZTree.set p i (addr_to_id st)) (Pos.succ i)).
+Definition mpool_init_spec (p entry_size: val) : itree eff MpoolAbstState :=
+  match p with
+  | Vcomp (Vptr b ofs) =>
+    let i := next_id st in
+    match entry_size with
+    | Vcomp (Vint entry_size) =>
+      let mp := mkMpool (Int.signed entry_size) [] [] None in
+      Ret (mkMpoolAbstState (PTree.set i mp (mpool_map st))
+                            (PtrTree_set b ofs i (addr_to_id st)) (Pos.succ i))
+    | Vcomp (Vlong entry_size) =>
+      let mp := mkMpool (Int64.signed entry_size) [] [] None in
+      Ret (mkMpoolAbstState (PTree.set i mp (mpool_map st))
+                            (PtrTree_set b ofs i (addr_to_id st)) (Pos.succ i))
+    | _ => triggerNB "entry_size <> integer"
+    end
+  | _ => triggerNB "p <> Ptr"
+  end
+.
 
-Definition mpool_init_from_spec (p from:Z) :=
-  i <- ZTree.get from (addr_to_id st);;
-  mp <- PTree.get i (mpool_map st);;
-  mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (entry_list mp) (fallback mp));;
-  Some (mkMpoolAbstState
-          (PTree.set (next_id st) mp' (PTree.remove i (mpool_map st)))
-          (ZTree.set p (next_id st) (ZTree.remove from (addr_to_id st)))
-          (Pos.succ (next_id st))).
+Definition main (p i r next_chunk: var): stmt :=
+  (Call "MPOOL.mpool_init_locks" []) #;
+  (Call "MPOOL.mpool_enable_locks" []) #;
+  Alloc p (Int.repr 5) #;
+  Put "main: before init: " p #;
+  Call "MPOOL.mpool_init" [CBR p; CBV (Int.repr 8)] #;
+  Put "main: after init: " p #;
+  next_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr 160))) #;
+  r #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR next_chunk; CBV (Int64.repr 160)]).
 
-Definition mpool_init_with_fallback_spec (p fallback:Z) :=
-  i <- ZTree.get fallback (addr_to_id st);;
-  mp <- PTree.get i (mpool_map st);;
-  mp' <- Some (mkMpool (entry_size mp) [] [] (Some i));;
-  Some (mkMpoolAbstState (PTree.set (next_id st) mp' (mpool_map st))
-                         (ZTree.set p (next_id st) (addr_to_id st))
-                         (Pos.succ (next_id st))).
+  
+(* Definition mpool_init_from_spec (p from: val) := *)
+(*   match from with *)
+(*   | Vcomp (Vptr b ofs) => *)
+(*     let i := PtrTree_get b ofs (addr_to_id st) in *)
+(*     let mp := PTree.get i (mpool_map st) in *)
+(*     let mp' := (mkMpool (entry_size mp) (chunk_list mp) (entry_list mp) (fallback mp)) in *)
+(*     match p with *)
+(*     | Vcomp (Vptr b2 ofs2) => *)
+(*       Ret (mkMpoolAbstState *)
+(*              (PTree.set (next_id st) mp' (PTree.remove i (mpool_map st))) *)
+(*              (PtrTree_set b2 ofs2 (next_id st) (PtrTree_remove b ofs (addr_to_id st))) *)
+(*              (Pos.succ (next_id st))) *)
+(*     | _ => triggerNB "p <> Ptr" *)
+(*     end *)
+(*   | _ => triggerNB "from <> Ptr" *)
+(*   end *)
+(* . *)
+(*   i <- ZTree.get from (addr_to_id st);; *)
+(*   mp <- PTree.get i (mpool_map st);; *)
+(*   mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (entry_list mp) (fallback mp));; *)
+(*   Some (mkMpoolAbstState *)
+(*           (PTree.set (next_id st) mp' (PTree.remove i (mpool_map st))) *)
+(*           (ZTree.set p (next_id st) (ZTree.remove from (addr_to_id st))) *)
+(*           (Pos.succ (next_id st))). *)
 
-Definition mpool_fini_spec (p:Z) :=
-  i <- ZTree.get p (addr_to_id st);;
-  mp <- PTree.get i (mpool_map st);;
-  mpool_map' <-
-  Some (match fallback mp with
-        | Some i_fallback =>
-          match PTree.get i_fallback (mpool_map st) with
-          | Some mp_fallback =>
-            (PTree.set i_fallback (mkMpool (entry_size mp_fallback)
-                                           ((rev (chunk_list mp)) ++ (chunk_list mp_fallback))
-                                           ((rev (entry_list mp)) ++ (entry_list mp_fallback))
-                                           (fallback mp_fallback))
-                       (mpool_map st))
-          | None => (mpool_map st) (* Can't reachable *)
-          end
-        | None => (mpool_map st)
-        end);;
-  Some (mkMpoolAbstState (PTree.remove i mpool_map') (ZTree.remove p (addr_to_id st))
-                         (next_id st)).
+(* Definition mpool_init_with_fallback_spec (p fallback:Z) := *)
+(*   i <- ZTree.get fallback (addr_to_id st);; *)
+(*   mp <- PTree.get i (mpool_map st);; *)
+(*   mp' <- Some (mkMpool (entry_size mp) [] [] (Some i));; *)
+(*   Some (mkMpoolAbstState (PTree.set (next_id st) mp' (mpool_map st)) *)
+(*                          (ZTree.set p (next_id st) (addr_to_id st)) *)
+(*                          (Pos.succ (next_id st))). *)
 
-Definition mpool_free_spec (p:Z) (ptr:list A) :=
-  i <- ZTree.get p (addr_to_id st);;
-  mp <- PTree.get i (mpool_map st);;
-  mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (ptr::entry_list mp) (fallback mp));;
-  Some (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i).
+(* Definition mpool_fini_spec (p:Z) := *)
+(*   i <- ZTree.get p (addr_to_id st);; *)
+(*   mp <- PTree.get i (mpool_map st);; *)
+(*   mpool_map' <- *)
+(*   Some (match fallback mp with *)
+(*         | Some i_fallback => *)
+(*           match PTree.get i_fallback (mpool_map st) with *)
+(*           | Some mp_fallback => *)
+(*             (PTree.set i_fallback (mkMpool (entry_size mp_fallback) *)
+(*                                            ((rev (chunk_list mp)) ++ (chunk_list mp_fallback)) *)
+(*                                            ((rev (entry_list mp)) ++ (entry_list mp_fallback)) *)
+(*                                            (fallback mp_fallback)) *)
+(*                        (mpool_map st)) *)
+(*           | None => (mpool_map st) (* Can't reachable *) *)
+(*           end *)
+(*         | None => (mpool_map st) *)
+(*         end);; *)
+(*   Some (mkMpoolAbstState (PTree.remove i mpool_map') (ZTree.remove p (addr_to_id st)) *)
+(*                          (next_id st)). *)
 
-Definition mpool_add_chunk_spec (p:Z) (c:chunk A) (size:Z) :=
-  i <- ZTree.get p (addr_to_id st);;
-  mp <- PTree.get i (mpool_map st);;
-  mp' <- Some (mkMpool (entry_size mp) (c::(chunk_list mp)) (entry_list mp) (fallback mp));;
-  Some (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i, true).
+(* Definition mpool_free_spec (p:Z) (ptr:list A) := *)
+(*   i <- ZTree.get p (addr_to_id st);; *)
+(*   mp <- PTree.get i (mpool_map st);; *)
+(*   mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (ptr::entry_list mp) (fallback mp));; *)
+(*   Some (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i). *)
 
-Definition mpool_alloc_no_fallback_spec (p:Z) :=
-  i <- ZTree.get p (addr_to_id st);;
-  mp <- PTree.get i (mpool_map st);;
-  entry <- Some (entry_list mp);;
-  if negb (Nat.eqb (length entry) O)
-  then (
-      let mp' := mkMpool (entry_size mp) (chunk_list mp) (tl (entry_list mp)) (fallback mp) in
-      Some (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i, Some (hd entry))
-    )
-  else
-    (
-      let chunk := (chunk_list mp) in
-      if (Nat.eqb (length chunk) O)
-      then Some (st, None)
-      else
-    (* should handle ugly case *)
-      let mp' := mkMpool (entry_size mp) (tl (chunk_list mp)) (entry_list mp) (fallback mp) in
-      Some ((mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i), (Some (hd chunk)))
-    ). 
+(* Definition mpool_add_chunk_spec (p:Z) (c:chunk A) (size:Z) := *)
+(*   i <- ZTree.get p (addr_to_id st);; *)
+(*   mp <- PTree.get i (mpool_map st);; *)
+(*   mp' <- Some (mkMpool (entry_size mp) (c::(chunk_list mp)) (entry_list mp) (fallback mp));; *)
+(*   Some (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i, true). *)
+
+(* Definition mpool_alloc_no_fallback_spec (p:Z) := *)
+(*   i <- ZTree.get p (addr_to_id st);; *)
+(*   mp <- PTree.get i (mpool_map st);; *)
+(*   entry <- Some (entry_list mp);; *)
+(*   if negb (Nat.eqb (length entry) O) *)
+(*   then ( *)
+(*       let mp' := mkMpool (entry_size mp) (chunk_list mp) (tl (entry_list mp)) (fallback mp) in *)
+(*       Some (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i, Some (hd entry)) *)
+(*     ) *)
+(*   else *)
+(*     ( *)
+(*       let chunk := (chunk_list mp) in *)
+(*       if (Nat.eqb (length chunk) O) *)
+(*       then Some (st, None) *)
+(*       else *)
+(*     (* should handle ugly case *) *)
+(*       let mp' := mkMpool (entry_size mp) (tl (chunk_list mp)) (entry_list mp) (fallback mp) in *)
+(*       Some ((mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) i), (Some (hd chunk))) *)
+(*     ). *)
 
 End HIGHSPEC.
 
@@ -273,39 +343,32 @@ End HIGHSPEC.
 
 (* End ALLOC. *)
 
-Section TEST.
+(* Section TEST. *)
+
+(*   Definition p := 3. *)
+(*   Definition p_fallback := 4. *)
+(*   Definition p_fallback2 := 5. *)
   
-  Definition main :=
-    st1 <- mpool_init_spec (initial_state Z) 400 8;;
-    st2 <- mpool_init_with_fallback_spec st1 200 400;;
-    st3 <- mpool_init_from_spec st2 100 200;;
-    res_st4 <- mpool_add_chunk_spec st3 100 [1;2;3] 3;;
-    st4 <- Some (fst res_st4);;
-    res_st5 <- mpool_add_chunk_spec st4 100 [4;5] 2;;
-    st5 <- Some (fst res_st5);;
-    res_st6 <- mpool_add_chunk_spec st5 400 [6;7] 2;;
-    st6 <- Some (fst res_st6);;
-    st7 <- mpool_fini_spec st6 100;;
-    Some st6
-  .
+(*   Definition main := *)
+(*     st1 <- mpool_init_spec (initial_state Z) p 8;; *)
+(*     st2 <- mpool_init_with_fallback_spec st1 p_fallback p;; *)
+(*     res_st3 <- mpool_add_chunk_spec st2 p_fallback [1;2;3] 3;; *)
+(*     st3 <- Some (fst res_st3);; *)
+(*     st4 <- mpool_init_from_spec st3 p_fallback2 p_fallback;; *)
+(*     res_st5 <- mpool_add_chunk_spec st4 p_fallback2 [4;5] 2;; *)
+(*     st5 <- Some (fst res_st5);; *)
+(*     res_st6 <- mpool_add_chunk_spec st5 p [6;7] 2;; *)
+(*     st6 <- Some (fst res_st6);; *)
+(*     st7 <- mpool_free_spec st6 p [8];; *)
+(*     st8 <- mpool_free_spec st7 p_fallback2 [9];; *)
+(*     st9 <- mpool_free_spec st8 p_fallback2 [10];; *)
+(*     st10 <- mpool_fini_spec st9 p_fallback2;; *)
+(*     Some st10 *)
+(*   . *)
 
-  Compute main.
+(*   Compute main. *)
 
-  Fixpoint print_mpool_aux {A} (mpool_map: PTree.t (Mpool A)) (n: nat):=
-    match n with
-    | S n => append "Mpool %d" (print_mpool_aux mpool_map n)
-    | O => ""
-    end.
-
-  Definition print_mpool {A} (mpool: option (MpoolAbstState A)) :=
-    match mpool with
-    | None => "ERROR"
-    | Some mpool => print_mpool_aux (mpool_map mpool) (Pos.to_nat (next_id mpool))
-    end.
-
-  Compute (print_mpool main).
-  
-End TEST.
+(* End TEST. *)
 
 Section ALLOC2.
 
@@ -320,47 +383,47 @@ Section ALLOC2.
 Variable A: Type.
 Hypothesis id_to_addr : positive -> Z.
 
-Definition mpool_alloc_spec_body (stp: MpoolAbstState A * Z) : itree
-                                                               ((callE ((MpoolAbstState A) * Z) (option ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A))))) +' E)
-                                                               (option ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A)))) :=
+(* Definition mpool_alloc_spec_body (stp: MpoolAbstState A * Z) : itree *)
+(*                                                                ((callE ((MpoolAbstState A) * Z) (option ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A))))) +' E) *)
+(*                                                                (option ((MpoolAbstState A) * option (list (list (entry A)) -> list (entry A)))) := *)
   
-  let st := fst stp in
-  let p := snd stp in
-  let i := ZTree.get p (addr_to_id st) in
-  match i with
-  | None => Ret None
-  | Some i =>
-    let mp := PTree.get i (mpool_map st) in
-    match mp with
-    | None => Ret None
-    | Some mp =>
-      let stret := mpool_alloc_no_fallback_spec st p in
-      match stret with
-      | None => Ret None
-      | Some stret =>
-        let (st', ret) := (fst stret, snd stret) in
-        match ret with
-        | Some ret => Ret (Some (st', Some ret))
-        | None => match (fallback mp) with
-                 | None => Ret (Some (st', None))
-                 | Some mp' => call (st', (id_to_addr mp'))
-                 end
-        end
-      end
-    end
-  end.
+(*   let st := fst stp in *)
+(*   let p := snd stp in *)
+(*   let i := ZTree.get p (addr_to_id st) in *)
+(*   match i with *)
+(*   | None => Ret None *)
+(*   | Some i => *)
+(*     let mp := PTree.get i (mpool_map st) in *)
+(*     match mp with *)
+(*     | None => Ret None *)
+(*     | Some mp => *)
+(*       let stret := mpool_alloc_no_fallback_spec st p in *)
+(*       match stret with *)
+(*       | None => Ret None *)
+(*       | Some stret => *)
+(*         let (st', ret) := (fst stret, snd stret) in *)
+(*         match ret with *)
+(*         | Some ret => Ret (Some (st', Some ret)) *)
+(*         | None => match (fallback mp) with *)
+(*                  | None => Ret (Some (st', None)) *)
+(*                  | Some mp' => call (st', (id_to_addr mp')) *)
+(*                  end *)
+(*         end *)
+(*       end *)
+(*     end *)
+(*   end. *)
 
-Definition mpool_alloc_spec (st:MpoolAbstState A) (p:Z) :=
-  rec mpool_alloc_spec_body (st, p).
+(* Definition mpool_alloc_spec (st:MpoolAbstState A) (p:Z) := *)
+(*   rec mpool_alloc_spec_body (st, p). *)
 
-Lemma mpool_alloc_spec_terminate
-      st p
-      (WF: wf_state st)
-  :
-    exists v, mpool_alloc_spec st p = Ret v.
-Proof.
-  admit "".
-Admitted.
+(* Lemma mpool_alloc_spec_terminate *)
+(*       st p *)
+(*       (WF: wf_state st) *)
+(*   : *)
+(*     exists v, mpool_alloc_spec st p = Ret v. *)
+(* Proof. *)
+(*   admit "". *)
+(* Admitted. *)
       
 
 End ALLOC2.                     
