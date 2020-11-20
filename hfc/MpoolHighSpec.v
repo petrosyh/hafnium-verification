@@ -141,29 +141,29 @@ End ABSTSTATE.
 
 (** Error monad with options or lists *)
 
-(* Notation "'do' X <- A ; B" := (match A with Some X => B | None => None end) *)
-(*   (at level 200, X ident, A at level 100, B at level 200) *)
-(*   : option_monad_scope. *)
+Notation "'do' X <- A ; B" := (match A with Some X => B | None => None end)
+  (at level 200, X ident, A at level 100, B at level 200)
+  : option_monad_scope.
 
-(* Notation "'do' X , Y <- A ; B" := (match A with Some (X, Y) => B | None => None end) *)
-(*   (at level 200, X ident, Y ident, A at level 100, B at level 200) *)
-(*   : option_monad_scope. *)
+Notation "'do' X , Y <- A ; B" := (match A with Some (X, Y) => B | None => None end)
+  (at level 200, X ident, Y ident, A at level 100, B at level 200)
+  : option_monad_scope.
 
-(* Notation "'do' X , Y , Z <- A ; B" := (match A with Some (X, Y, Z) => B | None => None end) *)
-(*   (at level 200, X ident, Y ident, Z ident, A at level 100, B at level 200) *)
-(*   : option_monad_scope. *)
+Notation "'do' X , Y , Z <- A ; B" := (match A with Some (X, Y, Z) => B | None => None end)
+  (at level 200, X ident, Y ident, Z ident, A at level 100, B at level 200)
+  : option_monad_scope.
 
-(* Notation " 'check' A ; B" := (if A then B else None) *)
-(*   (at level 200, A at level 100, B at level 200) *)
-(*   : option_monad_scope. *)
+Notation " 'check' A ; B" := (if A then B else None)
+  (at level 200, A at level 100, B at level 200)
+  : option_monad_scope.
 
-(* Notation "'do' X <- A ; B" := (match A with Some X => B | None => nil end) *)
-(*   (at level 200, X ident, A at level 100, B at level 200) *)
-(*   : list_monad_scope. *)
+Notation "'do' X <- A ; B" := (match A with Some X => B | None => nil end)
+  (at level 200, X ident, A at level 100, B at level 200)
+  : list_monad_scope.
 
-(* Notation " 'check' A ; B" := (if A then B else nil) *)
-(*   (at level 200, A at level 100, B at level 200) *)
-(*   : list_monad_scope. *)
+Notation " 'check' A ; B" := (if A then B else nil)
+  (at level 200, A at level 100, B at level 200)
+  : list_monad_scope.
 
 Section HIGHSPECITREE.
 
@@ -207,7 +207,44 @@ Definition mpool_init_spec (p: positive * Z) (entry_size: Z) : itree updateState
     trigger (SetState st');; Ret None
   end.
 
+Definition mpool_init_from_spec (p: positive * Z) (from: positive * Z) : itree updateStateE (option val) :=
+  match (PTree.get (fst from) (addr_to_id st)) with
+  | None => Ret (Some Vundef)
+  | Some blk_map => 
+    match ZTree.get (snd from) blk_map with
+    | None => Ret (Some Vundef)
+    | Some from_id =>
+      match (PTree.get from_id (mpool_map st)) with
+      | None => Ret (Some Vundef)
+      | Some from_mp =>
+        mpool_init_spec p (entry_size from_mp);;
+        st' <- trigger GetState ;; 
+        let mp := (mkMpool (entry_size from_mp) (chunk_list from_mp) (entry_list from_mp) (fallback from_mp)) in
+        match (PTree.get (fst p) (addr_to_id st')) with
+        | None => Ret (Some Vundef)
+        | Some p_blk_map => 
+          match ZTree.get (snd p) p_blk_map with
+          | None => Ret (Some Vundef)
+          | Some p_id =>
+            let st'' := (mkMpoolAbstState (PTree.remove from_id (PTree.set p_id mp (mpool_map st')))
+                                          (addr_to_id st')
+                                          (id_to_addr st')
+                                          (next_id st')) in
+            trigger (SetState st'');; Ret None
+          end
+        end
+      end
+    end
+  end.
 
+Definition mpool_init_from_spec (p from:Z) :=
+  i <- ZTree.get from (addr_to_id st);;
+  mp <- PTree.get i (mpool_map st);;
+  mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (entry_list mp) (fallback mp));;
+  Some (mkMpoolAbstState
+          (PTree.set (next_id st) mp' (PTree.remove i (mpool_map st)))
+          (ZTree.set p (next_id st) (ZTree.remove from (addr_to_id st)))
+          (Pos.succ (next_id st))).
 
 
 
