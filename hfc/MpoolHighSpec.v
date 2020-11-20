@@ -175,17 +175,21 @@ Inductive updateStateE: Type -> Type :=
 | GetState : updateStateE (MpoolAbstState A)
 | SetState (st1:MpoolAbstState A): updateStateE unit.
 
-Definition updateState_handler: updateStateE ~> stateT state (itree updateStateE) :=
+Definition updateState_handler {E: Type -> Type}
+  : updateStateE ~> stateT (MpoolAbstState A) (itree E) :=
   fun _ e st =>
     match e with
     | GetState => Ret (st, st)
     | SetState st' => Ret (st', tt)
     end.
 
-Variable st: MpoolAbstState A.
+(* Variable st: MpoolAbstState A. *)
 (* return type is needed? *)
 
-Definition mpool_init_spec (p: positive * Z) (entry_size: Z) : itree updateStateE (option val) :=
+Definition mpoolE := CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event.
+
+Definition mpool_init_spec (p: positive * Z) (entry_size: Z) : itree mpoolE unit :=
+  st <- trigger GetState;;
   let i := next_id st in
   let mp := mkMpool entry_size [] [] None in
   let id2addr := (PTree.set i p (id_to_addr st)) in
@@ -197,17 +201,61 @@ Definition mpool_init_spec (p: positive * Z) (entry_size: Z) : itree updateState
                                  addr2id
                                  id2addr
                                  (Pos.succ i)) in
-    trigger (SetState st');; Ret None
+    trigger (SetState st')
   | Some blk_map =>
-    let addr2id := (PTree.set (fst p) blk_map (addr_to_id st)) in
+    let blk_map' := (ZTree.set (snd p) i blk_map) in
+    let addr2id := (PTree.set (fst p) blk_map' (addr_to_id st)) in
     let st' := (mkMpoolAbstState (PTree.set i mp (mpool_map st))
                                  addr2id
                                  id2addr
                                  (Pos.succ i)) in
-    trigger (SetState st');; Ret None
+    trigger (SetState st')
   end.
 
-Definition mpool_init_from_spec (p: positive * Z) (from: positive * Z) : itree updateStateE (option val) :=
+Definition mpool_init_aux (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
+  match args with
+  | [Vcomp (Vptr b ofs); args2] =>
+    match args2 with
+    | Vcomp (Vint entry_size) =>
+      mpool_init_spec (b, Ptrofs.unsigned ofs) (Int.unsigned entry_size);;
+      Ret (Vnull, args)
+    | Vcomp (Vlong entry_size) =>
+      mpool_init_spec (b, Ptrofs.unsigned ofs) (Int64.unsigned entry_size);;
+      Ret (Vnull, args)
+    | _ => triggerUB "Wrong args: mpool_init"
+    end
+  | _ => triggerUB "Wrong args: mpool_init"
+  end
+.
+
+Definition funcs :=
+  [ ("mpool_init", mpool_init_aux) ]
+.
+
+Definition mpool_modsem : ModSem :=
+  mk_ModSem
+    (fun s => existsb (string_dec s) (List.map fst funcs))
+    _
+    (initial_state A)
+    updateStateE
+    updateState_handler
+    (fun T (c: CallExternalE T) =>
+       let '(CallExternal func_name args) := c in
+       let fix find_func l :=
+           match l with
+           | (f, body)::tl =>
+             if (string_dec func_name f)
+             then body args
+             else find_func tl
+           | nil => triggerNB "Not mpool func"
+           end
+       in
+       find_func funcs
+    )
+.
+
+Definition mpool_init_from_spec (p: positive * Z) (from: positive * Z) : itree mpoolE (option val) :=
+  st <- trigger GetState;;
   match (PTree.get (fst from) (addr_to_id st)) with
   | None => Ret (Some Vundef)
   | Some blk_map => 
