@@ -185,7 +185,7 @@ Definition updateState_handler: updateStateE ~> stateT state (itree updateStateE
 Variable st: MpoolAbstState A.
 (* return type is needed? *)
 
-Definition mpool_init_spec (p: positive * Z) (entry_size: Z) :=
+Definition mpool_init_spec (p: positive * Z) (entry_size: Z) : itree updateStateE (option val) :=
   let i := next_id st in
   let mp := mkMpool entry_size [] [] None in
   let id2addr := (PTree.set i p (id_to_addr st)) in
@@ -197,14 +197,14 @@ Definition mpool_init_spec (p: positive * Z) (entry_size: Z) :=
                                  addr2id
                                  id2addr
                                  (Pos.succ i)) in
-    trigger (SetState st')
+    trigger (SetState st');; Ret None
   | Some blk_map =>
     let addr2id := (PTree.set (fst p) blk_map (addr_to_id st)) in
     let st' := (mkMpoolAbstState (PTree.set i mp (mpool_map st))
                                  addr2id
                                  id2addr
                                  (Pos.succ i)) in
-    trigger (SetState st')
+    trigger (SetState st');; Ret None
   end.
 
 
