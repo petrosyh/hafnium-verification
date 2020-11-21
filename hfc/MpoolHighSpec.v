@@ -258,6 +258,7 @@ Definition mpool_add_chunk_spec (p: positive * Z) (c:chunk A) (size:Z) : itree m
     end
   end.
 
+(* YH:problem *)
 Fixpoint make_chunk {A} (a:A) (len: nat) :=
   match len with
   | O => []
@@ -379,6 +380,48 @@ Definition mpool_alloc_spec_body (p: positive * Z) : itree ((callE (positive * Z
     end
   end.
 
+Definition mpool_alloc_spec (p: positive * Z) : itree mpoolE (option (list A)) :=
+  rec mpool_alloc_spec_body p.
+
+Definition mpool_alloc_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
+  match args with
+  | [Vcomp (Vptr p_blk p_ofs)] =>
+      v <- mpool_alloc_spec (p_blk, Ptrofs.unsigned p_ofs);;
+      Ret (Vabs (Any.upcast v), args)
+  | _ => triggerUB "Wrong args: mpool_alloc"
+  end.
+
+Definition mpool_free_spec (p: positive * Z) (ptr:list A) : itree mpoolE unit :=
+  st <- trigger GetState;;
+  match (PtrTree_get p (addr_to_id st)) with
+  | None => Ret tt
+  | Some i =>
+    match PTree.get i (mpool_map st) with
+    | None => Ret tt
+    | Some mp =>
+      let mp' := (mkMpool (entry_size mp) (chunk_list mp) (ptr::entry_list mp) (fallback mp)) in
+      let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
+      trigger (SetState st')
+    end
+  end.
+
+Definition mpool_free_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
+  match args with
+  | [Vcomp (Vptr p_blk p_ofs); Vcomp (Vptr ptr_blk ptr_ofs)] =>
+      st <- trigger GetState;;
+      match PtrTree_get (p_blk, Ptrofs.unsigned p_ofs) (addr_to_id st) with
+      | None => triggerUB "Wrong args: mpool_free"
+      | Some id =>
+        match PTree.get id (mpool_map st) with
+        | None => triggerUB "Wrong args: mpool_free"
+        | Some mp =>
+          v <- mpool_free_spec (p_blk, Ptrofs.unsigned p_ofs) (make_chunk a (Z.abs_nat (entry_size mp)));;
+            Ret (Vnull, args)
+        end
+      end
+  | _ => triggerUB "Wrong args: mpool_free"
+  end.
+
 Definition empty_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
   Ret (Vnull, args).
 
@@ -435,7 +478,8 @@ Definition funcs :=
     ("MPOOL.mpool_init_with_fallback", mpool_init_with_fallback_call);
     ("MPOOL.mpool_add_chunk", mpool_add_chunk_call);
     ("MPOOL.mpool_fini", mpool_fini_call);
-    ("MPOOL.mpool_alloc_no_fallback", mpool_alloc_no_fallback_call);
+    ("MPOOL.mpool_alloc", mpool_alloc_call);
+    ("MPOOL.mpool_free", mpool_free_call);
     ("MPOOL.mpool_init_locks", empty_call);
     ("MPOOL.mpool_enable_locks", empty_call);
     ("MPOOL.print_mpool", print_mpool_call)
