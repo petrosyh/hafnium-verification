@@ -40,42 +40,6 @@ Inductive terminate {E} {R} (it:itree E R) : Prop :=
 | TermTau
     (TAU: observe it = TauF it).
 
-Definition E := void1.
-
-(* Definition fact_body (x : nat) : itree (callE nat nat +' E) nat := *)
-(*  match x with *)
-(*   | O => Ret 1%nat *)
-(*   | S m => *)
-(*     y <- call m ;;  (* Recursively compute [y := m!] *) *)
-(*     Ret (x * y)%nat *)
-(*   end. *)
-
-(* Definition factorial (n : nat) : itree E nat := *)
-(*   rec fact_body n. *)
-
-(* Lemma unfold_factorial : forall x, *)
-(*     factorial x ≈ match x with *)
-(*                   | O => Ret 1%nat *)
-(*                   | S m => *)
-(*                     y <- factorial m ;; *)
-(*                     Ret (x * y)%nat *)
-(*                   end. *)
-(* Proof. *)
-(*   intros x. *)
-(*   unfold factorial. *)
-(*   induction x; simpl in *. *)
-(*   - rewrite rec_as_interp. ss. *)
-(*     unfold interp. ss. *)
-
-(* Lemma aa *)
-(*       n *)
-(*   : *)
-(*     terminate (factorial n). *)
-(* Proof. *)
-(*   destruct n. *)
-(*   - econs. instantiate (1:=1%nat). *)
-    
-
 (* From HafniumCore *)
 Require Import Lang.
 Require Import Values.
@@ -114,6 +78,28 @@ Record MpoolAbstState : Type :=
 
 Definition initial_state : MpoolAbstState :=
   mkMpoolAbstState (PTree.empty Mpool) (PTree.empty (ZTree.t positive)) (PTree.empty (positive * Z)) 1%positive.
+
+Definition PtrTree_set (ptr: positive * Z) (v: positive) (map: PTree.t (ZTree.t positive)) :=
+  let zt := match PTree.get (fst ptr) map with
+            | Some zt => zt
+            | None => (ZTree.empty positive)
+            end in
+  PTree.set (fst ptr) (ZTree.set (snd ptr) v zt) map
+.
+
+Definition PtrTree_get (ptr: positive * Z) (map: PTree.t (ZTree.t positive)) :=
+  match PTree.get (fst ptr) map with
+  | Some zt => ZTree.get (snd ptr) zt
+  | None => None
+  end
+.
+
+Definition PtrTree_remove (ptr: positive * Z) (map: PTree.t (ZTree.t positive)) :=
+  match PTree.get (fst ptr) map with
+  | Some zt => PTree.set (fst ptr) (ZTree.remove (snd ptr) zt) map
+  | None => map
+  end
+.
 
 (* m1: child, m2:parent *)
 Inductive child_mpool (st:MpoolAbstState) (m1: Mpool) : Mpool -> Prop :=
@@ -192,35 +178,22 @@ Definition mpool_init_spec (p: positive * Z) (entry_size: Z) : itree mpoolE unit
   st <- trigger GetState;;
   let i := next_id st in
   let mp := mkMpool entry_size [] [] None in
-  let id2addr := (PTree.set i p (id_to_addr st)) in
-  match (PTree.get (fst p) (addr_to_id st)) with
-  | None =>
-    let blk_map := (ZTree.set (snd p) i (ZTree.empty positive)) in
-    let addr2id := (PTree.set (fst p) blk_map (addr_to_id st)) in
-    let st' := (mkMpoolAbstState (PTree.set i mp (mpool_map st))
-                                 addr2id
-                                 id2addr
-                                 (Pos.succ i)) in
-    trigger (SetState st')
-  | Some blk_map =>
-    let blk_map' := (ZTree.set (snd p) i blk_map) in
-    let addr2id := (PTree.set (fst p) blk_map' (addr_to_id st)) in
-    let st' := (mkMpoolAbstState (PTree.set i mp (mpool_map st))
-                                 addr2id
-                                 id2addr
-                                 (Pos.succ i)) in
-    trigger (SetState st')
-  end.
+  let st' := (mkMpoolAbstState (PTree.set i mp (mpool_map st))
+                               (PtrTree_set p i (addr_to_id st))
+                               (PTree.set i p (id_to_addr st))
+                               (Pos.succ i)) in
+  trigger (SetState st')
+.
 
 Definition mpool_init_aux (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
   match args with
-  | [Vcomp (Vptr b ofs); args2] =>
+  | [Vcomp (Vptr blk ofs); args2] =>
     match args2 with
     | Vcomp (Vint entry_size) =>
-      mpool_init_spec (b, Ptrofs.unsigned ofs) (Int.unsigned entry_size);;
+      mpool_init_spec (blk, Ptrofs.unsigned ofs) (Int.unsigned entry_size);;
       Ret (Vnull, args)
     | Vcomp (Vlong entry_size) =>
-      mpool_init_spec (b, Ptrofs.unsigned ofs) (Int64.unsigned entry_size);;
+      mpool_init_spec (blk, Ptrofs.unsigned ofs) (Int64.unsigned entry_size);;
       Ret (Vnull, args)
     | _ => triggerUB "Wrong args: mpool_init"
     end
@@ -228,8 +201,45 @@ Definition mpool_init_aux (args: list Lang.val): itree mpoolE (Lang.val * list L
   end
 .
 
+Definition mpool_init_from_spec (p: positive * Z) (from: positive * Z) : itree mpoolE unit :=
+  st <- trigger GetState;;
+  match (PtrTree_get from (addr_to_id st)) with
+  | None => Ret tt
+  | Some from_id =>
+    match (PTree.get from_id (mpool_map st)) with
+    | None => Ret tt (* Can't reachable with wf state *)
+    | Some from_mp =>
+      mpool_init_spec p (entry_size from_mp);;
+      st' <- trigger GetState;;
+      match PtrTree_get p (addr_to_id st') with
+      | Some p_id =>
+        let mp := (mkMpool (entry_size from_mp) (chunk_list from_mp)
+                           (entry_list from_mp) (fallback from_mp)) in
+        let st'' := (mkMpoolAbstState (PTree.remove from_id (PTree.set p_id mp (mpool_map st')))
+                                      (PtrTree_remove from (addr_to_id st'))
+                                      (PTree.remove from_id (id_to_addr st'))
+                                      (next_id st')) in
+        trigger (SetState st'');; Ret tt
+      | None => Ret tt (* Can't reachable *)
+      end
+    end
+  end
+.
+
+Definition mpool_init_from_aux (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
+  match args with
+  | [Vcomp (Vptr p_blk p_ofs); Vcomp (Vptr from_blk from_ofs)] =>
+      mpool_init_from_spec (p_blk, Ptrofs.unsigned p_ofs) (from_blk, Ptrofs.unsigned from_ofs);;
+      Ret (Vnull, args)
+  | _ => triggerUB "Wrong args: mpool_init_from"
+  end
+.
+
 Definition funcs :=
-  [ ("mpool_init", mpool_init_aux) ]
+  [
+    ("mpool_init", mpool_init_aux);
+    ("mpool_init_from", mpool_init_from_aux)
+  ]
 .
 
 Definition mpool_modsem : ModSem :=
@@ -253,115 +263,6 @@ Definition mpool_modsem : ModSem :=
        find_func funcs
     )
 .
-
-Definition mpool_init_from_spec (p: positive * Z) (from: positive * Z) : itree mpoolE (option val) :=
-  st <- trigger GetState;;
-  match (PTree.get (fst from) (addr_to_id st)) with
-  | None => Ret (Some Vundef)
-  | Some blk_map => 
-    match ZTree.get (snd from) blk_map with
-    | None => Ret (Some Vundef)
-    | Some from_id =>
-      match (PTree.get from_id (mpool_map st)) with
-      | None => Ret (Some Vundef)
-      | Some from_mp =>
-        mpool_init_spec p (entry_size from_mp);;
-        st' <- trigger GetState ;; 
-        let mp := (mkMpool (entry_size from_mp) (chunk_list from_mp) (entry_list from_mp) (fallback from_mp)) in
-        match (PTree.get (fst p) (addr_to_id st')) with
-        | None => Ret (Some Vundef)
-        | Some p_blk_map => 
-          match ZTree.get (snd p) p_blk_map with
-          | None => Ret (Some Vundef)
-          | Some p_id =>
-            let st'' := (mkMpoolAbstState (PTree.remove from_id (PTree.set p_id mp (mpool_map st')))
-                                          (addr_to_id st')
-                                          (id_to_addr st')
-                                          (next_id st')) in
-            trigger (SetState st'');; Ret None
-          end
-        end
-      end
-    end
-  end.
-
-Definition mpool_init_from_spec (p from:Z) :=
-  i <- ZTree.get from (addr_to_id st);;
-  mp <- PTree.get i (mpool_map st);;
-  mp' <- Some (mkMpool (entry_size mp) (chunk_list mp) (entry_list mp) (fallback mp));;
-  Some (mkMpoolAbstState
-          (PTree.set (next_id st) mp' (PTree.remove i (mpool_map st)))
-          (ZTree.set p (next_id st) (ZTree.remove from (addr_to_id st)))
-          (Pos.succ (next_id st))).
-
-
-
-(* Definition handle_OwnedHeapE {E: Type -> Type} *)
-(*   : OwnedHeapE ~> stateT Any (itree E) := *)
-(*   fun _ e oh => *)
-(*     match e with *)
-(*     | EGetOwnedHeap => *)
-(*       match downcast oh val with *)
-(*       | Some v => Ret (oh, v) *)
-(*       | _ => Ret (oh, Vnodef) (* TODO: error handling? *) *)
-(*       end *)
-(*     | EPutOwnedHeap v => Ret (upcast v, tt) *)
-(*     end *)
-(* . *)
-
-(* Variant OwnedHeapE: Type -> Type := *)
-(* | EGetOwnedHeap : OwnedHeapE val *)
-(* | EPutOwnedHeap (v: val) : OwnedHeapE unit *)
-(* . *)
-
-      
-
-
-Definition handle_MemoryE {E: Type -> Type}
-  : MemoryE ~> stateT mem (itree E) :=
-  fun _ e mem =>
-    match e with
-    | LoadE b ofs => Ret (mem, Mem.load chunk mem b ofs)
-    | StoreE b ofs v =>
-      let mem' := Mem.store chunk mem b ofs v in
-      match mem' with
-      | Some mem' => Ret (mem', true)
-      | _ => Ret (mem, false)
-      end
-    | AllocE sz =>
-      let '(mem', b) := Mem.alloc mem 0 (int_sz * sz) in
-      Ret (mem', Vptr b Ptrofs.zero)
-    | FreeE b ofs =>
-      let mem' := Mem.free mem b 0 ofs in
-      match mem' with
-      | Some mem' => Ret (mem', true)
-      | _ => Ret (mem, false)
-      end
-    end.
-
-Definition f_handler: memoizeE ~> stateT f_owned_heap (itree (GlobalE +' MemoryE +' Event)) :=
-  fun T e oh =>
-    match e with
-    | GetM k => Ret (oh, oh k)
-    | SetM k v => Ret (update oh k v, tt)
-    end
-.
-
-Definition f_ModSem: ModSem :=
-  mk_ModSem
-    (fun s => string_dec s "f")
-    _
-    (fun (_: int) => None: option int)
-    memoizeE
-    f_handler
-    f_sem
-.
-
-Definition mpool_init_spec (p: positive * Z) (entry_size: Z) :=
-  let i := next_id st in
-  let mp := mkMpool entry_size [] [] None in
-  
-  let mp 
 
 End HIGHSPECITREE.
 Section HIGHSPEC.
