@@ -246,6 +246,7 @@ Extract Constant show_val =>
 ".
 *)
 
+(*
 Extract Constant show_val => "
   let rec nat_to_int = function | O -> 0 | S n -> succ (nat_to_int n) in
   let rec nat_of_int n = assert(n >= 0); if(n == 0) then O else S (nat_of_int (pred n)) in
