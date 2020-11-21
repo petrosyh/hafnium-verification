@@ -402,7 +402,7 @@ Module MPOOLTEST.
       eval_multimodule [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
 
     Definition isem2: itree Event unit :=
-      eval_multimodule [program_to_ModSem main_program ; (MpoolHighSpec.mpool_modsem nat)].
+      eval_multimodule [program_to_ModSem main_program ; (MpoolHighSpec.mpool_modsem)].
 
   End MPOOLTEST_FIVE.
 
