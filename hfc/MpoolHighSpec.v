@@ -317,10 +317,10 @@ Definition mpool_fini_call (args: list Lang.val): itree mpoolE (Lang.val * list 
 Definition mpool_alloc_no_fallback_spec (p: positive * Z) : itree mpoolE (option (list A)) :=
   st <- trigger GetState;;
   match (PtrTree_get p (addr_to_id st)) with
-  | None => Ret None 
+  | None => Ret None (* UB *)
   | Some i =>
     match PTree.get i (mpool_map st) with
-    | None => Ret None
+    | None => Ret None (* UB *)
     | Some mp =>
       match (entry_list mp) with
       | ethd :: ettl =>
@@ -358,7 +358,34 @@ Definition mpool_alloc_no_fallback_call (args: list Lang.val): itree mpoolE (Lan
   end
 .
 
-
+Definition mpool_alloc_spec_body (p: positive * Z) := (* : itree ((callE (positive * Z) (option (list A))) +' mpoolE) (option (list A)) := *)
+  st <- trigger GetState;;
+  match (PtrTree_get p (addr_to_id st)) with
+  | None => Ret None 
+  | Some i =>
+    match PTree.get i (mpool_map st) with
+    | None => Ret None
+    | Some mp =>
+      v <-  mpool_alloc_no_fallback_spec p;;
+        match v with
+        | Some v' => Ret (Some v')
+        | None =>
+          match (fallback mp) with
+          | None => Ret None
+          | Some fallback_id => 
+            st' <- trigger GetState;;
+                match (PTree.get fallback_id (id_to_addr st')) with
+                | None => Ret None
+                | Some p =>
+                  let (fb_b, fb_ofs) := p in
+                  Ret None (* inf loop ... idk why *)
+                  (* call (fb_b, fb_ofs) *)
+                end
+          end
+        end
+    end
+  end.
+  
 Definition funcs :=
   [
     ("mpool_init_spec", mpool_init_call);
