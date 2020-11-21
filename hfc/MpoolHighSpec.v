@@ -1,4 +1,4 @@
- From Coq Require Import
+From Coq Require Import
      Arith.PeanoNat
      Lists.List
      Strings.String
@@ -124,6 +124,11 @@ Record wf_state (st:MpoolAbstState) : Prop :=
   }.
 
 End ABSTSTATE.
+
+Variable Z_to_string: Z -> string.
+Extract Constant Z_to_string =>
+"fun z -> (HexString.of_Z z)"
+.
 
 Section HIGHSPECITREE.
 
@@ -305,7 +310,7 @@ Definition mpool_fini_spec (p: positive * Z) : itree mpoolE unit :=
       trigger (SetState st')
     end
   end.
-      
+
 Definition mpool_fini_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
   match args with
   | [Vcomp (Vptr p_blk p_ofs)] =>
@@ -314,7 +319,7 @@ Definition mpool_fini_call (args: list Lang.val): itree mpoolE (Lang.val * list 
   | _ => triggerUB "Wrong args: mpool_fini"
   end.
 
-Definition mpool_alloc_no_fallback_spec (p: positive * Z) : itree mpoolE (option (list A)) :=
+Definition mpool_alloc_no_fallback_spec {E} (p: positive * Z) : itree (E +' mpoolE) (option (list A)) :=
   st <- trigger GetState;;
   match (PtrTree_get p (addr_to_id st)) with
   | None => Ret None (* UB *)
@@ -346,22 +351,10 @@ Definition mpool_alloc_no_fallback_spec (p: positive * Z) : itree mpoolE (option
     end
   end.
 
-Definition mpool_alloc_no_fallback_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
-  match args with
-  | [Vcomp (Vptr p_blk p_ofs)] =>
-    v <- mpool_alloc_no_fallback_spec (p_blk, Ptrofs.unsigned p_ofs);;
-      match v with
-      | None => Ret (Vnull, args) (* wrong case... UB? *)
-      | Some v => Ret (Vabs (Any.upcast v), args)
-      end
-  | _ => triggerUB "Wrong args: mpool_alloc_no_fallback"
-  end
-.
-
-Definition mpool_alloc_spec_body (p: positive * Z) := (* : itree ((callE (positive * Z) (option (list A))) +' mpoolE) (option (list A)) := *)
+Definition mpool_alloc_spec_body (p: positive * Z) : itree ((callE (positive * Z) (option (list A))) +' mpoolE) (option (list A)) :=
   st <- trigger GetState;;
   match (PtrTree_get p (addr_to_id st)) with
-  | None => Ret None 
+  | None => Ret None
   | Some i =>
     match PTree.get i (mpool_map st) with
     | None => Ret None
@@ -372,28 +365,80 @@ Definition mpool_alloc_spec_body (p: positive * Z) := (* : itree ((callE (positi
         | None =>
           match (fallback mp) with
           | None => Ret None
-          | Some fallback_id => 
+          | Some fallback_id =>
             st' <- trigger GetState;;
                 match (PTree.get fallback_id (id_to_addr st')) with
                 | None => Ret None
                 | Some p =>
                   let (fb_b, fb_ofs) := p in
-                  Ret None (* inf loop ... idk why *)
-                  (* call (fb_b, fb_ofs) *)
+                  (* Ret None (* inf loop ... idk why *) *)
+                  call (fb_b, fb_ofs)
                 end
           end
         end
     end
   end.
-  
+
+Definition empty_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
+  Ret (Vnull, args).
+
+Definition print_mpool_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
+  st <- trigger GetState;;
+  match args with
+  | [Vcomp (Vptr p_blk p_ofs)] =>
+    match (PtrTree_get (p_blk, (Ptrofs.unsigned p_ofs)) (addr_to_id st)) with
+    | None => Ret (Vnull, args)
+    | Some id =>
+      match (PTree.get id (mpool_map st)) with
+      | None => Ret (Vnull, args) (* Can't reachable with wf state *)
+      | Some mp =>
+        let entry := (append "entry_size: " (Z_to_string (entry_size mp))) in
+        triggerSyscall "hd" entry [Vnull];;
+        let fix print_chunk l i :=
+            match l with
+            | [] => triggerSyscall "hd" "" [Vnull]
+            | hd::tl =>
+              triggerSyscall "hd" (append "  chunk " (Z_to_string i)) [Vnull];;
+              triggerSyscall "hd" (append "    start " "ASDF") [Vnull];;
+              triggerSyscall "hd" (append "    end " "ASDF") [Vnull];;
+              triggerSyscall "hd" (append "    size " "ASDF") [Vnull];;
+              print_chunk tl (i + 1)%Z
+            end
+        in
+        print_chunk (chunk_list mp) 0;;
+        let fix print_entry l i :=
+            match l with
+            | [] => triggerSyscall "hd" "" [Vnull]
+            | hd::tl =>
+              triggerSyscall "hd" (append "  entry " (Z_to_string i)) [Vnull];;
+              triggerSyscall "hd" "ASDF" [Vnull];;
+              print_chunk tl (i + 1)%Z
+            end
+        in
+        print_entry (entry_list mp) 0;;
+        let fallback := match fallback mp with
+                        | Some p => append "fallback: " (Z_to_string (Zpos' p))
+                        | None => "fallback: None"
+                        end
+        in
+        triggerSyscall "hd" fallback [Vnull];;
+        Ret (Vnull, args)
+      end
+    end
+  | _ => triggerUB "Wrong args: print_mpool"
+  end.
+
 Definition funcs :=
   [
-    ("mpool_init_spec", mpool_init_call);
-    ("mpool_init_from_spec", mpool_init_from_call);
-    ("mpool_init_with_fallback_spec", mpool_init_with_fallback_call);
-    ("mpool_add_chunk_spec", mpool_add_chunk_call);
-    ("mpool_fini_spec", mpool_fini_call);
-    ("mpool_alloc_no_fallback", mpool_alloc_no_fallback_call)
+    ("MPOOL.mpool_init", mpool_init_call);
+    ("MPOOL.mpool_init_from", mpool_init_from_call);
+    ("MPOOL.mpool_init_with_fallback", mpool_init_with_fallback_call);
+    ("MPOOL.mpool_add_chunk", mpool_add_chunk_call);
+    ("MPOOL.mpool_fini", mpool_fini_call);
+    ("MPOOL.mpool_alloc_no_fallback", mpool_alloc_no_fallback_call);
+    ("MPOOL.mpool_init_locks", empty_call);
+    ("MPOOL.mpool_enable_locks", empty_call);
+    ("MPOOL.print_mpool", print_mpool_call)
   ]
 .
 

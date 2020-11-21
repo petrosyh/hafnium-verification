@@ -55,6 +55,7 @@ Require Import Integers.
 Require Import Constant.
 Require Import Lock.
 Require Import Mpool.
+Require Import MpoolHighSpec.
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
@@ -354,5 +355,55 @@ Module MPOOLTEST.
         modsems [ "main" ; "alloc_and_free1" ; "alloc_and_free2" ].
     
   End MPOOLTEST_FOUR.
-  
+
+  Module MPOOLTEST_FIVE.
+
+    (* Test with HighSpec *)
+
+    Definition main (p p_fallback p_fallback2 begin res: var) : stmt :=
+      (* Put "test plus" (Plus (Vcomp (Vint (repr 1))) (Vcomp (Vint (repr 5)))) #; *)
+      (Call "MPOOL.mpool_init_locks" []) #;
+      (Call "MPOOL.mpool_enable_locks" []) #;
+      (* #assume mpool_locks_enabled #; *)
+      Alloc p (Int.repr 5) #;
+      Put "main: before init: " p #;
+      (* initialize it with the entry size - 8 *)
+      Call "MPOOL.mpool_init" [CBV p; CBV (Int64.repr 8)] #;
+      Alloc p_fallback (Int.repr 5) #;
+      (Call "MPOOL.mpool_init_with_fallback" [CBR p_fallback; CBR p]) #;
+      Put "main: after init: " p #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 160))) #;
+      res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback; CBR begin; CBV (Int64.repr 24)]) #;
+      Alloc p_fallback2 (Int.repr 5) #;
+      (Call "MPOOL.mpool_init_from" [CBR p_fallback2; CBR p_fallback]) #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 184))) #;
+      res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 16)]) #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 200))) #;
+      res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback2; CBR begin; CBV (Int64.repr 16)]) #;
+      (* begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 216))) #; *)
+      (* res #= (Call "MPOOL.mpool_free" [CBR p; CBR begin]) #; *)
+      (* begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 224))) #; *)
+      (* res #= (Call "MPOOL.mpool_free" [CBR p_fallback2; CBR begin]) #; *)
+      (* begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 232))) #; *)
+      (* res #= (Call "MPOOL.mpool_free" [CBR p_fallback2; CBR begin]) #; *)
+      (Call "MPOOL.mpool_fini" [CBR p_fallback2]) #;
+      (Call "MPOOL.print_mpool" [CBR p]) #;
+      Skip.
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) ["p" ; "p_fallback" ; "p_fallback2" ; "begin" ; "res"]. Defined.
+
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem1: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
+
+    Definition isem2: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; (MpoolHighSpec.mpool_modsem nat)].
+
+  End MPOOLTEST_FIVE.
+
 End MPOOLTEST.

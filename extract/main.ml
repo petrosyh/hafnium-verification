@@ -311,6 +311,15 @@ let rec my_rr q =
 
 let main =
   Random.self_init();
+  print_endline "------------------------LOW SPEC-------------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem1) ;
+  print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem2) ;
+  print_endline "--------------------------------------------------------------" ;
+  ()
+
+let main t =
+  Random.self_init();
 
   print_endline "--------------------------------------------------------------" ;
   print_endline "---------------------  LANG TEST ----------------------------" ;

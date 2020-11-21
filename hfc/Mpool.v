@@ -728,7 +728,39 @@ Module MPOOLCONCUR.
   Definition mpool_alloc_contiguousF: function.
     mk_function_tac mpool_alloc_contiguous ["p"; "count"; "align"] ["ret"].
   Defined.
+
+
+  (* For debugging *)
+  Definition print_mpool (p chunk entry i:var) : stmt :=
+    Put "------------print mpool------------" (Vabs (Any.upcast tt)) #;
+    Put "mpool pointer:" p #;
+    Put "entry_size:" (p #@ entry_size_loc) #;
+    chunk #= (p #@ chunk_list_loc) #;
+    i #= (Int.repr 0) #;
+    (#while chunk
+      do
+      (Put "  chunk" i #;
+           Put "    start:" chunk #;
+           Put "    end:" (chunk #@ limit_loc) #;
+           Put "    size:" ((Cast (chunk #@ limit_loc) tint) - (Cast chunk tint)) #;
+           chunk #= (chunk #@ next_chunk_loc) #;
+           i #= i + (Int.repr 1)))
+    #;
+    entry #= (p #@ entry_list_loc) #;
+    i #= (Int.repr 0) #;
+    (#while entry
+      do
+      (Put "  entry " i #;
+           Put "    " entry #;
+           entry #= (entry #@ next_loc) #;
+           i #= i + (Int.repr 1)))
+    #;
+    Put "fallback:" (p #@ fallback_loc).
   
+  Definition print_mpoolF: function.
+    mk_function_tac print_mpool ["p"] ["chunk"; "entry"; "i"].
+  Defined.
+
   (* MPOOL module definition *)
   Definition mpool_program: program :=
       [
@@ -743,7 +775,8 @@ Module MPOOLCONCUR.
       ("MPOOL.mpool_add_chunk", mpool_add_chunkF) ;
       ("MPOOL.mpool_free", mpool_freeF) ;
       ("MPOOL.mpool_alloc_contiguous_no_fallback", mpool_alloc_contiguous_no_fallbackF) ;
-      ("MPOOL.mpool_alloc_contiguous", mpool_alloc_contiguousF)
+      ("MPOOL.mpool_alloc_contiguous", mpool_alloc_contiguousF);
+      ("MPOOL.print_mpool", print_mpoolF)
       ].
   
   Definition mpool_modsem : ModSem := program_to_ModSem mpool_program.
