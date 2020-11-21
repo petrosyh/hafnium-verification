@@ -125,32 +125,6 @@ Record wf_state (st:MpoolAbstState) : Prop :=
 
 End ABSTSTATE.
 
-(** Error monad with options or lists *)
-
-Notation "'do' X <- A ; B" := (match A with Some X => B | None => None end)
-  (at level 200, X ident, A at level 100, B at level 200)
-  : option_monad_scope.
-
-Notation "'do' X , Y <- A ; B" := (match A with Some (X, Y) => B | None => None end)
-  (at level 200, X ident, Y ident, A at level 100, B at level 200)
-  : option_monad_scope.
-
-Notation "'do' X , Y , Z <- A ; B" := (match A with Some (X, Y, Z) => B | None => None end)
-  (at level 200, X ident, Y ident, Z ident, A at level 100, B at level 200)
-  : option_monad_scope.
-
-Notation " 'check' A ; B" := (if A then B else None)
-  (at level 200, A at level 100, B at level 200)
-  : option_monad_scope.
-
-Notation "'do' X <- A ; B" := (match A with Some X => B | None => nil end)
-  (at level 200, X ident, A at level 100, B at level 200)
-  : list_monad_scope.
-
-Notation " 'check' A ; B" := (if A then B else nil)
-  (at level 200, A at level 100, B at level 200)
-  : list_monad_scope.
-
 Section HIGHSPECITREE.
 
 Variable A: Type.
@@ -340,13 +314,59 @@ Definition mpool_fini_call (args: list Lang.val): itree mpoolE (Lang.val * list 
   | _ => triggerUB "Wrong args: mpool_fini"
   end.
 
+Definition mpool_alloc_no_fallback_spec (p: positive * Z) : itree mpoolE (option (list A)) :=
+  st <- trigger GetState;;
+  match (PtrTree_get p (addr_to_id st)) with
+  | None => Ret None 
+  | Some i =>
+    match PTree.get i (mpool_map st) with
+    | None => Ret None
+    | Some mp =>
+      match (entry_list mp) with
+      | ethd :: ettl =>
+        let mp' := mkMpool (entry_size mp) (chunk_list mp) ettl (fallback mp) in
+        let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
+        trigger (SetState st');; Ret (Some ethd)
+      | [] =>
+        match (chunk_list mp) with
+        | [] => Ret None
+        | chhd::chtl =>
+          if ((Zlength chhd) <=? (entry_size mp))
+          then
+            let mp' := mkMpool (entry_size mp) chtl (entry_list mp) (fallback mp) in
+            let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
+            trigger (SetState st');; Ret (Some chhd)
+          else
+            let new_chunk := (skipn (Z.abs_nat (entry_size mp)) chhd)::chtl in
+            let mp' := mkMpool (entry_size mp) new_chunk (entry_list mp) (fallback mp) in
+            let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
+            trigger (SetState st');; Ret (Some chhd)
+        end
+      end
+    end
+  end.
+
+Definition mpool_alloc_no_fallback_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
+  match args with
+  | [Vcomp (Vptr p_blk p_ofs)] =>
+    v <- mpool_alloc_no_fallback_spec (p_blk, Ptrofs.unsigned p_ofs);;
+      match v with
+      | None => Ret (Vnull, args) (* wrong case... UB? *)
+      | Some v => Ret (Vabs (Any.upcast v), args)
+      end
+  | _ => triggerUB "Wrong args: mpool_alloc_no_fallback"
+  end
+.
+
+
 Definition funcs :=
   [
     ("mpool_init_spec", mpool_init_call);
     ("mpool_init_from_spec", mpool_init_from_call);
     ("mpool_init_with_fallback_spec", mpool_init_with_fallback_call);
     ("mpool_add_chunk_spec", mpool_add_chunk_call);
-    ("mpool_fini_spec", mpool_fini_call)
+    ("mpool_fini_spec", mpool_fini_call);
+    ("mpool_alloc_no_fallback", mpool_alloc_no_fallback_call)
   ]
 .
 
