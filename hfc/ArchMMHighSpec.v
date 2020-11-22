@@ -32,11 +32,10 @@ Local Open Scope monad_scope.
 Local Open Scope string_scope.
 Require Import Coqlib sflib.
 
-(* From HafniumCore *)
-Require Import Lang.
 Require Import Values.
 Require Import Integers.
 Require Import Constant.
+Require Import Lang.
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
@@ -325,10 +324,42 @@ Address translation is not directly related to this file, but it helps us to fin
 #define PTE_ADDR_MASK \
 	(((UINT64_C(1) << 48) - 1) & ~((UINT64_C(1) << PAGE_BITS) - 1))
 
-16. 
+16. A mask value for attributes.
 /** Mask for the attribute bits of the pte. */
 #define PTE_ATTR_MASK (~(PTE_ADDR_MASK | (UINT64_C(1) << 1)))
-*)
+ *)
+
+(* XXX : Add it into a library file *)
+Section PTreePtr.
+
+  Definition PtrTree := (PTree.t (ZTree.t positive)).
+  
+  Definition PtrTree_set (b: block) (ofs: ptrofs) (v: positive) (map: PtrTree) :=
+    let zt := match PTree.get b map with
+              | Some zt => zt
+              | None => (ZTree.empty positive)
+              end in
+    PTree.set b (ZTree.set (Ptrofs.unsigned ofs) v zt) map
+  .
+  
+  Definition PtrTree_get (b: block) (ofs: ptrofs) (map: PtrTree) :=
+    match PTree.get b map with
+    | Some zt => ZTree.get (Ptrofs.unsigned ofs) zt
+    | None => None
+    end
+  .
+  
+  Definition PtrTree_remove (b: block) (ofs: ptrofs) (map: PtrTree) :=
+    match PTree.get b map with
+    | Some zt => PTree.set b (ZTree.remove (Ptrofs.unsigned ofs) zt) map
+    | None => map
+    end
+  .
+
+  Inductive PtrVal :=
+  | ptr_val (b: block) (ofs: ptrofs).
+  
+End PTreePtr.  
 
 Section ABSTSTATE.
   
@@ -356,6 +387,9 @@ Section ABSTSTATE.
         STAGE1_ATTRINDX: STAGE1_BLOCK_TYPE
       }.
 
+  Definition init_stage1_block_attributes :=
+    mkStage1BlockAttributes false false false false false false NON_SHAREABLE STAGE1_READWRITE false STAGE1_DEVICEINDX.
+  
   Record Stage1TableAttributes :=
     mkStage1TableAttributes {
         TABLE_NSTABLE: bool;
@@ -364,6 +398,8 @@ Section ABSTSTATE.
         TABLE_XNTABLE: bool;
         TABLE_PXNTABLE: bool
       }.
+
+  Definition init_stage1_table_attributes := mkStage1TableAttributes false false false false false.
 
   Inductive STAGE2_BLOCK_EXECUTE_MODE :=
   | STAGE2_EXECUTE_ALL
@@ -418,6 +454,9 @@ Section ABSTSTATE.
         STAGE2_MEMATTR: STAGE2_MEMATTR_VALUES
       }.
 
+  Definition init_stage2_block_attributes := mkStage2BlockAttributes STAGE2_EXECUTE_ALL false false false false false
+                                                                     NON_SHAREABLE STAGE2_ACCESS_NOPERM MEMATTR_ZERO.
+
   Inductive PTE_TYPES :=
   | UNDEFINED (* not initialized *)
   | ABSENT
@@ -427,11 +466,15 @@ Section ABSTSTATE.
   | STAGE2_TABLE (output_address : Z)
   | STAGE2_PAGE (output_address : Z) (attributes: Stage2BlockAttributes).
 
+  Inductive CURRENT_STAGE := STAGE1 | STAGE2.
+  
   Record ArchMMAbstractState :=
     mkArchMMAbstractState {
-        pte_pool: ZMap.t PTE_TYPES;
-        addr_to_pte_pool_key: ZMap.t Z;
-        pte_pool_key_to_addr: ZMap.t Z;
+        pte_pool: PMap.t PTE_TYPES;
+        addr_to_pte_pool_key: PtrTree;
+        pte_pool_key_to_addr: PMap.t PtrVal;
+        next_id: positive;
+        stage: CURRENT_STAGE
       }.
 
 End ABSTSTATE.
@@ -602,11 +645,25 @@ Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
     | STAGE2_TABLE _ => Z.shiftl 1 1 + Z.shiftl 1 0
     | STAGE2_PAGE _ attributes => Stage2BlockAttributes_to_ATTR_VALUES attributes + Z.shiftl 1 1 + Z.shiftl 1 0
     end.
- 
+
+  Definition PTE_TYPES_to_VALUES (pte : PTE_TYPES) : Z :=
+    match pte with
+    | UNDEFINED => 0
+    | ABSENT => 0
+    | INVALID_BLOCK => 0
+    | STAGE1_TABLE oa attr => Z.shiftl oa 12 + Stage1TableAttributes_to_ATTR_VALUES attr + Z.shiftl 1 1 + Z.shiftl 1 0
+    | STAGE1_PAGE oa attr => Z.shiftl oa 12 + Stage1BlockAttributes_to_ATTR_VALUES attr + Z.shiftl 1 1 + Z.shiftl 1 0
+    | STAGE2_TABLE oa => Z.shiftl oa 12 + Z.shiftl 1 1 + Z.shiftl 1 0
+    | STAGE2_PAGE oa attr => Z.shiftl oa 12 + Stage2BlockAttributes_to_ATTR_VALUES attr + Z.shiftl 1 1 + Z.shiftl 1 0
+    end.
+
 End FLAG_TO_VALUE_and_VALUE_TO_FLAG.
 
 Section SPECS.
 
+Variable st: ArchMMAbstractState.
+Context {eff : Type -> Type}.
+Context {HasEvent : Event -< eff}.
 
 (*
 /**
@@ -618,6 +675,14 @@ pte_t arch_mm_absent_pte(uint8_t level)
 	return 0;
 }
 *)
+
+Definition arch_mm_absent_pte (level: val) : itree eff (ArchMMAbstractState * val) :=
+  match level with
+  | Vcomp (Vlong level) =>
+    Ret (st, Vcomp (Vlong  (Int64.repr 0)))
+  | _ => triggerNB "level <> integer"
+  end
+.
 
 (*  
 /**
@@ -632,7 +697,37 @@ pte_t arch_mm_table_pte(uint8_t level, paddr_t pa)
 	(void)level;
 	return pa_addr(pa) | PTE_TABLE | PTE_VALID;
 }
-*)
+ *)
+
+Definition arch_mm_table_pte (level pa: val) : itree eff (ArchMMAbstractState * val) :=
+  match level with
+  | Vcomp (Vlong level) =>
+    match pa with
+    | Vcomp (Vptr b ptrofs) =>
+      match PtrTree_get b ptrofs st.(addr_to_pte_pool_key) with
+      | Some key =>
+        let new_pte := 
+            match st.(stage), PMap.get key st.(pte_pool) with
+            | STAGE1, ABSENT  =>
+              if zeq (Int64.unsigned level) 2
+              then STAGE1_PAGE 0 init_stage1_block_attributes
+              else STAGE1_TABLE 0 init_stage1_table_attributes
+            | STAGE2, ABSENT  =>
+              if zeq (Int64.unsigned level) 3
+              then STAGE2_PAGE 0 init_stage2_block_attributes
+              else STAGE2_TABLE 0
+            | _, pte => pte
+            end in
+        let new_pte_pool := PMap.set key new_pte st.(pte_pool) in
+        let new_st := mkArchMMAbstractState new_pte_pool st.(addr_to_pte_pool_key) st.(pte_pool_key_to_addr) st.(next_id) st.(stage) in
+        Ret (new_st, Vcomp (Vlong (Int64.repr (PTE_TYPES_to_VALUES new_pte))))
+      | _ => triggerNB "no pte table"
+      end
+    | _ => triggerNB "pa <> pointer"
+    end
+  | _ => triggerNB "level <> integer"
+  end
+.
 
 (*  
 /**
@@ -651,6 +746,7 @@ pte_t arch_mm_block_pte(uint8_t level, paddr_t pa, uint64_t attrs)
 	return pte;
 }
 *)
+
 
 (*
 /**
