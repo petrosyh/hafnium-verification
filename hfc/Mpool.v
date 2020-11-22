@@ -529,6 +529,7 @@ Module MPOOLCONCUR.
     Put "checker : " (prev_cast #@ (Int64.repr 0)) #;
     #while (#! ((prev_cast #@ (Int64.repr 0)) == Vnull))
     do (
+      Put "[DEBUG0] - find chunk" Vnull #;
         chunk #= (prev_cast #@ (Int64.repr 0)) #;
               start #= ((((Cast chunk tint) + align - (Int64.repr 1)) / align) * align)
               #;
@@ -538,27 +539,35 @@ Module MPOOLCONCUR.
               Put "mpool_alloc_contiguous_no_fallback: chunk: " chunk #;
               Put "mpool_alloc_contiguous_no_fallback: start: " start #;
               Put "mpool_alloc_contiguous_no_fallback: new_chunk: " (Cast new_chunk tint) #;
-              Put "mpool_alloc_contiguous_no_fallback: first cond: " *)
-              ((Cast new_chunk tint) <= (Cast (chunk #@ limit_loc) tint)) #; 
+              Put "mpool_alloc_contiguous_no_fallback: first cond: "
+              ((Cast new_chunk tint) <= (Cast (chunk #@ limit_loc) tint)) #; *)
               (#if ((Cast new_chunk tint) <= (Cast (chunk #@ limit_loc) tint))
                 then
                   (* Debugging messages: *)
-                  (* 
+                  (*
                   Put "mpool_alloc_contiguous_no_fallback: alloc is available" start #; *)
                   (#if ((Cast new_chunk tint) == (Cast (chunk #@ limit_loc) tint))
-                    then (prev_cast @ (Int64.repr 0) #:= (chunk #@ next_chunk_loc))
+                    then
+                      (
+                        (prev_cast @ (Int64.repr 0) #:= (chunk #@ next_chunk_loc)) #;
+                        Put "[CHECK]: chunk is finished - prev_cast" prev_cast #;
+                        Put "[CHECK]: chunk is finished - prev_cast -> next_chunk"
+                        (prev_cast #@ next_chunk_loc)
+                      )
                     else
                       (new_chunk @ limit_loc #:= (chunk #@ limit_loc)) #;
                       (new_chunk @ next_chunk_loc #:= (chunk #@ next_chunk_loc)) #; 
                       (prev_cast @ (Int64.repr 0) #:= new_chunk))
                     #;
+                    Put "[DEBUG1] - alloc success" Vnull #;
                     ret #= (Cast start tptr) #;
                     Put "RET: " ret #;
                     Break 
                 else
-                  prev #= ((Cast chunk tint) +
-                           (next_chunk_loc * (Int64.repr 8))) #;
-                       prev_cast #= (Cast prev tptr) 
+                  (Put "[DEBUG2] - alloc fail" Vnull #;
+                   prev #= ((Cast chunk tint) +
+                   (next_chunk_loc * (Int64.repr 8))) #;
+                   prev_cast #= (Cast prev tptr))
                        (* Debugging messages: *)
                        (*
                        #;
@@ -568,6 +577,9 @@ Module MPOOLCONCUR.
               ) 
       ) #;
         (Call "MPOOL.mpool_unlock" [CBR p]) #;
+        Put "[CHECK]: chunk is finished - prev_cast" prev_cast #;
+        Put "[CHECK]: chunk is finished - prev_cast -> next_chunk"
+        (prev_cast #@ next_chunk_loc) #;
         Put "RET final: " ret #;
         Return ret.
 

@@ -319,20 +319,29 @@ let main =
   print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem2) ;
   print_endline "--------------------------------------------------------------" ;
-  print_endline "--------------------------------------------------------------" ;
   print_endline "-------------------------TEST 2--------------------------------" ;
   print_endline "------------------------LOW SPEC-------------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem1) ;
   print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem2) ;
   print_endline "--------------------------------------------------------------" ;
-  print_endline "--------------------------------------------------------------" ;
+  print_endline "-------------------------TEST 3--------------------------------" ;
+  print_endline "------------------------LOW SPEC-------------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem1) ;
+(*  print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem2) ;
+*)
+  print_endline "-------------------------TEST 4--------------------------------" ;
+  print_endline "------------------------LOW SPEC-------------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem1) ;
+(*  print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem2) ;
+*)
   print_endline "-------------------------TEST 5--------------------------------" ;
   print_endline "------------------------LOW SPEC-------------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem1) ;
   print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem2) ;
-  print_endline "--------------------------------------------------------------" ;
   print_endline "--------------------------------------------------------------" ;
   ()
 
