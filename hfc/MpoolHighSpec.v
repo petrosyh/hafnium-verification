@@ -140,7 +140,7 @@ Definition A_to_string (a: A): string :=
 .
 
 Definition state := MpoolAbstState A.
-Definition a: A := (xH, 0).
+Definition null: A := (xH, 0).
 (* Variable a: A. (* neede when we make chunk *) *)
 
 Inductive updateStateE: Type -> Type :=
@@ -264,10 +264,10 @@ Definition mpool_add_chunk_spec (p: positive * Z) (c:chunk A) (size:Z) : itree m
   end.
 
 (* YH:problem *)
-Fixpoint make_chunk {A} (a:A) (len: nat) :=
+Fixpoint make_chunk (a:A) (len: nat) :=
   match len with
   | O => []
-  | S n => a::make_chunk a n
+  | S n => a::make_chunk (fst a, (snd a + 1)%Z) n
   end.
 
 Definition mpool_add_chunk_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
@@ -325,7 +325,7 @@ Definition mpool_fini_call (args: list Lang.val): itree mpoolE (Lang.val * list 
   | _ => triggerUB "Wrong args: mpool_fini"
   end.
 
-Definition mpool_alloc_no_fallback_spec {E} (p: positive * Z) : itree (E +' mpoolE) (option (list A)) :=
+Definition mpool_alloc_no_fallback_spec {E} (p: positive * Z) : itree (E +' mpoolE) (option A) :=
   st <- trigger GetState;;
   match (PtrTree_get p (addr_to_id st)) with
   | None => Ret None (* UB *)
@@ -337,7 +337,7 @@ Definition mpool_alloc_no_fallback_spec {E} (p: positive * Z) : itree (E +' mpoo
       | ethd :: ettl =>
         let mp' := mkMpool (entry_size mp) (chunk_list mp) ettl (fallback mp) in
         let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
-        trigger (SetState st');; Ret (Some ethd)
+        trigger (SetState st');; Ret (Some (hd null ethd))
       | [] =>
         match (chunk_list mp) with
         | [] => Ret None
@@ -346,18 +346,18 @@ Definition mpool_alloc_no_fallback_spec {E} (p: positive * Z) : itree (E +' mpoo
           then
             let mp' := mkMpool (entry_size mp) chtl (entry_list mp) (fallback mp) in
             let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
-            trigger (SetState st');; Ret (Some chhd)
+            trigger (SetState st');; Ret (Some (hd null chhd))
           else
             let new_chunk := (skipn (Z.abs_nat (entry_size mp)) chhd)::chtl in
             let mp' := mkMpool (entry_size mp) new_chunk (entry_list mp) (fallback mp) in
             let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
-            trigger (SetState st');; Ret (Some chhd)
+            trigger (SetState st');; Ret (Some (hd null chhd))
         end
       end
     end
   end.
 
-Definition mpool_alloc_spec_body (p: positive * Z) : itree ((callE (positive * Z) (option (list A))) +' mpoolE) (option (list A)) :=
+Definition mpool_alloc_spec_body (p: positive * Z) : itree ((callE (positive * Z) (option A)) +' mpoolE) (option A) :=
   st <- trigger GetState;;
   match (PtrTree_get p (addr_to_id st)) with
   | None => Ret None
@@ -385,14 +385,17 @@ Definition mpool_alloc_spec_body (p: positive * Z) : itree ((callE (positive * Z
     end
   end.
 
-Definition mpool_alloc_spec (p: positive * Z) : itree mpoolE (option (list A)) :=
+Definition mpool_alloc_spec (p: positive * Z) : itree mpoolE (option A) :=
   rec mpool_alloc_spec_body p.
 
 Definition mpool_alloc_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
   match args with
   | [Vcomp (Vptr p_blk p_ofs)] =>
-      v <- mpool_alloc_spec (p_blk, Ptrofs.unsigned p_ofs);;
-      Ret (Vabs (Any.upcast v), args)
+    v <- mpool_alloc_spec (p_blk, Ptrofs.unsigned p_ofs);;
+    match v with
+    | None => Ret (Vnull, args)
+    | Some (b, ofs) => Ret (Vcomp (Vptr b (Ptrofs.repr ofs)), args)
+    end
   | _ => triggerUB "Wrong args: mpool_alloc"
   end.
 
@@ -420,7 +423,8 @@ Definition mpool_free_call (args: list Lang.val): itree mpoolE (Lang.val * list 
         match PTree.get id (mpool_map st) with
         | None => triggerUB "Wrong args: mpool_free"
         | Some mp =>
-          v <- mpool_free_spec (p_blk, Ptrofs.unsigned p_ofs) (make_chunk a (Z.abs_nat (entry_size mp)));;
+          v <- mpool_free_spec (p_blk, Ptrofs.unsigned p_ofs)
+            (make_chunk (ptr_blk, Ptrofs.unsigned ptr_ofs) (Z.abs_nat (entry_size mp)));;
             Ret (Vnull, args)
         end
       end
@@ -448,7 +452,7 @@ Definition print_mpool_call (args: list Lang.val): itree mpoolE (Lang.val * list
             | [] => triggerSyscall "hd" "" [Vnull]
             | hd::tl =>
               triggerSyscall "hd" (append "  chunk " (Z_to_string i)) [Vnull];;
-              triggerSyscall "hd" (append "    start " (A_to_string (List.hd a hd))) [Vnull];;
+              triggerSyscall "hd" (append "    start " (A_to_string (List.hd null hd))) [Vnull];;
               triggerSyscall "hd" (append "    size " (Z_to_string (Zlength hd))) [Vnull];;
               print_chunk tl (i + 1)%Z
             end
@@ -459,8 +463,8 @@ Definition print_mpool_call (args: list Lang.val): itree mpoolE (Lang.val * list
             | [] => triggerSyscall "hd" "" [Vnull]
             | hd::tl =>
               triggerSyscall "hd" (append "  entry " (Z_to_string i)) [Vnull];;
-              triggerSyscall "hd" (append "    " (A_to_string (List.hd a hd))) [Vnull];;
-              print_chunk tl (i + 1)%Z
+              triggerSyscall "hd" (append "    " (A_to_string (List.hd null hd))) [Vnull];;
+              print_entry tl (i + 1)%Z
             end
         in
         print_entry (entry_list mp) 0;;

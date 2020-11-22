@@ -75,11 +75,15 @@ Separate Extraction
          (* LangTest.handle_Event *)
          (* LangTest.cl2s *)
 
-         MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem
-         MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem
-         MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem
-         MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem
+         MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem1
+         MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem1
+         MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem1
+         MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem1
          MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem1
+         MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem2
+         MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem2
+         MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem2
+         MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem2
          MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem2
          (* MpoolSeq.TEST.TEST1.program *)
          (* MpoolSeq.TEST.TEST2.program *)

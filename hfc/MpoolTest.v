@@ -97,7 +97,7 @@ Module MPOOLTEST.
                           #;
                           (Call "MPOOL.mpool_enable_locks" [])
                           #;
-                          #assume mpool_locks_enabled #;        
+                          (* #assume mpool_locks_enabled #;         *)
                           p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
                           Put "main: before init: " p #;
                           (* initialize it with the entry size - 8 *)
@@ -156,12 +156,19 @@ Module MPOOLTEST.
       ("alloc_by_thread2", alloc_by_thread2F) 
       ].
 
-    Definition modsems: list ModSem :=
+    Definition modsems1: list ModSem :=
       [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
 
-    Definition isem: itree Event unit :=
+    Definition isem1: itree Event unit :=
       eval_multimodule_multicore
-        modsems [ "main" ; "alloc_by_thread1" ; "alloc_by_thread2" ].
+        modsems1 [ "main" ; "alloc_by_thread1" ; "alloc_by_thread2" ].
+
+    Definition modsems2: list ModSem :=
+      [program_to_ModSem main_program ; MpoolHighSpec.mpool_modsem].
+
+    Definition isem2: itree Event unit :=
+      eval_multimodule_multicore
+        modsems2 [ "main" ; "alloc_by_thread1" ; "alloc_by_thread2" ].
     
   End MPOOLTEST_ONE.
 
@@ -175,7 +182,7 @@ Module MPOOLTEST.
         #;
         (Call "MPOOL.mpool_enable_locks" [])
         #;
-        #assume mpool_locks_enabled #;        
+        (* #assume mpool_locks_enabled #;         *)
         p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
         Put "main: before init: " p #;
         (* initialize it with the entry size - 8 *)
@@ -207,8 +214,11 @@ Module MPOOLTEST.
         ("main", mainF)
       ].
 
-    Definition isem: itree Event unit :=
+    Definition isem1: itree Event unit :=
       eval_multimodule [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
+
+    Definition isem2: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MpoolHighSpec.mpool_modsem].
     
   End MPOOLTEST_TWO. 
 
@@ -221,7 +231,7 @@ Module MPOOLTEST.
         #;
         (Call "MPOOL.mpool_enable_locks" [])
         #;
-        #assume mpool_locks_enabled #;        
+        (* #assume mpool_locks_enabled #;         *)
         p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
         Put "main: before init: " p #;
         (* initialize it with the entry size - 8 *)
@@ -254,9 +264,12 @@ Module MPOOLTEST.
         ("main", mainF)
       ].
 
-    Definition isem: itree Event unit :=
+    Definition isem1: itree Event unit :=
       eval_multimodule [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
-    
+
+    Definition isem2: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MpoolHighSpec.mpool_modsem].
+
   End MPOOLTEST_THREE. 
 
   Module MPOOLTEST_FOUR.
@@ -275,7 +288,7 @@ Module MPOOLTEST.
                           #;
                           (Call "MPOOL.mpool_enable_locks" [])
                           #;
-                          #assume mpool_locks_enabled #;        
+                          (* #assume mpool_locks_enabled #;         *)
                           p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80)) #;
                           Put "main: before init: " p #;
                           (* initialize it with the entry size - 8 *)
@@ -347,12 +360,19 @@ Module MPOOLTEST.
       ("alloc_and_free2", alloc_and_free2F) 
       ].
 
-    Definition modsems: list ModSem :=
+    Definition modsems1: list ModSem :=
       [program_to_ModSem main_program ; MPOOLCONCUR.mpool_modsem ; LOCK.lock_modsem].
 
-    Definition isem: itree Event unit :=
+    Definition isem1: itree Event unit :=
       eval_multimodule_multicore
-        modsems [ "main" ; "alloc_and_free1" ; "alloc_and_free2" ].
+        modsems1 [ "main" ; "alloc_and_free1" ; "alloc_and_free2" ].
+
+    Definition modsems2: list ModSem :=
+      [program_to_ModSem main_program ; MpoolHighSpec.mpool_modsem].
+
+    Definition isem2: itree Event unit :=
+      eval_multimodule_multicore
+        modsems2 [ "main" ; "alloc_and_free1" ; "alloc_and_free2" ].
     
   End MPOOLTEST_FOUR.
 
@@ -380,12 +400,12 @@ Module MPOOLTEST.
       res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 16)]) #;
       begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 200))) #;
       res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback2; CBR begin; CBV (Int64.repr 16)]) #;
-      (* begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 216))) #; *)
-      (* res #= (Call "MPOOL.mpool_free" [CBR p; CBR begin]) #; *)
-      (* begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 224))) #; *)
-      (* res #= (Call "MPOOL.mpool_free" [CBR p_fallback2; CBR begin]) #; *)
-      (* begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 232))) #; *)
-      (* res #= (Call "MPOOL.mpool_free" [CBR p_fallback2; CBR begin]) #; *)
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 216))) #;
+      res #= (Call "MPOOL.mpool_free" [CBR p; CBR begin]) #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 224))) #;
+      res #= (Call "MPOOL.mpool_free" [CBR p_fallback2; CBR begin]) #;
+      begin #= (Vcomp (Vptr 2%positive (Ptrofs.repr 232))) #;
+      res #= (Call "MPOOL.mpool_free" [CBR p_fallback2; CBR begin]) #;
       (Call "MPOOL.mpool_fini" [CBR p_fallback2]) #;
       (Call "MPOOL.print_mpool" [CBR p]) #;
       Skip.

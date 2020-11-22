@@ -311,10 +311,28 @@ let rec my_rr q =
 
 let main =
   Random.self_init();
+
+  print_endline "-----------------------MPOOL TEST------------------------------" ;
+  print_endline "-------------------------TEST 1--------------------------------" ;
+  print_endline "------------------------LOW SPEC-------------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem1) ;
+  print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem2) ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "-------------------------TEST 2--------------------------------" ;
+  print_endline "------------------------LOW SPEC-------------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem1) ;
+  print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem2) ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "--------------------------------------------------------------" ;
+  print_endline "-------------------------TEST 5--------------------------------" ;
   print_endline "------------------------LOW SPEC-------------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem1) ;
   print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_FIVE.isem2) ;
+  print_endline "--------------------------------------------------------------" ;
   print_endline "--------------------------------------------------------------" ;
   ()
 
@@ -376,16 +394,16 @@ let main t =
 
   print_endline "---------------------- MPOOL TEST ----------------------------" ;
   print_endline "-------- MPOOL TEST 1 (concurrent mpool add chunk) -----------" ;
-  run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem) ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem1) ;
   print_endline "--------------------------------------------------------------" ;
   print_endline "------ MPOOL TEST 2 (mpool add chunk and mpool fini) ---------" ;
-  run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem) ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_TWO.isem1) ;
   print_endline "--------------------------------------------------------------" ;
   print_endline "---- MPOOL TEST 3 (mpool add chunk, alloc, and free) ---------" ;
-  run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem) ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_THREE.isem1) ;
   print_endline "--------------------------------------------------------------" ;
   print_endline "- MPOOL TEST 4 (concurrent mpool add chunk, alloc, and free) -" ;
-  run (MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem) ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_FOUR.isem1) ;
   print_endline "------------------   MPOOL TEST Passed  ----------------------" ;
 
 
