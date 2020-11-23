@@ -86,7 +86,7 @@ paddr_t arch_mm_clear_pa(paddr_t pa);
 paddr_t arch_mm_block_from_pte(pte_t pte, uint8_t level);
 
 /**
- * Extracts the address of the table referenced by the PTE.
+ * Extracts the address of the table refer enced by the PTE.
  */
 paddr_t arch_mm_table_from_pte(pte_t pte, uint8_t level);
 

@@ -226,27 +226,6 @@ Extract Constant show_val =>
 ".
 
 (*
-Extract Constant show_val =>
-"
-  let rec nat_of_int n = assert(n >= 0); if(n == 0) then O else S (nat_of_int (pred n)) in
-  let cl2s = fun cl -> String.concat """" (List.map (String.make 1) cl) in
-  let s2cl = fun s -> List.init (String.length s) (String.get s) in
-  let rec string_of_val v =
-  match v with
-  | Vcomp v2 ->
-    (match v2 with
-    | Vint n -> ""[32bit]: "" ^ cl2s (HexString.of_Z (Int.unsigned n)) ^ ""["" ^ cl2s (BinaryString.of_Z (Int.unsigned n)) ^ ""]""
-    | Vlong n -> ""[64bit]: ""  ^ cl2s (HexString.of_Z (Int.unsigned n)) ^ ""["" ^  cl2s (BinaryString.of_Z (Int64.unsigned n)) ^ ""]""
-    | Vptr(block, ofs) ->
-       ""[ptr] (*) ("" ^ cl2s (BinaryString.of_pos block) ^
-       "") (""  ^ cl2s (HexString.of_Z (Int.unsigned ofs)) ^ ""["" ^ cl2s (BinaryString.of_Z ofs) ^ ""])""
-    | Vundef -> ""Undef "")
-  | Vabs a -> cl2s (string_of_Any a) in
-  fun x -> s2cl (string_of_val x)
-".
-*)
-
-(*
 Extract Constant show_val => "
   let rec nat_to_int = function | O -> 0 | S n -> succ (nat_to_int n) in
   let rec nat_of_int n = assert(n >= 0); if(n == 0) then O else S (nat_of_int (pred n)) in

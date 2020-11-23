@@ -736,7 +736,7 @@ uint64_t arch_mm_mode_to_stage2_attrs(uint32_t mode)
           (#if (mode #& MM_MODE_W)
             then (access #= access #| STAGE2_ACCESS_WRITE)
             else Skip) #;
-          attrs #= attrs #| (STAGE2_S2AP access) #;
+          attrs #= attrs #| (STAGE2_S2AP_DSL access) #;
           (#if (mode #& MM_MODE_X)
             then (attrs #= attrs #| (STAGE2_XN STAGE2_EXECUTE_ALL))
             else (attrs #= attrs #| (STAGE2_XN STAGE2_EXECUTE_NONE))) #;

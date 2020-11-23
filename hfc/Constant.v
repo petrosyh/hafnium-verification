@@ -190,88 +190,98 @@ Definition MM_FLAG_UNMAP : int64 := Int64.repr 2.
 Definition MM_FLAG_STAGE1 : int64 := Int64.repr 4.
 
 
-  Definition UINT64_C_1 := UINT64_C (repr 1).
+Definition UINT64_C_1 := UINT64_C (repr 1).
 
-  Definition PTE_ADDR_MASK :=
-    (BAnd (Minus (ShiftL UINT64_C_1 (repr 48)) (repr 1)) (BNot (Minus (ShiftL UINT64_C_1 PAGE_BITS) (repr 1)))).
-  Definition PTE_ATTR_MASK :=
-    (BNot (BOr PTE_ADDR_MASK (ShiftL UINT64_C_1 (repr 1)))). 
+Definition PTE_ADDR_MASK :=
+  (BAnd (Minus (ShiftL UINT64_C_1 (repr 48)) (repr 1)) (BNot (Minus (ShiftL UINT64_C_1 PAGE_BITS) (repr 1)))).
+Definition PTE_ATTR_MASK :=
+  (BNot (BOr PTE_ADDR_MASK (ShiftL UINT64_C_1 (repr 1)))). 
 
-  Definition MAX_TLBI_OPS := MM_PTE_PER_PAGE.
+Definition MAX_TLBI_OPS := MM_PTE_PER_PAGE.
 
-  Definition CACHE_WORD_SIZE :expr := (repr 4).
-  Definition UINT16_C (val : Z) := val.
-  Definition UINT16_C_1 := UINT16_C 1.
+Definition CACHE_WORD_SIZE :expr := (repr 4).
+Definition UINT16_C (val : Z) := val.
+Definition UINT16_C_1 := UINT16_C 1.
 
-  Definition NON_SHAREABLE := UINT64_C (repr 0).
-  Definition OUTER_SHAREABLE := UINT64_C (repr 2).
-  Definition INNER_SHAREABLE := UINT64_C (repr 3).
+Definition NON_SHAREABLE := UINT64_C (repr 0).
+Definition OUTER_SHAREABLE := UINT64_C (repr 2).
+Definition INNER_SHAREABLE := UINT64_C (repr 3).
 
-  Definition PTE_VALID := ShiftL UINT64_C_1 (repr 0).
-  Definition PTE_LEVEL0_BLOCK := ShiftL UINT64_C_1 (repr 1).
-  Definition PTE_TABLE := ShiftL UINT64_C_1 (repr 1).
+Definition PTE_VALID := Int64.shl UINT64_C_1 (repr 0).
+Definition PTE_LEVEL0_BLOCK := Int64.shl UINT64_C_1 (repr 1).
+Definition PTE_TABLE := Int64.shl UINT64_C_1 (repr 1).
 
-  Definition STAGE2_SW_OWNED := ShiftL UINT64_C_1 (repr 55).
-  Definition STAGE2_SW_EXCLUSIVE := ShiftL UINT64_C_1 (repr 56).
+Definition STAGE2_SW_OWNED := Int64.shl UINT64_C_1 (repr 55).
+Definition STAGE2_SW_EXCLUSIVE := Int64.shl UINT64_C_1 (repr 56).
 
-  Definition STAGE1_XN := ShiftL UINT64_C_1 (repr 54).
-  Definition STAGE1_PXN := ShiftL UINT64_C_1 (repr 53).
-  Definition STAGE1_CONTIGUOUS := ShiftL UINT64_C_1 (repr 52).
-  Definition STAGE1_DBM := ShiftL UINT64_C_1 (repr 51).
-  Definition STAGE1_NG := ShiftL UINT64_C_1 (repr 11).
-  Definition STAGE1_AF := ShiftL UINT64_C_1 (repr 10).
-  Definition STAGE1_SH := fun x => ShiftL x (repr 8).
-  Definition STAGE1_AP2 := ShiftL UINT64_C_1 (repr 7).
-  Definition STAGE1_AP1 := ShiftL UINT64_C_1 (repr 6).
-  Definition STAGE1_AP := fun x => ShiftL x (repr 6).
-  Definition STAGE1_NS := ShiftL UINT64_C_1 (repr 5).
-  Definition STAGE1_ATTRINDX := fun x => ShiftL x (repr 2).
+Definition STAGE1_XN := Int64.shl UINT64_C_1 (repr 54).
+Definition STAGE1_PXN := Int64.shl UINT64_C_1 (repr 53).
+Definition STAGE1_CONTIGUOUS := Int64.shl UINT64_C_1 (repr 52).
+Definition STAGE1_DBM := Int64.shl UINT64_C_1 (repr 51).
+Definition STAGE1_NG := Int64.shl UINT64_C_1 (repr 11).
+Definition STAGE1_AF := Int64.shl UINT64_C_1 (repr 10).
+Definition STAGE1_SH := fun x => Int64.shl x (repr 8).
+Definition STAGE1_AP2 := Int64.shl UINT64_C_1 (repr 7).
+Definition STAGE1_AP1 := Int64.shl UINT64_C_1 (repr 6).
+Definition STAGE1_AP := fun x => Int64.shl x (repr 6).
+Definition STAGE1_NS := Int64.shl UINT64_C_1 (repr 5).
+Definition STAGE1_ATTRINDX := fun x => Int64.shl x (repr 2).
 
-  Definition STAGE1_READONLY := UINT64_C (repr 2).
-  Definition STAGE1_READWRITE := UINT64_C (repr 0).
+Definition STAGE1_READONLY := UINT64_C (repr 2).
+Definition STAGE1_READWRITE := UINT64_C (repr 0).
 
-  Definition STAGE1_DEVICEINDX := UINT64_C (repr 0).
-  Definition STAGE1_NORMALINDX := UINT64_C (repr 1).
+Definition STAGE1_DEVICEINDX := UINT64_C (repr 0).
+Definition STAGE1_NORMALINDX := UINT64_C (repr 1).
 
-  Definition STAGE2_XN := fun x => ShiftL x (repr 53).
-  Definition STAGE2_CONTIGUOUS := ShiftL UINT64_C_1 (repr 52).
-  Definition STAGE2_DBM := ShiftL UINT64_C_1 (repr 51).
-  Definition STAGE2_AF := ShiftL UINT64_C_1 (repr 10).
-  Definition STAGE2_SH := fun x => ShiftL x (repr 8).
-  Definition STAGE2_S2AP := fun x => ShiftL x (repr 6).
+Definition STAGE2_XN := fun x => Int64.shl x (repr 53).
+Definition STAGE2_CONTIGUOUS := Int64.shl UINT64_C_1 (repr 52).
+Definition STAGE2_DBM := Int64.shl UINT64_C_1 (repr 51).
+Definition STAGE2_AF := Int64.shl UINT64_C_1 (repr 10).
+Definition STAGE2_SH := fun x => Int64.shl x (repr 8).
+Definition STAGE2_S2AP := fun x => Int64.shl x (repr 6).
 
-  Definition STAGE2_EXECUTE_ALL := UINT64_C (repr 0).
-  Definition STAGE2_EXECUTE_EL0 := UINT64_C (repr 1).
-  Definition STAGE2_EXECUTE_NONE := UINT64_C (repr 2).
-  Definition STAGE2_EXECUTE_EL1 := UINT64_C (repr 3).
-  Definition STAGE2_EXECUTE_MASK := UINT64_C (repr 3).
+Definition STAGE2_EXECUTE_ALL := UINT64_C (repr 0).
+Definition STAGE2_EXECUTE_EL0 := UINT64_C (repr 1).
+Definition STAGE2_EXECUTE_NONE := UINT64_C (repr 2).
+Definition STAGE2_EXECUTE_EL1 := UINT64_C (repr 3).
+Definition STAGE2_EXECUTE_MASK := UINT64_C (repr 3).
 
-  Definition STAGE2_ACCESS_READ := UINT64_C (repr 1).
-  Definition STAGE2_ACCESS_WRITE := UINT64_C (repr 2).
+Definition STAGE2_ACCESS_READ := UINT64_C (repr 1).
+Definition STAGE2_ACCESS_WRITE := UINT64_C (repr 2).
 
-  Definition STAGE2_DEVICE_MEMORY := UINT64_C (repr 0).
-  Definition STAGE2_NONCACHEABLE := UINT64_C (repr 1).
-  Definition STAGE2_WRITETHROUGH := UINT64_C (repr 2).
-  Definition STAGE2_WRITEBACK := UINT64_C (repr 3).
+Definition STAGE2_DEVICE_MEMORY := UINT64_C (repr 0).
+Definition STAGE2_NONCACHEABLE := UINT64_C (repr 1).
+Definition STAGE2_WRITETHROUGH := UINT64_C (repr 2).
+Definition STAGE2_WRITEBACK := UINT64_C (repr 3).
 
-  Definition STAGE2_MEMATTR_DEVICE_nGnRnE := UINT64_C (repr 0).
-  Definition STAGE2_MEMATTR_DEVICE_nGnRE := UINT64_C (repr 1).
-  Definition STAGE2_MEMATTR_DEVICE_nGRE := UINT64_C (repr 2).
-  Definition STAGE2_MEMATTR_DEVICE_GRE := UINT64_C (repr 3).
+Definition STAGE2_MEMATTR_DEVICE_nGnRnE := UINT64_C (repr 0).
+Definition STAGE2_MEMATTR_DEVICE_nGnRE := UINT64_C (repr 1).
+Definition STAGE2_MEMATTR_DEVICE_nGRE := UINT64_C (repr 2).
+Definition STAGE2_MEMATTR_DEVICE_GRE := UINT64_C (repr 3).
 
-  Definition STAGE2_MEMATTR (outer inner: expr) := (Or (ShiftL outer (repr 2)) (ShiftL inner (repr 2))).
-  Definition STAGE2_MEMATTR_TYPE_MASK := UINT64_C (repr (Z.shiftl 3 4)).
+Definition STAGE2_MEMATTR (outer inner: int64) := (Int64.or (Int64.shl outer (repr 2)) (Int64.shl inner (repr 2))).
+Definition STAGE2_MEMATTR_TYPE_MASK := UINT64_C (Int64.repr (Z.shiftl 3 4)).
 
-  Definition TABLE_NSTABLE := ShiftL UINT64_C_1 (repr 63).
-  Definition TABLE_APTABLE1 := ShiftL UINT64_C_1 (repr 62).
-  Definition TABLE_APTABLE0 := ShiftL UINT64_C_1 (repr 61).
-  Definition TABLE_XNTABLE := ShiftL UINT64_C_1 (repr 60).
-  Definition TABLE_PXNTABLE := ShiftL UINT64_C_1 (repr 59).
+Definition TABLE_NSTABLE := Int64.shl UINT64_C_1 (repr 63).
+Definition TABLE_APTABLE1 := Int64.shl UINT64_C_1 (repr 62).
+Definition TABLE_APTABLE0 := Int64.shl UINT64_C_1 (repr 61).
+Definition TABLE_XNTABLE := Int64.shl UINT64_C_1 (repr 60).
+Definition TABLE_PXNTABLE := Int64.shl UINT64_C_1 (repr 59).
+
+(* DSL specific constants *)
+Local Open Scope expr_scope.
+Local Open Scope stmt_scope.
+
+Definition STAGE1_SH_DSL := fun x => x #<< (repr 8).
+Definition STAGE1_AP_DSL := fun x => x #<< (repr 6).
+Definition STAGE1_ATTRINDX_DSL := fun x => x #<< (repr 2).
+
+Definition STAGE2_XN_DSL := fun x => x #<< (repr 53).
+Definition STAGE2_SH_DSL := fun x => x #<< (repr 8).
+Definition STAGE2_S2AP_DSL := fun x => x #<< (repr 6).
+
+Definition STAGE2_MEMATTR_DSL (outer inner: expr) := ((outer #<< (repr 2)) #| (inner #<<  (repr 2))).
 
 
 (* XXX: I manually calculate the result. I may need some way? *)
-
-
-
-
 

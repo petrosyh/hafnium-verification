@@ -61,6 +61,8 @@ open Traversable
 open BinaryString
 open Sflib
 
+open Toy
+
 module Nat = struct
   include Nat
   let rec to_int = function | O -> 0 | S n -> succ (to_int n)
@@ -310,6 +312,15 @@ let rec my_rr q =
  *   | _ :: _ -> my_rr q *)
 
 let main =
+  Random.self_init();
+  print_endline "--------------------------------------------------------------" ;
+  run (FACTTEST.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  run (MAPTEST.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  ()
+
+let main t =
   Random.self_init();
 
   print_endline "-----------------------MPOOL TEST------------------------------" ;
