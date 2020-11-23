@@ -114,6 +114,7 @@ Module MPOOLTEST.
                             do
                               (Debug "waiting for SIGNAL" Vnull))
                           #;
+                          Call "MPOOL.print_mpool" [CBR p] #;
                           Skip
            ).
     
@@ -203,6 +204,7 @@ Module MPOOLTEST.
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p_fallback; CBR begin; CBV (Int64.repr 64)])
         #;
         (Call "MPOOL.mpool_fini" [CBR p_fallback]) #;
+        Call "MPOOL.print_mpool" [CBR p] #;
         Skip.
 
 
@@ -244,15 +246,17 @@ Module MPOOLTEST.
         res #= (Call "MPOOL.mpool_add_chunk" [CBR p; CBR begin; CBV (Int64.repr 64)])
         #;
         Put "main: add_chunk done: " p #;
+        Call "MPOOL.print_mpool" [CBR p] #;
         r1 #= (Call "MPOOL.mpool_alloc_contiguous" [CBV p; CBV (Int64.repr 2); CBV (Int64.repr 1)]) #;
         Put "main: alloc 1 done: succeed" r1 #;
         r2 #= Call "MPOOL.mpool_alloc_contiguous" [CBV p ; CBV (Int64.repr 2); CBV (Int64.repr 1)]  #;
         Put "main: alloc 2 done: succeed " r2 #;
         r3 #= Call "MPOOL.mpool_alloc_contiguous" [CBV p ; CBV (Int64.repr 8); CBV (Int64.repr 1)]  #;
         Put "main: alloc 3 done: succeed " r3 #;
-        (Call "MPOOL.mpool_free" [CBV p; CBV r1]) #;
-        (Call "MPOOL.mpool_free" [CBV p; CBV r2]) #;
-        (Call "MPOOL.mpool_free" [CBV p; CBV r3]) #;
+        (* (Call "MPOOL.mpool_free" [CBV p; CBV r1]) #; *)
+        (* (Call "MPOOL.mpool_free" [CBV p; CBV r2]) #; *)
+        (* (Call "MPOOL.mpool_free" [CBV p; CBV r3]) #; *)
+        Call "MPOOL.print_mpool" [CBR p] #;
         Skip.
 
 
@@ -316,6 +320,7 @@ Module MPOOLTEST.
                                 p #= Vcomp (Vptr 2%positive (Ptrofs.repr 80))
                             ) #;
                               Put "Test Passed " Vnull #;
+                              Call "MPOOL.print_mpool" [CBR p] #;
                               Skip
            ).
     
