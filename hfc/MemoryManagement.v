@@ -342,7 +342,7 @@ Module MMCONCUR.
 
   (* XXX: simplified version *)
   Definition mm_alloc_page_tables (count ppool : var) : stmt :=
-    (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV count; CBV count]).
+    (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV (MM_PTE_PER_PAGE * count); CBV count]).
   
   (*
   // JIEUNG: this function is an auxiliary function to find out max level of both
@@ -544,31 +544,30 @@ Module MMCONCUR.
   Definition mm_ptable_init (t flags ppool: var) (root_table_count tables i j: var) :=
     Put "PPOOL before init : " ppool #;
     root_table_count #= (Call "MM.mm_root_table_count" [CBV flags]) #;
-                     tables #= (Call "MM.mm_alloc_page_tables" [CBV root_table_count; CBR ppool]) #;
-                     Put "PPOOL before init 0  : " ppool #;
-                     (#if (tables == Vnull)
-                      then
-                        Return Vfalse
-                      else Skip) #;
-                     (* XXX: Add this condition as an assumption
-                     if (tables == NULL) {
-          	       return false;
-                     } *)
-                     i #= zero #;
-                     #while (i < root_table_count)
-                     do (
-                         j #= zero #;
-                           #while (j < MM_PTE_PER_PAGE)
-                           do (
-                             tables @ (i * entries_size + j) #:=
-                               (Call "ARCHMM.arch_mm_absent_pte" [CBV (Call "MM.mm_max_level" [CBV flags])]) #;
-                             j #= j + one
-                             ) #;
-                               i #= i + one
-                       ) #;
-                         Put "ttt ;= " (Call "ADDR.pa_init" [CBV (Cast tables tint)]) #;
-                         t @ root_loc #:= (Call "ADDR.pa_init" [CBV (Cast tables tint)]) #;
-                         Return Vtrue.
+    tables #= (Call "MM.mm_alloc_page_tables" [CBV root_table_count; CBR ppool]) #;
+    (#if #! (tables)
+      then
+        Return Vfalse
+      else Skip) #;
+    (* XXX: Add this condition as an assumption
+       if (tables == NULL) {
+       return false;
+       } *)
+    i #= zero #;
+    #while (i < root_table_count)
+    do (
+      j #= zero #;
+      #while (j < MM_PTE_PER_PAGE)
+      do (
+        tables @ (i * entries_size + j) #:=
+               (Call "ARCHMM.arch_mm_absent_pte" [CBV (Call "MM.mm_max_level" [CBV flags])]) #;
+        j #= j + one
+      ) #;
+      i #= i + one
+    ) #;
+    Put "ttt ;= " (Call "ADDR.pa_init" [CBV (Cast tables tint)]) #;
+    t @ root_loc #:= (Call "ADDR.pa_init" [CBV (Cast tables tint)]) #;
+    Return Vtrue.
 
   (*
   /**
@@ -748,28 +747,28 @@ Module MMCONCUR.
         then Return (Call "MM.mm_page_table_from_pa" [CBV (Call "ARCHMM.arch_mm_table_from_pte" [CBR v; CBV level])])
         else Skip) #;
       ntable #= (Call "MM.mm_alloc_page_tables" [CBV one; CBR ppool]) #;
-      (#if (ntable == Vnull) then Return Vnull else Skip) #;
+      (#if #! (ntable) then Return Vnull else Skip) #;
       (#if (Call "ARCHMM.arch_mm_pte_is_block" [CBR v; CBV level])
         then inc #= (Call "MM.mm_entry_size" [CBV level_below]) #;
-                 new_pte #= (Call "ARCHMM.arch_mm_block_pte"
-                                  [CBV level_below;
-                                  CBV (Call "ARCHMM.arch_mm_block_from_pte" [CBR v; CBV level]);
-                                  CBV (Call "ARCHMM.arch_mm_pte_attrs" [CBR v; CBV level])])
+             new_pte #= (Call "ARCHMM.arch_mm_block_pte"
+                              [CBV level_below;
+                               CBV (Call "ARCHMM.arch_mm_block_from_pte" [CBR v; CBV level]);
+                               CBV (Call "ARCHMM.arch_mm_pte_attrs" [CBR v; CBV level])])
         else inc #= zero #;
-                 new_pte #= (Call "ARCHMM.arch_mm_absent_pte" [CBV level_below])) #;
+             new_pte #= (Call "ARCHMM.arch_mm_absent_pte" [CBV level_below])) #;
       i #= zero #;
       #while (i < MM_PTE_PER_PAGE)
       do (
         ntable @ i #:= new_pte #;
         new_pte #= (new_pte + inc) #;
         i #= (i + one)
-        ) #;
-          (Call "MM.mm_replace_entry" [CBV a_begin; CBR pte;
-                                      CBV (Call "ARCHMM.arch_mm_table_pte"
-                                                [CBV level;
-                                                CBV (Call "ADDR.pa_init" [CBV (Cast ntable tint)])]);
-                                      CBV level; CBV flags; CBR ppool]) #;
-          Return ntable.
+      ) #;
+      (Call "MM.mm_replace_entry" [CBV a_begin; CBR pte;
+                                   CBV (Call "ARCHMM.arch_mm_table_pte"
+                                             [CBV level;
+                                              CBV (Call "ADDR.pa_init" [CBV (Cast ntable tint)])]);
+                                   CBV level; CBV flags; CBR ppool]) #;
+      Return ntable.
 
   (*
   /**
@@ -887,7 +886,7 @@ Module MMCONCUR.
                                                                CBV flags; CBR ppool])
                             else Skip)
                      else nt #= (Call "MM.mm_populate_table_pte" [CBV a_begin; CBR pte; CBV level; CBV flags; CBR ppool]) #;
-                             (#if (nt == Vnull)
+                             (#if #! (nt)
                                then Return Vfalse
                                else Skip) #;
                              (#if (#! (Call "MM.mm_map_level" [CBV a_begin; CBV a_end; CBV pa; CBV attrs; CBR nt;
@@ -988,7 +987,7 @@ Module MMCONCUR.
   }
    *)
 
-  Definition  mm_ptable_identity_map (t pa_begin pa_end attrs flags ppool : var) (root_level ptable_end a_end a_begin: var) :=
+  Definition mm_ptable_identity_map (t pa_begin pa_end attrs flags ppool : var) (root_level ptable_end a_end a_begin: var) :=
     root_level #= ((Call "MM.mm_max_level" [CBV flags]) + one) #;
                ptable_end #= (Call "MM.mm_ptable_addr_space_end" [CBV flags]) #;
                a_end #= (Call "MM.mm_round_up_to_page" [CBV (Call "ADDR.pa_addr" [CBV pa_end])]) #;
@@ -1272,7 +1271,7 @@ Module MMCONCUR.
    *)
 
 
-  Definition mm_ptable_defrag_entry (entry level ppool : var) (table i mergeable base_present base_attrs i present : var) :=
+  Definition mm_ptable_defrag_entry (entry level ppool : var) (table i mergeable base_present base_attrs present : var) :=
     (#if (#! (Call "ARCHMM.arch_mm_pte_is_table" [CBV entry; CBV level]))
       then Return entry
       else Skip)
@@ -1352,7 +1351,7 @@ Module MMCONCUR.
                  #while (j < MM_PTE_PER_PAGE)
                  do (
                      (tables @ (i * entries_size + j) #:=
-                             (Call "MM.mm_ptable_defrag_entries"
+                             (Call "MM.mm_ptable_defrag_entry"
                                    [CBV (tables #@ (i * entries_size + j));
                                       CBV level; CBR ppool]))
                        #;
@@ -1614,7 +1613,7 @@ Module MMCONCUR.
           (Call "MM.mm_ptable_identity_commit" [CBR t; CBV a_begin; CBV a_end;
                                                CBV (Call "ARCHMM.arch_mm_mode_to_stage2_attrs" [CBV mode]);
                                                CBV flags; CBR ppool]) #;
-          #if (#! (ipa == Vnull))
+          #if (ipa)
            then ipa #= (Call "ADDR.ipa_from_pa" [CBV a_begin])
            else Skip.                 
                    
@@ -1654,7 +1653,7 @@ Module MMCONCUR.
           success #= (Call "MM.mm_ptable_identity_update" [CBR t; CBV a_begin; CBV a_end;
                                                           CBV (Call "MM.arch_mm_mode_to_stage2_attrs" [CBV mode]);
                                                           CBV flags; CBR ppool]) #;
-          (#if (success #&& (#! (ipa == Vnull)))
+          (#if (success #&& ipa)
             then ipa #= (Call "ADDR.ipa_from_pa" [CBV a_begin])
             else Skip) #;
           Return success.
@@ -1917,6 +1916,11 @@ Module MMCONCUR.
   Definition mm_ptable_addr_space_endF: function. mk_function_tac mm_ptable_addr_space_end ["flags"] ([]:list var). Defined.
   Definition mm_ptable_initF: function. mk_function_tac mm_ptable_init ["t"; "flags"; "ppool"] ["root_table_count"; "tables"; "i"; "j"]. Defined.
   Definition mm_ptable_finiF: function. mk_function_tac mm_ptable_fini ["t"; "flags"; "ppool"] ["tables"; "root_table_count"; "level"; "i"; "j"]. Defined.
+  Definition mm_merge_table_pteF: function. mk_function_tac mm_merge_table_pte ["table_pte"; "level"; "ppool"] ["table"; "block_attrs"; "table_attrs"; "combined_attrs"; "block_address"]. Defined.
+  Definition mm_ptable_defrag_entryF: function. mk_function_tac mm_ptable_defrag_entry ["entry"; "level"; "ppool"] ["table"; "i"; "mergeable"; "base_present"; "base_attrs"; "present"]. Defined.
+  Definition mm_ptable_defragF: function. mk_function_tac mm_ptable_defrag ["t"; "flags"; "ppool"] ["tables"; "level"; "root_table_count"; "i"; "j"]. Defined.
+  Definition mm_populate_table_pteF: function. mk_function_tac mm_populate_table_pte ["a_begin"; "pte"; "level"; "flags"; "ppool"] ["ntable"; "v"; "new_pte"; "i"; "inc"; "level_below"]. Defined.
+  Definition mm_replace_entryF: function. mk_function_tac mm_replace_entry ["a_begin"; "pte"; "new_pte"; "level"; "flags"; "ppool"] ["v"]. Defined.
 
   Definition mm_program: program :=
     [
@@ -1937,7 +1941,12 @@ Module MMCONCUR.
         ("MM.mm_free_page_pte", mm_free_page_pteF) ;
         ("MM.mm_ptable_addr_space_end", mm_ptable_addr_space_endF) ;
         ("MM.mm_ptable_init", mm_ptable_initF) ;
-        ("MM.mm_ptable_fini", mm_ptable_finiF)      
+        ("MM.mm_ptable_fini", mm_ptable_finiF) ;
+        ("MM.mm_merge_table_pte", mm_merge_table_pteF) ;
+        ("MM.mm_ptable_defrag_entry", mm_ptable_defrag_entryF) ;
+        ("MM.mm_ptable_defrag", mm_ptable_defragF) ;
+        ("MM.mm_populate_table_pte", mm_populate_table_pteF) ;
+        ("MM.mm_replace_entry", mm_replace_entryF)
     ].
   
   Definition mm_modsem : ModSem := program_to_ModSem mm_program.

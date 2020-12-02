@@ -762,8 +762,15 @@ Definition classify_cmp (v1: val) (v2: val) :=
 
 Definition cmp_ptr (c: comparison) (v1 v2: val): option val :=
   match v1, v2 with
-  | Vptr b1 ofs1, Vptr b2 ofs2 => if (eq_block b1 b2) && (Ptrofs.eq ofs1 ofs2)
-                                 then Some Vtrue else Some Vfalse
+  | Vptr b1 ofs1, Vptr b2 ofs2 => if (eq_block b1 b2)
+                                 then if (Ptrofs.cmp c ofs1 ofs2)
+                                      then Some Vtrue else Some Vfalse
+                                 else
+                                   match c with
+                                   | Ceq => Some Vfalse
+                                   | Cne => Some Vtrue
+                                   | _ => None
+                                   end
   | _, _ => None
   end.
 
