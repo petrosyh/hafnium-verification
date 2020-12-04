@@ -1643,12 +1643,17 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
     ("ARCHMM.arch_mm_block_from_pte",  arch_mm_block_from_pte_call) ;
     ("ARCHMM.arch_mm_table_from_pte", arch_mm_table_from_pte_call) ;
     ("ARCHMM.arch_mm_pte_attrs", arch_mm_pte_attrs_call) ;
-    ("ARCHMM.arch_mm_mode_to_stage1_attrs", arch_mm_mode_to_stage1_attrs_call)
+    ("ARCHMM.arch_mm_mode_to_stage1_attrs", arch_mm_mode_to_stage1_attrs_call) ;
     (*
     ("ARCHMM.arch_mm_mode_to_stage2_attrs",  arch_mm_mode_to_stage2_attrs_call) ;
     ("ARCHMM.arch_mm_stage2_attrs_to_mode",  arch_mm_stage2_attrs_to_mode_call) ;
      ...
      *)
+    ("ARCHMM.arch_mm_stage1_max_level", arch_mm_stage1_max_level_call) ;
+    ("ARCHMM.arch_mm_stage2_max_level", arch_mm_stage2_max_level_call) ;
+    ("ARCHMM.arch_mm_stage1_root_table_count", arch_mm_stage1_root_table_count_call) ;
+    ("ARCHMM.arch_mm_stage2_root_table_count", arch_mm_stage2_root_table_count_call) ;
+    ("ARCHMM.arch_mm_combine_table_entry_attrs", arch_mm_combine_table_entry_attrs_call) 
     ].
 
   Definition archmm_modsem : ModSem :=
@@ -1674,5 +1679,4 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
   .
   
 End SPECS.
-
 
