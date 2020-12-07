@@ -1680,3 +1680,4 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
   
 End SPECS.
 
+End HIGHSPECITREE.

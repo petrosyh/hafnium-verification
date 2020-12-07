@@ -122,8 +122,9 @@ Separate Extraction
          
          ITreeDefinition.observe
 
-         Toy.FACTTEST.isem
-         Toy.MAPTEST.isem
+         Toy.FACTTEST.isem1
+         Toy.FACTTEST.isem2
+         Toy.FACTTEST.isem3
 .
 
 Cd "..".
