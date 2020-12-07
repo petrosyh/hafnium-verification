@@ -47,7 +47,7 @@ Set Implicit Arguments.
 
 (* FACT - simple itree *)
 Module FACT.
-  Definition fact (n: var) (res: var) :=
+  Definition fact_dsl (n: var) (res: var) :=
     res #= (Int.repr 1) #;
     #while n
     do (
@@ -56,7 +56,7 @@ Module FACT.
     ) #;
     Return res.
     
-  Definition factF: function. mk_function_tac fact ["n"] ["res"]. Defined.
+  Definition factF: function. mk_function_tac fact_dsl ["n"] ["res"]. Defined.
 
   Definition fact_program: program :=
     [ ("fact", factF) ].
@@ -79,10 +79,13 @@ Module FACT_ITREE.
       Ret (x * y)%nat
     end.
 
+  Definition fact_spec (x: nat) : itree E nat :=
+    rec fact_body x.
+
   Definition fact_call (args: list val) : itree E (val * list val) :=
     match args with
     | [Vcomp (Vint n)] =>
-      res <- rec fact_body (Z.to_nat (Int.unsigned n)) ;;
+      res <- fact_spec (Z.to_nat (Int.unsigned n)) ;;
       Ret (Vcomp (Vint (Int.repr (Z.of_nat res))), args)
     | _ => Ret (Vcomp (Vint (Int.repr 0)), args)
     end.
@@ -120,7 +123,7 @@ Module FACT_COQ.
       | Eempty => Ret (oh, tt)
       end.  
   
-  Fixpoint fact (n: nat):nat :=
+  Fixpoint fact_coq (n: nat):nat :=
     match n with
     | O => 1
     | S n' => n * (fact n')
@@ -129,7 +132,7 @@ Module FACT_COQ.
   Definition fact_call (args: list val) : itree E (val * list val) :=
     match args with
     | [Vcomp (Vint n)] =>
-      let res := fact (Z.to_nat (Int.unsigned n)) in
+      let res := fact_coq (Z.to_nat (Int.unsigned n)) in
       Ret (Vcomp (Vint (Int.repr (Z.of_nat res))), args)
     | _ => Ret (Vcomp (Vint (Int.repr 0)), args)
     end.

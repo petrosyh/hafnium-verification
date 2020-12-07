@@ -528,38 +528,70 @@ End MultiCoreMPSC.
 
 
 Module MultiModule.
+  Inductive EmptyE: Type -> Type :=
+  | Eempty : EmptyE unit.
+  
+  Definition E := CallExternalE +' EmptyE +' GlobalE +' MemoryE +' Event.
 
+  Definition handle_EmptyE {E: Type -> Type}
+    : EmptyE ~> stateT Any (itree E) :=
+    fun _ e oh =>
+      match e with
+      | Eempty => Ret (oh, tt)
+      end.
+  
   Definition f x y r: stmt :=
     (#if x
       then (y #= (x - (Int.repr 1)) #;
-              r #= (Call "g" [CBV y]) #;
-              r #= r + x)
+            r #= (Call "g" [CBV y]) #;
+            r #= r + x)
       else (r #= (Int.repr 0))
-    )
-      #;
-      Return r
-  .
+    ) #;
+    Return r.
 
-  Definition g x y r: stmt :=
-    (#if x
-      then (y #= (x - (Int.repr 1)) #;
-              r #= (Call "f" [CBV y]) #;
-              r #= r + x)
-      else (r #= (Int.repr 0))
-    )
-      #;
-      Return r
-  .
+  Definition g_spec (x: Z) : itree E Z :=
+    if negb (x =? 0)%Z
+    then
+      let y := (x - 1)%Z in
+      '(r, _) <- trigger (CallExternal "f" [Vcomp (Vint (Int.repr y))]);;
+      match r with
+      | Vcomp (Vint i) =>
+        let r := (Int.unsigned i) in
+        Ret (r + x)%Z
+      | _ => triggerUB "asdf"
+      end
+    else
+      Ret 0%Z.
 
+  Definition g_call (args: list val) : itree E (val * list val) :=
+    match args with
+    | [Vcomp (Vint n)] =>
+      res <- g_spec (Int.unsigned n);;
+      Ret (Vcomp (Vint (Int.repr res)), args)
+    | _ => Ret (Vcomp (Vint (Int.repr 0)), args)
+    end.
+  
   Definition f_function: function. mk_function_tac f ["x"] ["local0" ; "local1"]. Defined.
-  Definition g_function: function. mk_function_tac g ["x"] ["local0" ; "local1"]. Defined.
 
   Definition main_program: program := [("main", Rec.main_function)].
   Definition f_program: program := [("f", f_function)].
-  Definition g_program: program := [("g", g_function)].
 
+  Definition g_modsem : ModSem :=
+    mk_ModSem
+      (fun s => string_dec "g" s)
+      _
+      (upcast tt)
+      EmptyE
+      handle_EmptyE
+      (fun T (c: CallExternalE T) =>
+         let '(CallExternal func_name args) := c in
+         if string_dec func_name "g"
+         then g_call args
+         else triggerUB "ZXCV"
+      ).
+  
   Definition modsems: list ModSem :=
-    List.map program_to_ModSem [main_program ; f_program ; g_program].
+    g_modsem::(List.map program_to_ModSem [main_program ; f_program]).
 
   Definition isem: itree Event unit := eval_multimodule modsems.
 
