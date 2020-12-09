@@ -527,15 +527,94 @@ Notation "a {id_to_addr : b }" := (update_id_to_addr a b) (at level 1).
 Notation "a {next_id : b }" := (update_next_id a b) (at level 1).
 Notation "a {stage : b }" := (update_stage a b) (at level 1).
 
+
+
+Section FLAGVALUES.
+
+  Definition Z_NON_SHAREABLE := 0.
+  Definition Z_OUTER_SHAREABLE := 2.
+  Definition Z_INNER_SHAREABLE := 3.
+
+  Definition Z_PTE_VALID := 0.
+  Definition Z_PTE_LEVEL0_BLOCK := 1.
+  Definition Z_PTE_TABLE := 1.
+
+  Definition Z_STAGE1_XN := 54.
+  Definition Z_STAGE1_PXN := 53.
+  Definition Z_STAGE1_CONTIGUOUS := 52.
+  Definition Z_STAGE1_DBM := 51.
+  Definition Z_STAGE1_NG := 11.
+  Definition Z_STAGE1_AF := 10.
+  Definition Z_STAGE1_SH_GEN (x : Z) := Z.shiftl x 8.
+  Definition Z_STAGE1_SH := 8.
+  Definition Z_STAGE1_AP2 := 7.
+  Definition Z_STAGE1_AP1 := 6.
+  Definition Z_STAGE1_AP_GEN (x: Z) := Z.shiftl x 6.
+  Definition Z_STAGE1_AP := 6.
+  Definition Z_STAGE1_NS := 5.
+  Definition Z_STAGE1_ATTRINDX_GEN (x: Z) := Z.shiftl x 2.
+  Definition Z_STAGE1_ATTRINDX := 2.
+
+  Definition Z_STAGE1_READONLY := 2.
+  Definition Z_STAGE1_READWRITE := 0.
+
+  Definition Z_STAGE1_DEVICEINDX := 0.
+  Definition Z_STAGE1_NORMALINDX := 1.
+
+  Definition Z_STAGE2_XN_GEN (x : Z) := Z.shiftl x 53.
+  Definition Z_STAGE2_XN := 53.
+  Definition Z_STAGE2_CONTIGUOUS := 52.
+  Definition Z_STAGE2_DBM := 51.
+  Definition Z_STAGE2_AF := 10.
+  Definition Z_STAGE2_SH_GEN (x : Z) := Z.shiftl x 8.
+  Definition Z_STAGE2_SH := 8.
+  Definition Z_STAGE2_S2AP_GEN (x : Z) := Z.shiftl x 6.
+  Definition Z_STAGE2_S2AP := 6.
+
+  Definition Z_STAGE2_EXECUTE_ALL := 0.
+  Definition Z_STAGE2_EXECUTE_EL0 := 1.
+  Definition Z_STAGE2_EXECUTE_NONE := 2.
+  Definition Z_STAGE2_EXECUTE_EL1 := 3.
+  Definition Z_STAGE2_EXECUTE_MASK := 3.
+
+  Definition Z_TABLE_NSTABLE := 63.
+  Definition Z_TABLE_APTABLE1 := 62.
+  Definition Z_TABLE_APTABLE0 := 61.
+  Definition Z_TABLE_XNTABLE := 60.
+  Definition Z_TABLE_PXNTABLE := 59.
+
+  Definition Z_STAGE2_SW_OWNED := 55.
+  Definition Z_STAGE2_SW_EXCLUSIVE := 56.
+
+  Definition Z_STAGE2_DEVICE_MEMORY := 0.
+  Definition Z_STAGE2_NONCACHEABLE := 1.
+  Definition Z_STAGE2_WRITETHROUGH := 2.
+  Definition Z_STAGE2_WRITEBACK := 3.
+
+  Definition Z_STAGE2_MEMATTR_DEVICE_nGnRnE := 0.
+  Definition Z_STAGE2_MEMATTR_DEVICE_nGnRE := 1.
+  Definition Z_STAGE2_MEMATTR_DEVICE_nGRE := 2.
+  Definition Z_STAGE2_MEMATTR_DEVICE_GRE := 3.
+
+  Definition Z_STAGE2_MEMATTR_GEN (outer inner : Z) := Z.lor (Z.shiftl outer 2) (Z.shiftl inner 2).
+  Definition Z_STAGE2_MEMATTR := 2.
+
+  Definition Z_STAGE2_ACCESS_READ := 1.
+  Definition Z_STAGE2_ACCESS_WRITE := 2.
+
+  Definition Z_ADDRESS_SHIFT := 12.
+
+End FLAGVALUES.
+
 Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
 
   Definition x_zshift_or_0 := fun (cond: bool) (x: Z) (shift : Z) => if cond then Z.shiftl x shift else 0.
   Definition zshift_or_0 := fun (cond: bool) (shift : Z) => x_zshift_or_0 cond 1 shift.
 
   Definition x_bit_no_exist :=
-    fun (x : Z) (shift : Z) (attribute_values: Z) => (zeq 0 (Z.land (Z.shiftl x 63) attribute_values)).
+    fun (x shift attribute_values: Z) => (zeq 0 (Z.land (Z.shiftl x shift) attribute_values)).
   Definition x_gen_true_false := 
-    fun (x : Z) (shift : Z) (attribute_values: Z) => if x_bit_no_exist x shift attribute_values then false else true.
+    fun (x shift attribute_values: Z) => if x_bit_no_exist x shift attribute_values then false else true.
   Definition bit_no_exist :=    
     fun (shift : Z) (attribute_values: Z) => x_bit_no_exist 1 shift attribute_values.
   Definition gen_true_false := 
@@ -544,74 +623,74 @@ Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
   Definition Stage1TableAttributes_to_ATTR_VALUES (stage1_table_attributes : Stage1TableAttributes) : Z :=
     match stage1_table_attributes with
     |  mkStage1TableAttributes nstable aptable1 aptable2 xntable pxntable
-       => let nstable_to_z := zshift_or_0 nstable 63 in 
-         let aptable1_to_z := zshift_or_0 aptable1 62 in
-         let aptable2_to_z := zshift_or_0 aptable2 61 in
-         let xntable_to_z := zshift_or_0 xntable 60 in
-         let pxntable_to_z :=  zshift_or_0 pxntable 59 in 
-         nstable_to_z + aptable1_to_z + aptable2_to_z + xntable_to_z + pxntable_to_z
+       => let nstable_to_z := zshift_or_0 nstable Z_TABLE_NSTABLE in 
+         let aptable1_to_z := zshift_or_0 aptable1 Z_TABLE_APTABLE1 in
+         let aptable0_to_z := zshift_or_0 aptable2 Z_TABLE_APTABLE0 in
+         let xntable_to_z := zshift_or_0 xntable Z_TABLE_XNTABLE in
+         let pxntable_to_z :=  zshift_or_0 pxntable Z_TABLE_PXNTABLE in 
+         nstable_to_z + aptable1_to_z + aptable0_to_z + xntable_to_z + pxntable_to_z
     end.
   
   Definition ATTR_VALUES_to_Stage1TableAttributes (stage1_table_attributes_value : Z)
     : Stage1TableAttributes :=
-    let nstable_of_z := gen_true_false 63 stage1_table_attributes_value in
-    let aptable1_of_z := gen_true_false 62 stage1_table_attributes_value in
-    let aptable2_of_z := gen_true_false 61 stage1_table_attributes_value in
-    let xntable_of_z := gen_true_false 60 stage1_table_attributes_value in
-    let pxntable_of_z := gen_true_false 59 stage1_table_attributes_value in
-    mkStage1TableAttributes nstable_of_z aptable1_of_z aptable2_of_z xntable_of_z pxntable_of_z.
+    let nstable_of_z := gen_true_false Z_TABLE_NSTABLE stage1_table_attributes_value in
+    let aptable1_of_z := gen_true_false Z_TABLE_APTABLE1 stage1_table_attributes_value in
+    let aptable0_of_z := gen_true_false Z_TABLE_APTABLE0 stage1_table_attributes_value in
+    let xntable_of_z := gen_true_false Z_TABLE_XNTABLE stage1_table_attributes_value in
+    let pxntable_of_z := gen_true_false Z_TABLE_PXNTABLE stage1_table_attributes_value in
+    mkStage1TableAttributes nstable_of_z aptable1_of_z aptable0_of_z xntable_of_z pxntable_of_z.
 
   Definition Stage1BlockAttributes_to_ATTR_VALUES (stage1_block_attributes : Stage1BlockAttributes) : Z :=
     match stage1_block_attributes with
     | mkStage1BlockAttributes xn pxn contiguous dbm ng af sh ap ns attrindx
-      => let xn_to_n := zshift_or_0 xn 54 in
-        let pxn_to_n := zshift_or_0 pxn 53 in
-        let contiguous_to_n := zshift_or_0 contiguous 52 in
-        let dbm_to_n := zshift_or_0 dbm 51 in
-        let ng_to_n := zshift_or_0 ng 11 in
-        let af_to_n := zshift_or_0 af 10 in
-        let sh_to_n := match sh with
-                       | NON_SHAREABLE => Z.shiftl 0 8
-                       | OUTER_SHAREABLE => Z.shiftl 2 8
-                       | INNER_SHAREABLE => Z.shiftl 3 8
-                       end in
-        let ap_to_n := match ap with
-                       | STAGE1_READONLY => Z.shiftl 2 6
-                       | STAGE1_READWRITE => Z.shiftl 0 6
-                       end in
-        let ns_to_n := if (ns) then Z.shiftl 1 5 else 0 in
-        let attrindx_to_n := match attrindx with
-                             | STAGE1_DEVICEINDX => Z.shiftl 0 2
-                             | STAGE1_NORMALINDX => Z.shiftl 1 2
-                             end in
+      => let xn_to_n := zshift_or_0 xn Z_STAGE1_XN in
+        let pxn_to_n := zshift_or_0 pxn Z_STAGE1_PXN in
+        let contiguous_to_n := zshift_or_0 contiguous Z_STAGE1_CONTIGUOUS in
+        let dbm_to_n := zshift_or_0 dbm Z_STAGE1_DBM in
+        let ng_to_n := zshift_or_0 ng Z_STAGE1_NG in
+        let af_to_n := zshift_or_0 af Z_STAGE1_AF in
+        let sh_to_n := Z_STAGE1_SH_GEN (match sh with
+                                        | NON_SHAREABLE =>  Z_NON_SHAREABLE
+                                        | OUTER_SHAREABLE => Z_OUTER_SHAREABLE 
+                                        | INNER_SHAREABLE => Z_INNER_SHAREABLE 
+                                        end) in
+        let ap_to_n := Z_STAGE1_AP_GEN (match ap with
+                                        | STAGE1_READONLY => Z_STAGE1_READONLY
+                                        | STAGE1_READWRITE => Z_STAGE1_READWRITE
+                                        end) in
+        let ns_to_n := zshift_or_0 ns Z_STAGE1_NS in
+        let attrindx_to_n := Z_STAGE1_ATTRINDX_GEN (match attrindx with
+                                                    | STAGE1_DEVICEINDX => Z_STAGE1_DEVICEINDX
+                                                    | STAGE1_NORMALINDX => Z_STAGE1_NORMALINDX
+                                                    end) in
         xn_to_n + pxn_to_n + contiguous_to_n + dbm_to_n + ng_to_n + af_to_n + sh_to_n + ap_to_n + ns_to_n + attrindx_to_n
     end.
 
   Definition ATTR_VALUES_to_Stage1BlockAttributes (stage1_block_attributes_value : Z) : option Stage1BlockAttributes :=
-    let xn_of_z := gen_true_false 54 stage1_block_attributes_value in
-    let pxn_of_z := gen_true_false 53 stage1_block_attributes_value in
-    let contiguous_of_z := gen_true_false 52 stage1_block_attributes_value in
-    let dbm_of_z := gen_true_false 51 stage1_block_attributes_value in
-    let ng_of_z := gen_true_false 11 stage1_block_attributes_value in
-    let af_of_z := gen_true_false 10 stage1_block_attributes_value in
-    let sh_of_z := if x_bit_no_exist 1 8 stage1_block_attributes_value
-                   then if x_bit_no_exist 2 8 stage1_block_attributes_value
+    let xn_of_z := gen_true_false Z_STAGE1_XN stage1_block_attributes_value in
+    let pxn_of_z := gen_true_false Z_STAGE1_PXN stage1_block_attributes_value in
+    let contiguous_of_z := gen_true_false Z_STAGE1_CONTIGUOUS stage1_block_attributes_value in
+    let dbm_of_z := gen_true_false Z_STAGE1_DBM stage1_block_attributes_value in
+    let ng_of_z := gen_true_false Z_STAGE1_NG stage1_block_attributes_value in
+    let af_of_z := gen_true_false Z_STAGE1_AF stage1_block_attributes_value in
+    let sh_of_z := if x_bit_no_exist 1 Z_STAGE1_SH stage1_block_attributes_value
+                   then if x_bit_no_exist 2 Z_STAGE1_SH stage1_block_attributes_value
                         then (* 0 << 8 *) Some NON_SHAREABLE
                         else (* 2 << 8 *) Some OUTER_SHAREABLE
-                   else if x_bit_no_exist 2 8 stage1_block_attributes_value
+                   else if x_bit_no_exist 2 Z_STAGE1_SH stage1_block_attributes_value
                         then (* 1 << 8 *) None
                         else (* 3 << 8 *) Some INNER_SHAREABLE in
-    let ap_of_z := if x_bit_no_exist 1 6 stage1_block_attributes_value
-                   then if x_bit_no_exist 2 6 stage1_block_attributes_value
+    let ap_of_z := if x_bit_no_exist 1 Z_STAGE1_AP stage1_block_attributes_value
+                   then if x_bit_no_exist 2 Z_STAGE1_AP stage1_block_attributes_value
                         then (* 0 << 6 *) Some STAGE1_READWRITE
                         else (* 2 << 6 *) Some STAGE1_READONLY
                    else (* 1 << 6 or 3 << 6 *) None in
-    let ns_of_z := gen_true_false 5 stage1_block_attributes_value in
-    let attrindx_of_n := if x_bit_no_exist 1 2 stage1_block_attributes_value
-                         then if x_bit_no_exist 2 2 stage1_block_attributes_value
+    let ns_of_z := gen_true_false Z_STAGE1_NS stage1_block_attributes_value in
+    let attrindx_of_n := if x_bit_no_exist 1 Z_STAGE1_ATTRINDX stage1_block_attributes_value
+                         then if x_bit_no_exist 2 Z_STAGE1_ATTRINDX stage1_block_attributes_value
                               then (* 0 << 2 *) Some STAGE1_DEVICEINDX
                               else (* 2 << 2 *) None
-                         else if x_bit_no_exist 2 2 stage1_block_attributes_value
+                         else if x_bit_no_exist 2 Z_STAGE1_ATTRINDX stage1_block_attributes_value
                               then (* 1 << 2 *) Some STAGE1_NORMALINDX
                               else (* 3 << 2 *) None in
     match (sh_of_z, ap_of_z, attrindx_of_n) with
@@ -624,69 +703,69 @@ Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
   Definition Stage2BlockAttributes_to_ATTR_VALUES (stage2_block_attributes : Stage2BlockAttributes) : Z :=
     match stage2_block_attributes with
     | mkStage2BlockAttributes xn contiguous dbm sw_owned sw_exclusive af sh s2ap memattr
-      => let xn_to_n := match xn with
-                       | STAGE2_EXECUTE_ALL => (Z.shiftl 0 53)
-                       | STAGE2_EXECUTE_EL0 => (Z.shiftl 1 53)
-                       | STAGE2_EXECUTE_NONE => (Z.shiftl 2 53)
-                       | STAGE2_EXECUTE_EL1 => (Z.shiftl 3 53)
-                       end in
-        let contiguous_to_n := zshift_or_0 contiguous 52  in
-        let dbm_to_n := zshift_or_0 dbm 51 in
-        let sw_owned_n := zshift_or_0 sw_owned 55 in
-        let sw_exclusive := zshift_or_0 sw_exclusive 56 in
-        let af_to_n := zshift_or_0 af 10 in
-        let sh_to_n := match sh with
-                       | NON_SHAREABLE => Z.shiftl 0 8
-                       | OUTER_SHAREABLE => Z.shiftl 2 8
-                       | INNER_SHAREABLE => Z.shiftl 3 8
-                       end in
-        let s2ap_to_n := match s2ap with
-                         | STAGE2_ACCESS_NOPERM => Z.shiftl 0 6
-                         | STAGE2_ACCESS_READ => Z.shiftl 1 6
-                         | STAGE2_ACCESS_WRITE => Z.shiftl 2 6
-                         | STAGE2_ACCESS_READWRITE => Z.shiftl 3 6
-                         end in 
-        let memattr_to_n := match memattr with
-                            | MEMATTR_ZERO => Z.shiftl 0 2
-                            | MEMATTR_ONE => Z.shiftl 1 2
-                            | MEMATTR_TWO => Z.shiftl 2 2
-                            | MEMATTR_THREE => Z.shiftl 3 2
-                            end in
+      => let xn_to_n := Z_STAGE2_XN_GEN (match xn with
+                                        | STAGE2_EXECUTE_ALL => Z_STAGE2_EXECUTE_ALL
+                                        | STAGE2_EXECUTE_EL0 => Z_STAGE2_EXECUTE_EL0
+                                        | STAGE2_EXECUTE_NONE => Z_STAGE2_EXECUTE_NONE
+                                        | STAGE2_EXECUTE_EL1 => Z_STAGE2_EXECUTE_EL1
+                                        end) in
+        let contiguous_to_n := zshift_or_0 contiguous Z_STAGE2_CONTIGUOUS  in
+        let dbm_to_n := zshift_or_0 dbm Z_STAGE2_DBM in
+        let sw_owned_n := zshift_or_0 sw_owned Z_STAGE2_SW_OWNED in
+        let sw_exclusive := zshift_or_0 sw_exclusive Z_STAGE2_SW_EXCLUSIVE in
+        let af_to_n := zshift_or_0 af Z_STAGE2_AF in
+        let sh_to_n := Z_STAGE2_SH_GEN (match sh with
+                                        | NON_SHAREABLE => Z_NON_SHAREABLE
+                                        | OUTER_SHAREABLE => Z_OUTER_SHAREABLE
+                                        | INNER_SHAREABLE => Z_INNER_SHAREABLE
+                                        end) in
+        let s2ap_to_n := Z_STAGE2_S2AP_GEN (match s2ap with
+                                            | STAGE2_ACCESS_NOPERM => 0
+                                            | STAGE2_ACCESS_READ => Z_STAGE2_ACCESS_READ
+                                            | STAGE2_ACCESS_WRITE => Z_STAGE2_ACCESS_WRITE
+                                            | STAGE2_ACCESS_READWRITE => Z_STAGE2_ACCESS_READ + Z_STAGE2_ACCESS_WRITE
+                                            end) in 
+        let memattr_to_n := Z.shiftl (match memattr with
+                                      | MEMATTR_ZERO => 0
+                                      | MEMATTR_ONE => 1
+                                      | MEMATTR_TWO => 2
+                                      | MEMATTR_THREE => 3
+                                      end) Z_STAGE2_MEMATTR in
         xn_to_n + contiguous_to_n + dbm_to_n + af_to_n + sh_to_n + s2ap_to_n + memattr_to_n
     end.
-
+  
   Definition ATTR_VALUES_to_Stage2BlockAttributes (stage2_block_attributes_value : Z) : option Stage2BlockAttributes :=
-    let xn_of_z := if  x_bit_no_exist 1 53 stage2_block_attributes_value
-                   then if  x_bit_no_exist 2 53 stage2_block_attributes_value
+    let xn_of_z := if  x_bit_no_exist 1 Z_STAGE2_XN stage2_block_attributes_value
+                   then if  x_bit_no_exist 2 Z_STAGE2_XN stage2_block_attributes_value
                         then (* 0 << 53 *) STAGE2_EXECUTE_ALL
                         else (* 2 << 53 *) STAGE2_EXECUTE_NONE
-                   else if  x_bit_no_exist 2 53 stage2_block_attributes_value
+                   else if  x_bit_no_exist 2 Z_STAGE2_XN stage2_block_attributes_value
                         then (* 1 << 53 *) STAGE2_EXECUTE_EL0
                         else (* 3 << 53 *) STAGE2_EXECUTE_EL1 in
-    let contiguous_of_z := gen_true_false 52 stage2_block_attributes_value in
-    let dbm_of_z := gen_true_false 51 stage2_block_attributes_value in
-    let sw_owned_of_z := gen_true_false 55 stage2_block_attributes_value in
-    let sw_exclusive_of_z := gen_true_false 56 stage2_block_attributes_value in
-    let af_of_z := gen_true_false 10 stage2_block_attributes_value in
-    let sh_of_z := if  x_bit_no_exist 1 8 stage2_block_attributes_value
-                   then if  x_bit_no_exist 2 8 stage2_block_attributes_value
+    let contiguous_of_z := gen_true_false Z_STAGE2_CONTIGUOUS stage2_block_attributes_value in
+    let dbm_of_z := gen_true_false Z_STAGE2_DBM stage2_block_attributes_value in
+    let sw_owned_of_z := gen_true_false Z_STAGE2_SW_OWNED stage2_block_attributes_value in
+    let sw_exclusive_of_z := gen_true_false Z_STAGE2_SW_EXCLUSIVE stage2_block_attributes_value in
+    let af_of_z := gen_true_false Z_STAGE2_AF stage2_block_attributes_value in
+    let sh_of_z := if  x_bit_no_exist 1 Z_STAGE2_SH stage2_block_attributes_value
+                   then if  x_bit_no_exist 2 Z_STAGE2_SH stage2_block_attributes_value
                         then (* 0 << 8 *) Some NON_SHAREABLE
                         else (* 2 << 8 *) Some OUTER_SHAREABLE
-                   else if x_bit_no_exist 2 8 stage2_block_attributes_value
+                   else if x_bit_no_exist 2 Z_STAGE2_SH stage2_block_attributes_value
                         then (* 1 << 8 *) None
                         else (* 3 << 8 *) Some INNER_SHAREABLE in
-    let s2ap_of_z := if x_bit_no_exist 1 6 stage2_block_attributes_value
-                     then if x_bit_no_exist 2 6 stage2_block_attributes_value
+    let s2ap_of_z := if x_bit_no_exist 1 Z_STAGE2_S2AP stage2_block_attributes_value
+                     then if x_bit_no_exist 2 Z_STAGE2_S2AP stage2_block_attributes_value
                           then (* 0 << 6 *) STAGE2_ACCESS_NOPERM
                           else (* 2 << 6 *) STAGE2_ACCESS_WRITE
-                     else if x_bit_no_exist 2 6 stage2_block_attributes_value
+                     else if x_bit_no_exist 2 Z_STAGE2_S2AP stage2_block_attributes_value
                           then (* 1 << 6 *) STAGE2_ACCESS_READ
                           else (* 3 << 6 *) STAGE2_ACCESS_READWRITE in
-    let memattr_of_z := if x_bit_no_exist 1 2 stage2_block_attributes_value
-                        then if x_bit_no_exist 2 2 stage2_block_attributes_value
+    let memattr_of_z := if x_bit_no_exist 1 Z_STAGE2_MEMATTR stage2_block_attributes_value
+                        then if x_bit_no_exist 2 Z_STAGE2_MEMATTR stage2_block_attributes_value
                              then (* 0 << 2 *) MEMATTR_ZERO
                              else (* 2 << 2 *) MEMATTR_TWO
-                        else if x_bit_no_exist 2 2 stage2_block_attributes_value
+                        else if x_bit_no_exist 2 Z_STAGE2_MEMATTR stage2_block_attributes_value
                              then (* 1 << 2 *) MEMATTR_ONE
                              else (* 3 << 2 *) MEMATTR_THREE in
     match sh_of_z with
@@ -704,52 +783,70 @@ Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
   
   Definition PTE_TYPES_to_IS_VALID_VALUE (pte_value : PTE_TYPES) : Z :=
     match pte_value with
-    | UNDEFINED => 0
-    | ABSENT => 0
-    | STAGE1_INVALID_BLOCK _ _ _ => 0
-    | STAGE1_TABLE _ _ => Z.shiftl 1 0
-    | STAGE1_PAGE _ _ => Z.shiftl 1 0 
-    | STAGE2_INVALID_BLOCK _ _ _ => 0
-    | STAGE2_TABLE _ => Z.shiftl 1 0
-    | STAGE2_PAGE _ _ => Z.shiftl 1 0
+    | UNDEFINED => Z_PTE_VALID
+    | ABSENT => Z_PTE_VALID
+    | STAGE1_INVALID_BLOCK _ _ _ => Z_PTE_VALID
+    | STAGE1_TABLE _ _ => Z.shiftl 1 Z_PTE_VALID
+    | STAGE1_PAGE _ _ => Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_INVALID_BLOCK _ _ _ => Z_PTE_VALID
+    | STAGE2_TABLE _ => Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_PAGE _ _ => Z.shiftl 1 Z_PTE_VALID
     end.
 
   Definition PTE_TYPES_TO_IS_TABLE_VALUE (pte_value : PTE_TYPES) : Z :=
     match pte_value with
     | UNDEFINED => 0
     | ABSENT => 0
-    | STAGE1_INVALID_BLOCK _ _ is_table => zshift_or_0 is_table 1
-    | STAGE1_TABLE _ _ => Z.shiftl 1 1
-    | STAGE1_PAGE _ _ => Z.shiftl 1 1
-    | STAGE2_INVALID_BLOCK _ _ is_table => zshift_or_0 is_table 1
-    | STAGE2_TABLE _ => Z.shiftl 1 1
-    | STAGE2_PAGE _ _ => Z.shiftl 1 1
+    | STAGE1_INVALID_BLOCK _ _ is_table => zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE1_TABLE _ _ => Z.shiftl 1 Z_PTE_TABLE
+    | STAGE1_PAGE _ _ => Z.shiftl 1 Z_PTE_TABLE
+    | STAGE2_INVALID_BLOCK _ _ is_table => zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE2_TABLE _ => Z.shiftl 1 Z_PTE_TABLE
+    | STAGE2_PAGE _ _ => Z.shiftl 1 Z_PTE_TABLE
     end.
   
   Definition PTE_TYPES_to_ATTR_VALUES (pte_value : PTE_TYPES) : Z :=
     match pte_value with
     | UNDEFINED => 0
     | ABSENT => 0
-    | STAGE1_INVALID_BLOCK _ attributes is_table => Stage1BlockAttributes_to_ATTR_VALUES attributes + zshift_or_0 is_table 1
-    | STAGE1_TABLE _ attributes => Stage1TableAttributes_to_ATTR_VALUES attributes + Z.shiftl 1 1 + Z.shiftl 1 0
-    | STAGE1_PAGE _ attributes => Stage1BlockAttributes_to_ATTR_VALUES attributes + Z.shiftl 1 1 + Z.shiftl 1 0 
-    | STAGE2_INVALID_BLOCK _ attributes is_table => Stage2BlockAttributes_to_ATTR_VALUES attributes + zshift_or_0 is_table 1
-    | STAGE2_TABLE _ => Z.shiftl 1 1 + Z.shiftl 1 0
-    | STAGE2_PAGE _ attributes => Stage2BlockAttributes_to_ATTR_VALUES attributes + Z.shiftl 1 1 + Z.shiftl 1 0
+    | STAGE1_INVALID_BLOCK _ attributes is_table => Stage1BlockAttributes_to_ATTR_VALUES attributes +
+                                                   zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE1_TABLE _ attributes => Stage1TableAttributes_to_ATTR_VALUES attributes +
+                                  Z.shiftl 1 Z_PTE_TABLE +
+                                  Z.shiftl 1 Z_PTE_VALID
+    | STAGE1_PAGE _ attributes => Stage1BlockAttributes_to_ATTR_VALUES attributes +
+                                 Z.shiftl 1 Z_PTE_TABLE +
+                                 Z.shiftl 1 Z_PTE_VALID                                 
+    | STAGE2_INVALID_BLOCK _ attributes is_table => Stage2BlockAttributes_to_ATTR_VALUES attributes +
+                                                   zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE2_TABLE _ => Z.shiftl 1 Z_PTE_TABLE +
+                       Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_PAGE _ attributes => Stage2BlockAttributes_to_ATTR_VALUES attributes +
+                                 Z.shiftl 1 Z_PTE_TABLE +
+                                 Z.shiftl 1 Z_PTE_VALID
     end.
 
   Definition PTE_TYPES_to_VALUES (pte : PTE_TYPES) : Z :=
     match pte with
     | UNDEFINED => 0
     | ABSENT => 0
-    | STAGE1_INVALID_BLOCK oa attributes is_table => Z.shiftl oa 12 + Stage1BlockAttributes_to_ATTR_VALUES attributes +
-                                                    zshift_or_0 is_table 1
-    | STAGE1_TABLE oa attr => Z.shiftl oa 12 + Stage1TableAttributes_to_ATTR_VALUES attr + Z.shiftl 1 1 + Z.shiftl 1 0
-    | STAGE1_PAGE oa attr => Z.shiftl oa 12 + Stage1BlockAttributes_to_ATTR_VALUES attr + Z.shiftl 1 1 + Z.shiftl 1 0
-    | STAGE2_INVALID_BLOCK oa attributes is_table => Z.shiftl oa 12 + Stage2BlockAttributes_to_ATTR_VALUES attributes +
-                                                    zshift_or_0 is_table 1
-    | STAGE2_TABLE oa => Z.shiftl oa 12 + Z.shiftl 1 1 + Z.shiftl 1 0
-    | STAGE2_PAGE oa attr => Z.shiftl oa 12 + Stage2BlockAttributes_to_ATTR_VALUES attr + Z.shiftl 1 1 + Z.shiftl 1 0
+    | STAGE1_INVALID_BLOCK oa attributes is_table => Z.shiftl oa Z_ADDRESS_SHIFT +
+                                                    Stage1BlockAttributes_to_ATTR_VALUES attributes +
+                                                    zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE1_TABLE oa attr => Z.shiftl oa Z_ADDRESS_SHIFT +
+                             Stage1TableAttributes_to_ATTR_VALUES attr +
+                             Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
+    | STAGE1_PAGE oa attr => Z.shiftl oa Z_ADDRESS_SHIFT +
+                            Stage1BlockAttributes_to_ATTR_VALUES attr +
+                            Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_INVALID_BLOCK oa attributes is_table => Z.shiftl oa Z_ADDRESS_SHIFT +
+                                                    Stage2BlockAttributes_to_ATTR_VALUES attributes +
+                                                    zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE2_TABLE oa => Z.shiftl oa Z_ADDRESS_SHIFT +
+                        Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_PAGE oa attr => Z.shiftl oa Z_ADDRESS_SHIFT +
+                            Stage2BlockAttributes_to_ATTR_VALUES attr +
+                            Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
     end.
 
   Definition PTE_TYPES_to_ADDRESS (pte : PTE_TYPES) : Z :=
@@ -774,28 +871,10 @@ Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
     | STAGE1_PAGE oa _
     | STAGE2_INVALID_BLOCK oa _ _
     | STAGE2_TABLE oa
-    | STAGE2_PAGE oa _ => Z.shiftl oa 12
+    | STAGE2_PAGE oa _ => Z.shiftl oa Z_ADDRESS_SHIFT
     end.
 
 End FLAG_TO_VALUE_and_VALUE_TO_FLAG.
-
-Section HIGHSPECITREE.
-
-Definition state := ArchMMAbstractState.
-
-Inductive updateStateE: Type -> Type :=
-| GetState : updateStateE (ArchMMAbstractState)
-| SetState (st1:ArchMMAbstractState): updateStateE unit.
-
-Definition updateState_handler {E: Type -> Type}
-  : updateStateE ~> stateT (ArchMMAbstractState) (itree E) :=
-  fun _ e st =>
-    match e with
-    | GetState => Ret (st, st)
-    | SetState st' => Ret (st', tt)
-    end.
-
-Definition ArchMME := CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event.
 
 Section MM_MODE_VALUE.
 
@@ -821,6 +900,22 @@ Definition MM_MODE_UNOWNED : Z := 32.
 Definition MM_MODE_SHARED : Z := 64.
  
 End MM_MODE_VALUE.
+
+Definition state := ArchMMAbstractState.
+
+Inductive updateStateE: Type -> Type :=
+| GetState : updateStateE (ArchMMAbstractState)
+| SetState (st1:ArchMMAbstractState): updateStateE unit.
+
+Definition updateState_handler {E: Type -> Type}
+  : updateStateE ~> stateT (ArchMMAbstractState) (itree E) :=
+  fun _ e st =>
+    match e with
+    | GetState => Ret (st, st)
+    | SetState st' => Ret (st', tt)
+    end.
+
+Definition ArchMME := CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event.
 
 Section SPECS.
 (*
@@ -1197,7 +1292,7 @@ static uint64_t pte_addr(pte_t pte)
     match args with 
     | [Vcomp (Vptr b ptrofs)] =>
       res <- pte_addr_spec (b, (Ptrofs.unsigned ptrofs));;
-      Ret (Vcomp (Vlong (Int64.repr (Z.shiftl res 12))), args)
+      Ret (Vcomp (Vlong (Int64.repr (Z.shiftl res Z_ADDRESS_SHIFT))), args)
     | _ => triggerUB "pte_addr_spec: wrong arguments"
     end
   .
@@ -1249,7 +1344,7 @@ paddr_t arch_mm_block_from_pte(pte_t pte, uint8_t level)
    st <- trigger GetState;;
    do key <- PtrTree_get pte st.(addr_to_id);;;  (* UB *)
    do pte_t <- PTree.get key st.(pte_pool);;; (* Some *)
-   let addr := Z.shiftl (PTE_TYPES_to_ADDRESS pte_t) 12 in
+   let addr := Z.shiftl (PTE_TYPES_to_ADDRESS pte_t) Z_ADDRESS_SHIFT in
    do key' <- PtrTree_get ((fst pte), addr) st.(addr_to_id);;; 
    do pte_t' <- PTree.get key st.(pte_pool);;; (* Some *) 
    Ret (pte_t', (fst pte, addr))
@@ -1280,7 +1375,7 @@ paddr_t arch_mm_table_from_pte(pte_t pte, uint8_t level)
    st <- trigger GetState;;
    do key <- PtrTree_get pte st.(addr_to_id);;;  (* UB *)
    do pte_t <- PTree.get key st.(pte_pool);;; (* Some *)
-   let addr := Z.shiftl (PTE_TYPES_to_ADDRESS pte_t) 12 in
+   let addr := Z.shiftl (PTE_TYPES_to_ADDRESS pte_t) Z_ADDRESS_SHIFT in
    do key' <- PtrTree_get ((fst pte), addr) st.(addr_to_id);;; 
    do pte_t' <- PTree.get key st.(pte_pool);;; (* Some *) 
    Ret (pte_t', (fst pte, addr))
@@ -1445,8 +1540,45 @@ uint64_t arch_mm_mode_to_stage2_attrs(uint32_t mode)
 	return attrs;
 }
  *)
+  
+  Definition arch_mm_mode_to_stage2_attrs_spec (mode : Z) : itree ArchMME (Z) :=
+    let attrs0 := 0 in
+    let access0 := 0 in 
+    let attrs1 := Z.lor attrs0 (Z.lor (zshift_or_0 true Z_STAGE2_AF) (Z_STAGE2_SH_GEN Z_NON_SHAREABLE)) in
+    (* STAGE2_AF *)  (* STAGE2_SH(OUTER_SHAREABLE) *)
+    let access1 := if zeq 0 (Z.land mode MM_MODE_R)
+                   then access0
+                   else Z.lor access0 Z_STAGE2_ACCESS_READ in
+    let access2 := if zeq 0 (Z.land mode MM_MODE_W)
+                   then access1
+                   else Z.lor access1 Z_STAGE2_ACCESS_WRITE in
+    let attrs2 := Z.lor attrs1 (Z_STAGE2_S2AP_GEN access2) in
+    let attrs3 := if zeq 0 (Z.land mode MM_MODE_X)
+                  then Z.lor attrs2 (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_ALL)
+                  else Z.lor attrs2 (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_NONE) in
+    let attrs4 := if zeq 0 (Z.land mode MM_MODE_D)
+                  then Z.lor attrs3 (Z_STAGE2_MEMATTR_GEN Z_STAGE2_WRITEBACK Z_STAGE2_WRITEBACK)
+                  else Z.lor attrs3 (Z_STAGE2_MEMATTR_GEN Z_STAGE2_DEVICE_MEMORY Z_STAGE2_MEMATTR_DEVICE_GRE) in
+    let attrs5 := if zeq 0 (Z.land mode MM_MODE_UNOWNED)
+                  then Z.lor attrs4 Z_STAGE2_SW_OWNED
+                  else attrs4 in
+    let attrs6 := if zeq 0 (Z.land mode MM_MODE_SHARED)
+                  then Z.lor attrs5 Z_STAGE2_SW_EXCLUSIVE
+                  else attrs5 in
+    let attrs7 := if zeq 0 (Z.land mode MM_MODE_INVALID)
+                  then Z.lor attrs6 Z_PTE_VALID
+                  else attrs6 in Ret (attrs7).
 
-  (* XXX: TODO *)
+
+  Definition arch_mm_mode_to_stage2_attrs_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
+    match args with
+    | [Vcomp (Vlong mode)] =>
+      res <- arch_mm_mode_to_stage2_attrs_spec (Int64.unsigned mode);;
+      Ret (Vcomp (Vlong (Int64.repr res)), args)
+    | _ => triggerNB "arch_mm_mode_to_stage2_attrs: wrong arguments"
+    end
+  .  
+  
   
 (*
 uint32_t arch_mm_stage2_attrs_to_mode(uint64_t attrs)
@@ -1486,9 +1618,38 @@ uint32_t arch_mm_stage2_attrs_to_mode(uint64_t attrs)
 }
 *)
 
-  (* XXX: TODO *)
-  
 
+  Definition arch_mm_stage2_attrs_to_mode_spec (attrs : Z) : itree ArchMME (Z) :=
+    let mode0 := 0 in
+    let mode1 := if zeq 0 (Z.land attrs (Z_STAGE2_S2AP_GEN Z_STAGE2_ACCESS_READ))
+                 then mode0
+                 else Z.lor mode0 MM_MODE_R in
+    let mode2 := if zeq 0 (Z.land attrs (Z_STAGE2_S2AP_GEN Z_STAGE2_ACCESS_WRITE))
+                 then mode0
+                 else Z.lor mode1 MM_MODE_W in
+    let mode3 := if zeq (Z.land attrs (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_MASK)) (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_ALL)
+                 then Z.lor mode2 MM_MODE_X
+                 else mode2 in
+    let mode4 := if zeq 0 (Z.land attrs Z_STAGE2_SW_OWNED)
+                 then Z.lor mode3 MM_MODE_UNOWNED
+                 else mode3 in
+    let mode5 := if zeq 0 (Z.land attrs Z_STAGE2_SW_EXCLUSIVE)
+                 then Z.lor mode4 MM_MODE_SHARED
+                 else mode4 in
+    let mode6 := if zeq 0 (Z.land attrs Z_PTE_VALID)
+                 then Z.lor mode5 MM_MODE_INVALID
+                 else mode5 in Ret (mode6).
+
+  Definition arch_mm_stage2_attrs_to_mode_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
+    match args with
+    | [Vcomp (Vlong attrs)] =>
+      res <- arch_mm_stage2_attrs_to_mode_spec (Int64.unsigned attrs);;
+      Ret (Vcomp (Vlong (Int64.repr res)), args)
+    | _ => triggerNB "arch_mm_stage2_attrs_to_mode: wrong arguments"
+    end
+  .    
+
+  
 (*
 // JIEUNG: This is for stage 1 - STAGE 1 always has 2 level -
 // This is for virtual machine
@@ -1511,7 +1672,7 @@ uint8_t arch_mm_stage1_max_level(void)
     | [] =>
       res <- arch_mm_stage1_max_level_spec ;;
       Ret (Vcomp (Vlong (Int64.repr res)), args)
-    | _ => triggerNB "level <> integer"
+    | _ => triggerNB "arch_mm_stage1_max_level: wrong arguments"
     end
   .  
 
@@ -1531,7 +1692,7 @@ uint8_t arch_mm_stage2_max_level(void)
     | [] =>
       res <- arch_mm_stage2_max_level_spec ;;
       Ret (Vcomp (Vlong (Int64.repr res)), args)
-    | _ => triggerNB "level <> integer"
+    | _ => triggerNB "arch_mm_stage2_max_level: wrong arguments"
     end
   .
 
@@ -1554,7 +1715,7 @@ uint8_t arch_mm_stage1_root_table_count(void)
     | [] =>
       res <- arch_mm_stage1_root_table_count_spec ;;
       Ret (Vcomp (Vlong (Int64.repr res)), args)
-    | _ => triggerNB "level <> integer"
+    | _ => triggerNB "arch_mm_stage1_root_table_count: wrong arguments"
     end
   .  
   
@@ -1573,7 +1734,7 @@ uint8_t arch_mm_stage2_root_table_count(void)
     | [] =>
       res <- arch_mm_stage2_root_table_count_spec ;;
       Ret (Vcomp (Vlong (Int64.repr res)), args)
-    | _ => triggerNB "level <> integer"
+    | _ => triggerNB "arch_mm_stage2_root_table_count: wrong arguments"
     end
   .  
   
@@ -1610,14 +1771,23 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
  *)
 
   Definition arch_mm_combine_table_entry_attrs_spec (table_attrs block_attrs: Z)  : itree ArchMME (Z) :=
-    let tattrs := ATTR_VALUES_to_Stage1TableAttributes table_attrs  in
-    let block_attrs1 := Z.lor block_attrs (zshift_or_0 tattrs.(TABLE_NSTABLE) 63) in
-    let block_attrs2 := Z.lor block_attrs (zshift_or_0 tattrs.(TABLE_APTABLE1) 62) in
-    let block_attrs3 := Z.land block_attrs (Z.lnot (zshift_or_0 tattrs.(TABLE_APTABLE0) 61)) in
-    let block_attrs4 := Z.lor block_attrs (zshift_or_0 tattrs.(TABLE_XNTABLE) 60) in
-    let block_attrs' := Z.lor block_attrs (zshift_or_0 tattrs.(TABLE_PXNTABLE) 59) in
-    Ret (block_attrs1).
-      
+    let block_attrs1 := if zeq 0 (Z.land table_attrs Z_TABLE_NSTABLE)
+                        then block_attrs
+                        else Z.lor block_attrs Z_STAGE1_NS in
+    let block_attrs2 := if zeq 0 (Z.land table_attrs Z_TABLE_APTABLE1)
+                        then block_attrs1
+                        else Z.lor block_attrs1 Z_STAGE1_AP2 in
+    let block_attrs3 := if zeq 0 (Z.land table_attrs Z_TABLE_APTABLE0)
+                        then block_attrs2
+                        else Z.land block_attrs2 (Z.lnot Z_STAGE1_AP1) in
+    let block_attrs4 := if zeq 0 (Z.land table_attrs Z_TABLE_XNTABLE)
+                        then block_attrs3
+                        else Z.lor block_attrs3 Z_STAGE1_XN in
+    let block_attrs5 := if zeq 0 (Z.land table_attrs Z_TABLE_PXNTABLE)
+                        then block_attrs4
+                        else Z.lor block_attrs4 Z_STAGE1_PXN in
+    Ret (block_attrs5).
+
   Definition arch_mm_combine_table_entry_attrs_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
     match args with
     | [Vcomp (Vlong table_attrs); Vcomp (Vlong block_attrs)] =>
@@ -1644,11 +1814,8 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
     ("ARCHMM.arch_mm_table_from_pte", arch_mm_table_from_pte_call) ;
     ("ARCHMM.arch_mm_pte_attrs", arch_mm_pte_attrs_call) ;
     ("ARCHMM.arch_mm_mode_to_stage1_attrs", arch_mm_mode_to_stage1_attrs_call) ;
-    (*
     ("ARCHMM.arch_mm_mode_to_stage2_attrs",  arch_mm_mode_to_stage2_attrs_call) ;
     ("ARCHMM.arch_mm_stage2_attrs_to_mode",  arch_mm_stage2_attrs_to_mode_call) ;
-     ...
-     *)
     ("ARCHMM.arch_mm_stage1_max_level", arch_mm_stage1_max_level_call) ;
     ("ARCHMM.arch_mm_stage2_max_level", arch_mm_stage2_max_level_call) ;
     ("ARCHMM.arch_mm_stage1_root_table_count", arch_mm_stage1_root_table_count_call) ;
@@ -1679,5 +1846,3 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
   .
   
 End SPECS.
-
-End HIGHSPECITREE.
