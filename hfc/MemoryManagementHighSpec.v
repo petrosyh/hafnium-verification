@@ -256,6 +256,25 @@ Definition mm_root_table_count_spec (flags: MM_Flag) : itree mmE Z :=
    Ret v
 .
 
+(* Definition mm_invalidate_tlb_spec (a_begin a_end: Z) (flags: MM_Flag) : itree mmE unit := *)
+(*   let begin_call := if (MM_FLAG_STAGE1 flags) *)
+(*                     then CallExternal "ADDR.va_init" [Z2val a_begin] *)
+(*                     else CallExternal "ADDR.ipa_init" [Z2val a_begin] *)
+(*   in *)
+(*   let end_call := if (MM_FLAG_STAGE1 flags) *)
+(*                     then CallExternal "ADDR.va_init" [Z2val a_end] *)
+(*                     else CallExternal "ADDR.ipa_init" [Z2val a_end] *)
+(*   in *)
+(*   '(vbegin, _) <- trigger begin_call;; *)
+(*   '(vend, _) <- trigger end_call;; *)
+(*   let ext_call := if (MM_FLAG_STAGE1 flags) *)
+(*                   then CallExternal "ARCHMM.arch_mm_stage1_root_table_count" [vbegin; vend] *)
+(*                   else CallExternal "ARCHMM.arch_mm_stage2_root_table_count" [vbegin; vend] *)
+(*   in *)
+(*   '(ret, _) <- trigger ext_call;; *)
+(*    val2ptr ret *)
+(* . *)
+  
 Definition mm_alloc_page_tables_spec (count: Z) (ppool: positive * Z)
   : itree mmE (positive * Z) :=
   let mpool := (ptr2val ppool) in
