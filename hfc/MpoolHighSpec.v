@@ -92,10 +92,11 @@ Record MpoolAbstState : Type :=
       addr_to_id : PTree.t (ZTree.t positive); (* block -> offset -> id *)
       id_to_addr : PTree.t (positive * Z); (* id -> (block, offset *)
       next_id : positive; (* new mpool id *)
+      mpool_locks_enabled : bool
     }.
 
 Definition initial_state : MpoolAbstState :=
-  mkMpoolAbstState (PTree.empty Mpool) (PTree.empty (ZTree.t positive)) (PTree.empty (positive * Z)) 1%positive.
+  mkMpoolAbstState (PTree.empty Mpool) (PTree.empty (ZTree.t positive)) (PTree.empty (positive * Z)) 1%positive false.
 
 Definition PtrTree_set (ptr: positive * Z) (v: positive) (map: PTree.t (ZTree.t positive)) :=
   let zt := match PTree.get (fst ptr) map with
@@ -183,7 +184,8 @@ Definition mpool_init_spec (p: positive * Z) (entry_size: Z) : itree mpoolE unit
   let st' := (mkMpoolAbstState (PTree.set i mp (mpool_map st))
                                (PtrTree_set p i (addr_to_id st))
                                (PTree.set i p (id_to_addr st))
-                               (Pos.succ i)) in
+                               (Pos.succ i)
+                               (mpool_locks_enabled st)) in
   trigger (SetState st')
 .
 
@@ -213,7 +215,8 @@ Definition mpool_init_from_spec (p: positive * Z) (from: positive * Z) :=
   let st'' := (mkMpoolAbstState (PTree.remove from_id (PTree.set p_id from_mp (mpool_map st')))
                                 (PtrTree_remove from (addr_to_id st'))
                                 (PTree.remove from_id (id_to_addr st'))
-                                (next_id st')) in
+                                (next_id st')
+                                (mpool_locks_enabled st)) in
   trigger (SetState st'');; Ret (Some tt)
 .
 
@@ -234,7 +237,8 @@ Definition mpool_init_with_fallback_spec (p fallback: positive * Z) : itree mpoo
   let st' := (mkMpoolAbstState (PTree.set (next_id st) mp' (mpool_map st))
                                (PtrTree_set p (next_id st) (addr_to_id st))
                                (PTree.set (next_id st) p (id_to_addr st))
-                               (Pos.succ (next_id st))) in
+                               (Pos.succ (next_id st))
+                               (mpool_locks_enabled st)) in
   trigger (SetState st');; Ret tt
 .
 
@@ -256,7 +260,8 @@ Definition mpool_add_chunk_spec (p: positive * Z) (c:chunk A) (size:Z) : itree m
   let st' := (mkMpoolAbstState (PTree.set id mp' (mpool_map st))
                                (addr_to_id st)
                                (id_to_addr st)
-                               (next_id st)) in
+                               (next_id st)
+                               (mpool_locks_enabled st)) in
   trigger (SetState st');; Ret true
 .
 
@@ -304,7 +309,8 @@ Definition mpool_fini_spec (p: positive * Z) : itree mpoolE unit :=
   let st' := (mkMpoolAbstState (PTree.remove i mpool_map')
                                (PtrTree_remove p (addr_to_id st))
                                (PTree.remove i (id_to_addr st))
-                               (next_id st)) in
+                               (next_id st)
+                               (mpool_locks_enabled st)) in
   trigger (SetState st');; Ret tt
 .
 
@@ -323,7 +329,7 @@ Definition mpool_alloc_no_fallback_spec (p: positive * Z) : itree mpoolE (option
   match (entry_list mp) with
   | ethd :: ettl =>
     let mp' := mkMpool (entry_size mp) (chunk_list mp) ettl (fallback mp) in
-    let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
+    let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) (next_id st) (mpool_locks_enabled st)) in
     trigger (SetState st');; Ret (Some (hd null ethd))
   | [] =>
     match (chunk_list mp) with
@@ -332,12 +338,12 @@ Definition mpool_alloc_no_fallback_spec (p: positive * Z) : itree mpoolE (option
       if ((Zlength chhd) <=? (entry_size mp))
       then
         let mp' := mkMpool (entry_size mp) chtl (entry_list mp) (fallback mp) in
-        let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
+        let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) (next_id st) (mpool_locks_enabled st)) in
         trigger (SetState st');; Ret (Some (hd null chhd))
       else
         let new_chunk := (skipn (Z.abs_nat (entry_size mp)) chhd)::chtl in
         let mp' := mkMpool (entry_size mp) new_chunk (entry_list mp) (fallback mp) in
-        let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) i) in
+        let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st)) (addr_to_id st) (id_to_addr st) (next_id st) (mpool_locks_enabled st))  in
         trigger (SetState st');; Ret (Some (hd null chhd))
     end
   end
@@ -390,13 +396,15 @@ Definition mpool_alloc_contiguous_no_fallback_spec (p: positive * Z) (count alig
          then
            let mp' := mkMpool (entry_size mp) (acc ++ chtl) (entry_list mp) (fallback mp) in
            let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st))
-                                        (addr_to_id st) (id_to_addr st) i) in
+                                        (addr_to_id st) (id_to_addr st)
+                                        (next_id st) (mpool_locks_enabled st)) in
            trigger (SetState st');; Ret (inr (Some (hd null chhd)))
          else
            let new_chunk := (skipn (Z.abs_nat ((entry_size mp) * count)) chhd)::chtl in
            let mp' := mkMpool (entry_size mp) (acc ++ new_chunk) (entry_list mp) (fallback mp) in
            let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st))
-                                        (addr_to_id st) (id_to_addr st) i) in
+                                        (addr_to_id st) (id_to_addr st)
+                                        (next_id st) (mpool_locks_enabled st)) in
            trigger (SetState st');; Ret (inr (Some (hd null chhd)))
        else
          Ret (inl (chtl, acc ++ [chhd]))
@@ -468,7 +476,8 @@ Definition mpool_free_spec (p ptr: positive * Z) : itree mpoolE unit :=
   let mp' := (mkMpool (entry_size mp) (chunk_list mp)
                       (ptr_list::entry_list mp) (fallback mp)) in
   let st' := (mkMpoolAbstState (PTree.set i mp' (mpool_map st))
-                               (addr_to_id st) (id_to_addr st) i) in
+                               (addr_to_id st) (id_to_addr st)
+                               (next_id st) (mpool_locks_enabled st)) in
   trigger (SetState st');; Ret tt.
 
 Definition mpool_free_call (args: list Lang.val): itree mpoolE (Lang.val * list Lang.val) :=
@@ -528,6 +537,15 @@ Definition print_mpool_call (args: list Lang.val): itree mpoolE (Lang.val * list
   | _ => triggerUB "Wrong args: print_mpool"
   end.
 
+Definition mpool_enable_locks_call (args: list Lang.val)
+  : itree mpoolE (Lang.val * list Lang.val) :=
+  st <- trigger GetState;;
+  let st' := (mkMpoolAbstState (mpool_map st) (addr_to_id st)
+                               (id_to_addr st) (next_id st) true) in
+  trigger (SetState st');;
+  Ret (Vnull, args)
+.
+
 Definition funcs :=
   [
     ("MPOOL.mpool_init", mpool_init_call);
@@ -539,7 +557,7 @@ Definition funcs :=
     ("MPOOL.mpool_alloc_contiguous", mpool_alloc_contiguous_call);
     ("MPOOL.mpool_free", mpool_free_call);
     ("MPOOL.mpool_init_locks", empty_call);
-    ("MPOOL.mpool_enable_locks", empty_call);
+    ("MPOOL.mpool_enable_locks", mpool_enable_locks_call);
     ("MPOOL.print_mpool", print_mpool_call)
   ]
 .
