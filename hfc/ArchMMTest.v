@@ -30,7 +30,6 @@ From ExtLib Require Import
      Data.Option
      Data.Monads.OptionMonad.
 
-
 From ITree Require Import
      ITree
      ITreeFacts
@@ -67,10 +66,54 @@ Set Implicit Arguments.
 
 Module ArchMMTEST.
 
-(* some unit tests *)
+  (* some unit tests *)
 
+
+  Module ABSENT.
+
+    Definition main res: stmt :=
+      res #= (Call "ARCHMM.arch_mm_absent_pte" [CBV (Int.repr 0)]) #;
+          Put "res: " res.
+
+    Definition mainF: function. mk_function_tac main ([]: list var) ["res"]. Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem1: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; ArchMM.arch_mm_modsem].
+
+
+    Definition isem2: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; ArchMMHighSpec.arch_mm_modsem].
+    
+  End ABSENT.
+
+  Module ARCHMMPTETABLE.
+
+    Definition main res: stmt :=
+      res #= (Call "ARCHMM.arch_mm_pte_table" [CBV (Int.repr 0)]) #;
+          Put "res: " res.
+
+    Definition mainF: function. mk_function_tac main ([]: list var) ["res"]. Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+    
+    Definition isem1: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; ArchMM.arch_mm_modsem].
+
+
+    Definition isem2: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; ArchMMHighSpec.arch_mm_modsem].
+    
+  End ARCHMMPTETABLE.
 
 
 End ArchMMTEST.
 
-  
+

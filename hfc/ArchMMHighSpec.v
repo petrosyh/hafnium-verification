@@ -357,7 +357,6 @@ Notation " 'check' A ;;; B" := (if A then B else Ret None)
 
 Local Open Scope itree_monad_scope.
 
-
 Definition PtrTree_set (ptr: positive * Z) (v: positive) (map: PTree.t (ZTree.t positive)) :=
   let zt := match PTree.get (fst ptr) map with
             | Some zt => zt
@@ -376,6 +375,33 @@ Definition PtrTree_remove (ptr: positive * Z) (map: PTree.t (ZTree.t positive)) 
   | Some zt => PTree.set (fst ptr) (ZTree.remove (snd ptr) zt) map
   | None => map
   end
+.
+
+Variable Z_to_string: Z -> string.
+
+Extract Constant Z_to_string =>
+"fun z -> (HexString.of_Z z)"
+.
+
+Definition bool_to_string (b: bool) : string :=
+  match b with
+  | true => "On"
+  | _ => "Off"
+  end.
+
+Definition string_indent : string := "    ".
+
+(* Variable A: Type. *)
+Definition pointer_value_type : Type := positive * Z.
+
+Fixpoint appends_all (ls : list string) : string :=
+  match ls with
+  | [] => ""
+  | hd::tl => append hd (appends_all tl)
+  end.
+
+Definition pointer_values_to_string (a: pointer_value_type): string :=
+  appends_all ["("; (Z_to_string (Zpos' (fst a))); ", "; (Z_to_string (snd a)); ")"]
 .
 
 Section ABSTSTATE.
@@ -917,7 +943,7 @@ Definition updateState_handler {E: Type -> Type}
 
 Definition ArchMME := CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event.
 
-Section SPECS.
+Section ArchMMHighSpec.
 (*
 /**
  * Returns the encoding of a page table entry that isn't present.
@@ -1795,8 +1821,196 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
       Ret (Vcomp (Vlong (Int64.repr res)), args)
     | _ => triggerNB "arch_mm_combine_table_entry_attrs_call: wrong arguments"
     end
-  .  
+  .
+  
+  Definition arch_mm_set_stage1_spec : itree ArchMME unit :=
+    st <- trigger GetState;;
+    trigger (SetState (st {stage: STAGE1})).
+  
+  Definition arch_mm_set_stage1_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
+    match args with 
+    | [] =>
+      arch_mm_set_stage1_spec;;
+      Ret (Vnull, args)
+    | _ => triggerUB "arch_mm_set_stage1_call: wrong arguments"
+    end
+  .
+  
+  Definition arch_mm_set_stage2_spec : itree ArchMME unit :=
+    st <- trigger GetState;;
+    trigger (SetState (st {stage: STAGE2})).
+  
+ 
+  Definition arch_mm_set_stage2_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
+    match args with 
+    | [] =>
+      arch_mm_set_stage2_spec;;
+      Ret (Vnull, args)
+    | _ => triggerUB "arch_mm_set_stage1_call: wrong arguments"
+    end
+  .
 
+
+  Definition empty_call (args: list Lang.val): itree ArchMME (Lang.val * list Lang.val) :=
+    Ret (Vnull, args).
+
+
+  Definition BLOCK_SHAREABLE_to_string (value: BLOCK_SHAREABLE) :=
+    match value with
+    | NON_SHAREABLE => "non_shareable" 
+    | OUTER_SHAREABLE => "outer_shareable"
+    | INNER_SHAREABLE => "inner_shareable"
+    end.
+
+  Definition STAGE1_BLOCK_PERM_to_string (value: STAGE1_BLOCK_PERM) :=
+    match value with
+    | STAGE1_READONLY => "readonly"
+    | STAGE1_READWRITE => "readwrite"
+    end.
+
+  Definition STAGE1_BLOCK_TYPE_to_string (value: STAGE1_BLOCK_TYPE) :=
+    match value with 
+    | STAGE1_DEVICEINDX => "device"
+    | STAGE1_NORMALINDX => "normal"
+    end.
+
+  Definition STAGE2_BLOCK_EXECUTE_MODE_to_string (value: STAGE2_BLOCK_EXECUTE_MODE) :=
+    match value with 
+    | STAGE2_EXECUTE_ALL => "all"
+    | STAGE2_EXECUTE_EL0 => "el0"
+    | STAGE2_EXECUTE_NONE => "none"
+    | STAGE2_EXECUTE_EL1 => "el1"
+    end.
+
+  Definition STAGE2_BLOCK_PERM_to_string (value: STAGE2_BLOCK_PERM) :=
+    match value with
+    | STAGE2_ACCESS_NOPERM => "noperm"
+    | STAGE2_ACCESS_READ => "read"
+    | STAGE2_ACCESS_WRITE => "write"
+    | STAGE2_ACCESS_READWRITE => "readwrite"
+    end.
+
+  Definition STAGE2_MEMATTR_VALUES_to_string (value: STAGE2_MEMATTR_VALUES) :=
+    match value with
+    | MEMATTR_ZERO => "zero"
+    | MEMATTR_ONE => "one"
+    | MEMATTR_TWO => "two"
+    | MEMATTR_THREE => "three"
+    end.
+
+  Definition Stage1BlockAttributes_to_string (attributes: Stage1BlockAttributes) :=
+    match attributes with
+    | mkStage1BlockAttributes xn pxn contiguous dbm ng af sh ap ns attrindx =>
+      appends_all [string_indent;
+                  "attributes: ";
+                  "[xn: "; bool_to_string xn; "] ";
+                  "[pxn: "; bool_to_string pxn; "] ";
+                  "[contiguous: "; bool_to_string contiguous; "] ";
+                  "[dbm: "; bool_to_string dbm; "] ";
+                  "[ng: "; bool_to_string ng; "] ";
+                  "[af: "; bool_to_string af; "] ";
+                  "[sh: "; BLOCK_SHAREABLE_to_string sh; "] ";
+                  "[ap: "; STAGE1_BLOCK_PERM_to_string ap; "] ";
+                  "[ns: "; bool_to_string ns; "] ";
+                  "[attrindx: "; STAGE1_BLOCK_TYPE_to_string attrindx; "] "]
+    end.
+
+  Definition Stage1TableAttributes_to_string (attributes: Stage1TableAttributes) :=
+    match attributes with
+    | mkStage1TableAttributes ns ap1 ap0 xn pxn =>
+      appends_all [string_indent;
+                  "attributes: ";
+                  "[ns: "; bool_to_string ns; "] ";
+                  "[ap1: "; bool_to_string ap1; "] ";
+                  "[ap0: "; bool_to_string ap0; "] ";
+                  "[xn: "; bool_to_string xn; "] ";
+                  "[pxn: "; bool_to_string pxn; "] "]
+    end.
+  
+  Definition Stage2BlockAttributes_to_string (attributes: Stage2BlockAttributes) :=
+    match attributes with
+    | mkStage2BlockAttributes xn contiguous dbm sw_owned sw_exclusive af sh s2ap memattr =>
+      appends_all [string_indent;
+                  "attributes: ";
+                  "[xn : "; STAGE2_BLOCK_EXECUTE_MODE_to_string xn;"] ";
+                  "[contiguous: "; bool_to_string contiguous;"] ";
+                  "[dbm : "; bool_to_string dbm;"] ";
+                  "[sw_owned : "; bool_to_string sw_owned;"] ";
+                  "[sw_exclusive : "; bool_to_string sw_exclusive;"] ";
+                  "[af : "; bool_to_string af;"] ";
+                  "[sh : "; BLOCK_SHAREABLE_to_string sh;"] ";
+                  "[s2ap : "; STAGE2_BLOCK_PERM_to_string s2ap;"] ";
+                  "[memattr : "; STAGE2_MEMATTR_VALUES_to_string memattr;"] "]
+    end.
+  
+  
+  Definition print_archmm_call (args: list Lang.val): itree ArchMME (Lang.val * list Lang.val) :=
+    st <- trigger GetState;;
+    match args with
+    | [Vcomp (Vptr p_blk p_ofs)] =>
+      triggerSyscall "hd" ("------------print pte_pool------------") [Vnull];;
+      triggerSyscall "hd" (appends_all ["PTE pointer: ";
+                                       (pointer_values_to_string (p_blk, (Ptrofs.unsigned p_ofs)))]) [Vnull];;
+      match st.(stage) with
+      | STAGE1 => 
+        triggerSyscall "hd" ("current_stage: STAGE1 ") [Vnull]            
+      | STAGE2 =>
+        triggerSyscall "hd" ("current_stage: STAGE2 ") [Vnull]
+      end ;;
+      match (PtrTree_get (p_blk, (Ptrofs.unsigned p_ofs)) st.(addr_to_id)) with
+      | None =>
+        triggerSyscall "hd" ("PTE does not exist") [Vnull]
+      | Some key =>
+        match PTree.get key st.(pte_pool) with
+        | None =>
+          triggerSyscall "hd" ("[Invalid case: Something went wrong]") [Vnull]            
+        | Some pte =>
+          triggerSyscall "hd" (appends_all [string_indent;
+                                           "[Z value of PTE: ";
+                                           Z_to_string (PTE_TYPES_to_VALUES pte);
+                                           "] "]) [Vnull];;
+          match pte with
+          | UNDEFINED =>
+            triggerSyscall "hd" ("[Undefined]") [Vnull]                         
+          | ABSENT =>
+            triggerSyscall "hd" ("[Absent entry]") [Vnull]            
+          | STAGE1_INVALID_BLOCK oa attributes is_table =>
+            triggerSyscall "hd" (appends_all [string_indent;
+                                             "[STAGE1_INVALID_BLOCK: ";
+                                             "[output_address: "; Z_to_string oa; "] ";
+                                             "["; Stage1BlockAttributes_to_string attributes; "] ";
+                                             "[is_table: "; bool_to_string is_table; "]"]) [Vnull]
+          | STAGE1_TABLE oa attributes =>
+            triggerSyscall "hd" (appends_all [string_indent;
+                                             "[STAGE1_TABLE: ";
+                                             "[output_address: "; Z_to_string oa; "] ";
+                                             "["; Stage1TableAttributes_to_string attributes; "]"]) [Vnull]
+          | STAGE1_PAGE oa attributes =>
+            triggerSyscall "hd" (appends_all [string_indent;
+                                             "[STAGE1_TABLE: ";
+                                             "[output_address: "; Z_to_string oa; "] ";
+                                             "["; Stage1BlockAttributes_to_string attributes; "]"]) [Vnull]
+          | STAGE2_INVALID_BLOCK oa attributes is_table =>
+            triggerSyscall "hd" (appends_all [string_indent;
+                                             "[STAGE2_INVALID_BLOCK: ";
+                                             "[output_address: "; Z_to_string oa; "] ";
+                                             "["; Stage2BlockAttributes_to_string attributes; "] ";
+                                             "[is_table: "; bool_to_string is_table; "]"]) [Vnull]
+          | STAGE2_TABLE oa =>
+            triggerSyscall "hd" (appends_all [string_indent;
+                                             "[STAGE2_TABLE: ";
+                                             "[output_address: "; Z_to_string oa; "]"]) [Vnull]
+          | STAGE2_PAGE oa attributes =>
+            triggerSyscall "hd" (appends_all [string_indent;
+                                             "[STAGE1_TABLE: ";
+                                             "[output_address: "; Z_to_string oa; "] ";
+                                             "["; Stage2BlockAttributes_to_string attributes; "]"]) [Vnull]
+          end
+        end
+      end ;;
+      Ret (Vnull, args)
+    | _ => triggerUB "Wrong args: print_archmm"
+    end.
 
   Definition funcs :=
     [
@@ -1820,29 +2034,33 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
     ("ARCHMM.arch_mm_stage2_max_level", arch_mm_stage2_max_level_call) ;
     ("ARCHMM.arch_mm_stage1_root_table_count", arch_mm_stage1_root_table_count_call) ;
     ("ARCHMM.arch_mm_stage2_root_table_count", arch_mm_stage2_root_table_count_call) ;
-    ("ARCHMM.arch_mm_combine_table_entry_attrs", arch_mm_combine_table_entry_attrs_call) 
+    ("ARCHMM.arch_mm_combine_table_entry_attrs", arch_mm_combine_table_entry_attrs_call) ;
+    ("ARCHMM.arch_mm_set_stage1", arch_mm_set_stage1_call) ;
+    ("ARCHMM.arch_mm_set_stage2", arch_mm_set_stage2_call) ;
+    ("ARCHMM.empty_call", empty_call) ;
+    ("ARCHMM.print_archmm_call", print_archmm_call)
     ].
-
-  Definition archmm_modsem : ModSem :=
-    mk_ModSem
-      (fun s => existsb (string_dec s) (List.map fst funcs))
-      _
-      (initial_state)
-      updateStateE
-      updateState_handler
-      (fun T (c: CallExternalE T) =>
-         let '(CallExternal func_name args) := c in
-         let fix find_func l :=
-             match l with
-             | (f, body)::tl =>
-               if (string_dec func_name f)
-               then body args
-               else find_func tl
-             | nil => triggerNB "Not mpool func"
-             end
-         in
-         find_func funcs
-      )
-  .
+ 
+ Definition arch_mm_modsem : ModSem :=
+   mk_ModSem
+     (fun s => existsb (string_dec s) (List.map fst funcs))
+     _
+     (initial_state)
+     updateStateE
+     updateState_handler
+     (fun T (c: CallExternalE T) =>
+        let '(CallExternal func_name args) := c in
+        let fix find_func l :=
+            match l with
+            | (f, body)::tl =>
+              if (string_dec func_name f)
+              then body args
+              else find_func tl
+            | nil => triggerNB "Not mpool func"
+            end
+        in
+        find_func funcs
+     )
+ .
   
-End SPECS.
+End ArchMMHighSpec.
