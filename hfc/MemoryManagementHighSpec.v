@@ -305,29 +305,14 @@ Definition mm_start_of_next_block_spec (addr block_size: Z) : itree mmE Z :=
   (* } *)
   (* *) *)
 
-  (* Definition mm_level_end (addr level : var) (offset : var) := *)
-  (*   offset #= (PAGE_BITS + ((level + one) * PAGE_LEVEL_BITS)) #; *)
-  (*          Return (((addr #>> offset) + one) #<< offset). *)
-    
-  
-  (* (* *)
-  (* // JIEUNG: find out the value based on the address and level and ...  *)
-  (* /** *)
-  (*  * For a given address, calculates the index at which its entry is stored in a *)
-  (*  * table at the given level. *)
-  (*  */ *)
-  (* static size_t mm_index(ptable_addr_t addr, uint8_t level) *)
-  (* { *)
-  (*         ptable_addr_t v = addr >> (PAGE_BITS + level * PAGE_LEVEL_BITS); *)
-   
-  (*         return v & ((UINT64_C(1) << PAGE_LEVEL_BITS) - 1); *)
-  (* } *)
-  (*  *) *)
+Definition mm_level_end_spec (addr level: Z) : itree mmE Z :=
+  let offset := (PAGE_BITS + (level + 1) * PAGE_LEVEL_BITS)%Z in
+  let ret := Z.shiftl ((Z.shiftr addr offset) + 1)%Z offset in
+  Ret ret.
 
 Definition mm_index_spec (addr level: Z) : itree mmE Z :=
   let v := (Z.shiftl addr (Z.add PAGE_BITS (Z.mul level PAGE_LEVEL_BITS))) in
   Ret (Z.land v (Z.sub (Z.shiftl 1 PAGE_LEVEL_BITS) 1)).
-
 
 Definition mm_alloc_page_tables_spec (count: Z) (ppool: positive * Z)
   : itree mmE (positive * Z) :=
@@ -350,6 +335,139 @@ Definition mm_max_level_spec (flags: MM_Flag) : itree mmE Z :=
    v <- val2Z ret;;
    Ret v
 .
+
+Definition mm_map_level_spec (begin end pa attrs level: Z) (table ppool: positive * Z) (flags: MM_Flag) : itree mmE bool :=
+  
+
+  (*
+  /**
+   * Updates the page table at the given level to map the given address range to a
+   * physical range using the provided (architecture-specific) attributes. Or if
+   * MM_FLAG_UNMAP is set, unmap the given range instead.
+   *
+   * This function calls itself recursively if it needs to update additional
+   * levels, but the recursion is bound by the maximum number of levels in a page
+   * table.
+   */
+  static bool mm_map_level(ptable_addr_t begin, ptable_addr_t end, paddr_t pa,
+          		 uint64_t attrs, struct mm_page_table *table,
+          		 uint8_t level, int flags, struct mpool *ppool)
+  {
+          pte_t *pte = &table->entries[mm_index(begin, level)];
+          ptable_addr_t level_end = mm_level_end(begin, level);
+          size_t entry_size = mm_entry_size(level);
+          bool commit = flags & MM_FLAG_COMMIT;
+          bool unmap = flags & MM_FLAG_UNMAP;
+   
+          /* Cap end so that we don't go over the current level max. */
+          if (end > level_end) {
+          	end = level_end;
+          }
+   
+          /* Fill each entry in the table. */
+          while (begin < end) {
+          	if (unmap ? !arch_mm_pte_is_present( *pte, level)
+          		  : arch_mm_pte_is_block( *pte, level) &&
+          			    arch_mm_pte_attrs( *pte, level) == attrs) {
+          		/*
+          		 * If the entry is already mapped with the right
+          		 * attributes, or already absent in the case of
+          		 * unmapping, no need to do anything; carry on to the
+          		 * next entry.
+          		 */
+          	} else if ((end - begin) >= entry_size &&
+          		   (unmap || arch_mm_is_block_allowed(level)) &&
+          		   (begin & (entry_size - 1)) == 0) {
+          		/*
+          		 * If the entire entry is within the region we want to
+          		 * map, map/unmap the whole entry.
+          		 */
+          		if (commit) {
+          			pte_t new_pte =
+          				unmap ? arch_mm_absent_pte(level)
+          				      : arch_mm_block_pte(level, pa,
+          							  attrs);
+          			mm_replace_entry(begin, pte, new_pte, level,
+          					 flags, ppool);
+          		}
+          	} else {
+          		/*
+          		 * If the entry is already a subtable get it; otherwise
+          		 * replace it with an equivalent subtable and get that.
+          		 */
+          		struct mm_page_table *nt = mm_populate_table_pte(
+          			begin, pte, level, flags, ppool);
+          		if (nt == NULL) {
+          			return false;
+          		}
+   
+          		/*
+          		 * Recurse to map/unmap the appropriate entries within
+          		 * the subtable.
+          		 */
+          		if (!mm_map_level(begin, end, pa, attrs, nt, level - 1,
+          				  flags, ppool)) {
+          			return false;
+          		}
+          	}
+   
+          	begin = mm_start_of_next_block(begin, entry_size);
+          	pa = mm_pa_start_of_next_block(pa, entry_size);
+          	pte++;
+          }
+   
+          return true;
+  }
+   *)
+
+  Definition mm_map_level (a_begin a_end pa attrs table level flags ppool n: var) 
+             (pte level_end entry_size commit unmap new_pte nt cond: var) :=
+    (* XXX: How can we handle this aliasing? *)
+    pte #= (table #@ (Call "MM.mm_index" [CBV a_begin; CBV level])) #;
+        level_end #= (Call "MM.mm_level_end" [CBV a_begin; CBV level]) #;
+        entry_size #= (Call "MM.mm_entry_size" [CBV level]) #;
+        commit #= (flags #& MM_FLAG_COMMIT) #;
+        unmap #= (flags #& MM_FLAG_UNMAP) #;
+        (#if (level_end < a_end)
+          then a_end #= level_end
+          else Skip) #;
+        #while (a_begin < a_end)
+        do (
+            (* XXX: Need to check the precedence of each operator - e.g. == ? && ? *)
+            (* move this condition due to our syntax *)
+            (#if (unmap)
+              then cond #= (#! (Call "ARCHMM.arch_mm_pte_is_present" [CBR pte; CBV level]))
+              else cond #= ((Call "ARCHMM.arch_mm_pte_is_block" [CBR pte; CBV level])
+                              #&& ((Call "ARCHMM.arch_mm_pte_attrs" [CBR pte; CBV level]) == attrs)))
+              #;
+                            
+            (#if (cond)
+              then Skip
+              else (#if ((entry_size <= (a_end - a_begin))
+                           #&& (unmap #|| (Call "ARCHMM.arch_mm_is_block_allowed" [CBV level]))
+                           #&& (a_begin #& (entry_size - one) == zero))
+                     then (#if (commit)
+                            then (#if (unmap)
+                                   then new_pte #= (Call "ARCHMM.arch_mm_absent_pte" [CBV level])
+                                   else new_pte #= (Call "ARCHMM.arch_mm_block_pte" [CBV level; CBV pa; CBV attrs]))
+                                   #;
+                                   (Call "MM.mm_replace_entry" [CBV a_begin; CBR pte; CBR new_pte; CBV level;
+                                                               CBV flags; CBR ppool])
+                            else Skip)
+                     else nt #= (Call "MM.mm_populate_table_pte" [CBV a_begin; CBR pte; CBV level; CBV flags; CBR ppool]) #;
+                             (#if #! (nt)
+                               then Return Vfalse
+                               else Skip) #;
+                             (#if (#! (Call "MM.mm_map_level" [CBV a_begin; CBV a_end; CBV pa; CBV attrs; CBR nt;
+                                                              CBV (level - one); CBV flags; CBR ppool]))
+                               then Return Vfalse
+                               else Skip) #;
+                             a_begin #= (Call "MM.mm_start_of_next_block" [CBV a_begin; CBV entry_size]) #;
+                             pa #= (Call "MM.mm_pa_start_of_next_block" [CBV pa; CBV entry_size]) #;
+                             pte #= (Cast ((Cast pte tint) + one) tptr)))
+          ) #;
+            Return Vtrue.
+
 
 Fixpoint setEntries (ptr: positive * Z) (entries: list entry)
          (entries_map: PTree.t (ZTree.t entry))
