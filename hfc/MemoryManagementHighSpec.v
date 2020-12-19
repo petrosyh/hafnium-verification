@@ -256,25 +256,77 @@ Definition mm_root_table_count_spec (flags: MM_Flag) : itree mmE Z :=
    Ret v
 .
 
-(* Definition mm_invalidate_tlb_spec (a_begin a_end: Z) (flags: MM_Flag) : itree mmE unit := *)
-(*   let begin_call := if (MM_FLAG_STAGE1 flags) *)
-(*                     then CallExternal "ADDR.va_init" [Z2val a_begin] *)
-(*                     else CallExternal "ADDR.ipa_init" [Z2val a_begin] *)
-(*   in *)
-(*   let end_call := if (MM_FLAG_STAGE1 flags) *)
-(*                     then CallExternal "ADDR.va_init" [Z2val a_end] *)
-(*                     else CallExternal "ADDR.ipa_init" [Z2val a_end] *)
-(*   in *)
-(*   '(vbegin, _) <- trigger begin_call;; *)
-(*   '(vend, _) <- trigger end_call;; *)
-(*   let ext_call := if (MM_FLAG_STAGE1 flags) *)
-(*                   then CallExternal "ARCHMM.arch_mm_stage1_root_table_count" [vbegin; vend] *)
-(*                   else CallExternal "ARCHMM.arch_mm_stage2_root_table_count" [vbegin; vend] *)
-(*   in *)
-(*   '(ret, _) <- trigger ext_call;; *)
-(*    val2ptr ret *)
-(* . *)
+Definition mm_invalidate_tlb_spec (a_begin a_end: Z) (flags: MM_Flag) : itree mmE unit :=
+  let begin_call := if (MM_FLAG_STAGE1 flags)
+                    then CallExternal "ADDR.va_init" [Z2val a_begin]
+                    else CallExternal "ADDR.ipa_init" [Z2val a_begin]
+  in
+  let end_call := if (MM_FLAG_STAGE1 flags)
+                    then CallExternal "ADDR.va_init" [Z2val a_end]
+                    else CallExternal "ADDR.ipa_init" [Z2val a_end]
+  in
+  '(vbegin, _) <- trigger begin_call;;
+  '(vend, _) <- trigger end_call;;
+  let ext_call := if (MM_FLAG_STAGE1 flags)
+                  then CallExternal "ARCHMM.arch_mm_stage1_root_table_count" [vbegin; vend]
+                  else CallExternal "ARCHMM.arch_mm_stage2_root_table_count" [vbegin; vend]
+  in
+  trigger ext_call;;
+  Ret tt
+.
+
+Definition mm_entry_size_spec (level: Z) : itree mmE Z :=
+  Ret (Z.shiftl 1 (PAGE_BITS + (level * PAGE_LEVEL_BITS))%Z).
+
+Definition mm_start_of_next_block_spec (addr block_size: Z) : itree mmE Z :=
+  Ret (Z.land (addr + block_size) (Z.lnot (block_size - 1)))%Z.
+
+(* Definition mm_pa_start_of_next_block (pa block_size: Z) : itree mmE unit := *)
+(*   let pa_init_call1 := CallExternal "ADDR.pa_addr" [Z2val pa] in *)
+(*   '(pa_init, _) <- trigger pa_init_call1;; *)
+(*   let pa' := (pa_init + block_size)%Z in *)
+(*   let pa_init_call2 := CallExternal "ADDR.pa_init" [Z2val pa'] in *)
+(*   '(ret, _) <- trigger pa_init_call2;; *)
+(*   v <- val2Z ret;; *)
+(*   Ret v. *)
   
+  (* 
+  /**
+   * For a given address, calculates the maximum (plus one) address that can be
+   * represented by the same table at the given level.
+   */
+  static ptable_addr_t mm_level_end(ptable_addr_t addr, uint8_t level)
+  {
+          size_t offset = PAGE_BITS + (level + 1) * PAGE_LEVEL_BITS;
+   
+          return ((addr >> offset) + 1) << offset;
+  }
+  *)
+
+  Definition mm_level_end (addr level : var) (offset : var) :=
+    offset #= (PAGE_BITS + ((level + one) * PAGE_LEVEL_BITS)) #;
+           Return (((addr #>> offset) + one) #<< offset).
+    
+  
+  (*
+  // JIEUNG: find out the value based on the address and level and ... 
+  /**
+   * For a given address, calculates the index at which its entry is stored in a
+   * table at the given level.
+   */
+  static size_t mm_index(ptable_addr_t addr, uint8_t level)
+  {
+          ptable_addr_t v = addr >> (PAGE_BITS + level * PAGE_LEVEL_BITS);
+   
+          return v & ((UINT64_C(1) << PAGE_LEVEL_BITS) - 1);
+  }
+   *)
+
+Definition mm_index_spec (addr level: Z) : itree mmE Z :=
+  let v := (Z.shiftl addr (Z.add PAGE_BITS (Z.mul level PAGE_LEVEL_BITS))) in
+  Ret (Z.land v (Z.sub (Z.shiftl 1 PAGE_LEVEL_BITS) 1)).
+
+
 Definition mm_alloc_page_tables_spec (count: Z) (ppool: positive * Z)
   : itree mmE (positive * Z) :=
   let mpool := (ptr2val ppool) in
