@@ -248,6 +248,28 @@ Definition updateState_handler {E: Type -> Type}
 
 Notation mmE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
 
+Fixpoint setEntries (ptr: positive * Z) (entries: list entry)
+         (entries_map: PTree.t (ZTree.t entry))
+  : PTree.t (ZTree.t entry) :=
+  match entries with
+  | [] => entries_map
+  | hd::tl => setEntries (fst ptr, ((snd ptr) + int_sz)%Z) tl
+                        (PtrTree_set ptr hd entries_map)
+  end.
+
+Fixpoint removeEntries (ptr: positive * Z) (n: nat) (entries_map: PTree.t (ZTree.t entry))
+  : PTree.t (ZTree.t entry) :=
+  match n with
+  | O => entries_map
+  | S n' => removeEntries (fst ptr, ((snd ptr) + 1)%Z) n' (PtrTree_remove ptr entries_map)
+  end.
+
+Fixpoint mkEntries (new_pte inc: entry) (n: nat) : list entry :=
+  match n with
+  | O => nil
+  | S n' => new_pte::(mkEntries (new_pte + inc)%Z inc n')
+  end.
+
 Definition mm_root_table_count_spec (flags: MM_Flag) : itree mmE Z :=
   let ext_call := if (MM_FLAG_STAGE1 flags)
                   then CallExternal "ARCHMM.arch_mm_stage1_root_table_count" []
@@ -318,8 +340,8 @@ Definition mm_alloc_page_tables_spec (count: Z) (ppool: positive * Z)
   : itree mmE (positive * Z) :=
   let mpool := (ptr2val ppool) in
   let ext_call := if (count =? 1)%Z
-                  then CallExternal "MM.mpool_alloc" [mpool]
-                  else CallExternal "MM.mpool_alloc_contiguous"
+                  then CallExternal "Mpool.mpool_alloc" [mpool]
+                  else CallExternal "Mpool.mpool_alloc_contiguous"
                                     [mpool; Z2val count]
   in
   '(ret, _) <- trigger ext_call;;
@@ -336,9 +358,131 @@ Definition mm_max_level_spec (flags: MM_Flag) : itree mmE Z :=
    Ret v
 .
 
-Definition mm_map_level_spec (begin end pa attrs level: Z) (table ppool: positive * Z) (flags: MM_Flag) : itree mmE bool :=
-  
+Definition mm_map_level_spec (vbegin vend pa attrs level: Z) (table ppool: positive * Z) (flags: MM_Flag) : itree mmE bool :=
+  st <- trigger GetState;;
+  idx <- (mm_index_spec vbegin level);;
+  let pte_ptr := (fst table, ((snd table) + idx)%Z) in
+  do pte <- PtrTree_get pte_ptr (entries_map st);;;
+  level_end <- mm_level_end_spec level;;
+  entry_sz <- mm_entry_size_spec level;;
+  let commit := (MM_FLAG_COMMIT flags) in
+  let unmap := (MM_FLAG_UNMAP flags) in
+  let end' := (if (vend <? level_end) then level_end else vend) in
+  Itree.iter
+    (fun begin =>
+       if (begin <? end')
+       then
+         (
+           let cond := (if unmap
+                   then
+                     (
+                       let cond_call := CallExternal "ARCHMM.arch_mm_pte_is_present" [Z2val pte; Z2val level] in
+                       '(cd1, _) <- trigger cond_call;;
+                        cond1 <- val2Z cd1;;
+                        (Z.lnot cond1)
+                     )
+                   else
+                     (
+                       let cond_call1 := CallExternal "ARCHMM.arch_mm_pte_is_block" [Z2val pte; Z2val level] in
+                       let cond_call2 := CallExternal "ARCHMM.arch_mm_pte_attrs" [Z2val pte; Z2val level] in
+                       '(cd1, _) <- trigger cond_call1;;
+                       '(cd2, _) <- trigger cond_call2;;
+                       cond1 <- val2Z cd1;;
+                       cond2 <- val2Z cd2;;
+                       let cond1' := negb (Z.eqb 0 cond1) in
+                       let cond2' := (Z.eqb cond2 attr) in
+                       Z.b2z (andb cond1' cond2')
+                     )
+                       ) in
+           if (cond)
+           then 
+           
+           if (unmap)
+           then 
+             let is_present_call := CallExternal "ARCHMM.arch_mm_pte_is_present" [Z2val pte; Z2val level] in
+           
 
+         )
+         if 
+       else
+         Ret (inr tt)
+     
+    ) vbegin.
+
+  Definition mm_map_level (a_begin a_end pa attrs table level flags ppool n: var) 
+             (pte level_end entry_size commit unmap new_pte nt cond: var) :=
+    (* XXX: How can we handle this aliasing? *)
+    pte #= (table #@ (Call "MM.mm_index" [CBV a_begin; CBV level])) #;
+        level_end #= (Call "MM.mm_level_end" [CBV a_begin; CBV level]) #;
+        entry_size #= (Call "MM.mm_entry_size" [CBV level]) #;
+        commit #= (flags #& MM_FLAG_COMMIT) #;
+        unmap #= (flags #& MM_FLAG_UNMAP) #;
+        (#if (level_end < a_end)
+          then a_end #= level_end
+          else Skip) #;
+        #while (a_begin < a_end)
+        do (
+            (* XXX: Need to check the precedence of each operator - e.g. == ? && ? *)
+            (* move this condition due to our syntax *)
+            (#if (unmap)
+              then cond #= (#! (Call "ARCHMM.arch_mm_pte_is_present" [CBR pte; CBV level]))
+              else cond #= ((Call "ARCHMM.arch_mm_pte_is_block" [CBR pte; CBV level])
+                              #&& ((Call "ARCHMM.arch_mm_pte_attrs" [CBR pte; CBV level]) == attrs)))
+              #;
+                            
+            (#if (cond)
+              then Skip
+              else (#if ((entry_size <= (a_end - a_begin))
+                           #&& (unmap #|| (Call "ARCHMM.arch_mm_is_block_allowed" [CBV level]))
+                           #&& (a_begin #& (entry_size - one) == zero))
+                     then (#if (commit)
+                            then (#if (unmap)
+                                   then new_pte #= (Call "ARCHMM.arch_mm_absent_pte" [CBV level])
+                                   else new_pte #= (Call "ARCHMM.arch_mm_block_pte" [CBV level; CBV pa; CBV attrs]))
+                                   #;
+                                   (Call "MM.mm_replace_entry" [CBV a_begin; CBR pte; CBR new_pte; CBV level;
+                                                               CBV flags; CBR ppool])
+                            else Skip)
+                     else nt #= (Call "MM.mm_populate_table_pte" [CBV a_begin; CBR pte; CBV level; CBV flags; CBR ppool]) #;
+                             (#if #! (nt)
+                               then Return Vfalse
+                               else Skip) #;
+                             (#if (#! (Call "MM.mm_map_level" [CBV a_begin; CBV a_end; CBV pa; CBV attrs; CBR nt;
+                                                              CBV (level - one); CBV flags; CBR ppool]))
+                               then Return Vfalse
+                               else Skip) #;
+                             a_begin #= (Call "MM.mm_start_of_next_block" [CBV a_begin; CBV entry_size]) #;
+                             pa #= (Call "MM.mm_pa_start_of_next_block" [CBV pa; CBV entry_size]) #;
+                             pte #= (Cast ((Cast pte tint) + one) tptr)))
+          ) #;
+            Return Vtrue.
+
+         
+  ITree.iter
+  (fun i =>
+     if (i =? root_table_count)%Z
+     then
+       trigger (StoreE (fst t) (snd t) (Vptr (fst tables) (Ptrofs.repr (snd tables))));;
+       Ret (inr true)
+     else
+       st <- trigger GetState;;
+       let id := (next_id st) in
+       let table_ptr := (fst tables, ((snd tables) + int_sz * i * MM_PTE_PER_PAGE)%Z) in
+       let entries := repeat absent_block (Z.to_nat MM_PTE_PER_PAGE) in
+       let mm_page_table := mkMM_Page_Table entries in
+       let entries_map' := setEntries table_ptr entries (entries_map st) in
+       let st' := (mkMMAbstState (PTree.set id mm_page_table (mm_page_table_map st))
+                                 (PtrTree_set table_ptr id (addr_to_id st))
+                                 (PTree.set id table_ptr (id_to_addr st))
+                                 (Pos.succ id)
+                                 (mm_stage1_locked st)
+                                 entries_map'
+                                 (mm_stage2_invalidate st)) in
+       trigger (SetState st');;
+       Ret (inl (i + 1)%Z)
+  ) 0.
+
+  
   (*
   /**
    * Updates the page table at the given level to map the given address range to a
@@ -468,28 +612,6 @@ Definition mm_map_level_spec (begin end pa attrs level: Z) (table ppool: positiv
           ) #;
             Return Vtrue.
 
-
-Fixpoint setEntries (ptr: positive * Z) (entries: list entry)
-         (entries_map: PTree.t (ZTree.t entry))
-  : PTree.t (ZTree.t entry) :=
-  match entries with
-  | [] => entries_map
-  | hd::tl => setEntries (fst ptr, ((snd ptr) + int_sz)%Z) tl
-                        (PtrTree_set ptr hd entries_map)
-  end.
-
-Fixpoint removeEntries (ptr: positive * Z) (n: nat) (entries_map: PTree.t (ZTree.t entry))
-  : PTree.t (ZTree.t entry) :=
-  match n with
-  | O => entries_map
-  | S n' => removeEntries (fst ptr, ((snd ptr) + 1)%Z) n' (PtrTree_remove ptr entries_map)
-  end.
-
-Fixpoint mkEntries (new_pte inc: entry) (n: nat) : list entry :=
-  match n with
-  | O => nil
-  | S n' => new_pte::(mkEntries (new_pte + inc)%Z inc n')
-  end.
 
 Definition mm_ptable_init_spec (t: positive * Z) (flags: MM_Flag) (ppool: positive * Z)
   : itree mmE bool :=
