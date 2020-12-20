@@ -19,7 +19,7 @@ Require Extraction.
 (* YJ: Having some makefile problem. (dependency checking) need to solve that !! *)
 Require Import Lang LangTest BinaryString.
 (* Require Import MpoolSeq MpoolConcur CPUSeq MM MMStageOne MMHighStageOne. *)
-Require Import Lock Mpool MpoolTest MemoryManagement MemoryManagementTest.
+Require Import Lock Mpool MpoolTest MemoryManagement MemoryManagementTest ArchMMTest.
 
 Require Import
         ExtrOcamlBasic
@@ -99,6 +99,11 @@ Separate Extraction
          (* MpoolConcur.TEST.TEST4.isem *)
 
          (* CPUSeq.CPUTEST.program *)
+         ArchMMTest.ArchMMTEST.ABSENT.isem1
+         ArchMMTest.ArchMMTEST.ABSENT.isem2
+         ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem1
+         ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem2
+         
 
          MemoryManagementTest.MMTEST.PageTableFromPa.isem
          MemoryManagementTest.MMTEST.PaStartOfNextBlk.isem

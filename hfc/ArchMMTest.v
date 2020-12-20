@@ -93,11 +93,13 @@ Module ArchMMTEST.
 
   Module ARCHMMPTETABLE.
 
-    Definition main res: stmt :=
-      res #= (Call "ARCHMM.arch_mm_pte_table" [CBV (Int.repr 0)]) #;
-          Put "res: " res.
+    Definition main p res: stmt :=
+      Alloc p (Int.repr 100) #;      
+      res #= (Call "ARCHMM.arch_mm_table_pte" [CBV (Int64.repr 0); CBR p]) #;
+      Put "res: " res.
 
-    Definition mainF: function. mk_function_tac main ([]: list var) ["res"]. Defined.
+    
+    Definition mainF: function. mk_function_tac main ([]: list var) ["p"; "res"]. Defined.
     
     Definition main_program: program :=
       [
