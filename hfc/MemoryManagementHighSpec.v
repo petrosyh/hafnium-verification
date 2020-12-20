@@ -333,8 +333,8 @@ Definition mm_alloc_page_tables_spec (count: Z) (ppool: positive * Z)
   : itree mmE (positive * Z) :=
   let mpool := (ptr2val ppool) in
   let ext_call := if (count =? 1)%Z
-                  then CallExternal "MM.mpool_alloc" [mpool]
-                  else CallExternal "MM.mpool_alloc_contiguous"
+                  then CallExternal "MPOOL.mpool_alloc" [mpool]
+                  else CallExternal "MPOOL.mpool_alloc_contiguous"
                                     [mpool; Z2val count]
   in
   '(ret, _) <- trigger ext_call;;
@@ -618,7 +618,7 @@ Definition funcs :=
   ]
 .
 
-Definition mpool_modsem : ModSem :=
+Definition mm_modsem : ModSem :=
   mk_ModSem
     (fun s => existsb (string_dec s) (List.map fst funcs))
     _

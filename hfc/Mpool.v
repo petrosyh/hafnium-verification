@@ -728,7 +728,6 @@ Module MPOOLCONCUR.
       do
       (Put "  chunk" i #;
            Put "    start:" chunk #;
-           Put "    end:" (chunk #@ limit_loc) #;
            Put "    size:" ((Cast (chunk #@ limit_loc) tint) - (Cast chunk tint)) #;
            chunk #= (chunk #@ next_chunk_loc) #;
            i #= i + (Int.repr 1)))

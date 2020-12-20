@@ -342,7 +342,7 @@ Module MMCONCUR.
 
   (* XXX: simplified version *)
   Definition mm_alloc_page_tables (count ppool : var) : stmt :=
-    (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV (MM_PTE_PER_PAGE * count); CBV count]).
+    (Call "MPOOL.mpool_alloc_contiguous" [CBR ppool; CBV count; CBV count]).
   
   (*
   // JIEUNG: this function is an auxiliary function to find out max level of both

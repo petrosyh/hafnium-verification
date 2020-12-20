@@ -57,6 +57,9 @@ Require Import MemoryManagement.
 Require Import Mpool.
 Require Import ADDR.
 Require Import ArchMM.
+Require Import MemoryManagementHighSpec.
+Require Import MpoolHighSpec.
+Require Import ArchMMHighSpec.
 
 Import LangNotations.
 Local Open Scope expr_scope.
@@ -190,9 +193,9 @@ Module INIT.
     flags #= Vlong (Int64.repr 4) #;
     Put "flags: " flags #;
     Alloc ppool (Int.repr 5) #;
-    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
+    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr (8 * MM_PTE_PER_PAGE)%Z))] #;
     next_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr 160))) #;
-    r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 10000)]) #;
+    r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 100000)]) #;
     res #= (Call "MM.mm_ptable_init" [CBR t; CBV flags; CBR ppool]) #;
     Put "res: " res #;
     Skip.
@@ -208,6 +211,9 @@ Module INIT.
 
     Definition isem: itree Event unit :=
       eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem; MPOOLCONCUR.mpool_modsem; LOCK.lock_modsem].
+
+    (* Definition isem: itree Event unit := *)
+    (*   eval_multimodule [program_to_ModSem main_program ; MemoryManagementHighSpec.mm_modsem ; ArchMMHighSpec.arch_mm_modsem; ADDR.addr_modsem; MpoolHighSpec.mpool_modsem]. *)
 
 End INIT.
 
@@ -216,17 +222,15 @@ Module INITFINI.
   Definition main t flags ppool next_chunk r res: stmt :=
     Alloc t (Int.repr 8) #;
     flags #= Vlong (Int64.repr 4) #;
-    Put "flags: " flags #;
     Alloc ppool (Int.repr 5) #;
-    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
-    Put "ppool in test-1: " ppool #;
+    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr (8 * MM_PTE_PER_PAGE)%Z))] #;
     next_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr 160))) #;
-    r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 10000)]) #;
-    Put "ppool in test0: " ppool #;
+    r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 100000)]) #;
+    Call "MPOOL.print_mpool" [CBR ppool] #;
     res #= (Call "MM.mm_ptable_init" [CBR t; CBV flags; CBR ppool]) #;
-    Put "res: " res #;
-    Put "ppool in test: " ppool #;
+    Call "MPOOL.print_mpool" [CBR ppool] #;
     (Call "MM.mm_ptable_fini" [CBR t; CBV flags; CBR ppool]) #;
+    Call "MPOOL.print_mpool" [CBR ppool] #;
     Skip.
 
   Definition mainF: function.
@@ -241,6 +245,9 @@ Module INITFINI.
     Definition isem: itree Event unit :=
       eval_multimodule [program_to_ModSem main_program ; MMCONCUR.mm_modsem ; ArchMM.arch_mm_modsem; ADDR.addr_modsem; MPOOLCONCUR.mpool_modsem; LOCK.lock_modsem].
 
+    Definition isem2: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; MemoryManagementHighSpec.mm_modsem ; ArchMMHighSpec.arch_mm_modsem; ADDR.addr_modsem; MpoolHighSpec.mpool_modsem].
+    
 End INITFINI.
 
 Module POPULATE.
@@ -250,7 +257,7 @@ Module POPULATE.
     Alloc ppool (Int.repr 5) #;
     flags #= Vlong (Int64.repr 4) #;
     Put "flags: " flags #;
-    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
+    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr (8 * MM_PTE_PER_PAGE)%Z))] #;
     Put "ppool in test-1: " ppool #;
     next_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr 160))) #;
     r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 10000)]) #;
@@ -287,7 +294,7 @@ Module DEFRAG.
     flags #= Vlong (Int64.repr 4) #;
     Put "flags: " flags #;
     Alloc ppool (Int.repr 5) #;
-    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr 8))] #;
+    Call "MPOOL.mpool_init" [CBR ppool; CBV (Vlong (Int64.repr (8 * MM_PTE_PER_PAGE)%Z))] #;
     Put "ppool in test-1: " ppool #;
     next_chunk #= (Vcomp (Vptr 2%positive (Ptrofs.repr 160))) #;
     r #= (Call "MPOOL.mpool_add_chunk" [CBR ppool; CBR next_chunk; CBV (Int64.repr 10000)]) #;

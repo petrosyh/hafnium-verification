@@ -313,20 +313,14 @@ let rec my_rr q =
 
 let main =
   Random.self_init();
-  print_endline "------------------------DSL SPEC-------------------------------" ;
-  run (Toy.FACTTEST.isem1) ;
-  print_endline "------------------------ITREE SPEC-------------------------------" ;
-  run (Toy.FACTTEST.isem2) ;
-  print_endline "------------------------COQ SPEC-------------------------------" ;
-  run (Toy.FACTTEST.isem3) ;
-  print_endline "-------------------------------------------------------" ;
-  print_endline "-------------------------------------------------------" ;
-  print_endline "-------------------------------------------------------" ;
-  print_endline "-------------------------------------------------------" ;
-  run (MultiModule.isem) ;
+  print_endline "-------------------   MM ptable init  ------------------------" ;
+  run (MemoryManagementTest.MMTEST.INITFINI.isem) ;
+  print_endline "--------------------------------------------------------------" ;
+  run (MemoryManagementTest.MMTEST.INITFINI.isem2) ;
+  print_endline "--------------------------------------------------------------" ;
   ()
 
-let main t=
+let main t =
   Random.self_init();
 
   print_endline "-----------------------MPOOL TEST------------------------------" ;
