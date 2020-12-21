@@ -52,6 +52,7 @@ Require Import Lang.
 Require Import Values.
 Require Import Integers.
 Require Import Constant.
+Require Import ADDR.
 Require Import ArchMM.
 Require Import ArchMMHighSpec.
 Import LangNotations.
@@ -59,6 +60,7 @@ Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
 Import ArchMM.
+Import ADDR.
 Import Int64.
 
 Set Implicit Arguments.
@@ -72,7 +74,7 @@ Module ArchMMTEST.
   Module ABSENT.
 
     Definition main res: stmt :=
-      res #= (Call "ARCHMM.arch_mm_absent_pte" [CBV (Int.repr 0)]) #;
+      res #= (Call "ARCHMM.arch_mm_absent_pte" [CBV (Int64.repr 0)]) #;
           Put "res: " res.
 
     Definition mainF: function. mk_function_tac main ([]: list var) ["res"]. Defined.
@@ -107,7 +109,7 @@ Module ArchMMTEST.
       ].
     
     Definition isem1: itree Event unit :=
-      eval_multimodule [program_to_ModSem main_program ; ArchMM.arch_mm_modsem].
+      eval_multimodule [program_to_ModSem main_program ; ArchMM.arch_mm_modsem ; ADDR.addr_modsem].
 
 
     Definition isem2: itree Event unit :=

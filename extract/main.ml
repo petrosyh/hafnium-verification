@@ -409,15 +409,12 @@ let main t =
   run (PrintAny.isem) ;
   print_endline "-----------------  LANG TEST Passed --------------------------" ;
 
-  (*
   print_endline "---------------------- ArchMM TEST ---------------------------" ;
   run (ArchMMTest.ArchMMTEST.ABSENT.isem1) ;
   run (ArchMMTest.ArchMMTEST.ABSENT.isem2) ;
-  run (ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem1) ;
+  (* run (ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem1) ; *)
   run (ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem2) ;
   print_endline "------------------   ArchMM TEST Passed  ---------------------" ;
-  *)
-
 
   print_endline "---------------------- MPOOL TEST ----------------------------" ;
   print_endline "-------- MPOOL TEST 1 (concurrent mpool add chunk) -----------" ;

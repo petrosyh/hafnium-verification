@@ -251,7 +251,7 @@ pte_t arch_mm_table_pte(uint8_t level, paddr_t pa)
   Definition arch_mm_table_pte (level pa:var)
              (pa_addr_res pte_table_res res :var) : stmt :=
     (* (void)level; : just Compiler warning suppress *)
-    pa_addr_res #= (Call "ADDR.pa_addr" [CBV pa]) #;
+    pa_addr_res #= (Call "ADDR.pa_addr" [CBR pa]) #;
                 pte_table_res #= pa_addr_res #| PTE_TABLE #;
                 res #= pte_table_res #| PTE_VALID #;
                 Return res.
