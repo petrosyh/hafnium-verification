@@ -212,8 +212,14 @@ static uint8_t mm_s2_root_table_count;
 
    *)
 
+  (*
   Definition mm_s2_max_level : var := "mm_s2_max_level".
-  Definition mm_s2_root_table_count : var := " mm_s2_root_table_count".
+  Definition mm_s2_root_table_count : var := "mm_s2_root_table_count".
+  *)
+
+  Definition mm_s2_max_level : expr := (Vcomp (Vlong MM_S2_MAX_LEVEL)).
+  Definition mm_s2_root_table_count : expr := (Vcomp (Vlong MM_S2_ROOT_TABLE_COUNT)).
+
   
   (* /** Mask for the address bits of the pte. */ *)
   (* #define PTE_ADDR_MASK \ *)
@@ -252,10 +258,8 @@ pte_t arch_mm_table_pte(uint8_t level, paddr_t pa)
              (pa_addr_res pte_table_res res :var) : stmt :=
     (* (void)level; : just Compiler warning suppress *)
     pa_addr_res #= (Call "ADDR.pa_addr" [CBR pa]) #;
-                pte_table_res #= pa_addr_res #| PTE_TABLE #;
-                res #= pte_table_res #| PTE_VALID #;
-                Return res.
-
+                Return (((Cast pa_addr_res tint) #| PTE_TABLE) #| PTE_VALID).
+  
   (*
 
 /**
@@ -276,9 +280,10 @@ pte_t arch_mm_block_pte(uint8_t level, paddr_t pa, uint64_t attrs)
 
    *)
 
-  Definition arch_mm_block_pte (level pa attrs:var) (pa_addr_res pte:var) :=
+  Definition arch_mm_block_pte (level pa attrs:var) (pa_addr_res pte pa_addr_cast :var) :=
     pa_addr_res #= (Call "ADDR.pa_addr" [CBV pa]) #;
-                pte #= pa_addr_res #| attrs #;
+                pa_addr_cast #= (Cast pa_addr_res tint) #;
+                pte #= pa_addr_cast #| attrs #;
                 (#if (level == (repr 0))
                   then pte #= pte #| PTE_LEVEL0_BLOCK
                   else Skip) #;
@@ -313,9 +318,10 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
 
    *)
 
-  Definition arch_mm_pte_is_present (pte level:var) (pte_valid sw_owned res:var) :=
+  Definition arch_mm_pte_is_present (pte level:var) (pte_valid sw_owned res pte_cast:var) :=
     pte_valid #= (Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #;
-              sw_owned #= BAnd pte STAGE2_SW_OWNED #;
+              pte_cast #= (Cast pte tint) #;
+              sw_owned #= pte_cast #& STAGE2_SW_OWNED #;
               res #= pte_valid #|| sw_owned #;
               #if (res == (repr 0))
                then Return (repr 0)
@@ -334,8 +340,9 @@ bool arch_mm_pte_is_valid(pte_t pte, uint8_t level)
 
    *)
 
-  Definition arch_mm_pte_is_valid (pte level:var) (pte_valid:var) :=
-    pte_valid #= BAnd pte PTE_VALID #;
+  Definition arch_mm_pte_is_valid (pte level:var) (pte_valid pte_cast :var) :=
+    pte_cast #= (Cast pte tint) #;
+    pte_valid #= pte_cast #& PTE_VALID #;
               #if (pte_valid == (repr 0))
                then Return (repr 0)
                else Return (repr 1).
@@ -355,14 +362,15 @@ bool arch_mm_pte_is_block(pte_t pte, uint8_t level)
 
    *)
 
-  Definition arch_mm_pte_is_block (pte level:var) (blk_allowed ret is_blk is_present is_table:var) :=
+  Definition arch_mm_pte_is_block (pte level:var) (blk_allowed ret is_blk is_present is_table pte_cast:var) :=
+    pte_cast #= (Cast pte tint) #;
     blk_allowed #= (Call "ARCHMM.arch_mm_is_block_allowed" [CBV level]) #;
                 (#if (level == (repr 0))
-                  then (#if (pte #& PTE_LEVEL0_BLOCK)
+                  then (#if (pte_cast #& PTE_LEVEL0_BLOCK)
                          then (ret #= (repr 0))
                          else (ret #= (repr 1)))
                   else (is_present #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV pte; CBV level]) #;
-                                   is_table #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV pte; CBV level]) #;
+                                   is_table #= (Call "ARCHMM.arch_mm_pte_is_table" [CBV pte; CBV level]) #;
                                    ret #= (is_present #&& (#! is_table)))) #;
                 Return (blk_allowed #&& ret).
 
@@ -378,10 +386,11 @@ bool arch_mm_pte_is_table(pte_t pte, uint8_t level)
 
    *)
 
-  Definition arch_mm_pte_is_table (pte level:var) (is_valid :var) :=
+  Definition arch_mm_pte_is_table (pte level:var) (is_valid pte_cast :var) :=
+    pte_cast #= (Cast pte tint) #;    
     is_valid #= (Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #;
              (* Put "is_valid" is_valid #; *)
-             Return ((#! (level == (repr 0))) #&& is_valid #&& (#! (pte #& PTE_TABLE) == (repr 0))).
+             Return ((#! (level == (repr 0))) #&& is_valid #&& (#! (pte_cast #& PTE_TABLE) == (repr 0))).
   
   (*
 static uint64_t pte_addr(pte_t pte)
@@ -391,8 +400,9 @@ static uint64_t pte_addr(pte_t pte)
 
    *)
 
-  Definition pte_addr (pte:var) :=
-    Return (pte #& PTE_ADDR_MASK).
+  Definition pte_addr (pte:var) (pte_cast : var):=
+    pte_cast #= (Cast pte tint) #;
+    Return (pte_cast #& PTE_ADDR_MASK).
 
   (*
 /**
@@ -460,8 +470,9 @@ uint64_t arch_mm_pte_attrs(pte_t pte, uint8_t level)
 }
 
    *)
-  Definition arch_mm_pte_attrs (pte level:var) :=
-    Return (pte #& PTE_ATTR_MASK).
+  Definition arch_mm_pte_attrs (pte level:var) (pte_cast : var) :=
+    pte_cast #= (Cast pte tint) #;
+    Return (pte_cast #& PTE_ATTR_MASK).
 
   (*
 /**
@@ -1018,9 +1029,24 @@ bool arch_mm_init(paddr_t table)
     return true;
 }
 
- *)  
+ *)
 
 
+  (* XXX: DUMMY functions to keep the consistency with the high-level modules *)
+  Definition arch_mm_dummy_function : stmt := Skip.
+
+  (* XXX: DUMMY functions to keep the consistency with the high-level modules *)
+  Definition arch_mm_dummy_with_arg1_function (p : var) : stmt := Skip.
+
+  (* XXX: auxiliary functions for testing *)
+  Definition arch_mm_set_pte_addr_function (pte address : var) (pte_cast : var) : stmt :=
+    pte_cast #= (Cast pte tint) #;
+             (pte @ Int64.zero #:= pte_cast #| address #<< (Int64.repr 12)).
+  
+  Definition arch_mm_set_pte_attr_function (pte attr : var) (pte_cast : var) : stmt :=
+    pte_cast #= (Cast pte tint) #;
+             (pte @ Int64.zero #:= pte_cast #| attr).
+  
   (* Test auxiliary functions in mm module *)
   Definition arch_mm_absent_pteF : function.
     mk_function_tac arch_mm_absent_pte ["level"] ([]: list var).
@@ -1031,7 +1057,7 @@ bool arch_mm_init(paddr_t table)
   Defined.
 
   Definition arch_mm_block_pteF : function.
-    mk_function_tac arch_mm_block_pte ["level" ; "pa" ; "attrs"] ["pa_addr_res" ; "pte"].
+    mk_function_tac arch_mm_block_pte ["level" ; "pa" ; "attrs"] ["pa_addr_res" ; "pte" ; "pa_addr_cast" ].
   Defined.
 
   Definition arch_mm_is_block_allowedF : function.
@@ -1039,24 +1065,24 @@ bool arch_mm_init(paddr_t table)
   Defined.
 
   Definition arch_mm_pte_is_presentF : function.
-    mk_function_tac arch_mm_pte_is_present ["pte"; "level"] ["pte_valid" ; "sw_owned" ; "res"].
+    mk_function_tac arch_mm_pte_is_present ["pte"; "level"] ["pte_valid" ; "sw_owned" ; "res" ; "pte_cast"].
   Defined.
 
 
   Definition arch_mm_pte_is_validF : function.
-    mk_function_tac arch_mm_pte_is_valid ["pte"; "level"] ["pte_valid"].
+    mk_function_tac arch_mm_pte_is_valid ["pte"; "level"] ["pte_valid" ; "pte_cast"].
   Defined.
   
   Definition arch_mm_pte_is_blockF : function.
-    mk_function_tac arch_mm_pte_is_block ["pte"; "level"] ["blk_allowed"; "ret"; "is_blk" ; "is_present"; "is_table"].
+    mk_function_tac arch_mm_pte_is_block ["pte"; "level"] ["blk_allowed"; "ret"; "is_blk" ; "is_present"; "is_table" ; "pte_cast"].
   Defined.
 
   Definition arch_mm_pte_is_tableF : function.
-    mk_function_tac arch_mm_pte_is_table ["pte" ; "level"] ["is_valid"].
+    mk_function_tac arch_mm_pte_is_table ["pte" ; "level"] ["is_valid"; "pte_cast"].
   Defined.
 
   Definition pte_addrF : function.
-    mk_function_tac pte_addr ["pte"] ([] : list var).
+    mk_function_tac pte_addr ["pte"] ["pte_cast"].
   Defined.
   
   Definition arch_mm_clear_paF : function.
@@ -1073,7 +1099,7 @@ bool arch_mm_init(paddr_t table)
   Defined.
   
   Definition arch_mm_pte_attrsF : function.
-    mk_function_tac arch_mm_pte_attrs ["pte" ; "level"] ([] : list var).
+    mk_function_tac arch_mm_pte_attrs ["pte" ; "level"]  ["pte_cast"].
   Defined.
 
   Definition arch_mm_invalidate_stage1_rangeF : function.
@@ -1117,6 +1143,25 @@ bool arch_mm_init(paddr_t table)
     mk_function_tac arch_mm_combine_table_entry_attrs ["table_attrs" ; "block_attrs"] ([]: list var).
   Defined.
 
+  (* DUMMY functions to keep the consistency with the high-level modules *)
+
+
+  (* DUMMY functions to keep the consistency with the high-level modules *)
+  Definition arch_mm_dummyF : function.
+    mk_function_tac arch_mm_dummy_function  ([]: list var) ([]: list var).
+  Defined.  
+
+  Definition arch_mm_dummy_with_arg1F : function.
+    mk_function_tac arch_mm_dummy_with_arg1_function  (["p"]) ([]: list var).
+  Defined.
+
+  Definition arch_mm_set_pte_addrF : function.
+    mk_function_tac arch_mm_set_pte_addr_function (["p"; "addr"]) (["pte_cast"]).
+  Defined.
+
+  Definition arch_mm_set_pte_attrF : function.
+    mk_function_tac arch_mm_set_pte_attr_function (["p"; "attr"]) (["pte_cast"]).
+  Defined.  
   
   Definition arch_mm_program: program :=
     [
@@ -1142,7 +1187,14 @@ bool arch_mm_init(paddr_t table)
     ("ARCHMM.arch_mm_stage2_max_level", arch_mm_stage2_max_levelF) ;
     ("ARCHMM.arch_mm_stage1_root_table_count", arch_mm_stage1_root_table_countF) ;
     ("ARCHMM.arch_mm_stage2_root_table_count", arch_mm_stage2_root_table_countF) ;
-    ("ARCHMM.arch_mm_combine_table_entry_attrs", arch_mm_combine_table_entry_attrsF)
+    ("ARCHMM.arch_mm_combine_table_entry_attrs", arch_mm_combine_table_entry_attrsF) ;
+    (* DUMMY functions to keep the consistency with the high-level modules *)
+    ("ARCHMM.arch_mm_set_stage1", arch_mm_dummyF) ;
+    ("ARCHMM.arch_mm_set_stage2", arch_mm_dummyF) ;
+    ("ARCHMM.arch_mm_empty_call", arch_mm_dummyF) ;
+    ("ARCHMM.arch_mm_print_archmm_call",  arch_mm_dummy_with_arg1F) ;
+    ("ARCHMM.arch_mm_set_pte_addr", arch_mm_set_pte_addrF) ;
+    ("ARCHMM.arch_mm_set_pte_attr", arch_mm_set_pte_attrF)
     ].
 
   Definition arch_mm_modsem :=  program_to_ModSem arch_mm_program.

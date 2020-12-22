@@ -501,18 +501,18 @@ Section ABSTSTATE.
                                                                      NON_SHAREABLE STAGE2_ACCESS_NOPERM MEMATTR_ZERO.
 
   Inductive PTE_TYPES :=
-  | UNDEFINED (* not initialized *)
-  | ABSENT
+  | UNDEFINED (* not initialized, so we do not have any base address for this case *)
+  | ABSENT (base_addr: Z) 
   (* XXX: invalid block for stage 1 and 2 . It seems it is used in some places, 
      so we have to keep track of the invalid block. Currently, I implement that 
      this invalid block is only in the bottom level of page tables, but it may need to be 
      in the intermediate level as well.  *)      
-  | STAGE1_INVALID_BLOCK (output_address : Z) (attributes: Stage1BlockAttributes) (is_table: bool)
-  | STAGE1_TABLE (output_address : Z) (attributes: Stage1TableAttributes)
-  | STAGE1_PAGE (output_address : Z) (attributes: Stage1BlockAttributes)
-  | STAGE2_INVALID_BLOCK (output_address : Z) (attributes: Stage2BlockAttributes) (is_table: bool)
-  | STAGE2_TABLE (output_address : Z)
-  | STAGE2_PAGE (output_address : Z) (attribuctes: Stage2BlockAttributes).
+  | STAGE1_INVALID_BLOCK (base_addr: Z)  (output_address : Z) (attributes: Stage1BlockAttributes) (is_table: bool)
+  | STAGE1_TABLE (base_addr: Z)  (output_address : Z) (attributes: Stage1TableAttributes)
+  | STAGE1_PAGE (base_addr: Z)  (output_address : Z) (attributes: Stage1BlockAttributes)
+  | STAGE2_INVALID_BLOCK (base_addr: Z)  (output_address : Z) (attributes: Stage2BlockAttributes) (is_table: bool)
+  | STAGE2_TABLE (base_addr: Z)  (output_address : Z)
+  | STAGE2_PAGE (base_addr: Z)  (output_address : Z) (attribuctes: Stage2BlockAttributes).
 
   Inductive CURRENT_STAGE := STAGE1 | STAGE2.
   
@@ -555,7 +555,13 @@ Notation "a {stage : b }" := (update_stage a b) (at level 1).
 
 
 
+(* TODO: we can combine the following values with the definitions in the Constant.v file. 
+   1) define Z macro values in Constant.v 
+   2) define int64 macro values in a different file (e.g., LowConstant.v) by using Constant.v *) 
 Section FLAGVALUES.
+
+  Definition Z_MM_S2_MAX_LEVEL := 3.
+  Definition Z_MM_S2_ROOT_TABLE_COUNT := 1.
 
   Definition Z_NON_SHAREABLE := 0.
   Definition Z_OUTER_SHAREABLE := 2.
@@ -810,94 +816,118 @@ Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
   Definition PTE_TYPES_to_IS_VALID_VALUE (pte_value : PTE_TYPES) : Z :=
     match pte_value with
     | UNDEFINED => Z_PTE_VALID
-    | ABSENT => Z_PTE_VALID
-    | STAGE1_INVALID_BLOCK _ _ _ => Z_PTE_VALID
-    | STAGE1_TABLE _ _ => Z.shiftl 1 Z_PTE_VALID
-    | STAGE1_PAGE _ _ => Z.shiftl 1 Z_PTE_VALID
-    | STAGE2_INVALID_BLOCK _ _ _ => Z_PTE_VALID
-    | STAGE2_TABLE _ => Z.shiftl 1 Z_PTE_VALID
-    | STAGE2_PAGE _ _ => Z.shiftl 1 Z_PTE_VALID
+    | ABSENT _ => Z_PTE_VALID
+    | STAGE1_INVALID_BLOCK _ _ _ _ => Z_PTE_VALID
+    | STAGE1_TABLE _ _ _ => Z.shiftl 1 Z_PTE_VALID
+    | STAGE1_PAGE _ _ _ => Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_INVALID_BLOCK _ _ _ _ => Z_PTE_VALID
+    | STAGE2_TABLE _ _ => Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_PAGE _ _ _ => Z.shiftl 1 Z_PTE_VALID
     end.
 
   Definition PTE_TYPES_TO_IS_TABLE_VALUE (pte_value : PTE_TYPES) : Z :=
     match pte_value with
     | UNDEFINED => 0
-    | ABSENT => 0
-    | STAGE1_INVALID_BLOCK _ _ is_table => zshift_or_0 is_table Z_PTE_TABLE
-    | STAGE1_TABLE _ _ => Z.shiftl 1 Z_PTE_TABLE
-    | STAGE1_PAGE _ _ => Z.shiftl 1 Z_PTE_TABLE
-    | STAGE2_INVALID_BLOCK _ _ is_table => zshift_or_0 is_table Z_PTE_TABLE
-    | STAGE2_TABLE _ => Z.shiftl 1 Z_PTE_TABLE
-    | STAGE2_PAGE _ _ => Z.shiftl 1 Z_PTE_TABLE
+    | ABSENT _ => 0
+    | STAGE1_INVALID_BLOCK _ _ _ is_table => zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE1_TABLE _ _ _ => Z.shiftl 1 Z_PTE_TABLE
+    | STAGE1_PAGE _ _ _ => Z.shiftl 1 Z_PTE_TABLE
+    | STAGE2_INVALID_BLOCK _ _ _ is_table => zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE2_TABLE _ _ => Z.shiftl 1 Z_PTE_TABLE
+    | STAGE2_PAGE _ _ _ => Z.shiftl 1 Z_PTE_TABLE
     end.
   
   Definition PTE_TYPES_to_ATTR_VALUES (pte_value : PTE_TYPES) : Z :=
     match pte_value with
     | UNDEFINED => 0
-    | ABSENT => 0
-    | STAGE1_INVALID_BLOCK _ attributes is_table => Stage1BlockAttributes_to_ATTR_VALUES attributes +
-                                                   zshift_or_0 is_table Z_PTE_TABLE
-    | STAGE1_TABLE _ attributes => Stage1TableAttributes_to_ATTR_VALUES attributes +
-                                  Z.shiftl 1 Z_PTE_TABLE +
-                                  Z.shiftl 1 Z_PTE_VALID
-    | STAGE1_PAGE _ attributes => Stage1BlockAttributes_to_ATTR_VALUES attributes +
-                                 Z.shiftl 1 Z_PTE_TABLE +
-                                 Z.shiftl 1 Z_PTE_VALID                                 
-    | STAGE2_INVALID_BLOCK _ attributes is_table => Stage2BlockAttributes_to_ATTR_VALUES attributes +
-                                                   zshift_or_0 is_table Z_PTE_TABLE
-    | STAGE2_TABLE _ => Z.shiftl 1 Z_PTE_TABLE +
-                       Z.shiftl 1 Z_PTE_VALID
-    | STAGE2_PAGE _ attributes => Stage2BlockAttributes_to_ATTR_VALUES attributes +
-                                 Z.shiftl 1 Z_PTE_TABLE +
-                                 Z.shiftl 1 Z_PTE_VALID
+    | ABSENT _ => 0
+    | STAGE1_INVALID_BLOCK _ _ attributes is_table => Stage1BlockAttributes_to_ATTR_VALUES attributes +
+                                                     zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE1_TABLE _ _ attributes => Stage1TableAttributes_to_ATTR_VALUES attributes +
+                                    Z.shiftl 1 Z_PTE_TABLE +
+                                    Z.shiftl 1 Z_PTE_VALID
+    | STAGE1_PAGE _ _ attributes => Stage1BlockAttributes_to_ATTR_VALUES attributes +
+                                   Z.shiftl 1 Z_PTE_TABLE +
+                                   Z.shiftl 1 Z_PTE_VALID                                 
+    | STAGE2_INVALID_BLOCK _ _ attributes is_table => Stage2BlockAttributes_to_ATTR_VALUES attributes +
+                                                     zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE2_TABLE _ _ => Z.shiftl 1 Z_PTE_TABLE +
+                         Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_PAGE _ _ attributes => Stage2BlockAttributes_to_ATTR_VALUES attributes +
+                                   Z.shiftl 1 Z_PTE_TABLE +
+                                   Z.shiftl 1 Z_PTE_VALID
     end.
-
+  
   Definition PTE_TYPES_to_VALUES (pte : PTE_TYPES) : Z :=
     match pte with
-    | UNDEFINED => 0
-    | ABSENT => 0
-    | STAGE1_INVALID_BLOCK oa attributes is_table => Z.shiftl oa Z_ADDRESS_SHIFT +
-                                                    Stage1BlockAttributes_to_ATTR_VALUES attributes +
-                                                    zshift_or_0 is_table Z_PTE_TABLE
-    | STAGE1_TABLE oa attr => Z.shiftl oa Z_ADDRESS_SHIFT +
-                             Stage1TableAttributes_to_ATTR_VALUES attr +
-                             Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
-    | STAGE1_PAGE oa attr => Z.shiftl oa Z_ADDRESS_SHIFT +
-                            Stage1BlockAttributes_to_ATTR_VALUES attr +
-                            Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
-    | STAGE2_INVALID_BLOCK oa attributes is_table => Z.shiftl oa Z_ADDRESS_SHIFT +
-                                                    Stage2BlockAttributes_to_ATTR_VALUES attributes +
-                                                    zshift_or_0 is_table Z_PTE_TABLE
-    | STAGE2_TABLE oa => Z.shiftl oa Z_ADDRESS_SHIFT +
-                        Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
-    | STAGE2_PAGE oa attr => Z.shiftl oa Z_ADDRESS_SHIFT +
-                            Stage2BlockAttributes_to_ATTR_VALUES attr +
-                            Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
+    | UNDEFINED  => 0
+    | ABSENT base_addr => base_addr
+    | STAGE1_INVALID_BLOCK base_addr oa attributes is_table =>
+      base_addr + 
+      Z.shiftl oa Z_ADDRESS_SHIFT +
+      Stage1BlockAttributes_to_ATTR_VALUES attributes +
+      zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE1_TABLE base_addr oa attr =>
+      base_addr +
+      Z.shiftl oa Z_ADDRESS_SHIFT +
+      Stage1TableAttributes_to_ATTR_VALUES attr +
+      Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
+    | STAGE1_PAGE base_addr oa attr =>
+      base_addr +
+      Z.shiftl oa Z_ADDRESS_SHIFT +
+      Stage1BlockAttributes_to_ATTR_VALUES attr +
+      Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_INVALID_BLOCK base_addr oa attributes is_table =>
+      base_addr +
+      Z.shiftl oa Z_ADDRESS_SHIFT +
+      Stage2BlockAttributes_to_ATTR_VALUES attributes +
+      zshift_or_0 is_table Z_PTE_TABLE
+    | STAGE2_TABLE base_addr oa =>
+      base_addr +
+      Z.shiftl oa Z_ADDRESS_SHIFT +
+      Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
+    | STAGE2_PAGE base_addr oa attr =>
+      base_addr +
+      Z.shiftl oa Z_ADDRESS_SHIFT +
+      Stage2BlockAttributes_to_ATTR_VALUES attr +
+      Z.shiftl 1 Z_PTE_TABLE + Z.shiftl 1 Z_PTE_VALID
     end.
 
-  Definition PTE_TYPES_to_ADDRESS (pte : PTE_TYPES) : Z :=
+  Definition PTE_TYPES_to_OUTPUT_ADDRESS (pte : PTE_TYPES) : Z :=
     match pte with
     | UNDEFINED => 0
-    | ABSENT => 0
-    | STAGE1_INVALID_BLOCK oa _ _
-    | STAGE1_TABLE oa _
-    | STAGE1_PAGE oa _
-    | STAGE2_INVALID_BLOCK oa _ _
-    | STAGE2_TABLE oa
-    | STAGE2_PAGE oa _ => oa
+    | ABSENT _ => 0
+    | STAGE1_INVALID_BLOCK _ oa _ _
+    | STAGE1_TABLE _ oa _
+    | STAGE1_PAGE _ oa _
+    | STAGE2_INVALID_BLOCK _ oa _ _
+    | STAGE2_TABLE _ oa
+    | STAGE2_PAGE _ oa _ => oa
     end.
 
   
-  Definition PTE_TYPES_to_ADDRESS_WITH_SHIFT (pte : PTE_TYPES) : Z :=
+  Definition PTE_TYPES_to_OUTPUT_ADDRESS_WITH_SHIFT (pte : PTE_TYPES) : Z :=
     match pte with
     | UNDEFINED => 0
-    | ABSENT => 0
-    | STAGE1_INVALID_BLOCK oa _ _
-    | STAGE1_TABLE oa _
-    | STAGE1_PAGE oa _
-    | STAGE2_INVALID_BLOCK oa _ _
-    | STAGE2_TABLE oa
-    | STAGE2_PAGE oa _ => Z.shiftl oa Z_ADDRESS_SHIFT
+    | ABSENT _ => 0
+    | STAGE1_INVALID_BLOCK _ oa _ _
+    | STAGE1_TABLE _ oa _
+    | STAGE1_PAGE _ oa _
+    | STAGE2_INVALID_BLOCK _ oa _ _
+    | STAGE2_TABLE _ oa
+    | STAGE2_PAGE _ oa _ => Z.shiftl oa Z_ADDRESS_SHIFT
+    end.
+
+  Definition PTE_TYPES_to_BASE_ADDRESS (pte : PTE_TYPES) : option Z :=
+    match pte with
+    | UNDEFINED => None
+    | ABSENT base_addr
+    | STAGE1_INVALID_BLOCK base_addr _ _ _
+    | STAGE1_TABLE base_addr _ _
+    | STAGE1_PAGE base_addr _ _
+    | STAGE2_INVALID_BLOCK base_addr _ _ _
+    | STAGE2_TABLE base_addr _
+    | STAGE2_PAGE base_addr _ _ => Some base_addr
     end.
 
 End FLAG_TO_VALUE_and_VALUE_TO_FLAG.
@@ -916,14 +946,14 @@ Section MM_MODE_VALUE.
 #define MM_MODE_SHARED  UINT32_C(0x0040)
 *)
   
-Definition MM_MODE_R : Z := 1.
-Definition MM_MODE_W : Z := 2. 
-Definition MM_MODE_X : Z := 4.
-Definition MM_MODE_D : Z := 8.
+Definition Z_MM_MODE_R : Z := 1.
+Definition Z_MM_MODE_W : Z := 2. 
+Definition Z_MM_MODE_X : Z := 4.
+Definition Z_MM_MODE_D : Z := 8.
 
-Definition MM_MODE_INVALID : Z := 16.
-Definition MM_MODE_UNOWNED : Z := 32.
-Definition MM_MODE_SHARED : Z := 64.
+Definition Z_MM_MODE_INVALID : Z := 16.
+Definition Z_MM_MODE_UNOWNED : Z := 32.
+Definition Z_MM_MODE_SHARED : Z := 64.
  
 End MM_MODE_VALUE.
 
@@ -955,14 +985,14 @@ pte_t arch_mm_absent_pte(uint8_t level)
 }
  *)
 
-  Definition arch_mm_absent_pte_spec (level: Z) : itree ArchMME (PTE_TYPES) :=
-    Ret (ABSENT).
+  Definition arch_mm_absent_pte_spec (level: Z) : itree ArchMME (Z) :=
+    Ret (0).
 
   Definition arch_mm_absent_pte_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
     match args with
     | [Vcomp (Vlong level)] =>
       res <-  arch_mm_absent_pte_spec (Int64.unsigned level);;
-      Ret (Vcomp (Vlong (Int64.repr (PTE_TYPES_to_VALUES res))), args)
+      Ret (Vcomp (Vlong (Int64.repr res)), args)
     | _ => triggerNB "arch_mm_absent_pte_call: wrong arguments"
     end
   .
@@ -993,11 +1023,11 @@ pte_t arch_mm_table_pte(uint8_t level, paddr_t pa)
        | STAGE1 =>
          if zeq level 2
          then None
-         else Some (STAGE1_TABLE 0 init_stage1_table_attributes)
+         else Some (STAGE1_TABLE (snd pa)  0 init_stage1_table_attributes)
        | STAGE2  =>
          if zeq level 3
          then None
-         else Some (STAGE2_TABLE 0)
+         else Some (STAGE2_TABLE (snd pa) 0)
        end;;;
     let next_id := st.(next_id) in 
     let new_pte_pool := PTree.set next_id new_pte st.(pte_pool) in
@@ -1044,25 +1074,25 @@ pte_t arch_mm_block_pte(uint8_t level, paddr_t pa, uint64_t attrs)
         | STAGE1 =>
           if IS_VALID_VALUE_TO_PTE_Attributes attrs then 
             match IS_TABLE_VALUE_TO_PTE_Attributes attrs, ATTR_VALUES_to_Stage1BlockAttributes attrs with
-            | true, Some attributes => Some (STAGE1_PAGE 0 attributes)
+            | true, Some attributes => Some (STAGE1_PAGE (snd pa) 0 attributes)
             | _, _ => None
             end
           else
             match IS_TABLE_VALUE_TO_PTE_Attributes attrs, ATTR_VALUES_to_Stage1BlockAttributes attrs with
-            | true, Some attributes => Some (STAGE1_INVALID_BLOCK 0 attributes true)
-            | false, Some attributes => Some (STAGE1_INVALID_BLOCK 0 attributes false)
+            | true, Some attributes => Some (STAGE1_INVALID_BLOCK (snd pa) 0 attributes true)
+            | false, Some attributes => Some (STAGE1_INVALID_BLOCK (snd pa) 0 attributes false)
             | _, _ => None
             end
         | STAGE2  =>
           if IS_VALID_VALUE_TO_PTE_Attributes attrs then 
             match IS_TABLE_VALUE_TO_PTE_Attributes attrs, ATTR_VALUES_to_Stage2BlockAttributes attrs with
-            | true, Some attributes => Some (STAGE2_PAGE 0 attributes)
+            | true, Some attributes => Some (STAGE2_PAGE (snd pa) 0 attributes)
             | _, _ => None
             end
           else
             match IS_TABLE_VALUE_TO_PTE_Attributes attrs, ATTR_VALUES_to_Stage2BlockAttributes attrs with
-            | true, Some attributes => Some (STAGE2_INVALID_BLOCK 0 attributes true)
-            | false, Some attributes => Some (STAGE2_INVALID_BLOCK 0 attributes false)
+            | true, Some attributes => Some (STAGE2_INVALID_BLOCK (snd pa) 0 attributes true)
+            | false, Some attributes => Some (STAGE2_INVALID_BLOCK (snd pa) 0 attributes false)
             | _, _ => None
             end
      end) ;;;
@@ -1131,9 +1161,9 @@ bool arch_mm_pte_is_valid(pte_t pte, uint8_t level)
     do key <- PtrTree_get pte st.(addr_to_id);;;  (* UB *)
     do pte <- PTree.get key st.(pte_pool);;; (* Some *)
     let res := match pte with
-               | ABSENT => false
-               | STAGE1_INVALID_BLOCK _ _ _ => false
-               | STAGE2_INVALID_BLOCK _ _ _ => false
+               | ABSENT _ => false
+               | STAGE1_INVALID_BLOCK _ _ _ _ => false
+               | STAGE2_INVALID_BLOCK _ _ _ _ => false
                | _ => true
                end in
     Ret (res)
@@ -1170,9 +1200,9 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
     do pte <- PTree.get key st.(pte_pool);;; (* Some *)
     let res :=                                                    
         match pte with
-        | ABSENT => false
-        | STAGE1_INVALID_BLOCK _ _ _ => false
-        | STAGE2_INVALID_BLOCK _ attributes _ => attributes.(STAGE2_SW_OWNED)
+        | ABSENT _ => false
+        | STAGE1_INVALID_BLOCK _ _ _ _ => false
+        | STAGE2_INVALID_BLOCK _ _ attributes _ => attributes.(STAGE2_SW_OWNED)
         | _ => true
         end in
     Ret (res)
@@ -1212,9 +1242,9 @@ bool arch_mm_pte_is_table(pte_t pte, uint8_t level)
         if zeq level 0
         then false
         else match pte with
-               | ABSENT => false
-               | STAGE1_INVALID_BLOCK _ _ _ => false
-               | STAGE2_INVALID_BLOCK _ _ _ => false
+               | ABSENT _ => false
+               | STAGE1_INVALID_BLOCK _ _ _ _ => false
+               | STAGE2_INVALID_BLOCK _ _ _ _ => false
                | _ => true
              end in
     Ret (res)
@@ -1257,25 +1287,25 @@ bool arch_mm_pte_is_block(pte_t pte, uint8_t level)
         if zle level 2 
         then if zeq level 0
              then match pte with
-                  | ABSENT => false
-                  | STAGE1_INVALID_BLOCK _ _ res => res
-                  | STAGE2_INVALID_BLOCK _ _ res => res
+                  | ABSENT _ => false
+                  | STAGE1_INVALID_BLOCK _ _ _ res => res
+                  | STAGE2_INVALID_BLOCK _ _ _ res => res
                   | _ => true
                   end 
              else let res1 :=
                       match pte with
-                      | ABSENT => false
-                      | STAGE1_INVALID_BLOCK _ _ _ => false
-                      | STAGE2_INVALID_BLOCK _ attributes _ => attributes.(STAGE2_SW_OWNED)
+                      | ABSENT _ => false
+                      | STAGE1_INVALID_BLOCK _ _ _ _ => false
+                      | STAGE2_INVALID_BLOCK _ _ attributes _ => attributes.(STAGE2_SW_OWNED)
                       | _ => true
                       end in
                   let res2 :=
                       (if zeq level 0
                       then false
                       else match pte with
-                           | ABSENT => false
-                           | STAGE1_INVALID_BLOCK _ _ _ => false
-                           | STAGE2_INVALID_BLOCK _ _ _ => false
+                           | ABSENT _ => false
+                           | STAGE1_INVALID_BLOCK _ _ _ _ => false
+                           | STAGE2_INVALID_BLOCK _ _ _ _ => false
                            | _ => true
                            end) in
                   res1 && res2
@@ -1311,7 +1341,7 @@ static uint64_t pte_addr(pte_t pte)
     st <- trigger GetState;;
     do key <- PtrTree_get pte st.(addr_to_id);;;  (* UB *)
     do pte <- PTree.get key st.(pte_pool);;; (* Some *)
-    Ret (PTE_TYPES_to_ADDRESS pte)
+    Ret (PTE_TYPES_to_OUTPUT_ADDRESS pte)
        .
        
   Definition pte_addr_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
@@ -1370,7 +1400,7 @@ paddr_t arch_mm_block_from_pte(pte_t pte, uint8_t level)
    st <- trigger GetState;;
    do key <- PtrTree_get pte st.(addr_to_id);;;  (* UB *)
    do pte_t <- PTree.get key st.(pte_pool);;; (* Some *)
-   let addr := Z.shiftl (PTE_TYPES_to_ADDRESS pte_t) Z_ADDRESS_SHIFT in
+   let addr := Z.shiftl (PTE_TYPES_to_OUTPUT_ADDRESS pte_t) Z_ADDRESS_SHIFT in
    do key' <- PtrTree_get ((fst pte), addr) st.(addr_to_id);;; 
    do pte_t' <- PTree.get key st.(pte_pool);;; (* Some *) 
    Ret (pte_t', (fst pte, addr))
@@ -1401,7 +1431,7 @@ paddr_t arch_mm_table_from_pte(pte_t pte, uint8_t level)
    st <- trigger GetState;;
    do key <- PtrTree_get pte st.(addr_to_id);;;  (* UB *)
    do pte_t <- PTree.get key st.(pte_pool);;; (* Some *)
-   let addr := Z.shiftl (PTE_TYPES_to_ADDRESS pte_t) Z_ADDRESS_SHIFT in
+   let addr := Z.shiftl (PTE_TYPES_to_OUTPUT_ADDRESS pte_t) Z_ADDRESS_SHIFT in
    do key' <- PtrTree_get ((fst pte), addr) st.(addr_to_id);;; 
    do pte_t' <- PTree.get key st.(pte_pool);;; (* Some *) 
    Ret (pte_t', (fst pte, addr))
@@ -1443,6 +1473,147 @@ uint64_t arch_mm_pte_attrs(pte_t pte, uint8_t level)
     | _ => triggerUB "arch_mm_pte_attrs_call: wrong arguments"
     end
        .
+
+  (*
+/**
+ * Invalidates stage-1 TLB entries referring to the given virtual address range.
+ */
+void arch_mm_invalidate_stage1_range(vaddr_t va_begin, vaddr_t va_end)
+{
+    uintvaddr_t begin = va_addr(va_begin);
+    uintvaddr_t end = va_addr(va_end);
+    uintvaddr_t it;
+
+    /* Sync with page table updates. */
+    dsb(ishst);
+
+    /*
+     * Revisions prior to Armv8.4 do not support invalidating a range of
+     * addresses, which means we have to loop over individual pages. If
+     * there are too many, it is quicker to invalidate all TLB entries.
+     */
+    if ((end - begin) > (MAX_TLBI_OPS * PAGE_SIZE)) {
+        if (VM_TOOLCHAIN == 1) {
+            tlbi(vmalle1is);
+        } else {
+            tlbi(alle2is);
+        }
+    } else {
+        begin >>= 12;
+        end >>= 12;
+        /* Invalidate stage-1 TLB, one page from the range at a time. */
+        for (it = begin; it < end;
+             it += (UINT64_C(1) << (PAGE_BITS - 12))) {
+            if (VM_TOOLCHAIN == 1) {
+                tlbi_reg(vae1is, it);
+            } else {
+                tlbi_reg(vae2is, it);
+            }
+        }
+    }
+
+    /* Sync data accesses with TLB invalidation completion. */
+    dsb(ish);
+
+    /* Sync instruction fetches with TLB invalidation completion. */
+    isb();
+}
+
+   *)
+
+ Definition arch_mm_invalidate_stage1_range_spec (va_begin va_end : Z) : itree ArchMME (unit) :=
+    st <- trigger GetState;;
+    Ret (tt)
+       .
+       
+  Definition arch_mm_invalidate_stage1_range_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
+    match args with 
+    | [Vcomp (Vlong va_begin); Vcomp (Vlong va_end)] =>
+      res <- arch_mm_invalidate_stage1_range_spec (Int64.unsigned va_begin) (Int64.unsigned va_end);;
+      Ret (Vnull, args)
+    | _ => triggerUB "arch_mm_invalidate_stage1_range_call: wrong arguments"
+    end
+       .
+
+  (*
+/**
+ * Invalidates stage-2 TLB entries referring to the given intermediate physical
+ * address range.
+ */
+void arch_mm_invalidate_stage2_range(ipaddr_t va_begin, ipaddr_t va_end)
+{
+    uintpaddr_t begin = ipa_addr(va_begin);
+    uintpaddr_t end = ipa_addr(va_end);
+    uintpaddr_t it;
+
+    /* TODO: This only applies to the current VMID. */
+
+    /* Sync with page table updates. */
+    dsb(ishst);
+
+    /*
+     * Revisions prior to Armv8.4 do not support invalidating a range of
+     * addresses, which means we have to loop over individual pages. If
+     * there are too many, it is quicker to invalidate all TLB entries.
+     */
+    if ((end - begin) > (MAX_TLBI_OPS * PAGE_SIZE)) {
+        /*
+         * Invalidate all stage-1 and stage-2 entries of the TLB for
+         * the current VMID.
+         */
+        tlbi(vmalls12e1is);
+    } else {
+        begin >>= 12;
+        end >>= 12;
+
+        /*
+         * Invalidate stage-2 TLB, one page from the range at a time.
+         * Note that this has no effect if the CPU has a TLB with
+         * combined stage-1/stage-2 translation.
+         */
+        for (it = begin; it < end;
+             it += (UINT64_C(1) << (PAGE_BITS - 12))) {
+            tlbi_reg(ipas2e1is, it);
+        }
+
+        /*
+         * Ensure completion of stage-2 invalidation in case a page
+         * table walk on another CPU refilled the TLB with a complete
+         * stage-1 + stage-2 walk based on the old stage-2 mapping.
+         */
+        dsb(ish);
+
+        /*
+         * Invalidate all stage-1 TLB entries. If the CPU has a combined
+         * TLB for stage-1 and stage-2, this will invalidate stage-2 as
+         * well.
+         */
+        tlbi(vmalle1is);
+    }
+
+    /* Sync data accesses with TLB invalidation completion. */
+    dsb(ish);
+
+    /* Sync instruction fetches with TLB invalidation completion. */
+    isb();
+}
+
+   *)
+       
+ Definition arch_mm_invalidate_stage2_range_spec (va_begin va_end : Z) : itree ArchMME (unit) :=
+    st <- trigger GetState;;
+    Ret (tt)
+       .
+       
+  Definition arch_mm_invalidate_stage2_range_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
+    match args with 
+    | [Vcomp (Vlong va_begin); Vcomp (Vlong va_end)] =>
+      res <- arch_mm_invalidate_stage2_range_spec (Int64.unsigned va_begin) (Int64.unsigned va_end);;
+      Ret (Vnull, args)
+    | _ => triggerUB "arch_mm_invalidate_stage2_range_call: wrong arguments"
+    end
+       .
+       
   
 (*  
 uint64_t arch_mm_mode_to_stage1_attrs(uint32_t mode)
@@ -1483,16 +1654,16 @@ uint64_t arch_mm_mode_to_stage1_attrs(uint32_t mode)
     let attrs0 := 0 in
     let attrs1 := Z.lor attrs0 (Z.lor (zshift_or_0 true 10) (x_zshift_or_0 true 2 8)) in
                   (* STAGE1_AF *)  (* STAGE1_SH(OUTER_SHAREABLE) *)
-    let attrs2 := if zeq 0 (Z.land mode MM_MODE_X)
+    let attrs2 := if zeq 0 (Z.land mode Z_MM_MODE_X)
                   then attrs1
                   else Z.lor attrs1 (zshift_or_0 true 54) in (* STAGE1_XN *)
-    let attrs3 := if zeq 0 (Z.land mode MM_MODE_W)
+    let attrs3 := if zeq 0 (Z.land mode Z_MM_MODE_W)
                   then Z.lor attrs2 (x_zshift_or_0 true 2 6) (* STAGE1_AP(STAGE1_READONLY) *)
                   else attrs2 in (* STAGE1_AP(STAGE1_READWRITE) *)
-    let attrs4 := if zeq 0 (Z.land mode MM_MODE_D)
+    let attrs4 := if zeq 0 (Z.land mode Z_MM_MODE_D)
                   then Z.lor attrs3 (zshift_or_0 true 2) (* STAGE1_ATTRINDX(STAGE1_NORMALINDX) *)
                   else attrs3 in (* STAGE1_ATTRINDX(STAGE1_DEVICEINDX) *)
-    let attrs5 := if zeq 0 (Z.land mode MM_MODE_INVALID)
+    let attrs5 := if zeq 0 (Z.land mode Z_MM_MODE_INVALID)
                   then Z.lor attrs4 (zshift_or_0 true 0) (* PTE_VALID *)
                   else attrs4 in
     Ret (attrs5)
@@ -1572,26 +1743,26 @@ uint64_t arch_mm_mode_to_stage2_attrs(uint32_t mode)
     let access0 := 0 in 
     let attrs1 := Z.lor attrs0 (Z.lor (zshift_or_0 true Z_STAGE2_AF) (Z_STAGE2_SH_GEN Z_NON_SHAREABLE)) in
     (* STAGE2_AF *)  (* STAGE2_SH(OUTER_SHAREABLE) *)
-    let access1 := if zeq 0 (Z.land mode MM_MODE_R)
+    let access1 := if zeq 0 (Z.land mode Z_MM_MODE_R)
                    then access0
                    else Z.lor access0 Z_STAGE2_ACCESS_READ in
-    let access2 := if zeq 0 (Z.land mode MM_MODE_W)
+    let access2 := if zeq 0 (Z.land mode Z_MM_MODE_W)
                    then access1
                    else Z.lor access1 Z_STAGE2_ACCESS_WRITE in
     let attrs2 := Z.lor attrs1 (Z_STAGE2_S2AP_GEN access2) in
-    let attrs3 := if zeq 0 (Z.land mode MM_MODE_X)
+    let attrs3 := if zeq 0 (Z.land mode Z_MM_MODE_X)
                   then Z.lor attrs2 (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_ALL)
                   else Z.lor attrs2 (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_NONE) in
-    let attrs4 := if zeq 0 (Z.land mode MM_MODE_D)
+    let attrs4 := if zeq 0 (Z.land mode Z_MM_MODE_D)
                   then Z.lor attrs3 (Z_STAGE2_MEMATTR_GEN Z_STAGE2_WRITEBACK Z_STAGE2_WRITEBACK)
                   else Z.lor attrs3 (Z_STAGE2_MEMATTR_GEN Z_STAGE2_DEVICE_MEMORY Z_STAGE2_MEMATTR_DEVICE_GRE) in
-    let attrs5 := if zeq 0 (Z.land mode MM_MODE_UNOWNED)
+    let attrs5 := if zeq 0 (Z.land mode Z_MM_MODE_UNOWNED)
                   then Z.lor attrs4 Z_STAGE2_SW_OWNED
                   else attrs4 in
-    let attrs6 := if zeq 0 (Z.land mode MM_MODE_SHARED)
+    let attrs6 := if zeq 0 (Z.land mode Z_MM_MODE_SHARED)
                   then Z.lor attrs5 Z_STAGE2_SW_EXCLUSIVE
                   else attrs5 in
-    let attrs7 := if zeq 0 (Z.land mode MM_MODE_INVALID)
+    let attrs7 := if zeq 0 (Z.land mode Z_MM_MODE_INVALID)
                   then Z.lor attrs6 Z_PTE_VALID
                   else attrs6 in Ret (attrs7).
 
@@ -1649,21 +1820,21 @@ uint32_t arch_mm_stage2_attrs_to_mode(uint64_t attrs)
     let mode0 := 0 in
     let mode1 := if zeq 0 (Z.land attrs (Z_STAGE2_S2AP_GEN Z_STAGE2_ACCESS_READ))
                  then mode0
-                 else Z.lor mode0 MM_MODE_R in
+                 else Z.lor mode0 Z_MM_MODE_R in
     let mode2 := if zeq 0 (Z.land attrs (Z_STAGE2_S2AP_GEN Z_STAGE2_ACCESS_WRITE))
                  then mode0
-                 else Z.lor mode1 MM_MODE_W in
+                 else Z.lor mode1 Z_MM_MODE_W in
     let mode3 := if zeq (Z.land attrs (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_MASK)) (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_ALL)
-                 then Z.lor mode2 MM_MODE_X
+                 then Z.lor mode2 Z_MM_MODE_X
                  else mode2 in
     let mode4 := if zeq 0 (Z.land attrs Z_STAGE2_SW_OWNED)
-                 then Z.lor mode3 MM_MODE_UNOWNED
+                 then Z.lor mode3 Z_MM_MODE_UNOWNED
                  else mode3 in
     let mode5 := if zeq 0 (Z.land attrs Z_STAGE2_SW_EXCLUSIVE)
-                 then Z.lor mode4 MM_MODE_SHARED
+                 then Z.lor mode4 Z_MM_MODE_SHARED
                  else mode4 in
     let mode6 := if zeq 0 (Z.land attrs Z_PTE_VALID)
-                 then Z.lor mode5 MM_MODE_INVALID
+                 then Z.lor mode5 Z_MM_MODE_INVALID
                  else mode5 in Ret (mode6).
 
   Definition arch_mm_stage2_attrs_to_mode_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
@@ -1711,7 +1882,7 @@ uint8_t arch_mm_stage2_max_level(void)
 *)
 
   Definition arch_mm_stage2_max_level_spec  : itree ArchMME (Z) :=
-    Ret (3).
+    Ret (Z_MM_S2_MAX_LEVEL).
 
   Definition  arch_mm_stage2_max_level_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
     match args with
@@ -1753,7 +1924,7 @@ uint8_t arch_mm_stage2_root_table_count(void)
  *)
 
   Definition arch_mm_stage2_root_table_count_spec  : itree ArchMME (Z) :=
-    Ret (1).
+    Ret (Z_MM_S2_ROOT_TABLE_COUNT).
 
   Definition arch_mm_stage2_root_table_count_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
     match args with
@@ -1851,9 +2022,11 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
   .
 
 
-  Definition empty_call (args: list Lang.val): itree ArchMME (Lang.val * list Lang.val) :=
+  Definition arch_mm_empty_call (args: list Lang.val): itree ArchMME (Lang.val * list Lang.val) :=
     Ret (Vnull, args).
 
+
+  (* arch mm pretty printer *) 
 
   Definition BLOCK_SHAREABLE_to_string (value: BLOCK_SHAREABLE) :=
     match value with
@@ -1944,7 +2117,7 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
     end.
   
   
-  Definition print_archmm_call (args: list Lang.val): itree ArchMME (Lang.val * list Lang.val) :=
+  Definition arch_mm_print_arch_mm_call (args: list Lang.val): itree ArchMME (Lang.val * list Lang.val) :=
     st <- trigger GetState;;
     match args with
     | [Vcomp (Vptr p_blk p_ofs)] =>
@@ -1972,37 +2145,45 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
           match pte with
           | UNDEFINED =>
             triggerSyscall "hd" ("[Undefined]") [Vnull]                         
-          | ABSENT =>
-            triggerSyscall "hd" ("[Absent entry]") [Vnull]            
-          | STAGE1_INVALID_BLOCK oa attributes is_table =>
+          | ABSENT ba =>
+            triggerSyscall "hd" (appends_all [string_indent;
+                                             "[ABSENT]";
+                                             "[base_address: "; Z_to_string ba; "] "]) [Vnull]            
+          | STAGE1_INVALID_BLOCK ba oa attributes is_table =>
             triggerSyscall "hd" (appends_all [string_indent;
                                              "[STAGE1_INVALID_BLOCK: ";
+                                             "[base_address: "; Z_to_string ba; "] ";
                                              "[output_address: "; Z_to_string oa; "] ";
                                              "["; Stage1BlockAttributes_to_string attributes; "] ";
                                              "[is_table: "; bool_to_string is_table; "]"]) [Vnull]
-          | STAGE1_TABLE oa attributes =>
+          | STAGE1_TABLE ba oa attributes =>
             triggerSyscall "hd" (appends_all [string_indent;
                                              "[STAGE1_TABLE: ";
+                                             "[base_address: "; Z_to_string ba; "] ";
                                              "[output_address: "; Z_to_string oa; "] ";
                                              "["; Stage1TableAttributes_to_string attributes; "]"]) [Vnull]
-          | STAGE1_PAGE oa attributes =>
+          | STAGE1_PAGE ba oa attributes =>
             triggerSyscall "hd" (appends_all [string_indent;
                                              "[STAGE1_TABLE: ";
+                                             "[base_address: "; Z_to_string ba; "] ";
                                              "[output_address: "; Z_to_string oa; "] ";
                                              "["; Stage1BlockAttributes_to_string attributes; "]"]) [Vnull]
-          | STAGE2_INVALID_BLOCK oa attributes is_table =>
+          | STAGE2_INVALID_BLOCK ba oa attributes is_table =>
             triggerSyscall "hd" (appends_all [string_indent;
                                              "[STAGE2_INVALID_BLOCK: ";
+                                             "[base_address: "; Z_to_string ba; "] ";
                                              "[output_address: "; Z_to_string oa; "] ";
                                              "["; Stage2BlockAttributes_to_string attributes; "] ";
                                              "[is_table: "; bool_to_string is_table; "]"]) [Vnull]
-          | STAGE2_TABLE oa =>
+          | STAGE2_TABLE ba oa =>
             triggerSyscall "hd" (appends_all [string_indent;
                                              "[STAGE2_TABLE: ";
+                                             "[base_address: "; Z_to_string ba; "] ";
                                              "[output_address: "; Z_to_string oa; "]"]) [Vnull]
-          | STAGE2_PAGE oa attributes =>
+          | STAGE2_PAGE ba oa attributes =>
             triggerSyscall "hd" (appends_all [string_indent;
                                              "[STAGE1_TABLE: ";
+                                             "[base_address: "; Z_to_string ba; "] ";
                                              "[output_address: "; Z_to_string oa; "] ";
                                              "["; Stage2BlockAttributes_to_string attributes; "]"]) [Vnull]
           end
@@ -2011,6 +2192,118 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
       Ret (Vnull, args)
     | _ => triggerUB "Wrong args: print_archmm"
     end.
+  
+  (* XXX: auxiliary functions for testing *)
+  Definition set_new_address (pte: PTE_TYPES) (address : Z) : option PTE_TYPES :=
+    match pte with 
+    | UNDEFINED
+    | ABSENT _ => None
+    | STAGE1_INVALID_BLOCK ba oa attributes is_table
+      =>  if zeq oa 0
+         then Some (STAGE1_INVALID_BLOCK ba address attributes is_table)
+         else None
+    | STAGE1_TABLE ba oa attributes
+      =>  if zeq oa 0
+         then Some (STAGE1_TABLE ba address attributes)
+         else None
+    | STAGE1_PAGE ba oa attributes
+      =>  if zeq oa 0
+         then Some (STAGE1_PAGE ba address attributes)
+         else None
+    | STAGE2_INVALID_BLOCK ba oa attributes is_table
+      =>  if zeq oa 0
+         then Some (STAGE2_INVALID_BLOCK ba address attributes is_table)
+         else None
+    | STAGE2_TABLE ba oa
+      =>  if zeq oa 0
+         then Some (STAGE2_TABLE ba address)
+         else None
+    | STAGE2_PAGE ba oa attributes 
+      =>  if zeq oa 0
+         then Some (STAGE2_PAGE ba address attributes)
+         else None
+    end.
+    
+  Definition arch_mm_set_pte_addr_spec (pte : positive * Z) (address : Z) :  itree ArchMME (unit)  :=
+    st <- trigger GetState;;
+    match (PtrTree_get ((fst pte), ((snd pte))) st.(addr_to_id)) with
+    | None =>
+      triggerUB "arch_mm_set_pte_addr_spec: pte does not exist"
+    | Some key =>
+      match PTree.get key st.(pte_pool) with
+      | Some pte =>
+        do new_pte <- set_new_address pte address ;;;
+        trigger (SetState (st {PTE_POOL : PTree.set key new_pte st.(pte_pool)})) ;;
+        Ret (tt)
+      | None => triggerUB "arch_mm_set_pte_addr_spec: invalid case"
+      end
+    end.
+
+  Definition arch_mm_set_pte_addr_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
+    match args with
+    | [Vcomp (Vptr b ptrofs); Vcomp (Vlong address)] =>
+      arch_mm_set_pte_addr_spec  (b, (Ptrofs.unsigned ptrofs)) (Int64.unsigned address);;
+      Ret (Vnull, args)
+    | _ => triggerNB "arch_mm_combine_table_entry_addr_call: wrong arguments"
+    end
+  .
+
+
+  (* XXX: auxiliary functions for testing *)
+  Definition set_new_attributes (pte: PTE_TYPES) (attributes : Z) : option PTE_TYPES :=
+    match pte with 
+    | UNDEFINED
+    | ABSENT _ => None
+    | STAGE1_INVALID_BLOCK ba oa _ is_table =>
+      match ATTR_VALUES_to_Stage1BlockAttributes attributes with
+      | Some attrs => Some (STAGE1_INVALID_BLOCK ba oa attrs is_table)
+      | None  => None
+      end
+    | STAGE1_TABLE ba oa _ =>
+      Some (STAGE1_TABLE ba oa (ATTR_VALUES_to_Stage1TableAttributes attributes))
+    | STAGE1_PAGE ba oa _ =>
+      match ATTR_VALUES_to_Stage1BlockAttributes attributes with
+      | Some attrs => Some (STAGE1_PAGE ba oa attrs)
+      | None => None
+      end
+    | STAGE2_INVALID_BLOCK ba oa _ is_table =>
+      match ATTR_VALUES_to_Stage2BlockAttributes attributes with
+      | Some attrs => Some (STAGE2_INVALID_BLOCK ba oa attrs is_table)
+      | None => None
+      end
+    | STAGE2_TABLE ba oa
+      => Some (STAGE2_TABLE ba oa)
+    | STAGE2_PAGE ba oa _ =>
+      match ATTR_VALUES_to_Stage2BlockAttributes attributes with
+      | Some attrs => Some (STAGE2_PAGE ba oa attrs)
+      | None => None
+      end
+    end.
+      
+  Definition arch_mm_set_pte_attrs_spec (pte : positive * Z) (attrs : Z) :  itree ArchMME (unit)  :=
+    st <- trigger GetState;;
+    match (PtrTree_get ((fst pte), ((snd pte))) st.(addr_to_id)) with
+    | None =>
+      triggerUB "arch_mm_set_pte_attrs_spec: pte does not exist"
+    | Some key =>
+      match PTree.get key st.(pte_pool) with
+      | Some pte =>
+        do new_pte <- set_new_attributes pte attrs ;;;
+        trigger (SetState (st {PTE_POOL : PTree.set key new_pte st.(pte_pool)})) ;;
+        Ret (tt)
+      | None => triggerUB "arch_mm_set_pte_attrs_spec: invalid case"
+      end
+    end.
+  
+  Definition arch_mm_set_pte_attrs_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
+    match args with
+    | [Vcomp (Vptr b ptrofs); Vcomp (Vlong attrs)] =>
+      arch_mm_set_pte_attrs_spec  (b, (Ptrofs.unsigned ptrofs)) (Int64.unsigned attrs);;
+      Ret (Vnull, args)
+    | _ => triggerNB "arch_mm_combine_table_entry_attrs_call: wrong arguments"
+    end
+  .
+  
 
   Definition funcs :=
     [
@@ -2027,6 +2320,8 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
     ("ARCHMM.arch_mm_block_from_pte",  arch_mm_block_from_pte_call) ;
     ("ARCHMM.arch_mm_table_from_pte", arch_mm_table_from_pte_call) ;
     ("ARCHMM.arch_mm_pte_attrs", arch_mm_pte_attrs_call) ;
+    ("ARCHMM.arch_mm_invalidate_stage1_range", arch_mm_invalidate_stage1_range_call) ;
+    ("ARCHMM.arch_mm_invalidate_stage2_range", arch_mm_invalidate_stage2_range_call) ;
     ("ARCHMM.arch_mm_mode_to_stage1_attrs", arch_mm_mode_to_stage1_attrs_call) ;
     ("ARCHMM.arch_mm_mode_to_stage2_attrs",  arch_mm_mode_to_stage2_attrs_call) ;
     ("ARCHMM.arch_mm_stage2_attrs_to_mode",  arch_mm_stage2_attrs_to_mode_call) ;
@@ -2037,30 +2332,32 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
     ("ARCHMM.arch_mm_combine_table_entry_attrs", arch_mm_combine_table_entry_attrs_call) ;
     ("ARCHMM.arch_mm_set_stage1", arch_mm_set_stage1_call) ;
     ("ARCHMM.arch_mm_set_stage2", arch_mm_set_stage2_call) ;
-    ("ARCHMM.empty_call", empty_call) ;
-    ("ARCHMM.print_archmm_call", print_archmm_call)
+    ("ARCHMM.arch_mm_empty_call", arch_mm_empty_call) ;
+    ("ARCHMM.arch_mm_print_archmm_call", arch_mm_print_arch_mm_call) ;
+    ("ARCHMM.arch_mm_set_pte_addr", arch_mm_set_pte_addr_call) ;
+    ("ARCHMM.arch_mm_set_pte_attr", arch_mm_set_pte_attrs_call)
     ].
- 
- Definition arch_mm_modsem : ModSem :=
-   mk_ModSem
-     (fun s => existsb (string_dec s) (List.map fst funcs))
-     _
-     (initial_state)
-     updateStateE
-     updateState_handler
-     (fun T (c: CallExternalE T) =>
-        let '(CallExternal func_name args) := c in
-        let fix find_func l :=
-            match l with
-            | (f, body)::tl =>
-              if (string_dec func_name f)
-              then body args
-              else find_func tl
-            | nil => triggerNB "Not mpool func"
-            end
-        in
-        find_func funcs
-     )
- .
+
+  Definition arch_mm_modsem : ModSem :=
+    mk_ModSem
+      (fun s => existsb (string_dec s) (List.map fst funcs))
+      _
+      (initial_state)
+      updateStateE
+      updateState_handler
+      (fun T (c: CallExternalE T) =>
+         let '(CallExternal func_name args) := c in
+         let fix find_func l :=
+             match l with
+             | (f, body)::tl =>
+               if (string_dec func_name f)
+               then body args
+               else find_func tl
+             | nil => triggerNB "Not mpool func"
+             end
+         in
+         find_func funcs
+      )
+  .
   
 End ArchMMHighSpec.

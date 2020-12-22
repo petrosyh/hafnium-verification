@@ -178,9 +178,12 @@ Definition MM_PTE_PER_PAGE : int64 := (divu PAGE_SIZE sizeof_pte_t). (* 512 *)
 (* JIEUNG: FIXED -- coercion is not working very well in here. We need to fix that *)
 
 (* Constants for ArchMM *)
-Definition MM_MODE_UNOWNED : int64 := UINT32_C (repr 16).
-Definition MM_MODE_INVALID : int64 := UINT32_C (repr 32).
-Definition MM_MODE_SHARED : int64 := UINT32_C (repr 64).
+Definition MM_S2_MAX_LEVEL : int64 := repr 3.
+Definition MM_S2_ROOT_TABLE_COUNT : int64 := repr 1.
+
+Definition MM_MODE_UNOWNED : int64 := UINT64_C (repr 16).
+Definition MM_MODE_INVALID : int64 := UINT64_C (repr 32).
+Definition MM_MODE_SHARED : int64 := UINT64_C (repr 64).
 
 Definition MM_MODE_UNMAPPED_MASK : int64 := repr 48.
 
@@ -188,7 +191,6 @@ Definition MM_MODE_UNMAPPED_MASK : int64 := repr 48.
 Definition MM_FLAG_COMMIT : int64 := Int64.repr 1.
 Definition MM_FLAG_UNMAP : int64 := Int64.repr 2.
 Definition MM_FLAG_STAGE1 : int64 := Int64.repr 4.
-
 
 Definition UINT64_C_1 := UINT64_C (repr 1).
 

@@ -318,6 +318,23 @@ let main =
   print_endline "--------------------------------------------------------------" ;
   run (MemoryManagementTest.MMTEST.INITFINI.isem2) ;
   print_endline "--------------------------------------------------------------" ;
+  print_endline "---------------------- ArchMM TEST ---------------------------" ;
+  print_endline "---------------------- ABSENT TEST ---------------------------" ;
+  run (ArchMMTest.ArchMMTEST.ABSENT.isem1) ;
+  run (ArchMMTest.ArchMMTEST.ABSENT.isem2) ;
+  print_endline "--------------------- PTE TABLE TEST -------------------------" ;
+  run (ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem1) ; 
+  run (ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem2) ;
+  print_endline "------------------ PTE ADDR & ATTR TEST ----------------------" ;
+  run (ArchMMTest.ArchMMTEST.ARCHMMADDRATTRS.isem1) ; 
+  run (ArchMMTest.ArchMMTEST.ARCHMMADDRATTRS.isem2) ;
+  print_endline "------------------ MM MODE PTE ATTR TEST ---------------------" ;
+  run (ArchMMTest.ArchMMTEST.MM_MODE_PTE_ATTRIBUTES.isem1) ;
+  run (ArchMMTest.ArchMMTEST.MM_MODE_PTE_ATTRIBUTES.isem2) ;
+  print_endline "------------- MAX LEVEL & ROOT TABLE TEST --------------------" ;
+  run (ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem1) ;
+  run (ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem2) ;
+  print_endline "------------------   ArchMM TEST Passed  ---------------------" ;
   ()
 
 let main t =

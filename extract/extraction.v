@@ -103,8 +103,13 @@ Separate Extraction
          ArchMMTest.ArchMMTEST.ABSENT.isem2
          ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem1
          ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem2
+         ArchMMTest.ArchMMTEST.ARCHMMADDRATTRS.isem1
+         ArchMMTest.ArchMMTEST.ARCHMMADDRATTRS.isem2
+         ArchMMTest.ArchMMTEST.MM_MODE_PTE_ATTRIBUTES.isem1
+         ArchMMTest.ArchMMTEST.MM_MODE_PTE_ATTRIBUTES.isem2
+         ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem1
+         ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem2
          
-
          MemoryManagementTest.MMTEST.PageTableFromPa.isem
          MemoryManagementTest.MMTEST.PaStartOfNextBlk.isem
          MemoryManagementTest.MMTEST.MaxLv.isem
