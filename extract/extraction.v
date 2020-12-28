@@ -99,6 +99,8 @@ Separate Extraction
          (* MpoolConcur.TEST.TEST4.isem *)
 
          (* CPUSeq.CPUTEST.program *)
+
+         (*
          ArchMMTest.ArchMMTEST.ABSENT.isem1
          ArchMMTest.ArchMMTEST.ABSENT.isem2
          ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem1
@@ -109,6 +111,9 @@ Separate Extraction
          ArchMMTest.ArchMMTEST.MM_MODE_PTE_ATTRIBUTES.isem2
          ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem1
          ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem2
+          *)
+
+         ArchMMTest.ArchMMTEST.ARCHMMSIMPLE.isem1
          
          MemoryManagementTest.MMTEST.PageTableFromPa.isem
          MemoryManagementTest.MMTEST.PaStartOfNextBlk.isem

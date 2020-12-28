@@ -219,7 +219,6 @@ static uint8_t mm_s2_root_table_count;
 
   Definition mm_s2_max_level : expr := (Vcomp (Vlong MM_S2_MAX_LEVEL)).
   Definition mm_s2_root_table_count : expr := (Vcomp (Vlong MM_S2_ROOT_TABLE_COUNT)).
-
   
   (* /** Mask for the address bits of the pte. */ *)
   (* #define PTE_ADDR_MASK \ *)
@@ -258,7 +257,7 @@ pte_t arch_mm_table_pte(uint8_t level, paddr_t pa)
              (pa_addr_res pte_table_res res :var) : stmt :=
     (* (void)level; : just Compiler warning suppress *)
     pa_addr_res #= (Call "ADDR.pa_addr" [CBR pa]) #;
-                Return (((Cast pa_addr_res tint) #| PTE_TABLE) #| PTE_VALID).
+                Return ((pa_addr_res #| PTE_TABLE) #| PTE_VALID).
   
   (*
 
@@ -280,10 +279,9 @@ pte_t arch_mm_block_pte(uint8_t level, paddr_t pa, uint64_t attrs)
 
    *)
 
-  Definition arch_mm_block_pte (level pa attrs:var) (pa_addr_res pte pa_addr_cast :var) :=
+  Definition arch_mm_block_pte (level pa attrs:var) (pa_addr_res pte :var) :=
     pa_addr_res #= (Call "ADDR.pa_addr" [CBV pa]) #;
-                pa_addr_cast #= (Cast pa_addr_res tint) #;
-                pte #= pa_addr_cast #| attrs #;
+                pte #= pa_addr_res #| attrs #;
                 (#if (level == (repr 0))
                   then pte #= pte #| PTE_LEVEL0_BLOCK
                   else Skip) #;
@@ -318,15 +316,11 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
 
    *)
 
-  Definition arch_mm_pte_is_present (pte level:var) (pte_valid sw_owned res pte_cast:var) :=
-    pte_valid #= (Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #;
-              pte_cast #= (Cast pte tint) #;
-              sw_owned #= pte_cast #& STAGE2_SW_OWNED #;
-              res #= pte_valid #|| sw_owned #;
-              #if (res == (repr 0))
-               then Return (repr 0)
-               else Return (repr 1).
-
+  Definition arch_mm_pte_is_present (pte level:var) :=
+    #if (((Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #|| (pte #& STAGE2_SW_OWNED)) == (repr 0))
+     then Return (repr 0)
+     else Return (repr 1).
+  
   (*
 /**
  * Determines if the given pte is valid, i.e., if it points to another table,
@@ -340,12 +334,10 @@ bool arch_mm_pte_is_valid(pte_t pte, uint8_t level)
 
    *)
 
-  Definition arch_mm_pte_is_valid (pte level:var) (pte_valid pte_cast :var) :=
-    pte_cast #= (Cast pte tint) #;
-    pte_valid #= pte_cast #& PTE_VALID #;
-              #if (pte_valid == (repr 0))
-               then Return (repr 0)
-               else Return (repr 1).
+  Definition arch_mm_pte_is_valid (pte level:var) (pte_valid :var) :=
+    #if ((pte #& PTE_VALID) == (repr 0))
+     then Return (repr 0)
+     else Return (repr 1).
 
   (*
 /**
@@ -362,18 +354,16 @@ bool arch_mm_pte_is_block(pte_t pte, uint8_t level)
 
    *)
 
-  Definition arch_mm_pte_is_block (pte level:var) (blk_allowed ret is_blk is_present is_table pte_cast:var) :=
-    pte_cast #= (Cast pte tint) #;
-    blk_allowed #= (Call "ARCHMM.arch_mm_is_block_allowed" [CBV level]) #;
-                (#if (level == (repr 0))
-                  then (#if (pte_cast #& PTE_LEVEL0_BLOCK)
-                         then (ret #= (repr 0))
-                         else (ret #= (repr 1)))
-                  else (is_present #= (Call "ARCHMM.arch_mm_pte_is_present" [CBV pte; CBV level]) #;
-                                   is_table #= (Call "ARCHMM.arch_mm_pte_is_table" [CBV pte; CBV level]) #;
-                                   ret #= (is_present #&& (#! is_table)))) #;
-                Return (blk_allowed #&& ret).
-
+  Definition arch_mm_pte_is_block (pte level:var) (blk_allowed ret is_blk is_present is_table:var) :=
+    #if (Call "ARCHMM.arch_mm_is_block_allowed" [CBV level])
+     then (#if (level == (repr 0))
+            then (#if (pte #& PTE_LEVEL0_BLOCK)
+                   then Return (repr 0)
+                   else Return (repr 1))
+            else Return ((Call "ARCHMM.arch_mm_pte_is_present" [CBV pte; CBV level])
+                           #&&  (Call "ARCHMM.arch_mm_pte_is_table" [CBV pte; CBV level]))) 
+     else Return (repr 0).
+           
   (*
 /**
  * Determines if the given pte references another table.
@@ -386,11 +376,9 @@ bool arch_mm_pte_is_table(pte_t pte, uint8_t level)
 
    *)
 
-  Definition arch_mm_pte_is_table (pte level:var) (is_valid pte_cast :var) :=
-    pte_cast #= (Cast pte tint) #;    
-    is_valid #= (Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #;
-             (* Put "is_valid" is_valid #; *)
-             Return ((#! (level == (repr 0))) #&& is_valid #&& (#! (pte_cast #& PTE_TABLE) == (repr 0))).
+  Definition arch_mm_pte_is_table (pte level:var) :=
+    Return ((#! (level == (repr 0))) #&& (Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level])
+                                     #&& (#! (pte #& PTE_TABLE) == (repr 0))).
   
   (*
 static uint64_t pte_addr(pte_t pte)
@@ -400,9 +388,8 @@ static uint64_t pte_addr(pte_t pte)
 
    *)
 
-  Definition pte_addr (pte:var) (pte_cast : var):=
-    pte_cast #= (Cast pte tint) #;
-    Return (pte_cast #& PTE_ADDR_MASK).
+  Definition pte_addr (pte:var) :=
+    Return (pte #& PTE_ADDR_MASK).
 
   (*
 /**
@@ -470,9 +457,8 @@ uint64_t arch_mm_pte_attrs(pte_t pte, uint8_t level)
 }
 
    *)
-  Definition arch_mm_pte_attrs (pte level:var) (pte_cast : var) :=
-    pte_cast #= (Cast pte tint) #;
-    Return (pte_cast #& PTE_ATTR_MASK).
+  Definition arch_mm_pte_attrs (pte level:var) :=
+    Return (pte #& PTE_ATTR_MASK).
 
   (*
 /**
@@ -1057,7 +1043,7 @@ bool arch_mm_init(paddr_t table)
   Defined.
 
   Definition arch_mm_block_pteF : function.
-    mk_function_tac arch_mm_block_pte ["level" ; "pa" ; "attrs"] ["pa_addr_res" ; "pte" ; "pa_addr_cast" ].
+    mk_function_tac arch_mm_block_pte ["level" ; "pa" ; "attrs"] ["pa_addr_res" ; "pte" ].
   Defined.
 
   Definition arch_mm_is_block_allowedF : function.
@@ -1065,24 +1051,23 @@ bool arch_mm_init(paddr_t table)
   Defined.
 
   Definition arch_mm_pte_is_presentF : function.
-    mk_function_tac arch_mm_pte_is_present ["pte"; "level"] ["pte_valid" ; "sw_owned" ; "res" ; "pte_cast"].
+    mk_function_tac arch_mm_pte_is_present ["pte"; "level"] ([] : list var).
   Defined.
 
-
   Definition arch_mm_pte_is_validF : function.
-    mk_function_tac arch_mm_pte_is_valid ["pte"; "level"] ["pte_valid" ; "pte_cast"].
+    mk_function_tac arch_mm_pte_is_valid ["pte"; "level"] ["pte_valid"].
   Defined.
   
   Definition arch_mm_pte_is_blockF : function.
-    mk_function_tac arch_mm_pte_is_block ["pte"; "level"] ["blk_allowed"; "ret"; "is_blk" ; "is_present"; "is_table" ; "pte_cast"].
+    mk_function_tac arch_mm_pte_is_block ["pte"; "level"] ["blk_allowed"; "ret"; "is_blk" ; "is_present"; "is_table"].
   Defined.
 
   Definition arch_mm_pte_is_tableF : function.
-    mk_function_tac arch_mm_pte_is_table ["pte" ; "level"] ["is_valid"; "pte_cast"].
+    mk_function_tac arch_mm_pte_is_table ["pte" ; "level"] ([] : list var).
   Defined.
 
   Definition pte_addrF : function.
-    mk_function_tac pte_addr ["pte"] ["pte_cast"].
+    mk_function_tac pte_addr ["pte"] ([] : list var).
   Defined.
   
   Definition arch_mm_clear_paF : function.
@@ -1099,7 +1084,7 @@ bool arch_mm_init(paddr_t table)
   Defined.
   
   Definition arch_mm_pte_attrsF : function.
-    mk_function_tac arch_mm_pte_attrs ["pte" ; "level"]  ["pte_cast"].
+    mk_function_tac arch_mm_pte_attrs ["pte" ; "level"] ([] : list var).
   Defined.
 
   Definition arch_mm_invalidate_stage1_rangeF : function.
@@ -1200,135 +1185,4 @@ bool arch_mm_init(paddr_t table)
   Definition arch_mm_modsem :=  program_to_ModSem arch_mm_program.
 
 End ArchMM.
-
-
-
-(**************************************************************
- ** From here, I copied jade's definitions as a reference 
- **************************************************************)
-
-(*
-(*
- * Copyright 2019 Jade Philipoom
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *)
-
-Require Import Coq.NArith.BinNat.
-Require Import Hafnium.Concrete.Datatypes.
-Require Import Hafnium.Concrete.Assumptions.Constants.
-Require Import Hafnium.Concrete.Assumptions.Datatypes.
-Require Import Hafnium.Concrete.Assumptions.Addr.
-
-(*** This file defines (the necessary parts of) the API provided by arch/mm.h,
-     which is assumed correct for now. In order to replace this assumption with
-     a proof of correctness, replace the [Axiom]s with definitions and proofs,
-     leaving their types the same. ***)
-
-(* levels are represented by natural numbers, but just to make it
-   extra clear we give them an alias to differentiate them from
-   other [nat]s *)
-Local Notation level := nat.
-
-Axiom arch_mm_absent_pte : level -> pte_t.
-
-Axiom arch_mm_block_pte : level -> paddr_t -> attributes -> pte_t.
-
-(* N.B. we take in a ptable_pointer instead of a paddr_t here *)
-Axiom arch_mm_table_pte : level -> ptable_pointer -> pte_t.
-
-Axiom arch_mm_pte_is_present : pte_t -> level -> bool.
-
-Axiom arch_mm_pte_is_valid : pte_t -> level -> bool.
-
-Axiom arch_mm_pte_is_block : pte_t -> level -> bool.
-
-Axiom arch_mm_pte_is_table : pte_t -> level -> bool.
-
-Axiom arch_mm_table_from_pte : pte_t -> level -> paddr_t.
-
-Axiom arch_mm_pte_attrs : pte_t -> level -> attributes.
-
-Axiom arch_mm_stage2_attrs_to_mode : attributes -> mode_t.
-
-Axiom arch_mm_stage2_max_level : level.
-
-Axiom arch_mm_stage1_max_level : level.
-
-Axiom arch_mm_stage2_root_table_count : nat.
-
-Axiom arch_mm_stage1_root_table_count : nat.
-
-Axiom arch_mm_mode_to_stage1_attrs : mode_t -> attributes.
-
-Axiom arch_mm_mode_to_stage2_attrs : mode_t -> attributes.
-
-Axiom arch_mm_clear_pa : paddr_t -> paddr_t.
-
-Axiom arch_mm_is_block_allowed : level -> bool.
-
-Axiom arch_mm_block_from_pte : pte_t -> level -> paddr_t.
-
-Axiom arch_mm_combine_table_entry_attrs : attributes -> attributes -> attributes.
-
-
-(* Assumptions about the properties of arch/mm.c *)
-Axiom stage1_root_table_count_ok : arch_mm_stage1_root_table_count < Nat.pow 2 PAGE_LEVEL_BITS.
-Axiom stage2_root_table_count_ok : arch_mm_stage2_root_table_count < Nat.pow 2 PAGE_LEVEL_BITS.
-Axiom stage1_max_level_pos : 0 < arch_mm_stage1_max_level.
-Axiom stage2_max_level_pos : 0 < arch_mm_stage2_max_level.
-
-(* absent and block PTEs are not tables *)
-Axiom absent_not_table :
-  forall level,
-    arch_mm_pte_is_table (arch_mm_absent_pte level) level = false.
-Axiom block_not_table :
-  forall level pa attrs,
-    arch_mm_pte_is_table (arch_mm_block_pte level pa attrs) level = false.
-
-(* shorthand definitions just for this file to make axiom statements neater *)
-Local Notation get_bit n bit := (negb (N.eqb (N.land n bit) 0)). (* (n & bit) != 0 *)
-
-(* arch_mm_pte_is_valid is true iff [ attrs & PTE_VALID != 0 ] *)
-Axiom is_valid_matches_flag :
-  forall pte level,
-    let attrs := arch_mm_pte_attrs pte level in
-    arch_mm_pte_is_valid pte level = get_bit attrs PTE_VALID.
-
-(* arch_mm_pte_is_present returns true iff the valid bit is 0 or the stage-2
-   owned bit is true *)
-Axiom is_present_iff :
-  forall pte level,
-    let attrs := arch_mm_pte_attrs pte level in
-    let mode := arch_mm_stage2_attrs_to_mode attrs in
-    arch_mm_pte_is_present pte level =
-    (get_bit attrs PTE_VALID || get_bit mode MM_MODE_UNOWNED)%bool.
-
-(* when attributes are converted to a stage-2 mode, the valid bit matches *)
-Axiom stage2_attrs_to_mode_valid :
-  forall attrs,
-    ((N.land attrs PTE_VALID) =? 0)%N =
-    get_bit (arch_mm_stage2_attrs_to_mode attrs) MM_MODE_INVALID.
-
-(* absent PTEs don't have the valid bit set *)
-Axiom absent_invalid :
-  forall level, arch_mm_pte_is_valid (arch_mm_absent_pte level) level = false.
-
-(* we assume there exists some set of attributes that we can use which is neither
-   valid nor stage-2 owned *)
-Axiom absent_attrs : attributes.
-Axiom absent_attrs_invalid : get_bit absent_attrs PTE_VALID = false.
-Axiom absent_attrs_unowned :
-  get_bit (arch_mm_stage2_attrs_to_mode absent_attrs) MM_MODE_UNOWNED = true.
- *)
 

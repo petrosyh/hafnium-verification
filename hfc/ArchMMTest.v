@@ -74,7 +74,70 @@ Set Implicit Arguments.
 *)
 
 Module ArchMMTEST.
+  
+  Module ARCHMMSIMPLE.
 
+    Definition main p1  res1: stmt :=
+      p1 #= (Vcomp (Vlong (Int64.repr 0))) #;
+         (* p1 #= (Vcomp (Vptr 2%positive (Ptrofs.repr 0))) #; *)
+         res1 #= (Call "ARCHMM.arch_mm_table_pte" [CBV (Int64.repr 0); CBV p1]) #;
+         Put "res1: " res1 #;
+         (Call "ARCHMM.arch_mm_print_archmm_call" [CBR p1]) #;
+         p1 #= (Vcomp (Vlong (Int64.repr 72))) #;
+         res1 #= (Call "ARCHMM.arch_mm_table_pte" [CBV (Int64.repr 0); CBR p1]) #;
+         Put "res1: " res1 #;
+         (Call "ARCHMM.arch_mm_print_archmm_call" [CBR p1]) #;
+         p1 #= (Vcomp (Vlong (Int64.repr 64))) #;
+         res1 #= (Call "ARCHMM.arch_mm_block_pte" [CBV (Vcomp (Vlong (Int64.repr 0))) ; CBR p1;
+                                                  CBV (Vcomp (Vlong (Int64.repr 16)))] ) #;
+         Put "p1: " p1 #;
+         Put "res1: " res1 #;
+         p1 #= (Vcomp (Vlong (Int64.repr 64))) #;
+         res1 #= (Call "ARCHMM.arch_mm_block_pte" [CBV (Vcomp (Vlong (Int64.repr 1))) ; CBR p1;
+                                                  CBV (Vcomp (Vlong (Int64.repr 16)))] ) #;
+         Put "p1: " p1 #;
+         Put "res1: " res1 #;
+         Put "block_allowed" (Call "ARCHMM.arch_mm_is_block_allowed" [CBV (Vcomp (Vlong (Int64.repr 0)))]) #;
+         Put "block_allowed" (Call "ARCHMM.arch_mm_is_block_allowed" [CBV (Vcomp (Vlong (Int64.repr 1)))]) #;
+         Put "block_allowed" (Call "ARCHMM.arch_mm_is_block_allowed" [CBV (Vcomp (Vlong (Int64.repr 2)))]).
+         
+    (*
+    Definition arch_mm_is_block_allowed (level:var) :=
+    Return (level <= (repr 2)).
+  Definition arch_mm_pte_is_present (pte level:var) :=
+    #if (((Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #|| (pte #& STAGE2_SW_OWNED)) == (repr 0))
+     then Return (repr 0)
+     else Return (repr 1).
+
+
+  Definition arch_mm_pte_is_valid (pte level:var) (pte_valid :var) :=
+    #if ((pte #& PTE_VALID) == (repr 0))
+     then Return (repr 0)
+     else Return (repr 1).
+  Definition arch_mm_pte_is_block (pte level:var) (blk_allowed ret is_blk is_present is_table:var) :=
+    #if (Call "ARCHMM.arch_mm_is_block_allowed" [CBV level])
+     then (#if (level == (repr 0))
+    *)
+    
+
+    Definition mainF: function. mk_function_tac main ([]: list var) ["p1"; "res1"]. Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem1: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; ArchMM.arch_mm_modsem ; ADDR.addr_modsem].
+    
+    (*
+    Definition isem2: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ; ArchMMHighSpec.arch_mm_modsem].
+    *)
+   
+  End ARCHMMSIMPLE.
+  
+  (*
   (* some unit tests *)
   Module ABSENT.
 
@@ -351,6 +414,7 @@ Module ArchMMTEST.
       eval_multimodule [program_to_ModSem main_program ; ArchMMHighSpec.arch_mm_modsem].
     
   End ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.
+  *)
   
 End ArchMMTEST.
 

@@ -319,6 +319,8 @@ let main =
   run (MemoryManagementTest.MMTEST.INITFINI.isem2) ;
   print_endline "--------------------------------------------------------------" ;
   print_endline "---------------------- ArchMM TEST ---------------------------" ;
+  run (ArchMMTest.ArchMMTEST.ARCHMMSIMPLE.isem1) ;
+  (*
   print_endline "---------------------- ABSENT TEST ---------------------------" ;
   run (ArchMMTest.ArchMMTEST.ABSENT.isem1) ;
   run (ArchMMTest.ArchMMTEST.ABSENT.isem2) ;
@@ -335,6 +337,7 @@ let main =
   run (ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem1) ;
   run (ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem2) ;
   print_endline "------------------   ArchMM TEST Passed  ---------------------" ;
+  *)
   ()
 
 let main t =
@@ -427,10 +430,6 @@ let main t =
   print_endline "-----------------  LANG TEST Passed --------------------------" ;
 
   print_endline "---------------------- ArchMM TEST ---------------------------" ;
-  run (ArchMMTest.ArchMMTEST.ABSENT.isem1) ;
-  run (ArchMMTest.ArchMMTEST.ABSENT.isem2) ;
-  (* run (ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem1) ; *)
-  run (ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem2) ;
   print_endline "------------------   ArchMM TEST Passed  ---------------------" ;
 
   print_endline "---------------------- MPOOL TEST ----------------------------" ;
