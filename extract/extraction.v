@@ -100,20 +100,7 @@ Separate Extraction
 
          (* CPUSeq.CPUTEST.program *)
 
-         (*
-         ArchMMTest.ArchMMTEST.ABSENT.isem1
-         ArchMMTest.ArchMMTEST.ABSENT.isem2
-         ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem1
-         ArchMMTest.ArchMMTEST.ARCHMMPTETABLE.isem2
-         ArchMMTest.ArchMMTEST.ARCHMMADDRATTRS.isem1
-         ArchMMTest.ArchMMTEST.ARCHMMADDRATTRS.isem2
-         ArchMMTest.ArchMMTEST.MM_MODE_PTE_ATTRIBUTES.isem1
-         ArchMMTest.ArchMMTEST.MM_MODE_PTE_ATTRIBUTES.isem2
-         ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem1
-         ArchMMTest.ArchMMTEST.ARCHMM_STAGE_MAX_LEVEL_ROOT_TABLE_COUNT.isem2
-          *)
-
-         ArchMMTest.ArchMMTEST.ARCHMMSIMPLE.isem1
+         ArchMMTest.ArchMMTEST.ARCHMMFULLTEST.isem1
          
          MemoryManagementTest.MMTEST.PageTableFromPa.isem
          MemoryManagementTest.MMTEST.PaStartOfNextBlk.isem

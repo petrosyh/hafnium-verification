@@ -194,6 +194,13 @@ Definition MM_FLAG_STAGE1 : int64 := Int64.repr 4.
 
 Definition UINT64_C_1 := UINT64_C (repr 1).
 
+(*
+#define PTE_ADDR_MASK \
+	(((UINT64_C(1) << 48) - 1) & ~((UINT64_C(1) << PAGE_BITS) - 1))
+
+#define PTE_ATTR_MASK (~(PTE_ADDR_MASK | (UINT64_C(1) << 1)))
+*)
+
 Definition PTE_ADDR_MASK :=
   (BAnd (Minus (ShiftL UINT64_C_1 (repr 48)) (repr 1)) (BNot (Minus (ShiftL UINT64_C_1 PAGE_BITS) (repr 1)))).
 Definition PTE_ATTR_MASK :=
@@ -261,8 +268,10 @@ Definition STAGE2_MEMATTR_DEVICE_nGnRE := UINT64_C (repr 1).
 Definition STAGE2_MEMATTR_DEVICE_nGRE := UINT64_C (repr 2).
 Definition STAGE2_MEMATTR_DEVICE_GRE := UINT64_C (repr 3).
 
-Definition STAGE2_MEMATTR (outer inner: int64) := (Int64.or (Int64.shl outer (repr 2)) (Int64.shl inner (repr 2))).
-Definition STAGE2_MEMATTR_TYPE_MASK := UINT64_C (Int64.repr (Z.shiftl 3 4)).
+Definition OUTER := UINT64_C (repr 4).
+Definition INNER := UINT64_C (repr 2).
+Definition STAGE2_MEMATTR (outer inner: int64) := (Int64.or (Int64.shl outer OUTER) (Int64.shl inner INNER)).
+Definition STAGE2_MEMATTR_TYPE_MASK := UINT64_C (Int64.shl (Int64.repr 3) OUTER).
 
 Definition TABLE_NSTABLE := Int64.shl UINT64_C_1 (repr 63).
 Definition TABLE_APTABLE1 := Int64.shl UINT64_C_1 (repr 62).

@@ -300,7 +300,7 @@ Address translation is not directly related to this file, but it helps us to fin
 
 12. Attribute fields in stage 2 VMSAv8-64 Block and Page descriptors
 /* The following construct and destruct stage-2 memory attributes. */
-#define STAGE2_MEMATTR(outer, inner) ((((outer) << 2) | (inner)) << 2)
+#define STAGE2_MEMATTR(outer, inner) ((((outer) << 4) | (inner)) << 2)
 #define STAGE2_MEMATTR_TYPE_MASK UINT64_C(3 << 4)
 
 13. The followings are parameters of STAGE2_S2AP

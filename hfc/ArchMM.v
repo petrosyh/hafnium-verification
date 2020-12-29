@@ -142,7 +142,7 @@ Module ArchMM.
 #define STAGE2_MEMATTR_DEVICE_GRE    UINT64_C(3)
 
 /* The following construct and destruct stage-2 memory attributes. */
-#define STAGE2_MEMATTR(outer, inner) ((((outer) << 2) | (inner)) << 2)
+#define STAGE2_MEMATTR(outer, inner) ((((outer) << 4) | (inner)) << 2)
 #define STAGE2_MEMATTR_TYPE_MASK UINT64_C(3 << 4)
 
 #define STAGE2_ACCESS_READ  UINT64_C(1)
@@ -361,7 +361,7 @@ bool arch_mm_pte_is_block(pte_t pte, uint8_t level)
                    then Return (repr 0)
                    else Return (repr 1))
             else Return ((Call "ARCHMM.arch_mm_pte_is_present" [CBV pte; CBV level])
-                           #&&  (Call "ARCHMM.arch_mm_pte_is_table" [CBV pte; CBV level]))) 
+                           #&& (#! (Call "ARCHMM.arch_mm_pte_is_table" [CBV pte; CBV level]))))
      else Return (repr 0).
            
   (*
@@ -793,25 +793,25 @@ uint32_t arch_mm_stage2_attrs_to_mode(uint64_t attrs)
   Definition arch_mm_stage2_attrs_to_mode (attrs:var) (mode:var) :=
     mode #= (repr 0) #;
          (#if (attrs #& (STAGE2_S2AP STAGE2_ACCESS_READ))
-           then (mode #= mode #| MM_MODE_R)
+           then (mode #= mode #| MM_MODE_R) #; Put "R added" (Vnull)
            else Skip) #;
          (#if (attrs #& (STAGE2_S2AP STAGE2_ACCESS_WRITE))
-           then (mode #= mode #| MM_MODE_W)
+           then (mode #= mode #| MM_MODE_W)  #; Put "W added" (Vnull)
            else Skip) #;
          (#if ((attrs #& (STAGE2_XN STAGE2_EXECUTE_MASK)) == (STAGE2_XN STAGE2_EXECUTE_ALL))
-           then (mode #= mode #| MM_MODE_X)
+           then (mode #= mode #| MM_MODE_X)   #; Put "X added" (Vnull)
            else Skip) #;
          (#if ((attrs #& STAGE2_MEMATTR_TYPE_MASK) == STAGE2_DEVICE_MEMORY)
-           then (mode #= mode #| MM_MODE_D)
+           then (mode #= mode #| MM_MODE_D)  #; Put "D added" (Vnull)
            else Skip) #;
          (#if (#! (attrs #& STAGE2_SW_OWNED))
-           then (mode #= mode #| MM_MODE_UNOWNED)
+           then (mode #= mode #| MM_MODE_UNOWNED)   #; Put "Unowned added" (Vnull)
            else Skip) #;
          (#if (#! (attrs #& STAGE2_SW_EXCLUSIVE))
-           then (mode #= mode #| MM_MODE_SHARED)
+           then (mode #= mode #| MM_MODE_SHARED)   #; Put "Shared added" (Vnull)
            else Skip) #;
          (#if (#! (attrs #& PTE_VALID))
-           then (mode #= mode #| MM_MODE_INVALID)
+           then (mode #= mode #| MM_MODE_INVALID)   #; Put "Invalid added" (Vnull)
            else Skip) #;
          Return mode.
 
@@ -1025,13 +1025,12 @@ bool arch_mm_init(paddr_t table)
   Definition arch_mm_dummy_with_arg1_function (p : var) : stmt := Skip.
 
   (* XXX: auxiliary functions for testing *)
-  Definition arch_mm_set_pte_addr_function (pte address : var) (pte_cast : var) : stmt :=
-    pte_cast #= (Cast pte tint) #;
-             (pte @ Int64.zero #:= pte_cast #| address #<< (Int64.repr 12)).
-  
-  Definition arch_mm_set_pte_attr_function (pte attr : var) (pte_cast : var) : stmt :=
-    pte_cast #= (Cast pte tint) #;
-             (pte @ Int64.zero #:= pte_cast #| attr).
+  Definition arch_mm_set_pte_addr_function (pte address : var) : stmt :=
+    pte  #| address #<<  PAGE_BITS.
+                                               
+  Definition arch_mm_set_pte_attr_function (pte attr : var) : stmt :=
+    pte #| attr.
+
   
   (* Test auxiliary functions in mm module *)
   Definition arch_mm_absent_pteF : function.
@@ -1141,11 +1140,11 @@ bool arch_mm_init(paddr_t table)
   Defined.
 
   Definition arch_mm_set_pte_addrF : function.
-    mk_function_tac arch_mm_set_pte_addr_function (["p"; "addr"]) (["pte_cast"]).
+    mk_function_tac arch_mm_set_pte_addr_function (["p"; "addr"]) ([]: list var).
   Defined.
 
   Definition arch_mm_set_pte_attrF : function.
-    mk_function_tac arch_mm_set_pte_attr_function (["p"; "attr"]) (["pte_cast"]).
+    mk_function_tac arch_mm_set_pte_attr_function (["p"; "attr"]) ([]: list var).
   Defined.  
   
   Definition arch_mm_program: program :=
