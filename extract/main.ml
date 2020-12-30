@@ -320,6 +320,10 @@ let main =
   print_endline "--------------------------------------------------------------" ;
   print_endline "---------------------- ArchMM TEST ---------------------------" ;
   run (ArchMMTest.ArchMMTEST.ARCHMMFULLTEST.isem1) ;
+  print_endline "------------------ ArchMM LOW TEST ---------------------------" ;
+  run (ArchMMTest.ArchMMTEST.ARCHMMPARTIALTEST.isem1) ;
+  print_endline "------------------ ArchMM HIGH TEST --------------------------" ;
+  run (ArchMMTest.ArchMMTEST.ARCHMMPARTIALTEST.isem2) ;
   print_endline "------------------   ArchMM TEST Passed  ---------------------" ;
   ()
 

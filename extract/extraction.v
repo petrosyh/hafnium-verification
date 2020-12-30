@@ -101,6 +101,8 @@ Separate Extraction
          (* CPUSeq.CPUTEST.program *)
 
          ArchMMTest.ArchMMTEST.ARCHMMFULLTEST.isem1
+         ArchMMTest.ArchMMTEST.ARCHMMPARTIALTEST.isem1
+         ArchMMTest.ArchMMTEST.ARCHMMPARTIALTEST.isem2
          
          MemoryManagementTest.MMTEST.PageTableFromPa.isem
          MemoryManagementTest.MMTEST.PaStartOfNextBlk.isem
