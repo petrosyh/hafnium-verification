@@ -804,7 +804,7 @@ Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
         let contiguous_to_n := zshift_or_0 contiguous Z_STAGE2_CONTIGUOUS  in
         let dbm_to_n := zshift_or_0 dbm Z_STAGE2_DBM in
         let sw_owned_n := zshift_or_0 sw_owned Z_STAGE2_SW_OWNED in
-        let sw_exclusive := zshift_or_0 sw_exclusive Z_STAGE2_SW_EXCLUSIVE in
+        let sw_exclusive_n := zshift_or_0 sw_exclusive Z_STAGE2_SW_EXCLUSIVE in
         let af_to_n := zshift_or_0 af Z_STAGE2_AF in
         let sh_to_n := Z_STAGE2_SH_GEN (match sh with
                                         | NON_SHAREABLE => Z_NON_SHAREABLE
@@ -818,7 +818,7 @@ Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
                                             | STAGE2_ACCESS_READWRITE => Z_STAGE2_ACCESS_READ + Z_STAGE2_ACCESS_WRITE
                                             end) in 
         let memattr_to_n := STAGE2_MEMATTR_VALUE_to_ATTR_VALUES memattr in
-        xn_to_n + contiguous_to_n + dbm_to_n + af_to_n + sh_to_n + s2ap_to_n + memattr_to_n
+        xn_to_n + contiguous_to_n + dbm_to_n + sw_owned_n + sw_exclusive_n + af_to_n + sh_to_n + s2ap_to_n + memattr_to_n
     end.
   
   (* The following function defines only two things that are used in arch mm module now. It can be extended later. *)  
@@ -882,8 +882,8 @@ Section FLAG_TO_VALUE_and_VALUE_TO_FLAG.
     let memattr_of_z := STAGE2_MEM_ATTR_GEN (OUTER_MEM_TYPE_ATTR memattr_outer_of_z) memattr_inner_of_z in
     match sh_of_z with
     | Some sh_of_z' =>
-      Some (mkStage2BlockAttributes xn_of_z contiguous_of_z dbm_of_z af_of_z sw_owned_of_z sw_exclusive_of_z
-                                    sh_of_z' s2ap_of_z memattr_of_z)
+      Some (mkStage2BlockAttributes xn_of_z contiguous_of_z dbm_of_z sw_owned_of_z sw_exclusive_of_z
+                                    af_of_z sh_of_z' s2ap_of_z memattr_of_z)
     | None => None
     end.                                            
 
@@ -1120,8 +1120,8 @@ Definition Z_MM_MODE_W : Z := 2.
 Definition Z_MM_MODE_X : Z := 4.
 Definition Z_MM_MODE_D : Z := 8.
 
-Definition Z_MM_MODE_INVALID : Z := 16.
-Definition Z_MM_MODE_UNOWNED : Z := 32.
+Definition Z_MM_MODE_UNOWNED : Z := 16.
+Definition Z_MM_MODE_INVALID : Z := 32.
 Definition Z_MM_MODE_SHARED : Z := 64.
  
 End MM_MODE_VALUE.
@@ -1240,9 +1240,6 @@ pte_t arch_mm_block_pte(uint8_t level, paddr_t pa, uint64_t attrs)
 }
  *)
 
-
-
-
   
   Definition arch_mm_block_pte_spec (level : Z) (pa: Z) (attrs: Z) : itree ArchMME (PTE_TYPES) :=
     st <- trigger GetState;;
@@ -1280,25 +1277,25 @@ pte_t arch_mm_block_pte(uint8_t level, paddr_t pa, uint64_t attrs)
         | STAGE2 =>
           match HAS_PTE_VALID attrs, HAS_PTE_TABLE attrs with
           | true, true => if zeq level 1 || zeq level 0 || zeq level 2 then
-                           Some (STAGE1_TABLE address (ATTR_VALUES_to_Stage1TableAttributes attrs))
+                           Some (STAGE2_TABLE address)
                          else if zeq level 3 then  
-                                match ATTR_VALUES_to_Stage1BlockAttributes attrs with
-                                | Some attrs' => Some (STAGE1_PAGE address attrs')
+                                match ATTR_VALUES_to_Stage2BlockAttributes attrs with
+                                | Some attrs' => Some (STAGE2_PAGE address attrs')
                                 | None => None
                                 end
                               else None
           | true, false => if zeq level 1 || zeq level 2 then
-                            match ATTR_VALUES_to_Stage1BlockAttributes attrs with
-                            | Some attrs' => Some (STAGE1_BLOCK address attrs')
+                            match ATTR_VALUES_to_Stage2BlockAttributes attrs with
+                            | Some attrs' => Some (STAGE2_BLOCK address attrs')
                             | None => None
                             end
                             else None
           | false, true => if zeq level 0 then
-                            Some (STAGE1_INVALID_BLOCK_LEVEL0 address (ATTR_VALUES_to_Stage1TableAttributes attrs))
+                            Some (STAGE2_INVALID_BLOCK_LEVEL0 address)
                           else None
           | false, false =>  if zeq level 1 || zeq level 2 || zeq level 3 then
-                              match ATTR_VALUES_to_Stage1BlockAttributes attrs with
-                              | Some attrs' => Some (STAGE1_INVALID_BLOCK address attrs')
+                              match ATTR_VALUES_to_Stage2BlockAttributes attrs with
+                              | Some attrs' => Some (STAGE2_INVALID_BLOCK address attrs')
                               | None => None
                               end
                             else None
@@ -1408,8 +1405,13 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
     match VALUES_to_PTE_TYPES  level st.(stage) pte with
     | Some pte =>
       match pte with
-      | STAGE2_BLOCK _ attributes
-      | STAGE2_PAGE _ attributes => Ret (attributes.(STAGE2_SW_OWNED))
+      | STAGE1_TABLE _ _
+      | STAGE1_BLOCK _ _ 
+      | STAGE1_PAGE _ _
+      | STAGE2_TABLE _
+      | STAGE2_BLOCK _ _
+      | STAGE2_PAGE _ _ => Ret (true)
+      | STAGE2_INVALID_BLOCK _ attributes => Ret (attributes.(STAGE2_SW_OWNED))
       | _ => Ret (false)
       end
     | None => triggerUB "wrong results"
@@ -1498,8 +1500,7 @@ bool arch_mm_pte_is_block(pte_t pte, uint8_t level)
         | STAGE1_TABLE _ _
         | STAGE1_PAGE _ _
         | STAGE2_INVALID_BLOCK_LEVEL0 _
-        | STAGE2_TABLE _
-        | STAGE2_PAGE _ _ => Ret (true)
+        | STAGE2_TABLE _ => Ret (true)
         | _ => Ret (false)
         end
       | None => triggerUB "wrong results"
@@ -1917,13 +1918,12 @@ uint64_t arch_mm_mode_to_stage2_attrs(uint32_t mode)
     let attrs0 := 0 in
     let access0 := 0 in 
     let attrs1 := Z.lor attrs0 (Z.lor (zshift_or_0 true Z_STAGE2_AF) (Z_STAGE2_SH_GEN Z_NON_SHAREABLE)) in
-    (* STAGE2_AF *)  (* STAGE2_SH(OUTER_SHAREABLE) *)
     let access1 := if zeq 0 (Z.land mode Z_MM_MODE_R)
                    then access0
-                   else Z.lor access0 (zshift_or_0 true Z_STAGE2_ACCESS_READ) in
+                   else Z.lor access0 Z_STAGE2_ACCESS_READ in
     let access2 := if zeq 0 (Z.land mode Z_MM_MODE_W)
                    then access1
-                   else Z.lor access1 (zshift_or_0 true Z_STAGE2_ACCESS_WRITE) in
+                   else Z.lor access1 Z_STAGE2_ACCESS_WRITE in
     let attrs2 := Z.lor attrs1 (Z_STAGE2_S2AP_GEN access2) in
     let attrs3 := if zeq 0 (Z.land mode Z_MM_MODE_X)
                   then Z.lor attrs2 (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_NONE)
@@ -1939,7 +1939,7 @@ uint64_t arch_mm_mode_to_stage2_attrs(uint32_t mode)
                   else attrs5 in
     let attrs7 := if zeq 0 (Z.land mode Z_MM_MODE_INVALID)
                   then Z.lor attrs6 (zshift_or_0 true Z_PTE_VALID)
-                  else attrs6 in Ret (attrs7).
+                  else attrs6 in Ret (attrs7). 
 
 
   Definition arch_mm_mode_to_stage2_attrs_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
@@ -1996,23 +1996,24 @@ uint32_t arch_mm_stage2_attrs_to_mode(uint64_t attrs)
                  then mode0
                  else Z.lor mode0 Z_MM_MODE_R in
     let mode2 := if zeq 0 (Z.land attrs (Z_STAGE2_S2AP_GEN Z_STAGE2_ACCESS_WRITE))
-                 then mode0
+                 then mode1
                  else Z.lor mode1 Z_MM_MODE_W in
-    let mode3 := if zeq (Z.land attrs (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_MASK)) (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_ALL)
+    let mode3 := if zeq (Z.land attrs (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_MASK))
+                        (Z_STAGE2_XN_GEN Z_STAGE2_EXECUTE_ALL)
                  then Z.lor mode2 Z_MM_MODE_X
                  else mode2 in
     let mode4 := if zeq (Z.land attrs (Z_STAGE2_MEMATTR_MASK)) (Z.shiftl Z_STAGE2_DEVICE_MEMORY Z_STAGE2_MEMATTR_OUTER)
                  then Z.lor mode3 Z_MM_MODE_D
                  else mode3 in
-    let mode5 := if zeq 0 (Z.land attrs Z_STAGE2_SW_OWNED)
+    let mode5 := if zeq 0 (Z.land attrs (zshift_or_0 true Z_STAGE2_SW_OWNED))
                  then Z.lor mode4 Z_MM_MODE_UNOWNED
                  else mode4 in
-    let mode6 := if zeq 0 (Z.land attrs Z_STAGE2_SW_EXCLUSIVE)
+    let mode6 := if zeq 0 (Z.land attrs (zshift_or_0 true Z_STAGE2_SW_EXCLUSIVE))
                  then Z.lor mode5 Z_MM_MODE_SHARED
                  else mode5 in
     let mode7 := if zeq 0 (Z.land attrs (zshift_or_0 true Z_PTE_VALID))
                  then Z.lor mode6 Z_MM_MODE_INVALID
-                 else mode6 in Ret (mode6).
+                 else mode6 in Ret (mode7).
 
   Definition arch_mm_stage2_attrs_to_mode_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
     match args with

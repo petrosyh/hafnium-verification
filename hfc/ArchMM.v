@@ -899,7 +899,7 @@ uint64_t arch_mm_combine_table_entry_attrs(uint64_t table_attrs,
                    then (block_attrs #= block_attrs #| STAGE1_AP2)
                    else Skip) #;
                  (#if (table_attrs #& TABLE_APTABLE0)
-                   then (block_attrs #= block_attrs #& (Not STAGE1_AP1))
+                   then (block_attrs #= block_attrs #& (#~ STAGE1_AP1))
                    else Skip) #;
                  (#if (table_attrs #& TABLE_XNTABLE)
                    then (block_attrs #= block_attrs #| STAGE1_XN)
