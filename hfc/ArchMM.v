@@ -317,9 +317,9 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
    *)
 
   Definition arch_mm_pte_is_present (pte level:var) :=
-    #if (((Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #|| (pte #& STAGE2_SW_OWNED)) == (repr 0))
-     then Return (repr 0)
-     else Return (repr 1).
+    #if ((Call "ARCHMM.arch_mm_pte_is_valid" [CBV pte; CBV level]) #|| (Not ((pte #& STAGE2_SW_OWNED) ==  (repr 0))))
+     then Return (repr 1)
+     else Return (repr 0).
   
   (*
 /**

@@ -127,7 +127,7 @@ Module ArchMMTEST.
                (Call "ARCHMM.arch_mm_pte_is_present"
                      [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 1); 
                                                            CBV address1; CBV stage2_sw_owned]);
-                     CBV (Int64.repr 0)]) #;
+                     CBV (Int64.repr 1)]) #;
                Put "arch_mm_pte_is_present"
                (Call "ARCHMM.arch_mm_pte_is_present"
                      [CBV (Call "ARCHMM.arch_mm_table_pte"
@@ -135,11 +135,7 @@ Module ArchMMTEST.
                      CBV (Int64.repr 0)]) #;
 
                Put "Calling ARCHMM.arch_mm_pte_is_block" (Vnull) #;
-               Put "arch_mm_pte_is_block"
-               (Call "ARCHMM.arch_mm_pte_is_block"
-                     [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 1); 
-                                                           CBV address1; CBV stage2_sw_owned]);
-                     CBV (Int64.repr 0)]) #;
+
                Put "arch_mm_pte_is_block"
                (Call "ARCHMM.arch_mm_pte_is_block"
                      [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 1); 
@@ -149,7 +145,7 @@ Module ArchMMTEST.
                (Call "ARCHMM.arch_mm_pte_is_block"
                      [CBV (Call "ARCHMM.arch_mm_table_pte"
                                 [CBV (Int64.repr 0); CBV (Int64.repr 0)]);
-                     CBV (Int64.repr 1)]) #;
+                     CBV (Int64.repr 0)]) #;
 
                Put "Calling ARCHMM.pte_addr" (Vnull) #;
                Put "pte_addr"
@@ -357,7 +353,16 @@ Module ArchMMTEST.
                (Call "ARCHMM.arch_mm_pte_is_valid"
                      [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 1); 
                                                            CBV address1; CBV stage2_sw_owned]);
-                     CBV (Int64.repr 1)]) #;               
+                     CBV (Int64.repr 1)]) #;
+
+               (Call "ARCHMM.arch_mm_set_stage1" []) #;
+               
+               Put "arch_mm_pte_is_valid"
+               (Call "ARCHMM.arch_mm_pte_is_valid"
+                     [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 1); 
+                                                           CBV address1; CBV pte_valid_val]);
+                     CBV (Int64.repr 1)]) #;
+               (Call "ARCHMM.arch_mm_set_stage2" []) #;
 
                Put "Calling ARCHMM.arch_mm_pte_is_present" (Vnull) #;
                Put "arch_mm_pte_is_present"
@@ -370,12 +375,23 @@ Module ArchMMTEST.
                      [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 1); 
                                                            CBV address1; CBV (Int64.repr 0)]);
                      CBV (Int64.repr 1)]) #;
-               (*
+
+               Put "arch_mm_pte_attrs"               
+               (Call "ARCHMM.arch_mm_pte_attrs" [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 2); 
+                                                           CBV address1; CBV stage2_sw_owned]);
+                                                CBV (Int64.repr 2)]) #;
+               
+               Put "arch_mm_pte_is_present"               
+               (Call "ARCHMM.arch_mm_pte_is_present"
+                     [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 2); 
+                                                           CBV address1; CBV stage2_sw_owned]);
+                     CBV (Int64.repr 2)]) #;
                Put "arch_mm_pte_is_present"               
                (Call "ARCHMM.arch_mm_pte_is_present"
                      [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 1); 
                                                            CBV address1; CBV stage2_sw_owned]);
-                     CBV (Int64.repr 1)]) #; *)
+                     CBV (Int64.repr 1)]) #;               
+               
                Put "arch_mm_pte_is_present"
                (Call "ARCHMM.arch_mm_pte_is_present"
                      [CBV (Call "ARCHMM.arch_mm_table_pte"
@@ -517,14 +533,14 @@ Module ArchMMTEST.
                                                   #| (Constant.PTE_VALID)) #;
                
                table_attrs #= (Constant.TABLE_NSTABLE #| Constant.TABLE_APTABLE1
-                                                      (* #| Constant.TABLE_APTABLE0 *)
+                                                      #| Constant.TABLE_APTABLE0
                                                       #| Constant.TABLE_XNTABLE
                                                       #| Constant.TABLE_PXNTABLE) #;
                 Put "arch_mm_combine_table_entry_attrs"
                 (Call "ARCHMM.arch_mm_combine_table_entry_attrs" [CBV table_attrs; CBV block_attrs]) #;
                 block_attrs #= (block_attrs #| Constant.STAGE1_NS
                                               #| Constant.STAGE1_AP2
-                                              (* #& (Not Constant.STAGE1_AP1) *)
+                                              #& (Not Constant.STAGE1_AP1)
                                               #| Constant.STAGE1_XN #| Constant.STAGE1_PXN) #;
                 Put "arch_mm_combine_table_entry_attrs valid check" block_attrs #;
                 block_attrs #= (Constant.STAGE1_AF #| (Constant.STAGE1_SH Constant.OUTER_SHAREABLE)
@@ -539,7 +555,11 @@ Module ArchMMTEST.
                                                        #| Constant.TABLE_XNTABLE
                                                        #| Constant.TABLE_PXNTABLE) #;
                 Put "arch_mm_combine_table_entry_attrs"
-                (Call "ARCHMM.arch_mm_combine_table_entry_attrs" [CBV table_attrs; CBV block_attrs]).
+                (Call "ARCHMM.arch_mm_combine_table_entry_attrs" [CBV table_attrs; CBV block_attrs]) #;
+                block_attrs #= (block_attrs #| Constant.STAGE1_NS
+                                              #| Constant.STAGE1_AP2
+                                              #| Constant.STAGE1_XN #| Constant.STAGE1_PXN) #;    
+                Put "arch_mm_combine_table_entry_attrs valid check" block_attrs.
 
 
     Definition mainF: function.

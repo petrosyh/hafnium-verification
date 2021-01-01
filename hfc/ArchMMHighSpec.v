@@ -1402,7 +1402,7 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
 
   Definition arch_mm_pte_is_present_spec (pte: Z)  (level : Z) : itree ArchMME (bool) :=
     st <- trigger GetState;;
-    match VALUES_to_PTE_TYPES  level st.(stage) pte with
+    match VALUES_to_PTE_TYPES level st.(stage) pte with
     | Some pte =>
       match pte with
       | STAGE1_TABLE _ _
@@ -1411,7 +1411,10 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
       | STAGE2_TABLE _
       | STAGE2_BLOCK _ _
       | STAGE2_PAGE _ _ => Ret (true)
-      | STAGE2_INVALID_BLOCK _ attributes => Ret (attributes.(STAGE2_SW_OWNED))
+      | STAGE2_INVALID_BLOCK _ attributes => match attributes.(STAGE2_SW_OWNED) with
+                                            | true => Ret (true)
+                                            | _ => Ret (false)
+                                            end
       | _ => Ret (false)
       end
     | None => triggerUB "wrong results"
@@ -1420,7 +1423,7 @@ bool arch_mm_pte_is_present(pte_t pte, uint8_t level)
   Definition arch_mm_pte_is_present_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
     match args with 
     | [Vcomp (Vlong pte); Vcomp (Vlong level)] =>
-      res <- arch_mm_pte_is_valid_spec (Int64.unsigned pte) (Int64.unsigned level);;
+      res <- arch_mm_pte_is_present_spec (Int64.unsigned pte) (Int64.unsigned level);;
       let res' :=
           match res with
           | true => 1
@@ -1496,11 +1499,10 @@ bool arch_mm_pte_is_block(pte_t pte, uint8_t level)
       match VALUES_to_PTE_TYPES  level st.(stage) pte with
       | Some pte =>
         match pte with
-        | STAGE1_INVALID_BLOCK_LEVEL0 _ _
-        | STAGE1_TABLE _ _
-        | STAGE1_PAGE _ _
-        | STAGE2_INVALID_BLOCK_LEVEL0 _
-        | STAGE2_TABLE _ => Ret (true)
+        | STAGE1_INVALID_BLOCK_LEVEL0 _ _ => Ret (true)
+        | STAGE1_TABLE _ _ => if zeq level 0 then Ret (true) else Ret (false)
+        | STAGE2_INVALID_BLOCK_LEVEL0 _ => Ret (true)
+        | STAGE2_TABLE _ => if zeq level 0 then Ret (true) else Ret (false)
         | _ => Ret (false)
         end
       | None => triggerUB "wrong results"
