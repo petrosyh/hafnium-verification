@@ -380,7 +380,12 @@ Module ArchMMTEST.
                (Call "ARCHMM.arch_mm_pte_attrs" [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 2); 
                                                            CBV address1; CBV stage2_sw_owned]);
                                                 CBV (Int64.repr 2)]) #;
+               Put "arch_mm_pte_attrs"               
+               (Call "ARCHMM.arch_mm_pte_attrs" [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 3); 
+                                                           CBV address1; CBV pte_table_val]);
+                                                CBV (Int64.repr 3)]) #;
                
+                
                Put "arch_mm_pte_is_present"               
                (Call "ARCHMM.arch_mm_pte_is_present"
                      [CBV (Call "ARCHMM.arch_mm_block_pte" [CBV (Int64.repr 2); 

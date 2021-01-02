@@ -1531,6 +1531,8 @@ static uint64_t pte_addr(pte_t pte)
 }
 *)
 
+  (* IT does not have level information, so we cannot convert it into PTE_TYPES at 
+     this moment *)
   Definition pte_addr_spec (pte: Z) : itree ArchMME (Z) :=
     Ret (Z.land pte Z_PTE_ADDR_MASK).
        
@@ -1554,6 +1556,8 @@ paddr_t arch_mm_clear_pa(paddr_t pa)
 }
 *)
 
+  (* It does not have level information, so we cannot convert it into PTE_TYPES at 
+     this moment *)
   Definition arch_mm_clear_pa_spec (pa: Z) : itree ArchMME (Z) :=
     st <- trigger GetState;;
     Ret (Z.land pa Z_PTE_ADDR_MASK).
@@ -1640,8 +1644,16 @@ uint64_t arch_mm_pte_attrs(pte_t pte, uint8_t level)
 
        
   Definition arch_mm_pte_attrs_spec (pte: Z) (level : Z) : itree ArchMME (Z) :=
+   st <- trigger GetState;;
+   match VALUES_to_PTE_TYPES  level st.(stage) pte with
+   | Some pte_types => Ret (PTE_TYPES_to_ATTR_VALUES pte_types)
+   | _ => triggerUB "wrong results"
+   end.
+    
+       (*
     (* TODO : need to fix for the sanity check *)
     Ret (Z.land pte Z_PTE_ATTR_MASK).
+        *)
        
   Definition arch_mm_pte_attrs_call (args: list Lang.val) : itree ArchMME (Lang.val * list Lang.val) :=
     match args with 
