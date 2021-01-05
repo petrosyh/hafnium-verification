@@ -248,6 +248,28 @@ Definition updateState_handler {E: Type -> Type}
 
 Notation mmE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
 
+Fixpoint setEntries (ptr: positive * Z) (entries: list entry)
+         (entries_map: PTree.t (ZTree.t entry))
+  : PTree.t (ZTree.t entry) :=
+  match entries with
+  | [] => entries_map
+  | hd::tl => setEntries (fst ptr, ((snd ptr) + int_sz)%Z) tl
+                        (PtrTree_set ptr hd entries_map)
+  end.
+
+Fixpoint removeEntries (ptr: positive * Z) (n: nat) (entries_map: PTree.t (ZTree.t entry))
+  : PTree.t (ZTree.t entry) :=
+  match n with
+  | O => entries_map
+  | S n' => removeEntries (fst ptr, ((snd ptr) + 1)%Z) n' (PtrTree_remove ptr entries_map)
+  end.
+
+Fixpoint mkEntries (new_pte inc: entry) (n: nat) : list entry :=
+  match n with
+  | O => nil
+  | S n' => new_pte::(mkEntries (new_pte + inc)%Z inc n')
+  end.
+
 Definition mm_vm_enable_invalidation_call (args: list Lang.val)
   : itree mmE (Lang.val * list Lang.val) :=
   st <- trigger GetState;;
@@ -397,28 +419,8 @@ Definition mm_ptable_addr_space_end_spec (flags: MM_Flag) : itree mmE Z :=
   max_level <- mm_max_level_spec flags;;
   entry_size <- mm_entry_size_spec (max_level + 1)%Z;;
   Ret (root_table * entry_size)%Z.
-
-Fixpoint setEntries (ptr: positive * Z) (entries: list entry)
-         (entries_map: PTree.t (ZTree.t entry))
-  : PTree.t (ZTree.t entry) :=
-  match entries with
-  | [] => entries_map
-  | hd::tl => setEntries (fst ptr, ((snd ptr) + int_sz)%Z) tl
-                        (PtrTree_set ptr hd entries_map)
-  end.
-
-Fixpoint removeEntries (ptr: positive * Z) (n: nat) (entries_map: PTree.t (ZTree.t entry))
-  : PTree.t (ZTree.t entry) :=
-  match n with
-  | O => entries_map
-  | S n' => removeEntries (fst ptr, ((snd ptr) + 1)%Z) n' (PtrTree_remove ptr entries_map)
-  end.
-
-Fixpoint mkEntries (new_pte inc: entry) (n: nat) : list entry :=
-  match n with
-  | O => nil
-  | S n' => new_pte::(mkEntries (new_pte + inc)%Z inc n')
-  end.
+Require Import LangType.
+Require Import Op.
 
 Definition mm_ptable_init_spec (t: positive * Z) (flags: MM_Flag) (ppool: positive * Z)
   : itree mmE bool :=
@@ -435,7 +437,8 @@ Definition mm_ptable_init_spec (t: positive * Z) (flags: MM_Flag) (ppool: positi
   (fun i =>
      if (i =? root_table_count)%Z
      then
-       trigger (StoreE (fst t) (snd t) (Vptr (fst tables) (Ptrofs.repr (snd tables))));;
+       do v <- sem_cast (Vptr (fst tables) (Ptrofs.repr (snd tables))) tint;;;
+       trigger (StoreE (fst t) (snd t) v);;
        Ret (inr true)
      else
        st <- trigger GetState;;
@@ -454,7 +457,7 @@ Definition mm_ptable_init_spec (t: positive * Z) (flags: MM_Flag) (ppool: positi
        trigger (SetState st');;
        Ret (inl (i + 1)%Z)
   ) 0.
-  
+
 Definition mm_ptable_init_call (args: list Lang.val): itree mmE (Lang.val * list Lang.val) :=
   match args with
   | [arg1; arg2; arg3] =>
@@ -468,53 +471,51 @@ Definition mm_ptable_init_call (args: list Lang.val): itree mmE (Lang.val * list
 
 Definition mm_ptable_fini_spec (t: positive * Z) (flags: MM_Flag) (ppool: positive * Z)
   : itree mmE unit :=
-  tables <- trigger (LoadE (fst t) (snd t));;
-  match tables with
-  | Some (Vptr tables_blk tables_ofs) =>
-    level <- mm_max_level_spec flags;;
-    root_table_count <- mm_root_table_count_spec flags;;
-    ITree.iter
-    (fun i =>
-       if (i =? root_table_count)%Z
-       then
-         trigger (CallExternal "MPOOL.mpool_add_chunk"
-                               [ptr2val ppool;
-                                Vcomp (Vptr tables_blk tables_ofs);
-                                Z2val ((8 * MM_PTE_PER_PAGE) * root_table_count)]);;
-                                (* need to modify sizeof(MM_PAGE_TABLE) *)
-         Ret (inr tt)
-       else
-         st <- trigger GetState;;
-         let table_ptr := (tables_blk, ((Ptrofs.unsigned tables_ofs) +
-                                        int_sz * i * MM_PTE_PER_PAGE)%Z) in
-         do id <- PtrTree_get table_ptr (addr_to_id st);;;
-         do mm_page_table <- PTree.get id (mm_page_table_map st);;;
-         ITree.iter
-           (fun j =>
-              if (j =? MM_PTE_PER_PAGE)%Z
-              then
-                let entry := nth_default 0 (entires mm_page_table) (Z.to_nat j) in
-                (* DJ: use nth_default is correct? *)
-                mm_free_page_pte_spec entry level ppool;;
-                Ret (inl (j + 1)%Z)
-              else
-                Ret (inr tt)
-           ) 0;;
-         let entries_map' := (removeEntries table_ptr (Z.to_nat MM_PTE_PER_PAGE)
-                                            (entries_map st)) in
-         let st' := (mkMMAbstState (PTree.remove id (mm_page_table_map st))
-                                   (PtrTree_remove table_ptr (addr_to_id st))
-                                   (PTree.remove id (id_to_addr st))
-                                   (next_id st)
-                                   (mm_stage1_locked st)
-                                   entries_map'
-                                   (mm_stage2_invalidate st)) in
-         trigger (SetState st');;
-         Ret (inl (i + 1)%Z)
-   ) 0
-  | _ => triggerUB ""
-  end.
-  
+  tmp <- trigger (LoadE (fst t) (snd t));;
+  do tables <- tmp;;;
+  v <- val2Z (Vcomp tables);;
+  '(tables_blk, tables_ofs) <- mm_page_table_from_pa_spec2 v;;
+  level <- mm_max_level_spec flags;;
+  root_table_count <- mm_root_table_count_spec flags;;
+  ITree.iter
+  (fun i =>
+     if (i =? root_table_count)%Z
+     then
+       trigger (CallExternal "MPOOL.mpool_add_chunk"
+                             [ptr2val ppool;
+                                Vcomp (Vptr tables_blk (Ptrofs.repr tables_ofs));
+                                Z2val ((int_sz * MM_PTE_PER_PAGE) * root_table_count)]);;
+               (* need to modify sizeof(MM_PAGE_TABLE) *)
+               Ret (inr tt)
+     else
+       st <- trigger GetState;;
+          let table_ptr := (tables_blk, (tables_ofs + int_sz * i * MM_PTE_PER_PAGE)%Z) in
+          do id <- PtrTree_get table_ptr (addr_to_id st);;;
+             do mm_page_table <- PTree.get id (mm_page_table_map st);;;
+             ITree.iter
+             (fun j =>
+                if (j =? MM_PTE_PER_PAGE)%Z
+                then
+                  let entry := nth_default 0 (entires mm_page_table) (Z.to_nat j) in
+                  (* DJ: use nth_default is correct? *)
+                  mm_free_page_pte_spec entry level ppool;;
+                                        Ret (inl (j + 1)%Z)
+                else
+                  Ret (inr tt)
+             ) 0;;
+             let entries_map' := (removeEntries table_ptr (Z.to_nat MM_PTE_PER_PAGE)
+                                                (entries_map st)) in
+             let st' := (mkMMAbstState (PTree.remove id (mm_page_table_map st))
+                                       (PtrTree_remove table_ptr (addr_to_id st))
+                                       (PTree.remove id (id_to_addr st))
+                                       (next_id st)
+                                       (mm_stage1_locked st)
+                                       entries_map'
+                                       (mm_stage2_invalidate st)) in
+             trigger (SetState st');;
+                     Ret (inl (i + 1)%Z)
+  ) 0.
+
 Definition mm_ptable_fini_call (args: list Lang.val): itree mmE (Lang.val * list Lang.val) :=
   match args with
   | [arg1; arg2; arg3] =>
@@ -630,6 +631,219 @@ Definition mm_populate_table_pte_spec (begin: Z) (pte: positive * Z) (level: Z) 
          mm_replace_entry_spec begin pte new_pte level flag ppool;;
          Ret ntable
 .
+
+Definition mm_map_level_spec (vbegin vend pa attrs: Z) (table: positive * Z)
+           (level: Z) (flags: MM_Flag) (ppool: positive * Z) : itree mmE bool :=
+  st <- trigger GetState;;
+  idx <- (mm_index_spec vbegin level);;
+  let pte_ptr := (fst table, ((snd table) + idx * int_sz)%Z) in
+  do pte <- PtrTree_get pte_ptr (entries_map st);;;
+  level_end <- mm_level_end_spec vbegin level;;
+  entry_sz <- mm_entry_size_spec level;;
+  let commit := (MM_FLAG_COMMIT flags) in
+  let unmap := (MM_FLAG_UNMAP flags) in
+  let end' := (if (vend >? level_end) then level_end else vend) in
+  (* ITree.iter *)
+  (* (fun begin => *)
+  (*    if (begin <? end') *)
+  (*    then *)
+  (*      (let cond := *)
+  (*           (if unmap *)
+  (*            then *)
+  (*              (let cond_call := CallExternal "ARCHMM.arch_mm_pte_is_present" [Z2val pte; Z2val level] in *)
+  (*               '(cd1, _) <- trigger cond_call;; *)
+  (*               cond1 <- bool_to_val cd1;; *)
+  (*               negb cond1 *)
+  (*              ) *)
+  (*            else *)
+  (*              (let cond_call1 := CallExternal "ARCHMM.arch_mm_pte_is_block" [Z2val pte; Z2val level] in *)
+  (*               let cond_call2 := CallExternal "ARCHMM.arch_mm_pte_attrs" [Z2val pte; Z2val level] in *)
+  (*               '(cd1, _) <- trigger cond_call1;; *)
+  (*               '(cd2, _) <- trigger cond_call2;; *)
+  (*               cond1 <- val2Z cd1;; *)
+  (*               cond2 <- val2Z cd2;; *)
+  (*               let cond1' := bool_to_val cond1 in *)
+  (*               let cond2' := (Z.eqb cond2 attrs) in *)
+  (*               (andb cond1' cond2') *)
+  (*              ) *)
+  (*           ) in *)
+  (*       if (cond) *)
+  (*       then *)
+  (*         Ret (inl begin) *)
+  (*       else *)
+  (*         Ret (inl begin) *)
+  (*      ) *)
+  (*    else *)
+  (*      Ret (inr tt) *)
+  (* ) vbegin;; *)
+  Ret true.
+
+Definition mm_map_root_spec (t: positive * Z) (vbegin vend attrs root_level: Z)
+           (flags: MM_Flag) (ppool: positive * Z): itree mmE bool :=
+  root_table_size <- mm_entry_size_spec root_level;;
+  idx <- mm_index_spec vbegin root_level;;
+  tmp1 <- trigger (LoadE (fst t) (snd t));;
+  do tmp2 <- tmp1;;;
+  pa <- val2Z (Vcomp tmp2);;
+  '(tables_block, tables_ofs) <- mm_page_table_from_pa_spec2 pa;;
+  let table := (tables_block, (tables_ofs + int_sz * idx)%Z) in
+  ITree.iter
+  (fun '(begin, table) =>
+     if (begin <? vend)
+     then
+       ('(tmp, _) <- trigger (CallExternal "ARCHMM.pa_init" [Z2val begin]);;
+        pa <- val2Z tmp;;
+        cond <- mm_map_level_spec vbegin vend pa attrs table (root_level - 1)%Z flags ppool;;
+        if (negb cond)
+        then Ret (inr false)
+        else
+          (begin <- mm_start_of_next_block_spec begin root_table_size;;
+           let table := (fst table, ((snd table) + int_sz)%Z) in
+           Ret (inl (begin, table))      
+          )
+       )
+     else
+       Ret (inr true)
+  ) (vbegin, table).
+
+Definition mm_ptable_identity_map_spec (t: positive * Z) (pa_begin pa_end attrs: Z)
+           (flags: MM_Flag) (ppool: positive * Z): itree mmE bool :=
+  st <- trigger GetState;;
+  tmp <- mm_max_level_spec flags;;
+  let root_level := (tmp + 1)%Z in
+  ptable_end <- mm_ptable_addr_space_end_spec flags;;
+  '(tmp, _) <- trigger (CallExternal "ADDR.pa_addr" [Z2val pa_end]);;
+  pa <- val2Z tmp;;
+  vend <- mm_round_up_to_page_spec pa;;
+  '(tmp, _) <- trigger (CallExternal "ARCHMM.arch_mm_clear_pa" [Z2val pa_begin]);;
+  '(tmp2, _) <- trigger (CallExternal "ADDR.pa_addr" [tmp]);;
+  vbegin <- val2Z tmp2;;
+  (* CHECK(root_level >= 2); *)
+  let end' := if (vend >? ptable_end) then ptable_end else vend in
+  cond <- mm_map_root_spec t vbegin vend attrs root_level flags ppool;;
+  if (negb cond)
+  then Ret false
+  else
+    if andb (MM_FLAG_COMMIT flags) (orb (MM_FLAG_STAGE1 flags) (mm_stage2_invalidate st))
+    then mm_invalidate_tlb_spec vbegin vend flags;;
+         Ret true
+    else Ret true
+.
+
+Definition mm_ptable_identity_prepare_spec (t: positive * Z) (pa_begin pa_end attrs: Z)
+           (flags: MM_Flag) (ppool: positive * Z): itree mmE bool :=
+  let flags' := mkMM_Flag false (MM_FLAG_UNMAP flags) (MM_FLAG_STAGE1 flags) in
+  v <- mm_ptable_identity_map_spec t pa_begin pa_end attrs flags' ppool;;
+  Ret v.
+
+Definition mm_ptable_identity_commit_spec (t: positive * Z) (pa_begin pa_end attrs: Z)
+           (flags: MM_Flag) (ppool: positive * Z): itree mmE unit :=
+  let flags' := mkMM_Flag true (MM_FLAG_UNMAP flags) (MM_FLAG_STAGE1 flags) in
+  v <- mm_ptable_identity_map_spec t pa_begin pa_end attrs flags' ppool;;
+  (* Check v *)
+  Ret tt.
+
+Definition mm_ptable_identity_update_spec (t: positive * Z) (pa_begin pa_end attrs: Z)
+           (flags: MM_Flag) (ppool: positive * Z): itree mmE bool :=
+  cond <- mm_ptable_identity_prepare_spec t pa_begin pa_end attrs flags ppool;;
+  if (negb cond)
+  then Ret false
+  else
+    mm_ptable_identity_commit_spec t pa_begin pa_end attrs flags ppool;;
+    Ret true.
+
+Definition mm_dump_table_recursive_body args
+  : itree (callE ((positive * Z) * (Z * Z)) unit +' mmE) unit :=
+  let '(table, (level, max_level)) := args in
+  st <- trigger GetState;;
+  ITree.iter
+  (fun i =>
+     if (i <? MM_PTE_PER_PAGE)%Z
+     then
+       do entry <- PtrTree_get (fst table, (snd table + int_sz * i)%Z) (entries_map st);;;
+       '(tmp, _) <- trigger (CallExternal "ARCHMM.arch_mm_pte_is_present"
+                                         [Z2val entry; Z2val level]);;
+       let cond := Lang.is_true tmp in
+       if (negb cond)
+       then
+         Ret (inr tt)
+       else
+         ('(tmp, _) <- trigger (CallExternal "ARCHMM.arch_mm_pte_is_table"
+                                            [Z2val entry; Z2val level]);;
+          let cond := Lang.is_true tmp in
+          if cond
+          then
+            ('(tmp, _) <- trigger (CallExternal "ARCHMM.arch_mm_table_from_pte"
+                                               [Z2val entry; Z2val level]);;
+             pa <- val2Z tmp;;
+             table' <- mm_page_table_from_pa_spec pa;;
+             call (table', ((level - 1)%Z, max_level));;
+             Ret (inl (i + 1)%Z)
+            )
+          else
+            Ret (inl (i + 1)%Z)
+         )
+     else
+       Ret (inr tt)
+  ) 0.
+
+Definition mm_dump_table_recursive_spec (table: positive * Z) (level max_level: Z)
+  : itree mmE unit :=
+  rec mm_dump_table_recursive_body (table, (level, max_level)).
+
+Definition mm_ptable_dump_spec (t: positive * Z) (flags: MM_Flag) : itree mmE unit :=
+  tmp <- trigger (LoadE (fst t) (snd t));;
+  do tables <- tmp;;;
+  v <- val2Z (Vcomp tables);;
+  '(tables_blk, tables_ofs) <- mm_page_table_from_pa_spec2 v;;
+  max_level <- mm_max_level_spec flags;;
+  root_table_count <- mm_root_table_count_spec flags;;
+  ITree.iter
+  (fun i =>
+     if (i <? root_table_count)
+     then
+       mm_dump_table_recursive_spec (tables_blk, (tables_ofs + int_sz * i)%Z) max_level max_level;;
+       Ret (inl (i + 1)%Z)
+     else
+       Ret (inr tt)
+  ) 0.
+
+Definition mm_merge_table_pte_spec (table_pte level: Z) (ppool: positive * Z): itree mmE Z :=
+  st <- trigger GetState;;
+  '(tmp, _) <- trigger (CallExternal "ARCHMM.arch_mm_table_from_pte"
+                                    [Z2val table_pte; Z2val level]);;
+  pa <- val2Z tmp;;
+  table <- mm_page_table_from_pa_spec2 pa;;
+  do entry <- PtrTree_get table (entries_map st);;;
+  '(tmp, _) <- trigger (CallExternal "ARCHMM.arch_mm_pte_is_present"
+                                    [Z2val entry; Z2val (level - 1)]);;
+  let cond := Lang.is_true tmp in
+  if (negb cond)
+  then
+    trigger (CallExternal "MPOOL.mpool_free" [ptr2val ppool; ptr2val table]);;
+    '(tmp, _) <- trigger (CallExternal "ARCHMM.arch_mm_absent_pte" [Z2val level]);;
+    ret <- val2Z tmp;;
+    Ret ret
+  else
+    '(tmp, _) <- trigger (CallExternal "ARCHMM.arch_mm_is_block_allowed" [Z2val level]);;
+    let cond := Lang.is_true tmp in
+    if (negb cond)
+    then
+      Ret table_pte
+    else
+      '(block_attrs, _) <- trigger (CallExternal "ARCHMM.arch_mm_pte_attrs"
+                                                [Z2val entry; Z2val (level - 1)]);;
+      '(table_attrs, _) <- trigger (CallExternal "ARCHMM.arch_mm_pte_attrs"
+                                                [Z2val table_pte; Z2val level]);;
+      '(combined_attrs, _) <- trigger (CallExternal "ARCHMM.arch_mm_combine_table_entry_attrs"
+                                                   [table_attrs; block_attrs]);;
+      '(block_address, _) <- trigger (CallExternal "ARCHMM.arch_mm_block_from_pte"
+                                                  [Z2val entry; Z2val (level - 1)]);;
+      trigger (CallExternal "MPOOL.mpool_free" [ptr2val ppool; ptr2val table]);;
+      '(tmp, _) <- trigger (CallExternal "ARCHMM.arch_mm_block_pte"
+                                        [Z2val level; block_address; combined_attrs]);;
+      ret <- val2Z tmp;;
+      Ret ret.
 
 Definition empty_call (args: list Lang.val): itree mmE (Lang.val * list Lang.val) :=
   Ret (Vnull, args).
