@@ -32,14 +32,6 @@ Local Open Scope monad_scope.
 Local Open Scope string_scope.
 Require Import Coqlib sflib.
 
-
-Inductive terminate {E} {R} (it:itree E R) : Prop :=
-| TermRet
-    v
-    (RET: observe it = RetF v)
-| TermTau
-    (TAU: observe it = TauF it).
-
 (* From HafniumCore *)
 Require Import Lang.
 Require Import Values.
@@ -53,61 +45,6 @@ Import Int64.
 
 Require Import Maps.
 Set Implicit Arguments.
-
-Notation "'do' X <- A ;;; B" := (match A with Some X => B | None => triggerUB "None" end)
-  (at level 200, X ident, A at level 100, B at level 200)
-  : itree_monad_scope.
-
-Notation "'do' X , Y <- A ;;; B" := (match A with Some (X, Y) => B | None => triggerUB "None" end)
-  (at level 200, X ident, Y ident, A at level 100, B at level 200)
-  : itree_monad_scope.
-
-Notation "'do' X , Y , Z <- A ;;; B" := (match A with Some (X, Y, Z) => B | None => triggerUB "None" end)
-  (at level 200, X ident, Y ident, Z ident, A at level 100, B at level 200)
-  : itree_monad_scope.
-
-Notation " 'check' A ;;; B" := (if A then B else Ret None)
-  (at level 200, A at level 100, B at level 200)
-  : itree_monad_scope.
-
-Local Open Scope itree_monad_scope.
-
-Section PtrTreeLibrary.
-
-Definition PtrTree_set (ptr: positive * Z) (v: positive) (map: PTree.t (ZTree.t positive)) :=
-  let zt := match PTree.get (fst ptr) map with
-            | Some zt => zt
-            | None => (ZTree.empty positive)
-            end in
-  PTree.set (fst ptr) (ZTree.set (snd ptr) v zt) map
-.
-
-Definition PtrTree_get (ptr: positive * Z) (map: PTree.t (ZTree.t positive)) :=
-  zt <- PTree.get (fst ptr) map;;
-  ZTree.get (snd ptr) zt
-.
-
-Definition PtrTree_remove (ptr: positive * Z) (map: PTree.t (ZTree.t positive)) :=
-  match PTree.get (fst ptr) map with
-  | Some zt => PTree.set (fst ptr) (ZTree.remove (snd ptr) zt) map
-  | None => map
-  end
-.
-
-End PtrTreeLibrary.
-
-Variable Z_to_string: Z -> string.
-Extract Constant Z_to_string =>
-"fun z -> (HexString.of_Z z)"
-.
-
-(* Variable A: Type. *)
-Definition A : Type := positive * Z.
-
-Definition A_to_string (a: A): string :=
-  "(" ++ (Z_to_string (Zpos' (fst a))) ++ ", " ++ (Z_to_string (snd a)) ++ ")"
-.
-
 
 (*************************************************************)
 (*                 FFA function keyword                      *) 
@@ -327,7 +264,7 @@ Section FFA_DESCRIPTIONS.
         FFA_composite_memory_region_struct_constituent_count : Z; (* length: 4 bytes / offset: 4 bytes  *)
         (* reserved *) (* legnth: 8 bytes / offset: 8 bytes *)
         FFA_composite_memory_region_struct_constituents :
-          ZMap.t FFA_memory_region_constituent_struct
+          ZTree.t FFA_memory_region_constituent_struct
                  (* length: 16 bytes * num of elements / offset: 16 bytes *)
       }.
 
@@ -489,8 +426,16 @@ Section FFA_DESCRIPTIONS.
     mkFFA_endpoint_memory_access_descriptor_struct {
         FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor :
           FFA_memory_access_permissions_descriptor_struct; (* length: 4 bytes / offset: 0 bytes *)
-        (* TODO: we may need to use a unique identifier for this offset later *)
-        FFA_memory_access_descriptor_struct_composite_memory_region_offset : Z;
+
+        (* NOTE: In Hafnium and FF-A document, the following field is defined as an offset 
+           to point out the memory region that contains "FFA_composite_memory_region". 
+           Instead of following them, we explicitly map "FFA_composite_memory_region_struct" 
+           in here with option type to handle the case when offset points out NULL *)
+        FFA_memory_access_descriptor_struct_composite_memory_region_offset :
+        (* memory region struct is created and destroyed when hypervisor starts/finishes 
+           their handling. Instead of merging it into  *)
+          option FFA_composite_memory_region_struct;
+        (* NOTE: the original size of the above offset value is as follows *)
         (* length: 4 bytes / offset: 4 bytes *)
         (* Reserved (MBZ) *) (* length: 8 bytes / offset: 8 bytes *)
       }.
@@ -653,6 +598,30 @@ Section FFA_DESCRIPTIONS.
           {                                                          \
           	return (enum ffa_##name)((attr & mask) >> offset); \
           }
+  ATTR_FUNCTION_SET(data_access, ffa_memory_access_permissions_t,
+          	  FFA_DATA_ACCESS_OFFSET, FFA_DATA_ACCESS_MASK)
+  ATTR_FUNCTION_GET(data_access, ffa_memory_access_permissions_t,
+          	  FFA_DATA_ACCESS_OFFSET, FFA_DATA_ACCESS_MASK)
+   
+  ATTR_FUNCTION_SET(instruction_access, ffa_memory_access_permissions_t,
+          	  FFA_INSTRUCTION_ACCESS_OFFSET, FFA_INSTRUCTION_ACCESS_MASK)
+  ATTR_FUNCTION_GET(instruction_access, ffa_memory_access_permissions_t,
+          	  FFA_INSTRUCTION_ACCESS_OFFSET, FFA_INSTRUCTION_ACCESS_MASK)
+   
+  ATTR_FUNCTION_SET(memory_type, ffa_memory_attributes_t, FFA_MEMORY_TYPE_OFFSET,
+          	  FFA_MEMORY_TYPE_MASK)
+  ATTR_FUNCTION_GET(memory_type, ffa_memory_attributes_t, FFA_MEMORY_TYPE_OFFSET,
+          	  FFA_MEMORY_TYPE_MASK)
+   
+  ATTR_FUNCTION_SET(memory_cacheability, ffa_memory_attributes_t,
+          	  FFA_MEMORY_CACHEABILITY_OFFSET, FFA_MEMORY_CACHEABILITY_MASK)
+  ATTR_FUNCTION_GET(memory_cacheability, ffa_memory_attributes_t,
+          	  FFA_MEMORY_CACHEABILITY_OFFSET, FFA_MEMORY_CACHEABILITY_MASK)
+   
+  ATTR_FUNCTION_SET(memory_shareability, ffa_memory_attributes_t,
+          	  FFA_MEMORY_SHAREABILITY_OFFSET, FFA_MEMORY_SHAREABILITY_MASK)
+  ATTR_FUNCTION_GET(memory_shareability, ffa_memory_attributes_t,
+          	  FFA_MEMORY_SHAREABILITY_OFFSET, FFA_MEMORY_SHAREABILITY_MASK)
    *)
 
   (* 
@@ -707,146 +676,6 @@ Section FFA_STRUCTURES_AND_AUX_FUNCTIONS.
 
   (* default value *)
   Definition init_FFA_value_type := mkFFA_value_type FFA_IDENTIFIER_DEFAULT (ZMap.init 0).
-
-  (* Auxiliary functions *)
-  (*
-  static inline ffa_vm_id_t ffa_msg_send_sender(struct ffa_value args)
-         {
-	   return (args.arg1 >> 16) & 0xffff;
-         }
-   *)
-
-  Definition ffa_msg_send_sender (args: FFA_value_type) : Z :=
-    Z.land (Z.shiftr (ZMap.get 1 (args.(vals))) 16) 65535.
-
-
-  (*
-  static inline ffa_vm_id_t ffa_msg_send_receiver(struct ffa_value args)
-  {
-          return args.arg1 & 0xffff;
-  }
-   *)
-  Definition ffa_msg_receiver_sender (args: FFA_value_type) : Z :=
-    Z.land (ZMap.get 1 (args.(vals))) 65535.
-
-  
-  (*
-  static inline uint32_t ffa_msg_send_size(struct ffa_value args)
-  {
-          return args.arg3;
-  }
-   *)
-  Definition ffa_msg_send_size (args: FFA_value_type) : Z :=
-    ZMap.get 3 args.(vals).
-
-  (*
-  static inline uint32_t ffa_msg_send_attributes(struct ffa_value args)
-  {
-          return args.arg4;
-  }
-   *)
-  Definition ffa_msg_send_attributes (args: FFA_value_type) : Z :=
-    ZMap.get 4 args.(vals).
-
-  (*
-  static inline ffa_memory_handle_t ffa_assemble_handle(uint32_t a1, uint32_t a2)
-  {
-          return (uint64_t)a1 | (uint64_t)a2 << 32;
-  }
-   *)
-  Definition ffa_assemble_handle (a1 a2 : Z) : ffa_memory_handle_t :=
-    Z.lor a1 (Z.shiftl a2 32).
-  
-
-  (*
-  static inline ffa_memory_handle_t ffa_mem_success_handle(struct ffa_value args)
-  {
-          return ffa_assemble_handle(args.arg2, args.arg3);
-  }
-  *)
-  Definition ffa_mem_success_handle (args : FFA_value_type) : ffa_memory_handle_t :=
-    ffa_assemble_handle (ZMap.get 2 args.(vals)) (ZMap.get 3 args.(vals)).
-
-  (*
-  static inline struct ffa_value ffa_mem_success(ffa_memory_handle_t handle)
-  {
-          return (struct ffa_value){.func = FFA_SUCCESS_32,
-          			  .arg2 = (uint32_t)handle,
-          			  .arg3 = (uint32_t)(handle >> 32)};
-  }
-   *)
-
-  Definition ffa_mem_success (handle : ffa_memory_handle_t) : FFA_value_type :=
-    mkFFA_value_type (FFA_RESULT_CODE_IDENTIFIER FFA_SUCCESS)
-                     (ZMap.set 2 handle (ZMap.set 3 (Z.shiftr handle 32) (ZMap.init 0))).
-    
-
-  (*
-  static inline ffa_vm_id_t ffa_vm_id(struct ffa_value args)
-  {
-          return (args.arg1 >> 16) & 0xffff;
-  }
-   *)
-
-  Definition ffa_vm_id (args : FFA_value_type) : ffa_vm_id_t :=
-    Z.land (ZMap.get 1 (args.(vals))) 65535.
-    
-  
-  (*
-  static inline ffa_vcpu_index_t ffa_vcpu_index(struct ffa_value args)
-  {
-          return args.arg1 & 0xffff;
-  }
-   *)
-  Definition ffa_vcpu_index (args : FFA_value_type) : ffa_vcpu_index_t :=
-    Z.land (ZMap.get 1 (args.(vals))) 65535.
-    
-  (*
-  static inline uint64_t ffa_vm_vcpu(ffa_vm_id_t vm_id,
-          			   ffa_vcpu_index_t vcpu_index)
-  {
-          return ((uint32_t)vm_id << 16) | vcpu_index;
-  }
-   *)
-  Definition ffa_vm_vcpu (vm_id : ffa_vm_id_t) (vcpu_index : ffa_vcpu_index_t) : Z :=
-    Z.lor (Z.shiftl vm_id 16) vcpu_index.
-
-  (*
-  /**
-   * Clear memory region contents after unmapping it from the sender and before
-   * mapping it for any receiver.
-   */
-  #define FFA_MEMORY_REGION_FLAG_CLEAR 0x1
-   
-  /**
-   * Whether the hypervisor may time slice the memory sharing or retrieval
-   * operation.
-   */
-  #define FFA_MEMORY_REGION_FLAG_TIME_SLICE 0x2
-   
-  /**
-   * Whether the hypervisor should clear the memory region after the receiver
-   * relinquishes it or is aborted.
-   */
-  #define FFA_MEMORY_REGION_FLAG_CLEAR_RELINQUISH 0x4
-   
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_MASK ((0x3U) << 3)
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_UNSPECIFIED ((0x0U) << 3)
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_SHARE ((0x1U) << 3)
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_LEND ((0x2U) << 3)
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_DONATE ((0x3U) << 3)
-   *)
-
-
-  Definition FFA_MEMORY_REGION_FLAG_CLEAR_Z := 1.
-  Definition FFA_MEMORY_REGION_FLAAG_TIME_SLICE_Z := 2.
-  Definition FFA_MEMORY_REGION_FLAG_CLEAR_RELINGQUISH_Z := 4.
-
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_MASK_Z := Z.shiftl 3 3.
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_UNSPECIFIED_Z := Z.shiftl 0 3.
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_SHARE_Z := Z.shiftl 1 3.
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_LEND_Z := Z.shiftl 2 3.
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_DONATE_Z := Z.shiftl 3 3.
 
 End FFA_STRUCTURES_AND_AUX_FUNCTIONS.
 
@@ -908,7 +737,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         (* Reserved (MBZ) *) (* length: 4 bytes / offset: 24 bytes *)
         FFA_memory_region_struct_receiver_count : Z; (* length: 4 bytes / offset: 28 bytes *)
         FFA_memory_region_struct_receivers :
-          ZMap.t FFA_endpoint_memory_access_descriptor_struct;
+          ZTree.t FFA_endpoint_memory_access_descriptor_struct;
         (* length: FFA_memory_region_struct_receiver_count * 16 bytes / 
            offset: 32 bytes *)                             
       }.
@@ -927,59 +756,165 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
     FFA_mem_relinquish_struct_handle : ffa_memory_handle_t; (* length: 8 bytes / offset: 0 bytes *)
     FFA_mem_relinquish_struct_flags : ffa_memory_region_flags_t; (* length: 3 bytes / offset: 8 bytes *)
     FFA_mem_relinquish_struct_endpoint_count : Z; (* length: 4 bytes / offset: 12 bytes *)
-    FFA_mem_relinquish_struct_endpoints : ZMap.t ffa_vm_id_t;
+    FFA_mem_relinquish_struct_endpoints : ZTree.t ffa_vm_id_t;
     (* length: FFA_mem_relinquish_struct_endpoint_count * 2 bytes / offset: 16 bytes *)
     }.
 
 
 End FFA_MEMORY_REGION_DESCRIPTOR.
 
-(*************************************************************)
-(*         Auxiliary functions                               *)
-(*************************************************************)
-Section FFA_MEMORY_REGION_AUXILIARY_FUNCTION.
-  (* TODO : need to do something with the following functions *) 
-  (*
-  /**
-   * Gets the `ffa_composite_memory_region` for the given receiver from an
-   * `ffa_memory_region`, or NULL if it is not valid.
-   */
-  static inline struct ffa_composite_memory_region *
-  ffa_memory_region_get_composite(struct ffa_memory_region *memory_region,
-          			uint32_t receiver_index)
-  {
-          uint32_t offset = memory_region->receivers[receiver_index]
-          			  .composite_memory_region_offset;
-   
-          if (offset == 0) {
-          	return NULL;
-          }
-   
-          return (struct ffa_composite_memory_region * )((uint8_t * )memory_region +
-          					      offset);
-  }
-   
-  static inline uint32_t ffa_mem_relinquish_init(
-          struct ffa_mem_relinquish *relinquish_request,
-          ffa_memory_handle_t handle, ffa_memory_region_flags_t flags,
-          ffa_vm_id_t sender)
-  {
-          relinquish_request->handle = handle;
-          relinquish_request->flags = flags;
-          relinquish_request->endpoint_count = 1;
-          relinquish_request->endpoints[0] = sender;
-          return sizeof(struct ffa_mem_relinquish) + sizeof(ffa_vm_id_t);
-  }
-  *)
- 
-End FFA_MEMORY_REGION_AUXILIARY_FUNCTION.
 
+(*************************************************************)
+(*         State definitions                                 *)
+(*************************************************************)
+Section PtrTreeLibrary.
+
+Definition PtrTree_set (ptr: positive * Z) (v: positive) (map: PTree.t (ZTree.t positive)) :=
+  let zt := match PTree.get (fst ptr) map with
+            | Some zt => zt
+            | None => (ZTree.empty positive)
+            end in
+  PTree.set (fst ptr) (ZTree.set (snd ptr) v zt) map
+.
+
+Definition PtrTree_get (ptr: positive * Z) (map: PTree.t (ZTree.t positive)) :=
+  zt <- PTree.get (fst ptr) map;;
+  ZTree.get (snd ptr) zt
+.
+
+Definition PtrTree_remove (ptr: positive * Z) (map: PTree.t (ZTree.t positive)) :=
+  match PTree.get (fst ptr) map with
+  | Some zt => PTree.set (fst ptr) (ZTree.remove (snd ptr) zt) map
+  | None => map
+  end
+.
+
+End PtrTreeLibrary.
+
+Variable Z_to_string: Z -> string.
+Extract Constant Z_to_string =>
+"fun z -> (HexString.of_Z z)"
+.
+
+(* Variable A: Type. *)
+Definition A : Type := positive * Z.
+
+Definition A_to_string (a: A): string :=
+  "(" ++ (Z_to_string (Zpos' (fst a))) ++ ", " ++ (Z_to_string (snd a)) ++ ")"
+.
+
+
+
+(* it is actually Z type, but we define this type for better readability *)
+Definition ffa_entity_id_t : Type := Z. 
+
+(*
+Definition ffa_entity_id_t : Type :=ffa_vm_id_t + ffa_hafnium_id_t.
+(* boilerplate: convert vm_ids and hafnium_id to entity_id if needed *)
+Local Definition inl_entity : ffa_vm_id_t -> ffa_entity_id_t
+  := @inl ffa_vm_id_t ffa_hafnium_id_t.
+Local Definition inr_entity : ffa_hafnium_id_t -> ffa_entity_id_t
+  := @inr ffa_vm_id_t ffa_hafnium_id_t.
+Local Coercion inl_entity : ffa_vm_id_t >-> ffa_entity_id_t.
+Local Coercion inr_entity : ffa_hafnium_id_t >-> ffa_entity_id_t.
+Hint Unfold inl_entity inr_entity.
+Set Printing Coercions.
+ *)
+
+(*************************************************************)
+(*         memory and ptable                                 *)
+(*************************************************************)
+Section MEM_AND_PTABLE.
+  
+  (* memory states on memory addresses *)
+  (* We do not consider contents inside the memory, but we do care about its properties -
+     and those properties are necessary for us to prove whether each component in the system
+     accesses memory in a valid way. Therefore, we have the following mapping from
+     each memory address to several properties. 
+
+     There are several dependencies between those properties. 
+     So, Those information are somewhat redundant, but 
+     we keep them in terms of explicit information that we can easily infer the curretn state of 
+     each address in the memory. To handle them, 
+     we also introduce a function variable, which we can fill out later *)
+  Inductive OwnershipState :=
+  | Owned (id : ffa_entity_id_t)
+  | NotOwned.
+  
+  Inductive AccessState :=
+  | NoAccess
+  | HasAccess (owner: ffa_entity_id_t) (borrowers : list ffa_entity_id_t).
+
+  Inductive MemAttributes :=
+  | MemAttributes_UNDEF
+  | MemAttributes_DeviceMem (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_2)
+  | MemAttributes_NormalMem (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_1)
+                            (shareability_type: FFA_MEMORY_SHAREABILITY).
+
+  Inductive MemDirty := 
+  | MemClean
+  | MemWritten (writer: ffa_entity_id_t).
+      
+  Record MemProperties :=
+    mkMemProperties {
+        (* there can be only one owner *)
+        owned_by : OwnershipState;
+        (* access information *)
+        accessible_by : AccessState;
+        (* instruction and data access property *)
+        instruction_access_property : FFA_INSTRUCTION_ACCESS_TYPE;
+        data_access_property: FFA_DATA_ACCESS_TYPE;
+        (* memory attributes *)
+        mem_attribute : MemAttributes;
+        mem_dirty: MemDirty;
+    }.
+
+  (* In top level, we do not need to specify ptable in detail. 
+     In this sense, we try to abstract the definition of ptable. 
+     => gets the input address (e.g., va or ipa) and return the address (e.g., ipa or pa) *)
+  Class AddressTranslation :=
+    {
+    (* address translation funciton in ptable. There are two possible cases 
+       1. provides the entire address translation from 
+       the root level to the bottom level 
+       2. provides the only one level address translation. 
+       Among them, our high-level model assumes the following ptable uses the second approach *)
+    hafnium_address_translation_table
+      (input_addr:  ffa_address_t) : option ffa_address_t;
+    vm_address_translation_table
+      (vm_id : ffa_vm_id_t)  (input_addr: ffa_address_t) : option ffa_address_t;
+    }.
+ 
+  Class HafniumMemoryManagementContext `{address_translation: AddressTranslation} :=
+    {
+    (* address low and high *)
+    address_low : ffa_address_t;
+    address_high : ffa_address_t;
+    (* alignment_value : Z; (* usually 4096 *) *)
+    alignment_value : Z := 4096;
+    alignment_value_non_zero_prop :
+      alignment_value > 0;
+    address_low_alignment_prop :
+      (Z.modulo address_low alignment_value)%Z = 0;
+    address_high_alignment_prop :
+      (Z.modulo address_high alignment_value)%Z = 0;
+
+    (* all results of  the address translation needs to be in betweeen low and high *)
+    address_translation_table_prop :
+      forall addr,
+        match hafnium_address_translation_table addr with
+        | Some addr' => (address_low <= addr' <= address_high)
+        | _ => True
+        end;
+    (* TODO: add more invariants *)    
+    }.
+
+End MEM_AND_PTABLE.
 
 (*************************************************************)
 (*         VM context                                        *)
 (*************************************************************)
-(* This one is necessary to model the clients and context saving/restoring 
-   of FFA ABI - Related definitions are in
+(* This one is necessary to model context saving/restoring of FFA ABI - Related definitions are in
    1) "/inc/hf/vm.h"
    2) "/inc/hf/.h"
    2) "/src/arch/aarch64/inc/hf/arch/types.h" 
@@ -1023,34 +958,59 @@ Section FFA_VM_CONTEXT.
    };
    *)
 
-  Definition ffa_vcpu_count_t := Z.
-  Definition ptable_t := Type. (* each VM has its own ptable *)
-  Definition mailbox_t := Type. (* each VM has its own mailbox *) 
-  Definition MAX_VMS := 8. (* XXX : arbitrary number *)
-
-  (* TODO : need to add auxilairy definitions for ptable and mailbox *)
-
   (* Simplified vcpu context - we only includes some registers - actually only FFA related values *)
   Record ArchRegs :=
     mkArchRegs {
         regs: FFA_value_type;
       }.
+
+  Record VCPU_struct :=
+    mkVCPU{
+        vcpu_regs: ArchRegs;
+      }.     
   
   (* Simplified VM context - we assume VM only has own vcpu *)
   Record VM_struct :=
     mkVM_struct {
-        id : ffa_vm_id_t;
-        vm_regs : ArchRegs;
-        ptable : ptable_t;
-        mailbox : mailbox_t;
+        cur_vcpu_id : Z;
+        vcpu_num: Z;
+        vcpu_struct : ZTree.t VCPU_struct;
+        (* all other parts are ignored at this moment *)
+        (* ptable for each VM is defined in AddressTranslation class *)
+      }.
+
+  Class VMContext := 
+    {
+    vcpu_max_num : Z;
+    vcpu_num_prop (vm: VM_struct) : 0 < vm.(vcpu_num) <= vcpu_max_num;
+    cur_vcpu_id_prop (vm: VM_struct) : 0 <= vm.(cur_vcpu_id) < vm.(vcpu_num);
+    (* TODO: add more invariants *)    
+    }.
+    
+End FFA_VM_CONTEXT.
+
+(*************************************************************)
+(*                             VM Clients                    *)
+(*************************************************************)
+(* Adding several things in here is possible, but we focus on 
+   FFA-related things in this VM clinets. We are able to add
+   any other things according to our decision *)
+Section VM_CLIENTS.
+
+  Record VM_CLIENT_struct :=
+    mkVMClinet_struct {
+        client_cur_vcpu_id : Z;
+        client_vcpu_num: Z;
+        client_vcpu_struct : ZTree.t VCPU_struct;
       }.
   
-End FFA_VM_CONTEXT.
+End VM_CLIENTS.
 
 (*************************************************************)
 (*         AbstractState for FFA modeling                    *)
 (*************************************************************)
 Section AbstractState.
+  
   (* Hafnium specific values *)
   (*
   /** The maximum number of recipients a memory region may be sent to. */
@@ -1098,64 +1058,135 @@ Section AbstractState.
     mkFFA_memory_share_state_struct {
         memory_region : FFA_memory_region_struct;
         share_func : FFA_FUNCTION_TYPE;
-        retrieved : ZMap.t bool
+        retrieved : ZTree.t bool;
       }.
 
-  Definition share_states := ZMap.t FFA_memory_share_state_struct.
-  
-  (* context values *)
-  Class HighSpecContext :=
-    {
-    hid : ffa_hafnium_id_t; (* hafnium id *)
-    address_low : ffa_address_t;
-    address_high :  ffa_address_t;
-    alignment_value : Z; (* usually 4096 *)
-    address_le_prop :
-      (address_low < address_high)%Z;
-    alignment_value_non_zero_prop :
-      alignment_value > 0;
-    address_low_alignment_prop :
-      (Z.modulo address_low alignment_value)%Z = 0;
-    address_high_alignment_prop :
-      (Z.modulo address_high alignment_value)%Z = 0
-    }.
-
-  Context `{high_spec_context: HighSpecContext}.
-  
-  Definition ffa_entity_id_t : Type := ffa_vm_id_t + ffa_hafnium_id_t.
-
-  Inductive OwnershipState :=
-  | Owned (id : ffa_entity_id_t)
-  | NotOwned.
-
-  Inductive AccessState :=
-  | NoAccess
-  | ExclusiveAccess (id : ffa_entity_id_t)
-  | SharedAccess (list : ffa_entity_id_t).
-
-
-  Inductive MemAttributes :=
-  | MemAttributes_UNDEF
-  | MemAttributes_DeviceMem (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_2)
-  | MemAttributes_NormalMem (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_1)
-                            (shareability_type: FFA_MEMORY_SHAREABILITY).
+  Definition share_state_pool := ZMap.t (option FFA_memory_share_state_struct).
 
   Record Hafnium_struct :=
     mkHafnium_struct {
+        mem_properties : ZTree.t MemProperties; (* key is an address *) 
         hafnium_vm_regs : ArchRegs;
-        hafnium_ptable : ptable_t;
-        hafnium_mailbox : mailbox_t;
+        (* mailbox will be currently ignored at this moment 
+        hafnium_mailbox : mailbox_t; *)
+        (* ffa_share_state is for ffa communications  *)
+        ffa_share_state: share_state_pool;
+        (* vm contexts saved in hafnium *)        
+        vms_contexts :  ZTree.t VM_struct;
       }.
+
+
+  (* The following abstract state provides the global state of Hafnium.
+     It consists of two things 
+     - Objects that do not belong to any VM 
+       - Physical CPUs // ignored (since our main focus at this moment is not concurreny)
+       - Memory pool // ignored (since we can focus on 
+       - Hafnium's page table // address translation function
+     - VMs and their objects 
+       - VCPUs 
+         - saved registers  // dramatically simplified in here
+         - virtual interrupts  // ignored in here 
+         - page table 
+         - mailbox 
+   *)
+
+  (* This abstract state also contains abstract VM clients in it. *)
   
   Record AbstractState :=
     mkAbstractState{
-        vm_contexts : VM_struct;
-        hafnim_context: Hafnium_struct;        
-        accessible_by : ZMap.t AccessState;
-        owned_by : ZMap.t  OwnershipState;
-        mem_attribute_pool : ZMap.t MemAttributes;
-        ffa_share_state: share_states
+        cur_entity_id: ffa_entity_id_t;
+        (* hafnium global stage *)
+        hafnium_context: Hafnium_struct;
+        (* vm clinets *) 
+        vms_clients : ZTree.t VM_CLIENT_struct; 
       }.
+
+  Class AbstractStateContext `{hafnium_memory_management_context : HafniumMemoryManagementContext} :=
+    {
+    hafnium_id : ffa_entity_id_t;
+    primary_vm_id: ffa_entity_id_t;
+    secondary_vm_ids : list ffa_entity_id_t;
+    vm_ids := primary_vm_id::secondary_vm_ids; 
+    entity_list : list ffa_entity_id_t := hafnium_id::vm_ids;
+
+    (* We may be able to use some feature of interaction tree for this scheduling? *)
+    scheduler : AbstractState -> ffa_entity_id_t; 
+    
+    entity_list_prop := NoDup entity_list;
+
+    cur_entity_id_prop (state : AbstractState) : In state.(cur_entity_id) entity_list;
+
+    initial_state : AbstractState;
+
+    (* TODO: add more invariants in here. *)
+    well_formed (state: AbstractState) : Prop;
+    initial_state_well_formed : well_formed initial_state;
+    
+    well_formed_guarantee_well_formed_scheduler_result :
+      forall st next_id, well_formed st -> scheduler st = next_id -> In next_id vm_ids;
+    
+    mem_properties_prop_low_out_of_bound :
+      forall addr st, (addr < address_low)%Z ->
+                 ZTree.get addr (st.(hafnium_context)).(mem_properties) = None;
+    mem_properties_prop_high_out_of_bound :
+      forall addr st, (address_high < addr)%Z ->
+                 ZTree.get addr (st.(hafnium_context)).(mem_properties) = None;
+    mem_properties_prop_not_aligned :
+      forall addr st, (Z.modulo addr alignment_value)%Z <> 0 ->
+                 ZTree.get addr (st.(hafnium_context)).(mem_properties) = None;
+    mem_properties_prop_well_formed :
+      forall addr st,
+        (address_low <= addr <= address_high)%Z ->
+        (Z.modulo addr alignment_value)%Z = 0 ->
+        exists properties, ZTree.get addr (st.(hafnium_context)).(mem_properties) = Some properties;    
+    }.
+
+  (* update hafnium context *)
+  Definition update_mem_properties_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct b a.(hafnium_vm_regs) a.(ffa_share_state) a.(vms_contexts).
+
+  Definition update_vm_regs_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct a.(mem_properties) b a.(ffa_share_state) a.(vms_contexts).
   
+  Definition update_ffa_share_state_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct a.(mem_properties) a.(hafnium_vm_regs) b a.(vms_contexts).
+
+  Definition update_vms_contexts_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct a.(mem_properties) a.(hafnium_vm_regs) a.(ffa_share_state) b.
+
+  (* update *)
+  Definition update_cur_entity_id (a : AbstractState) b :=
+    mkAbstractState b a.(hafnium_context) a.(vms_clients).
+
+  Definition update_hafnium_context (a : AbstractState) b :=
+    mkAbstractState a.(cur_entity_id) b a.(vms_clients).
+
+  Definition update_hafnium_mem_properties (a: AbstractState) b :=
+    update_hafnium_context a (update_mem_properties_in_hafnium_context a.(hafnium_context) b).
+      
+  Definition update_hafnium_vm_regs (a: AbstractState) b :=
+    update_hafnium_context a (update_vm_regs_in_hafnium_context a.(hafnium_context) b).
+
+  Definition update_hafnium_ffa_share_state (a: AbstractState) b :=
+    update_hafnium_context a (update_ffa_share_state_in_hafnium_context a.(hafnium_context) b).
+
+  Definition update_hafnium_vms_contexts (a: AbstractState) b :=
+    update_hafnium_context a (update_vms_contexts_in_hafnium_context a.(hafnium_context) b).
+   
+  Definition update_vms_clients (a : AbstractState) b :=
+    mkAbstractState a.(cur_entity_id) a.(hafnium_context) b.
+    
 End AbstractState.
+
+Notation "a '{' 'cur_entity_id' : b '}'" := (update_cur_entity_id a b) (at level 1).
+Notation "a '{' 'hafnium_context' : b '}'" := (update_hafnium_context a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'mem_properties' : b '}'"
+  := (update_hafnium_mem_properties a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'vm_regs' : b '}'"
+  := (update_hafnium_vm_regs a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'ffa_share_state' : b '}'"
+  := (update_hafnium_ffa_share_state a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'vms_contexts' : b '}'"
+  := (update_hafnium_vms_contexts a b) (at level 1).
+Notation "a '{' 'vms_clients' : b '}'" := (update_vms_clients a b) (at level 1).
 
