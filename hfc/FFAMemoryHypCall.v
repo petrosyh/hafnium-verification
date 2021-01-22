@@ -418,10 +418,16 @@ Section FFAMemoryHypCall.
 		return true;
 	case FFA_MEM_RECLAIM_32:
 		*args = api_ffa_mem_reclaim(
-			ffa_assemble_handle(args->arg1, args->arg2), args->arg3,
+			ffa_assemble_handle(args->arg1, args   ->arg2), args->arg3,
 			current());     
     >>
   *)
+
+
+  Section FFADispatch.
+    
+    
+  End FFADispatch.  
   
   (* Send is for three FFA ABIs, SHARE, DONATE, and LEND. *)
   Section FFAMemoryHypCallSend.
@@ -478,7 +484,29 @@ Section FFAMemoryHypCall.
        6. Check mem properties
        7. Update mem properties 
      *)
+
+    (* It is dramatically simplified version. It does the following things. 
+       1. check the arguments 
+       2. check the arguments with the memory_region descriptor 
+       3. check the memory attributes 
+       4. change the memory attributes
+       5. record the value in the buffer to deliver it to the receiver 
+       5. return the result *)
+
+    Definition ffa_mem_send_check_arguments (st : AbstractState) : option bool := Some true.
+    Definition ffa_mem_send_check_arguments_with_memory_region_descriptor
+               (st : AbstractState) : bool := true.
+    Definition ffa_mem_send_check_memory_attributes (st : AbstractState) : option bool := Some true.
+    Definition ffa_mem_send_change_memory_attributes (st : AbstractState) :
+      option (AbstractState * bool) :=
+      Some (st, true).
+    Definition ffa_mem_send_deliver_msg_to_receivers (st : AbstractState) :
+      option (AbstractState * bool) :=
+      Some (st, true).
     
+    Definition api_ffa_mem_send_spec  : itree HafniumEE (FFA_value_type) := 
+      st <- trigger GetState;;
+      Ret (mkFFA_value_type FFA_IDENTIFIER_DEFAULT (ZMap.init 0)).
     
   End FFAMemoryHypCallSend.
 
@@ -496,5 +524,61 @@ Section FFAMemoryHypCall.
   Section FFAMemoryHypCallReclaim.
 
   End FFAMemoryHypCallReclaim.
+
+
+  Section FFADispatch.
+  
+    Definition ffa_dispatch_spec :  itree HafniumEE (unit) := 
+      st <- trigger GetState;;
+      (* extract the curretnt vcpu *)
+      let vcpu_regs := st.(hafnium_context).(tpidr_el2) in
+      match vcpu_regs with
+      | Some vcpu_regs' =>
+        match vcpu_regs' with
+        | mkVCPU_struct (Some cid) (Some vid) vcpu_regs =>
+          match vcpu_regs with
+          | mkArchRegs (mkFFA_value_type func_type vals) =>
+            match func_type with
+            | FFA_FUNCTION_IDENTIFIER ffa_function_type =>
+              match ffa_function_type with
+              | FFA_MEM_DONATE 
+              | FFA_MEM_LEND 
+              | FFA_MEM_SHARE
+                (* update vm_id's context to record the result *)
+                => ret_ffa_value <- api_ffa_mem_send_spec;;
+                  do vm_context <- ZTree.get vid st.(hafnium_context).(vms_contexts);;;
+                  do vcpu_reg <- ZTree.get vm_context.(cur_vcpu_index) vm_context.(vcpus);;;
+                  let new_vcpu_reg := mkVCPU_struct (vcpu_reg.(cpu_id)) (vcpu_reg.(vm_id))
+                                                    (mkArchRegs ret_ffa_value) in
+                  let new_vm_context := 
+                      vm_context {vm_vcpus: ZTree.set (vm_context.(cur_vcpu_index))
+                                                      new_vcpu_reg 
+                                                      vm_context.(vcpus)} in
+                  let new_st := st {hafnium_context / vms_contexts:
+                                      ZTree.set vid new_vm_context
+                                                (st.(hafnium_context).(vms_contexts))} in
+                  trigger (SetState st)
+              | FFA_MEM_RELINQUISH
+              | FFA_MEM_RETREIVE_REQ
+              | FFA_MEM_RETREIVE_RESP
+              | FFA_MEM_RELINGQUISH
+              | FFA_MEM_RECLAIM             
+                => triggerUB "ffa_dispatch_spec: not implemented yet"
+              end
+            | _ => triggerUB "ffa_dispatch_spec: impossible case happens"
+            end
+          end
+        | _ => triggerUB "ffa_dispatch_spec: impossible case happens"
+        end
+    | None => triggerUB "ffa_dispatch_spec: impossible case happens" 
+    end.
+                        
+    Definition ffa_dispatch_call (args : list Lang.val) :=
+      match args with
+      | nil => ffa_dispatch_spec
+      | _ => triggerUB "ffa_dispatch_call: wrong arguments"
+      end.
+  
+  End FFADispatch.
   
 End FFAMemoryHypCall.

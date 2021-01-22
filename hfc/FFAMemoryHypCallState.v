@@ -978,7 +978,7 @@ Section FFA_VM_CONTEXT.
       }.
 
   Record VCPU_struct :=
-    mkVCPU{
+    mkVCPU_struct{
         (* the vm that is currently associated with this vcpu*)
         cpu_id : option ffa_cpu_id_t; (* the connect *)
         vm_id: option ffa_vm_id_t;
