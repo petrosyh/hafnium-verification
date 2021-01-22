@@ -311,23 +311,28 @@ Section FFAMemoryHypCall.
       st <- trigger GetState;;
       (* check whether the current running entity is one of VMs *)
       if decide (st.(cur_entity_id) <> hafnium_id) && in_dec zeq st.(cur_entity_id) vm_ids
-      then do vm_client <- ZTree.get st.(cur_entity_id) st.(vms_clients) ;;;
-           do vm_context <- ZTree.get st.(cur_entity_id) st.(hafnium_context).(vms_contexts) ;;;
-           do vcpu_regs <- ZTree.get vm_client.(client_cur_vcpu_id) vm_client.(client_vcpu_struct) ;;;
-           if decide (vm_context.(vcpu_num) = vm_client.(client_vcpu_num))    
-           then
-             let new_vcpu_id := vm_client.(client_cur_vcpu_id) in
-             let new_vm_context := 
-                 mkVM_struct new_vcpu_id (vm_context.(vcpu_num))
-                             (ZTree.set (new_vcpu_id) vcpu_regs vm_context.(vcpu_struct)) in
-             let new_vms_contexts :=
-                 ZTree.set st.(cur_entity_id) new_vm_context st.(hafnium_context).(vms_contexts) in
-             let new_st := st {cur_entity_id: hafnium_id}
-                              {hafnium_context/vms_contexts: new_vms_contexts} in 
-             trigger (SetState new_st)
-           else triggerUB "save_resg_to_vcpu_spec: inconsistency in vcpu number"
+      then (* get contexts for the currently running entity ID *)
+        do vm_userspace <- ZTree.get st.(cur_entity_id) st.(vms_userspaces) ;;;
+        do vcpu_regs <- ZTree.get vm_userspace.(userspace_cur_vcpu_index) vm_userspace.(userspace_vcpus) ;;;
+        (* get vm contexts in Hanfium to save the userspace information in it *)              
+        do vm_context <- ZTree.get st.(cur_entity_id) st.(hafnium_context).(vms_contexts) ;;;
+        if decide (vm_context.(vcpu_num) = vm_userspace.(userspace_vcpu_num)) &&
+           decide (vcpu_regs.(vm_id) = Some st.(cur_entity_id))
+        then
+          let new_vcpu_id := vm_userspace.(userspace_cur_vcpu_index) in
+          let new_vm_context := vm_context {vm_cur_vcpu_index: new_vcpu_id}
+                                           {vm_vcpus:
+                                              ZTree.set new_vcpu_id vcpu_regs vm_context.(vcpus)} in
+          let new_vms_contexts :=
+              ZTree.set st.(cur_entity_id) new_vm_context st.(hafnium_context).(vms_contexts) in
+          let new_st := st {cur_entity_id: hafnium_id}
+                           {hafnium_context/tpidr_el2: Some vcpu_regs}
+                           {hafnium_context/vms_contexts: new_vms_contexts} in 
+          trigger (SetState new_st)
+        else triggerUB "save_resg_to_vcpu_spec: inconsistency in total vcpu number"
       else triggerUB "save_resg_to_vcpu_spec: wrong cur entity id".
 
+    
     Definition save_regs_to_vcpu_call (args : list Lang.val) :=
       match args with
       | nil => save_regs_to_vcpu_spec
@@ -340,22 +345,31 @@ Section FFAMemoryHypCall.
     Definition vcpu_restore_and_run_spec  :
       itree HafniumEE (unit) := 
       st <- trigger GetState;;
+      (* find out the next vm to be scheduled *)
       let next_vm_id := scheduler st in
       (* check whether the current running entity is Hafnium *)
       if decide (st.(cur_entity_id) = hafnium_id) && in_dec zeq next_vm_id vm_ids
-      then do vm_client <- ZTree.get next_vm_id st.(vms_clients) ;;;
-           do vm_context <- ZTree.get next_vm_id st.(hafnium_context).(vms_contexts) ;;;
-           do vcpu_regs <- ZTree.get vm_context.(cur_vcpu_id) vm_context.(vcpu_struct) ;;;
-           if decide (vm_context.(vcpu_num) = vm_client.(client_vcpu_num)) &&
-              decide (vm_context.(cur_vcpu_id) = vm_client.(client_cur_vcpu_id)) 
+      then
+        (* get the userspace information *)
+        do vm_userspace <- ZTree.get next_vm_id st.(vms_userspaces) ;;;
+        (* get vm context to restore the userspace information *)
+        do vm_context <- ZTree.get next_vm_id st.(hafnium_context).(vms_contexts) ;;;
+        (* get vcpu register information *)
+        do vcpu_regs <- ZTree.get vm_context.(cur_vcpu_index) vm_context.(vcpus) ;;;
+           if decide (vm_context.(vcpu_num) = vm_userspace.(userspace_vcpu_num)) &&
+              decide (vm_context.(cur_vcpu_index) = vm_userspace.(userspace_cur_vcpu_index)) &&
+              decide (vcpu_regs.(vm_id) = Some next_vm_id)
+              (* TODO: add cpu connection check with vcpu_regs later *)
            then
-             let new_vm_client :=
-                 mkVMClinet_struct (vm_client.(client_cur_vcpu_id)) (vm_client.(client_vcpu_num))
-                                   (ZTree.set (vm_client.(client_cur_vcpu_id))
-                                              vcpu_regs (vm_client.(client_vcpu_struct))) in
-             let new_vms_clients :=
-                 ZTree.set next_vm_id new_vm_client st.(vms_clients) in
-             let new_st := st {cur_entity_id: next_vm_id} {vms_clients: new_vms_clients} in 
+             let new_vm_userspace := 
+                 vm_userspace {userspace_vcpus :
+                                 (ZTree.set (vm_userspace.(userspace_cur_vcpu_index))
+                                            vcpu_regs (vm_userspace.(userspace_vcpus)))} in
+             let new_vms_userspaces :=
+                 ZTree.set next_vm_id new_vm_userspace st.(vms_userspaces) in
+             let new_st := st {cur_entity_id: next_vm_id}
+                              {hafnium_context/tpidr_el2: None}
+                              {vms_userspaces: new_vms_userspaces} in 
              trigger (SetState new_st)
            else triggerUB "vcpu_restore_and_run__spec: inconsistency in vcpu number"
       else triggerUB "vcpu_restore_and_run__spec: wrong cur entity id".
@@ -412,9 +426,60 @@ Section FFAMemoryHypCall.
   (* Send is for three FFA ABIs, SHARE, DONATE, and LEND. *)
   Section FFAMemoryHypCallSend.
 
-    
-    
+    (* FFA_MEM_DONATE, FFA_MEM_LEND, and FFA_MEM_SHARE shares the common features. 
+       Therefore, Hafnium provides a uniform interface for that. *)
 
+    (* 
+       Chapter 11 of "https://developer.arm.com/documentation/den0077/latest" provides interfaces for 
+       those FFA ABIs
+
+       Table 11.3: FFA_MEM_DONATE function syntax 
+       Table 11.8: FFA_MEM_LEND function syntax 
+       Table 11.13: FFA_MEM_SHARE function syntax 
+
+       parameter                  register        value                  
+       uint32 Function ID         w0              0x84000071 for FFA_MEM_DONATE
+                                                  0x84000072 for FFA_MEM_LEND
+                                                  0x84000073 for FFA_MEM_SHARE
+       uint32 total length        w1              Total length of the memory transaction descriptor in
+                                                  bytes
+       uint32 Fragment length     w2              It's for more fine-grained control, but it will be 
+                                                  ignored in here (the value in w1 has to be equal to 
+                                                  be the value in w2).
+       uint32/uint64 Address      w3              Base address of a buffer allocated by the Owner and
+                                                  distinct from the TX buffer. More information is
+                                                  in 12.2.1. MBZ if the TX buffer is used.
+       uint32 Page count          w4              Number of 4K page in the buffer allocated by the 
+                                                  Owner and distinct from the TX buffer. More details
+                                                  are in 12.2.1. MBZ if the TX buffer is used
+
+     *)
+
+    
+    (* FFA_SUCCESS encoding 
+       Table 11.4, Table 11.9, Table 11.14
+
+       uint64 Handle           w2/w3            Global unique Handle to identify the memory region on 
+                                                successful transition of the transaction descriptor. 
+                                                MBZ otherwise. Details about Handle is in 5.10.2. *)
+    
+    (* FFA_ERROR encoding 
+       Table 11.5, Table 11.10, Table 11.15
+
+       uint32 Error Code        w2              INVALID_PARAMETER / DENIED / NO_MEMORY /
+                                                BUSY / ABORTED *)
+
+
+    (* 1. Check arguments
+       2. Read tpidr_el2 to find out the sender 
+       3. Read the mailbox to find out the region information.
+       4. Read receivers 
+       5. validate check
+       6. Check mem properties
+       7. Update mem properties 
+     *)
+    
+    
   End FFAMemoryHypCallSend.
 
 

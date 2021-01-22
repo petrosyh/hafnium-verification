@@ -187,6 +187,7 @@ Section FFA_TYPE_ALAISING.
 
   Definition ffa_address_t := Z.
   Definition ffa_vm_id_t := Z.
+  Definition ffa_cpu_id_t := Z.
   Definition ffa_vcpu_index_t := Z.
   Definition ffa_hafnium_id_t := Z.
   Definition ffa_memory_handle_t := Z.
@@ -194,7 +195,8 @@ Section FFA_TYPE_ALAISING.
   Definition ffa_memory_attributes_t := Z.
   Definition ffa_memory_receiver_flags_t := Z.
   Definition ffa_memory_region_flags_t := Z.
-
+  Definition ffa_mailbox_t := Type.
+  
 End FFA_TYPE_ALAISING.
 
 (*************************************************************)
@@ -845,16 +847,27 @@ Section MEM_AND_PTABLE.
   | NoAccess
   | HasAccess (owner: ffa_entity_id_t) (borrowers : list ffa_entity_id_t).
 
+  (* Indicates whether the memory is device memory or normal memory, and corresponding 
+     attributes of that page. If the page is a normal memory, the memory is shareable if the 
+     shareability flag indicates it is possible. *)
+  (* This memory attributes need to be consistent with AccessState. *)
   Inductive MemAttributes :=
   | MemAttributes_UNDEF
   | MemAttributes_DeviceMem (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_2)
   | MemAttributes_NormalMem (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_1)
                             (shareability_type: FFA_MEMORY_SHAREABILITY).
 
+  (* Check whether the page is dirty or clean. Some FFA calls clean the memory, and it is 
+     one of important behaviours that we have to observe. In this sense, we explicitly 
+     model them. *)
   Inductive MemDirty := 
   | MemClean
-  | MemWritten (writer: ffa_entity_id_t).
-      
+  | MemWritten (writer: ffa_entity_id_t). (* who has lastely written values in the address *)
+
+  (* This memory properties are key features that we may hope to guarantee in our system -
+     There are some redundant information in between them, and we may need to 
+     make invariants to guarantee well-formed relations between the following different properties 
+     (and other parts of the abstract state *)
   Record MemProperties :=
     mkMemProperties {
         (* there can be only one owner *)
@@ -866,6 +879,7 @@ Section MEM_AND_PTABLE.
         data_access_property: FFA_DATA_ACCESS_TYPE;
         (* memory attributes *)
         mem_attribute : MemAttributes;
+        (* check whether there are written contents in the memory or not *)
         mem_dirty: MemDirty;
     }.
 
@@ -912,7 +926,7 @@ Section MEM_AND_PTABLE.
 End MEM_AND_PTABLE.
 
 (*************************************************************)
-(*         VM context                                        *)
+(*         VM CONTEXT                                        *)
 (*************************************************************)
 (* This one is necessary to model context saving/restoring of FFA ABI - Related definitions are in
    1) "/inc/hf/vm.h"
@@ -920,7 +934,6 @@ End MEM_AND_PTABLE.
    2) "/src/arch/aarch64/inc/hf/arch/types.h" 
 *)
 Section FFA_VM_CONTEXT.
-
 
   (* registers in "/src/arch/aarch64/inc/hf/arch/types.h" 
   /** Type to represent the register state of a vCPU. */
@@ -966,43 +979,65 @@ Section FFA_VM_CONTEXT.
 
   Record VCPU_struct :=
     mkVCPU{
+        (* the vm that is currently associated with this vcpu*)
+        cpu_id : option ffa_cpu_id_t; (* the connect *)
+        vm_id: option ffa_vm_id_t;
         vcpu_regs: ArchRegs;
       }.     
   
   (* Simplified VM context - we assume VM only has own vcpu *)
   Record VM_struct :=
     mkVM_struct {
-        cur_vcpu_id : Z;
+        cur_vcpu_index : ffa_vcpu_index_t;
+        (* number of vcpus that are assigned into this VM *)
         vcpu_num: Z;
-        vcpu_struct : ZTree.t VCPU_struct;
-        (* all other parts are ignored at this moment *)
+        vcpus : ZTree.t VCPU_struct;
         (* ptable for each VM is defined in AddressTranslation class *)
-      }.
 
+        (* Each VM has its own mailbox. *)
+        (* IN FFA ABI handling, the actual information for the handling is in mailboxes. 
+           In this sense, we includes this informaiton in this state definition *)
+        mailbox : ffa_mailbox_t;
+        (* all other parts are ignored at this moment *)        
+      }.
+  
   Class VMContext := 
     {
     vcpu_max_num : Z;
     vcpu_num_prop (vm: VM_struct) : 0 < vm.(vcpu_num) <= vcpu_max_num;
-    cur_vcpu_id_prop (vm: VM_struct) : 0 <= vm.(cur_vcpu_id) < vm.(vcpu_num);
-    (* TODO: add more invariants *)    
+    cur_vcpu_id_prop (vm: VM_struct) : 0 <= vm.(cur_vcpu_index) < vm.(vcpu_num);
+    (* TODO: add more invariants *)
     }.
-    
+
 End FFA_VM_CONTEXT.
 
 (*************************************************************)
-(*                             VM Clients                    *)
+(*                   VM user space                           *)
 (*************************************************************)
 (* Adding several things in here is possible, but we focus on 
-   FFA-related things in this VM clinets. We are able to add
+   FFA-related things in this VM userspace modeling. We are able to add
    any other things according to our decision *)
 Section VM_CLIENTS.
 
-  Record VM_CLIENT_struct :=
-    mkVMClinet_struct {
-        client_cur_vcpu_id : Z;
-        client_vcpu_num: Z;
-        client_vcpu_struct : ZTree.t VCPU_struct;
+  Record VM_USERSPACE_struct :=
+    mkVM_USERSPACE_struct {
+        userspace_cur_vcpu_index : ffa_vcpu_index_t;
+        (* number of vcpus that are assigned into this VM *)
+        userspace_vcpu_num: Z;
+        (* vcpu does not need to be allocated into one VM in a consecutive manner. 
+           For example, when vcpu_num is 3 for this VM, and assinged vcpu ids can be 0, 3, and 5. *)
+        userspace_vcpus : ZTree.t VCPU_struct;
+        (* all other parts are ignored at this moment *)
       }.
+  
+  Class VMUserSpaceContext `{vm_context: VMContext} := 
+    {
+    userspace_vcpu_num_prop (vm_userspace: VM_USERSPACE_struct) :
+      0 < vm_userspace.(userspace_cur_vcpu_index) <= vcpu_max_num;
+    userspace_cur_vcpu_id_prop (vm_userspace: VM_USERSPACE_struct) :
+      0 <= vm_userspace.(userspace_cur_vcpu_index) < vm_userspace.(userspace_vcpu_num);
+    (* TODO: add more invariants *)
+    }.
   
 End VM_CLIENTS.
 
@@ -1010,6 +1045,12 @@ End VM_CLIENTS.
 (*         AbstractState for FFA modeling                    *)
 (*************************************************************)
 Section AbstractState.
+
+  (* It represents CPU object, but it is currently empty. *)
+  Record CPU_struct :=
+    mkCPU_struct { 
+      }.
+
   
   (* Hafnium specific values *)
   (*
@@ -1063,42 +1104,60 @@ Section AbstractState.
 
   Definition share_state_pool := ZMap.t (option FFA_memory_share_state_struct).
 
+  
   Record Hafnium_struct :=
     mkHafnium_struct {
-        mem_properties : ZTree.t MemProperties; (* key is an address *) 
-        hafnium_vm_regs : ArchRegs;
-        (* mailbox will be currently ignored at this moment 
-        hafnium_mailbox : mailbox_t; *)
+        (* For cpu information *)
+        current_cpu_id : Z;
+        cpu_num : Z;
+        cpus: ZTree.t CPU_struct;
+
+        (* Registers that we have to keep to handle FFA ABIs *)
+        (* The following register keeps the currently existing VCPU information that is 
+           associated with the current hvc_call. via that VCPU, it is possible for us to find out 
+           the sender's information for ABI calls 
+           
+           The related part in the Hafnium code is the following function in
+           "/src/arch/aarch64/hypervisor/handler.c"
+           static struct vcpu *current(void)
+           {
+                   return (struct vcpu * )read_msr(tpidr_el2);
+           }
+           *)
+        (* List of registers  will be increasing to model other behaviours
+           - e.g., the register for TLB invalidate *)
+        tpidr_el2 : option VCPU_struct;
+        
+        (* For API - FFA ABI handlings *) 
+        (* Free pages at the top level. those pages need to be used for the 
+           FFA ABI handlings. But, to simplify it (like what we have currently doing in
+           page_table, we represent it as a size of free pages. Then, we will only increase / decrease
+           the number when we allocate pages or free those pages while handling FFA ABIs *)
+        api_page_pool_size : Z;
         (* ffa_share_state is for ffa communications  *)
         ffa_share_state: share_state_pool;
-        (* vm contexts saved in hafnium *)        
+
+        fresh_index_for_ffa_share_state : Z;
+        
+        (* ptable is defined in AddressTranslation class *)
+        (* Memory attributes for key is an address *) 
+        mem_properties : ZTree.t MemProperties;
+        
+        (* vm count *)
+        vm_count : Z;
+        (* vm contexts saved in hafnium *)
+        (* VM ids are consecutively assigned. *) 
         vms_contexts :  ZTree.t VM_struct;
       }.
-
-
-  (* The following abstract state provides the global state of Hafnium.
-     It consists of two things 
-     - Objects that do not belong to any VM 
-       - Physical CPUs // ignored (since our main focus at this moment is not concurreny)
-       - Memory pool // ignored (since we can focus on 
-       - Hafnium's page table // address translation function
-     - VMs and their objects 
-       - VCPUs 
-         - saved registers  // dramatically simplified in here
-         - virtual interrupts  // ignored in here 
-         - page table 
-         - mailbox 
-   *)
-
-  (* This abstract state also contains abstract VM clients in it. *)
   
   Record AbstractState :=
     mkAbstractState{
+        (* the entity that is currently running. *)
         cur_entity_id: ffa_entity_id_t;
         (* hafnium global stage *)
         hafnium_context: Hafnium_struct;
         (* vm clinets *) 
-        vms_clients : ZTree.t VM_CLIENT_struct; 
+        vms_userspaces : ZTree.t VM_USERSPACE_struct; 
       }.
 
   Class AbstractStateContext `{hafnium_memory_management_context : HafniumMemoryManagementContext} :=
@@ -1109,6 +1168,10 @@ Section AbstractState.
     vm_ids := primary_vm_id::secondary_vm_ids; 
     entity_list : list ffa_entity_id_t := hafnium_id::vm_ids;
 
+    (* mailbox to descriptors *)
+    mailbox_to_region_struct : ffa_mailbox_t -> option FFA_memory_region_struct;
+    mailbox_to_relinqiush_struct: ffa_mailbox_t -> option FFA_mem_relinquish_struct;
+    
     (* We may be able to use some feature of interaction tree for this scheduling? *)
     scheduler : AbstractState -> ffa_entity_id_t; 
     
@@ -1117,6 +1180,8 @@ Section AbstractState.
     cur_entity_id_prop (state : AbstractState) : In state.(cur_entity_id) entity_list;
 
     initial_state : AbstractState;
+    
+    (* TODO: we need invariants about fileds, cpu_id and vm_id, in VCPU_struct *)
 
     (* TODO: add more invariants in here. *)
     well_formed (state: AbstractState) : Prop;
@@ -1142,51 +1207,175 @@ Section AbstractState.
     }.
 
   (* update hafnium context *)
-  Definition update_mem_properties_in_hafnium_context (a: Hafnium_struct) b :=
-    mkHafnium_struct b a.(hafnium_vm_regs) a.(ffa_share_state) a.(vms_contexts).
+  Definition update_current_cpu_id_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct b (a.(cpu_num)) (a.(cpus)) (a.(tpidr_el2)) (a.(api_page_pool_size))
+                     (a.(ffa_share_state))
+                     (a.(fresh_index_for_ffa_share_state))
+                     (a.(mem_properties)) (a.(vm_count)) (a.(vms_contexts)).
 
-  Definition update_vm_regs_in_hafnium_context (a: Hafnium_struct) b :=
-    mkHafnium_struct a.(mem_properties) b a.(ffa_share_state) a.(vms_contexts).
+  Definition update_cpu_num_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct (a.(current_cpu_id)) b (a.(cpus)) (a.(tpidr_el2)) (a.(api_page_pool_size))
+                     (a.(ffa_share_state))
+                     (a.(fresh_index_for_ffa_share_state))
+                     (a.(mem_properties)) (a.(vm_count)) (a.(vms_contexts)).
+
+  Definition update_cpus_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct (a.(current_cpu_id)) (a.(cpu_num)) b (a.(tpidr_el2)) (a.(api_page_pool_size))
+                     (a.(ffa_share_state))
+                     (a.(fresh_index_for_ffa_share_state))
+                     (a.(mem_properties)) (a.(vm_count)) (a.(vms_contexts)).
   
+  Definition update_tpidr_el2_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus)) b (a.(api_page_pool_size))
+                     (a.(ffa_share_state))
+                     (a.(fresh_index_for_ffa_share_state))
+                     (a.(mem_properties)) (a.(vm_count)) (a.(vms_contexts)).
+
+  Definition update_api_page_pool_size_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus)) (a.(tpidr_el2)) b
+                     (a.(ffa_share_state))
+                     (a.(fresh_index_for_ffa_share_state))
+                     (a.(mem_properties)) (a.(vm_count)) (a.(vms_contexts)).
+
   Definition update_ffa_share_state_in_hafnium_context (a: Hafnium_struct) b :=
-    mkHafnium_struct a.(mem_properties) a.(hafnium_vm_regs) b a.(vms_contexts).
+    mkHafnium_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus)) (a.(tpidr_el2))
+                     (a.(api_page_pool_size)) b
+                     (a.(fresh_index_for_ffa_share_state))
+                     (a.(mem_properties)) (a.(vm_count)) (a.(vms_contexts)).
+
+  Definition update_fresh_index_for_ffa_share_state_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus)) (a.(tpidr_el2))
+                     (a.(api_page_pool_size)) (a.(ffa_share_state)) b
+                     (a.(mem_properties)) (a.(vm_count)) (a.(vms_contexts)).
+
+  
+  Definition update_mem_properties_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus)) (a.(tpidr_el2))
+                     (a.(api_page_pool_size)) (a.(ffa_share_state))
+                     (a.(fresh_index_for_ffa_share_state))
+                     b (a.(vm_count)) (a.(vms_contexts)).
+  
+  Definition update_vm_count_in_hafnium_context (a: Hafnium_struct) b :=
+    mkHafnium_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus)) (a.(tpidr_el2))
+                     (a.(api_page_pool_size)) (a.(ffa_share_state))
+                     (a.(fresh_index_for_ffa_share_state))
+                     (a.(mem_properties)) b
+                     (a.(vms_contexts)).
 
   Definition update_vms_contexts_in_hafnium_context (a: Hafnium_struct) b :=
-    mkHafnium_struct a.(mem_properties) a.(hafnium_vm_regs) a.(ffa_share_state) b.
-
+    mkHafnium_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus)) (a.(tpidr_el2))
+                     (a.(api_page_pool_size)) (a.(ffa_share_state))
+                     (a.(fresh_index_for_ffa_share_state))
+                     (a.(mem_properties))
+                     (a.(vm_count)) b.
+  
   (* update *)
   Definition update_cur_entity_id (a : AbstractState) b :=
-    mkAbstractState b a.(hafnium_context) a.(vms_clients).
+    mkAbstractState b a.(hafnium_context) a.(vms_userspaces).
 
   Definition update_hafnium_context (a : AbstractState) b :=
-    mkAbstractState a.(cur_entity_id) b a.(vms_clients).
+    mkAbstractState a.(cur_entity_id) b a.(vms_userspaces).
 
-  Definition update_hafnium_mem_properties (a: AbstractState) b :=
-    update_hafnium_context a (update_mem_properties_in_hafnium_context a.(hafnium_context) b).
-      
-  Definition update_hafnium_vm_regs (a: AbstractState) b :=
-    update_hafnium_context a (update_vm_regs_in_hafnium_context a.(hafnium_context) b).
+  Definition update_hafnium_current_cpu_id (a: AbstractState) b :=
+    update_hafnium_context a (update_current_cpu_id_in_hafnium_context a.(hafnium_context) b).
+
+  Definition update_hafnium_cpu_num (a: AbstractState) b :=
+    update_hafnium_context a (update_cpu_num_in_hafnium_context a.(hafnium_context) b).
+
+  Definition update_hafnium_cpus (a: AbstractState) b :=
+    update_hafnium_context a (update_cpus_in_hafnium_context a.(hafnium_context) b).
+  
+  Definition update_hafnium_tpidr_el2 (a: AbstractState) b :=
+    update_hafnium_context a (update_tpidr_el2_in_hafnium_context a.(hafnium_context) b).
+
+  Definition update_hafnium_api_page_pool_size (a: AbstractState) b :=
+    update_hafnium_context a (update_api_page_pool_size_in_hafnium_context a.(hafnium_context) b).
 
   Definition update_hafnium_ffa_share_state (a: AbstractState) b :=
     update_hafnium_context a (update_ffa_share_state_in_hafnium_context a.(hafnium_context) b).
 
+  Definition update_hafnium_fresh_index_for_ffa_share_state (a: AbstractState) b :=
+    update_hafnium_context a (update_fresh_index_for_ffa_share_state_in_hafnium_context
+                                a.(hafnium_context) b).
+  
+  Definition update_hafnium_mem_properties (a: AbstractState) b :=
+    update_hafnium_context a (update_mem_properties_in_hafnium_context a.(hafnium_context) b).
+      
+  Definition update_hafnium_vm_count (a: AbstractState) b :=
+    update_hafnium_context a (update_vm_count_in_hafnium_context a.(hafnium_context) b).
+
   Definition update_hafnium_vms_contexts (a: AbstractState) b :=
     update_hafnium_context a (update_vms_contexts_in_hafnium_context a.(hafnium_context) b).
    
-  Definition update_vms_clients (a : AbstractState) b :=
+  Definition update_vms_userspaces (a : AbstractState) b :=
     mkAbstractState a.(cur_entity_id) a.(hafnium_context) b.
-    
+  
+  (* vm_context update *)
+   
+  Definition update_cur_vcpu_index_in_vm_context (a : VM_struct) b :=
+    mkVM_struct b (a.(vcpu_num)) (a.(vcpus)) (a.(mailbox)).
+
+  Definition update_vcpu_num_in_vm_context (a : VM_struct) b :=
+    mkVM_struct (a.(cur_vcpu_index)) b (a.(vcpus)) (a.(mailbox)).
+
+  Definition update_vcpus_in_vm_context (a : VM_struct) b :=
+    mkVM_struct (a.(cur_vcpu_index)) (a.(vcpu_num)) b (a.(mailbox)).
+
+  Definition update_mailbox_in_vm_context (a : VM_struct) b :=
+    mkVM_struct (a.(cur_vcpu_index)) (a.(vcpu_num)) (a.(vcpus)) b.  
+
+  (* vm_userspace update *)
+  
+  Definition update_cur_vcpu_index_in_vm_userspace (a : VM_USERSPACE_struct) b :=
+    mkVM_USERSPACE_struct b (a.(userspace_vcpu_num)) (a.(userspace_vcpus)).
+
+  Definition update_vcpu_num_in_vm_userspace (a : VM_USERSPACE_struct) b :=
+    mkVM_USERSPACE_struct (a.(userspace_cur_vcpu_index)) b (a.(userspace_vcpus)).
+
+  Definition update_vcpus_in_vm_userspace (a : VM_USERSPACE_struct) b :=
+    mkVM_USERSPACE_struct (a.(userspace_cur_vcpu_index)) (a.(userspace_vcpu_num)) b.
+
 End AbstractState.
 
 Notation "a '{' 'cur_entity_id' : b '}'" := (update_cur_entity_id a b) (at level 1).
 Notation "a '{' 'hafnium_context' : b '}'" := (update_hafnium_context a b) (at level 1).
-Notation "a '{' 'hafnium_context' '/' 'mem_properties' : b '}'"
-  := (update_hafnium_mem_properties a b) (at level 1).
-Notation "a '{' 'hafnium_context' '/' 'vm_regs' : b '}'"
-  := (update_hafnium_vm_regs a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'current_cpu_id' : b '}'"
+  := (update_hafnium_current_cpu_id a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'cpu_num' : b '}'"
+  := (update_hafnium_cpu_num a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'cpus' : b '}'"
+  := (update_hafnium_cpus a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'tpidr_el2' : b '}'"
+  := (update_hafnium_tpidr_el2 a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'api_page_pool_size' : b '}'"
+  := (update_hafnium_api_page_pool_size a b) (at level 1).
 Notation "a '{' 'hafnium_context' '/' 'ffa_share_state' : b '}'"
   := (update_hafnium_ffa_share_state a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'fresh_index_for_ffa_share_state' : b '}'"
+  := (update_hafnium_fresh_index_for_ffa_share_state a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'mem_properties' : b '}'"
+  := (update_hafnium_mem_properties a b) (at level 1).
+Notation "a '{' 'hafnium_context' '/' 'vm_count' : b '}'"
+  := (update_hafnium_vm_count a b) (at level 1).
 Notation "a '{' 'hafnium_context' '/' 'vms_contexts' : b '}'"
   := (update_hafnium_vms_contexts a b) (at level 1).
-Notation "a '{' 'vms_clients' : b '}'" := (update_vms_clients a b) (at level 1).
+Notation "a '{' 'vms_userspaces' : b '}'" := (update_vms_userspaces a b) (at level 1).
+
+
+Notation "a '{' 'vm_cur_vcpu_index' : b '}'"
+  := (update_cur_vcpu_index_in_vm_context a b) (at level 1).
+Notation "a '{' 'vm_vcpu_num' : b '}'"
+  := (update_vcpu_num_in_vm_context a b) (at level 1).
+Notation "a '{' 'vm_vcpus' : b '}'"
+  := (update_vcpus_in_vm_context a b) (at level 1).
+Notation "a '{' 'vm_mailbox' : b '}'"
+  := (update_mailbox_in_vm_context a b) (at level 1).
+
+
+Notation "a '{' 'userspace_cur_vcpu_index' : b '}'"
+  := (update_cur_vcpu_index_in_vm_userspace a b) (at level 1).
+Notation "a '{' 'userspace_vcpu_num' : b '}'"
+  := (update_vcpu_num_in_vm_userspace a b) (at level 1).
+Notation "a '{' 'userspace_vcpus' : b '}'"
+  := (update_vcpus_in_vm_userspace a b) (at level 1).
 
