@@ -70,20 +70,18 @@ Section FFA_DATATYPES.
   Definition FFA_MEM_DONATE_32 : Z := 2214592625.
   Definition FFA_MEM_LEND_32 : Z := 2214592626.
   Definition FFA_MEM_SHARE_32 : Z := 2214592627.
-  Definition FFA_MEM_RELINQUISH_32 : Z := 2214592630.
-  Definition FFA_MEM_RETRIEVE_REQ_32 : Z := 2214592631.
-  Definition FFA_MEM_RETRIEVE_RESP_32 : Z := 2214592632.
-  Definition FFA_MEM_RELINGQUISH_32 : Z := 2214592633.
-  Definition FFA_MEM_RECLAIM_32 : Z := 2214592634.
+  Definition FFA_MEM_RETRIEVE_REQ_32 : Z := 2214592628.
+  Definition FFA_MEM_RETRIEVE_RESP_32 : Z := 2214592629.
+  Definition FFA_MEM_RELINGQUISH_32 : Z := 2214592630.
+  Definition FFA_MEM_RECLAIM_32 : Z := 2214592631.
 
   Inductive FFA_FUNCTION_TYPE :=
   | FFA_MEM_DONATE
   | FFA_MEM_LEND
   | FFA_MEM_SHARE
-  | FFA_MEM_RELINQUISH
   | FFA_MEM_RETREIVE_REQ
   | FFA_MEM_RETREIVE_RESP
-  | FFA_MEM_RELINGQUISH
+  | FFA_MEM_RELINQUISH
   | FFA_MEM_RECLAIM.
 
 
@@ -117,7 +115,7 @@ Section FFA_DATATYPES.
   | FFA_INTERRUPTED
   | FFA_DENIED
   | FFA_RETRY
-  | FFA_ABORTED.
+  | FFA_ABORTED.  
   
   (* The following numbers are also defined in Chapter 7
   #define FFA_ERROR_32                 0x84000060 - Defined in Table 7.4: FFA_ERROR function syntax
@@ -260,16 +258,25 @@ Section FFA_DESCRIPTIONS.
   };
    *)
 
+  Definition init_FFA_memory_region_constituent_struct :=
+    mkFFA_memory_region_constituent_struct 0 0.
+  
   Record FFA_composite_memory_region_struct :=
     mkFFA_composite_memory_region_struct {
         FFA_composite_memory_region_struct_page_count : Z; (* length: 4 bytes / offset: 0 bytes  *)
-        FFA_composite_memory_region_struct_constituent_count : Z; (* length: 4 bytes / offset: 4 bytes  *)
+        (* we ignored this one by representing constituents one as a list
+        FFA_composite_memory_region_struct_constituent_count : Z;
+        (* length: 4 bytes / offset: 4 bytes  *)
+        *)
         (* reserved *) (* legnth: 8 bytes / offset: 8 bytes *)
         FFA_composite_memory_region_struct_constituents :
-          ZTree.t FFA_memory_region_constituent_struct
-                 (* length: 16 bytes * num of elements / offset: 16 bytes *)
+          list FFA_memory_region_constituent_struct
+               (* length: 16 bytes * num of elements / offset: 16 bytes *)
       }.
 
+  Definition init_FFA_composite_memory_region_struct := 
+    mkFFA_composite_memory_region_struct 0 nil.
+    
   (***********************************************************************)
   (*                         Memory region handle                        *) 
   (***********************************************************************)  
@@ -411,6 +418,10 @@ Section FFA_DESCRIPTIONS.
            Bit[7:1] • Reserved (MBZ). *)
         FFA_memory_access_permissions_descriptor_struct_flags: ffa_memory_receiver_flags_t;
       }.
+
+  Definition init_FFA_memory_access_permissions_descriptor_struct :=
+    mkFFA_memory_access_permissions_descriptor_struct 0 FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED
+                                                      FFA_DATA_ACCESS_NOT_SPECIFIED 0.
   
   (* Table 5.16: Endpoint memory access descriptor *)
   (*
@@ -442,7 +453,11 @@ Section FFA_DESCRIPTIONS.
         (* Reserved (MBZ) *) (* length: 8 bytes / offset: 8 bytes *)
       }.
   
-
+  Definition init_FFA_endpoint_memory_access_descriptor_struct :=
+    mkFFA_endpoint_memory_access_descriptor_struct
+      init_FFA_memory_access_permissions_descriptor_struct None.
+      
+      
   (**************************************************)
   (* 5.11.4 Memory region attributes usage          *)
   (**************************************************)
@@ -554,6 +569,9 @@ Section FFA_DESCRIPTIONS.
         FFA_memory_region_attributes_descriptor_struct_memory_type : FFA_MEMORY_TYPE;
       }.
 
+  Definition init_FFA_memory_region_attributes_descriptor_struct :=
+    mkFFA_memory_region_attributes_descriptor_struct FFA_MEMORY_NOT_SPECIFIED_MEM.
+  
  (*
   #define FFA_DATA_ACCESS_OFFSET (0x0U)
   #define FFA_DATA_ACCESS_MASK ((0x3U) << FFA_DATA_ACCESS_OFFSET)
@@ -572,7 +590,7 @@ Section FFA_DESCRIPTIONS.
   *)
 
   Definition FFA_DATA_ACCESS_OFFSET_Z :=  0.
-  Definition FFA_DATA_ACCESS_MASK_Z :=  Z.shiftl 3 FFA_DATA_ACCESS_OFFSET_Z.
+  Definition FFA_DATA_ACCESS_MASK_Z := Z.shiftl 3 FFA_DATA_ACCESS_OFFSET_Z.
 
   Definition FFA_INSTRUCTION_ACCESS_OFFSET_Z := 2.
   Definition FFA_INSTRUCTION_ACCESS_MASK_Z := Z.shiftl 3 FFA_INSTRUCTION_ACCESS_OFFSET_Z.
@@ -671,13 +689,35 @@ Section FFA_STRUCTURES_AND_AUX_FUNCTIONS.
   Record FFA_value_type :=
     mkFFA_value_type{
         (* This one is actually a value in the register, but we only use that as a FFA_IDENTIFIER_TYPE *) 
-        share_function : FFA_IDENTIFIER_TYPE;
+        ffa_type : FFA_IDENTIFIER_TYPE;
         (* TODO: do we need to make a conversion from each arg into the corresponding descriptors? *)
         vals : ZMap.t Z
       }.
-
+  
   (* default value *)
   Definition init_FFA_value_type := mkFFA_value_type FFA_IDENTIFIER_DEFAULT (ZMap.init 0).
+
+  (* Defined in "inc/hf/ffa_internal.h" *)
+  Definition ffa_error (ffa_error_code: FFA_ERROR_CODE_TYPE) : FFA_value_type :=
+    let error_z_value := 
+        match ffa_error_code with
+        | FFA_NOT_SUPPORTED => -1
+        | FFA_INVALID_PARAMETERS => -2 
+        | FFA_NO_MEMORY => -3
+        | FFA_BUSY => -4
+        | FFA_INTERRUPTED => -5
+        | FFA_DENIED => -6
+        | FFA_RETRY => -7
+        | FFA_ABORTED => -8
+        end in
+    (mkFFA_value_type (FFA_RESULT_CODE_IDENTIFIER FFA_ERROR)
+                      (ZMap.set 1 error_z_value (ZMap.init 0))). 
+
+  (* Defined in "inc/vmapi/hf/ffa.h" *)
+  Definition ffa_mem_success (handle: Z) :=
+    (mkFFA_value_type (FFA_RESULT_CODE_IDENTIFIER FFA_SUCCESS)
+                      (ZMap.set 2 (Z.land handle ((Z.shiftl 1 32) - 1)%Z)
+                                (ZMap.set 3 (Z.shiftr handle 32) (ZMap.init 0)))).
 
 End FFA_STRUCTURES_AND_AUX_FUNCTIONS.
 
@@ -737,13 +777,21 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         FFA_memory_region_struct_handle : ffa_memory_handle_t; (* length: 8 bytes / offset: 8 bytes *)
         FFA_memory_region_struct_tag : Z; (* length : 8 bytes / offset 16 bytes *)
         (* Reserved (MBZ) *) (* length: 4 bytes / offset: 24 bytes *)
-        FFA_memory_region_struct_receiver_count : Z; (* length: 4 bytes / offset: 28 bytes *)
+        (* we ignored this by representing receivers as a list
+           FFA_memory_region_struct_receiver_count : Z; (* length: 4 bytes / offset: 28 bytes *)
+         *)
         FFA_memory_region_struct_receivers :
-          ZTree.t FFA_endpoint_memory_access_descriptor_struct;
+          list FFA_endpoint_memory_access_descriptor_struct;
         (* length: FFA_memory_region_struct_receiver_count * 16 bytes / 
            offset: 32 bytes *)                             
       }.
 
+  Definition init_FFA_memory_region_struct :=
+    mkFFA_memory_region_struct 0 init_FFA_memory_region_attributes_descriptor_struct
+                               0 0 0 nil.
+                              
+  Definition FFA_memory_region_struct_size := 36%Z.
+  
   (* Table 11.25: Descriptor to relinquish a memory region
   struct ffa_mem_relinquish {
           ffa_memory_handle_t handle;
@@ -754,17 +802,21 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
    *)
 
   Record FFA_mem_relinquish_struct :=
-    {
-    FFA_mem_relinquish_struct_handle : ffa_memory_handle_t; (* length: 8 bytes / offset: 0 bytes *)
-    FFA_mem_relinquish_struct_flags : ffa_memory_region_flags_t; (* length: 3 bytes / offset: 8 bytes *)
-    FFA_mem_relinquish_struct_endpoint_count : Z; (* length: 4 bytes / offset: 12 bytes *)
-    FFA_mem_relinquish_struct_endpoints : ZTree.t ffa_vm_id_t;
-    (* length: FFA_mem_relinquish_struct_endpoint_count * 2 bytes / offset: 16 bytes *)
-    }.
+    mkFFA_mem_relinquish_struct {
+        FFA_mem_relinquish_struct_handle : ffa_memory_handle_t; (* length: 8 bytes / offset: 0 bytes *)
+        FFA_mem_relinquish_struct_flags : ffa_memory_region_flags_t;
+        (* length: 3 bytes / offset: 8 bytes *)
+        (* we ignored this one by representing endpoints as a list 
+           FFA_mem_relinquish_struct_endpoint_count : Z; (* length: 4 bytes / offset: 12 bytes *) 
+         *)
+        FFA_mem_relinquish_struct_endpoints : list ffa_vm_id_t;
+        (* length: FFA_mem_relinquish_struct_endpoint_count * 2 bytes / offset: 16 bytes *)
+      }.
 
+  Definition init_FFA_mem_relinquish_struct :=
+    mkFFA_mem_relinquish_struct 0 0 nil.
 
 End FFA_MEMORY_REGION_DESCRIPTOR.
-
 
 (*************************************************************)
 (*         State definitions                                 *)
@@ -904,6 +956,8 @@ Section MEM_AND_PTABLE.
     (* address low and high *)
     address_low : ffa_address_t;
     address_high : ffa_address_t;
+
+    MM_PPOOL_ENTRY_SIZE : Z;    
     (* alignment_value : Z; (* usually 4096 *) *)
     alignment_value : Z := 4096;
     alignment_value_non_zero_prop :
@@ -1171,6 +1225,8 @@ Section AbstractState.
     (* mailbox to descriptors *)
     mailbox_to_region_struct : ffa_mailbox_t -> option FFA_memory_region_struct;
     mailbox_to_relinqiush_struct: ffa_mailbox_t -> option FFA_mem_relinquish_struct;
+    region_struct_to_mailbox : FFA_memory_region_struct -> option ffa_mailbox_t;
+    relinqiush_struct_to_mailbox : FFA_mem_relinquish_struct -> option ffa_mailbox_t;
     
     (* We may be able to use some feature of interaction tree for this scheduling? *)
     scheduler : AbstractState -> ffa_entity_id_t; 

@@ -493,44 +493,150 @@ Section FFAMemoryHypCall.
        5. record the value in the buffer to deliver it to the receiver 
        5. return the result *)
 
-    Definition ffa_mem_send_check_arguments (st : AbstractState) : option bool := Some true.
-    Definition ffa_mem_send_check_arguments_with_memory_region_descriptor
-               (st : AbstractState) : bool := true.
-    Definition ffa_mem_send_check_memory_attributes (st : AbstractState) : option bool := Some true.
-    Definition ffa_mem_send_change_memory_attributes (st : AbstractState) :
-      option (AbstractState * bool) :=
-      Some (st, true).
-    Definition ffa_mem_send_deliver_msg_to_receivers (st : AbstractState) :
-      option (AbstractState * bool) :=
-      Some (st, true).
+
+    Definition ffa_mem_send_check_arguments_spec
+               (func_type : FFA_FUNCTION_TYPE) 
+               (length fragment_length address page_count: Z)
+    : itree HafniumEE (FFA_value_type) :=
+      match func_type with
+      | FFA_MEM_DONATE 
+      | FFA_MEM_LEND 
+      | FFA_MEM_SHARE =>
+        if decide (address = 0) || decide (page_count = 0) ||
+                  decide (length <> fragment_length) ||
+                  decide (length >  HF_MAILBOX_SIZE) ||
+                  decide (length >  MM_PPOOL_ENTRY_SIZE)
+        then Ret (ffa_error FFA_INVALID_PARAMETERS)
+        else Ret (init_FFA_value_type)
+      (* This case cannot happen if we look at the calling sequence of this spec *)
+      | _ => triggerUB "ffa_mem_send_check_arguments: wrong arguments"
+      end.
+
+    Fixpoint region_descriptor_receivers_check (sender : ffa_vm_id_t)
+             (access_descriptors: list FFA_endpoint_memory_access_descriptor_struct) :=
+      match access_descriptors with
+      | nil => true
+      | hd::tl =>
+        let receiver_id := 
+            (hd.(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor).(FFA_memory_access_permissions_descriptor_struct_receiver)) in
+        if in_dec zeq receiver_id vm_ids || decide (sender <> receiver_id)
+        then region_descriptor_receivers_check sender tl else false
+      end.
+        
+    Definition ffa_mem_send_check_memory_region_descriptor_spec (func_type : FFA_FUNCTION_TYPE)
+               (current_vm_id : Z)
+      : itree HafniumEE (FFA_value_type * FFA_memory_region_struct) :=
+      st <- trigger GetState;; 
+      (* Check mailbox and convert it into the region descriptor *)
+      do sender_vm_context <- ZTree.get current_vm_id st.(hafnium_context).(vms_contexts);;;
+      match mailbox_to_region_struct (sender_vm_context.(mailbox)) with 
+      | None => Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct)
+      | Some region_descriptor =>
+        (* Check whether we have a proper free memory *) 
+        if decide ((st.(hafnium_context).(api_page_pool_size) < FFA_memory_region_struct_size)%Z)
+        then Ret (ffa_error FFA_NO_MEMORY, init_FFA_memory_region_struct)
+        else
+          if decide (region_descriptor.(FFA_memory_region_struct_sender) <> current_vm_id) ||
+             decide ((length region_descriptor.(FFA_memory_region_struct_receivers) <> 1%nat)) ||
+             decide (region_descriptor_receivers_check
+                       current_vm_id 
+                       region_descriptor.(FFA_memory_region_struct_receivers) = false)
+          then Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct)
+          else
+            (* TODO(XXX): 
+               1. add permission check
+               2. add flag check 
+            *)
+            Ret (init_FFA_value_type, region_descriptor)
+      end.
+
+
+    (* TODO(XXX): need to fill out *)
+    Definition ffa_mem_send_change_mem_spec
+               (region_descriptor: FFA_memory_region_struct)
+      : itree HafniumEE (FFA_value_type) :=
+      triggerUB "ffa_mem_send_change_memory_attributes_spec: Not implemented yet".
     
-    Definition api_ffa_mem_send_spec  : itree HafniumEE (FFA_value_type) := 
-      st <- trigger GetState;;
-      Ret (mkFFA_value_type FFA_IDENTIFIER_DEFAULT (ZMap.init 0)).
+    (* TODO(XXX): need to fill out *)
+    Definition ffa_mem_send_deliver_msg_to_receivers
+      : itree HafniumEE (unit) :=
+      triggerUB "ffa_mem_send_change_memory_attributes_spec: Not implemented yet".
+
+    (* Note that we ignored next pointer in our modeling because it is not quite necessary.
+       - TODO: figure out the functionality of the "update_vi" function call in "hvc_handler" 
+         
+    struct ffa_value api_ffa_mem_send(uint32_t share_func, uint32_t length,
+            			  uint32_t fragment_length, ipaddr_t address,
+            			  uint32_t page_count, struct vcpu *current,
+            			  struct vcpu **next)
+                                  
+     *) 
+    Definition api_ffa_mem_send_spec (func_type:  FFA_FUNCTION_TYPE)
+               (length fragment_length address page_count current_vm_id : Z)
+      : itree HafniumEE (FFA_value_type) :=
+      argument_check_res <- ffa_mem_send_check_arguments_spec func_type length
+                                                             fragment_length address page_count ;;
+      match argument_check_res.(ffa_type) with
+      | FFA_RESULT_CODE_IDENTIFIER FFA_ERROR => Ret (argument_check_res)
+      | _ =>
+        check_result <- ffa_mem_send_check_memory_region_descriptor_spec func_type current_vm_id ;;
+        let '(descriptor_check_res, region_descriptor) := check_result in
+        match descriptor_check_res.(ffa_type) with 
+        |  FFA_RESULT_CODE_IDENTIFIER FFA_ERROR =>
+           Ret (descriptor_check_res)
+        | _ =>
+          ffa_result <- ffa_mem_send_change_mem_spec region_descriptor;;
+          ffa_mem_send_deliver_msg_to_receivers;;
+          Ret (ffa_result)
+        end
+      end.
     
+        
   End FFAMemoryHypCallSend.
 
-
+  
   Section FFAMemoryHypCallRetrieve.
+  (*
+    struct ffa_value api_ffa_mem_retrieve_req(uint32_t length,
+           				  uint32_t fragment_length,
+           				  ipaddr_t address, uint32_t page_count,
+           				  struct vcpu *current)    
+   *)
+    Definition api_ffa_mem_retrieve_req (length fragment_length address page_count current_vm_id : Z)
+      : itree HafniumEE (FFA_value_type) := 
+      triggerUB "api_ffa_mem_retrieve_req: Not implemented yet".
 
   End FFAMemoryHypCallRetrieve.
 
 
-  Section FFAMemoryHypCallRelingquish.
-
-  End FFAMemoryHypCallRelingquish.
-
+  Section FFAMemoryHypCallRelinquish.
+    (*
+    struct ffa_value api_ffa_mem_relinquish(struct vcpu *current)                              
+    *) 
+    Definition api_ffa_mem_relinquish_spec (current_vm_id : Z)
+    : itree HafniumEE (FFA_value_type) :=
+      triggerUB "api_ffa_mem_retrieve_req: Not implemented yet".
+    
+  End FFAMemoryHypCallRelinquish.
 
   Section FFAMemoryHypCallReclaim.
+    (*
+    struct ffa_value api_ffa_mem_reclaim(ffa_memory_handle_t handle,
+            			     ffa_memory_region_flags_t flags,
+            			     struct vcpu *current)    
+    *)
+    Definition api_ffa_mem_reclaim_spec (handle flags current_vm_id : Z)
+    : itree HafniumEE (FFA_value_type) :=
+      triggerUB "api_ffa_mem_retrieve_req: Not implemented yet".
 
   End FFAMemoryHypCallReclaim.
-
 
   Section FFADispatch.
   
     Definition ffa_dispatch_spec :  itree HafniumEE (unit) := 
-      st <- trigger GetState;;
       (* extract the curretnt vcpu *)
+      st <- trigger GetState;;
+      (* Get the information in tpidr_el2 register to find out the current VM to be served *)
       let vcpu_regs := st.(hafnium_context).(tpidr_el2) in
       match vcpu_regs with
       | Some vcpu_regs' =>
@@ -540,31 +646,60 @@ Section FFAMemoryHypCall.
           | mkArchRegs (mkFFA_value_type func_type vals) =>
             match func_type with
             | FFA_FUNCTION_IDENTIFIER ffa_function_type =>
+              (* Find out the result of the FFA ABI calls by using the proper handling functions *)
+              ret_ffa_value <- 
               match ffa_function_type with
               | FFA_MEM_DONATE 
               | FFA_MEM_LEND 
               | FFA_MEM_SHARE
-                (* update vm_id's context to record the result *)
-                => ret_ffa_value <- api_ffa_mem_send_spec;;
-                  do vm_context <- ZTree.get vid st.(hafnium_context).(vms_contexts);;;
-                  do vcpu_reg <- ZTree.get vm_context.(cur_vcpu_index) vm_context.(vcpus);;;
-                  let new_vcpu_reg := mkVCPU_struct (vcpu_reg.(cpu_id)) (vcpu_reg.(vm_id))
-                                                    (mkArchRegs ret_ffa_value) in
-                  let new_vm_context := 
-                      vm_context {vm_vcpus: ZTree.set (vm_context.(cur_vcpu_index))
-                                                      new_vcpu_reg 
-                                                      vm_context.(vcpus)} in
-                  let new_st := st {hafnium_context / vms_contexts:
-                                      ZTree.set vid new_vm_context
-                                                (st.(hafnium_context).(vms_contexts))} in
-                  trigger (SetState st)
-              | FFA_MEM_RELINQUISH
+                (* For the above three FFA ABI, call the following functions, and update 
+                   the VCPU value for the caller to record the result *)
+                (* 
+		*args = api_ffa_mem_send(func, args->arg1, args->arg2,
+					 ipa_init(args->arg3), args->arg4,
+					 current(), next);
+                 *)
+                => api_ffa_mem_send_spec ffa_function_type (ZMap.get 1 vals) (ZMap.get 2 vals)
+                                        (ZMap.get 3 vals) (ZMap.get 4 vals) vid
               | FFA_MEM_RETREIVE_REQ
+                (*
+		*args = api_ffa_mem_retrieve_req(args->arg1, args->arg2,
+						 ipa_init(args->arg3),
+						 args->arg4, current());
+                 *)
+                => api_ffa_mem_retrieve_req (ZMap.get 1 vals) (ZMap.get 2 vals) (ZMap.get 3 vals)
+                                           (ZMap.get 4 vals) vid
+              | FFA_MEM_RELINQUISH
+                (*
+		*args = api_ffa_mem_relinquish(current());
+                *)
+                => api_ffa_mem_relinquish_spec vid
+              | FFA_MEM_RECLAIM
+                (*
+		*args = api_ffa_mem_reclaim(
+			ffa_assemble_handle(args->arg1, args->arg2), args->arg3,
+			current());                  
+                *)
+                => api_ffa_mem_reclaim_spec (Z.lor (ZMap.get 1 vals) (Z.shiftl (ZMap.get 2 vals) 32))
+                                           (ZMap.get 3 vals) vid
               | FFA_MEM_RETREIVE_RESP
-              | FFA_MEM_RELINGQUISH
-              | FFA_MEM_RECLAIM             
-                => triggerUB "ffa_dispatch_spec: not implemented yet"
-              end
+                => triggerUB "ffa_dispatch_spec: not a proper FFA ABI function name 
+                  to be called in this level"                            
+              end;;
+              (* get the updated state after the handling *)
+              updated_st <- trigger GetState;;
+              do vm_context <- ZTree.get vid updated_st.(hafnium_context).(vms_contexts);;;
+              do vcpu_reg <- ZTree.get vm_context.(cur_vcpu_index) vm_context.(vcpus);;;
+              let new_vcpu_reg := mkVCPU_struct (vcpu_reg.(cpu_id)) (vcpu_reg.(vm_id))
+                                                (mkArchRegs ret_ffa_value) in
+              let new_vm_context := 
+                  vm_context {vm_vcpus: ZTree.set (vm_context.(cur_vcpu_index))
+                                                  new_vcpu_reg 
+                                                  vm_context.(vcpus)} in
+              let new_st := updated_st {hafnium_context / vms_contexts:
+                                  ZTree.set vid new_vm_context
+                                            (updated_st.(hafnium_context).(vms_contexts))} in
+              trigger (SetState new_st)
             | _ => triggerUB "ffa_dispatch_spec: impossible case happens"
             end
           end
@@ -582,3 +717,4 @@ Section FFAMemoryHypCall.
   End FFADispatch.
   
 End FFAMemoryHypCall.
+
