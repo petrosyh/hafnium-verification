@@ -475,8 +475,8 @@ Section FFAMemoryHypCall.
        uint32 Error Code        w2              INVALID_PARAMETER / DENIED / NO_MEMORY /
                                                 BUSY / ABORTED *)
 
-
-    (* 1. Check arguments
+    (* 
+       1. Check arguments
        2. Read tpidr_el2 to find out the sender 
        3. Read the mailbox to find out the region information.
        4. Read receivers 
@@ -485,15 +485,19 @@ Section FFAMemoryHypCall.
        7. Update mem properties 
      *)
 
-    (* It is dramatically simplified version. It does the following things. 
+    (* 
+       It is dramatically simplified version. It does the following things. 
        1. check the arguments 
        2. check the arguments with the memory_region descriptor 
-       3. check the memory attributes 
-       4. change the memory attributes
-       5. record the value in the buffer to deliver it to the receiver 
-       5. return the result *)
+          check the memory attributes 
+       3.  change the memory attributes
+       4. record the value in the buffer to deliver it to the receiver 
+       5. return the result
+     *)
 
-
+    (* check arguments
+       - Check basic arguments that are given by VMs (by registers
+     *)
     Definition ffa_mem_send_check_arguments_spec
                (func_type : FFA_FUNCTION_TYPE) 
                (length fragment_length address page_count: Z)
@@ -512,56 +516,191 @@ Section FFAMemoryHypCall.
       | _ => triggerUB "ffa_mem_send_check_arguments: wrong arguments"
       end.
 
-    Fixpoint region_descriptor_receivers_check (sender : ffa_vm_id_t)
-             (access_descriptors: list FFA_endpoint_memory_access_descriptor_struct) :=
+    Definition get_receiver (access_descriptors: list FFA_endpoint_memory_access_descriptor_struct)
+      : option FFA_endpoint_memory_access_descriptor_struct :=
       match access_descriptors with
-      | nil => true
-      | hd::tl =>
-        let receiver_id := 
-            (hd.(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor).(FFA_memory_access_permissions_descriptor_struct_receiver)) in
-        if in_dec zeq receiver_id vm_ids || decide (sender <> receiver_id)
-        then region_descriptor_receivers_check sender tl else false
+      | hd::nil => Some hd
+      | _ => None
       end.
-        
+
+    (* check the given descriptor and return some necessary values for the further process *)
+    (* Since Hafnium only uses its RX/TX buffers for memory transitions, it requires several checks 
+       by using the given descriptors recorded in RX/TX buffers. The following one also extracts 
+       several information from the descriptor. 
+     *)
     Definition ffa_mem_send_check_memory_region_descriptor_spec (func_type : FFA_FUNCTION_TYPE)
                (current_vm_id : Z)
-      : itree HafniumEE (FFA_value_type * FFA_memory_region_struct) :=
+      : itree HafniumEE (FFA_value_type * FFA_memory_region_struct *
+                         ffa_vm_id_t (* receiver *) * bool (* clear or not-clear *) *
+                         FFA_INSTRUCTION_ACCESS_TYPE * FFA_DATA_ACCESS_TYPE (* permission *)) :=
       st <- trigger GetState;; 
       (* Check mailbox and convert it into the region descriptor *)
       do sender_vm_context <- ZTree.get current_vm_id st.(hafnium_context).(vms_contexts);;;
-      match mailbox_to_region_struct (sender_vm_context.(mailbox)) with 
-      | None => Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct)
+      match mailbox_send_msg_to_region_struct (sender_vm_context.(mailbox).(send)) with 
+      | None => Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
+                    FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
       | Some region_descriptor =>
         (* Check whether we have a proper free memory *) 
         if decide ((st.(hafnium_context).(api_page_pool_size) < FFA_memory_region_struct_size)%Z)
-        then Ret (ffa_error FFA_NO_MEMORY, init_FFA_memory_region_struct)
+        then Ret (ffa_error FFA_NO_MEMORY, init_FFA_memory_region_struct, 0, false,
+                  FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
         else
           if decide (region_descriptor.(FFA_memory_region_struct_sender) <> current_vm_id) ||
-             decide ((length region_descriptor.(FFA_memory_region_struct_receivers) <> 1%nat)) ||
-             decide (region_descriptor_receivers_check
-                       current_vm_id 
-                       region_descriptor.(FFA_memory_region_struct_receivers) = false)
-          then Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct)
+             decide ((length region_descriptor.(FFA_memory_region_struct_receivers) <> 1%nat))
+          then Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
+                    FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)                    
           else
-            (* TODO(XXX): 
-               1. add permission check
-               2. add flag check 
-            *)
-            Ret (init_FFA_value_type, region_descriptor)
+            do receiver <-  get_receiver (region_descriptor.(FFA_memory_region_struct_receivers)) ;;;
+            let receiver_id := receiver.(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor).(FFA_memory_access_permissions_descriptor_struct_receiver) in
+            if in_dec zeq receiver_id vm_ids || decide (current_vm_id <> receiver_id)
+            then
+              (* check clear flags *)
+              let clear_flag := if decide ((Z.land region_descriptor.(FFA_memory_region_struct_flags)
+                                                                       FFA_MEMORY_REGION_FLAG_CLEAR_Z) <> 0)
+                                then true else false in
+              let other_flags := if decide ((Z.land region_descriptor.(FFA_memory_region_struct_flags)
+                                                                       (Z_not FFA_MEMORY_REGION_FLAG_CLEAR_Z)) <> 0)
+                                then true else false in
+              match func_type, clear_flag, other_flags with
+              | FFA_MEM_SHARE, true, _ 
+              | _, _, true =>
+                Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
+                     FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
+              | _, _, _ =>
+                (* check instruction permissions *)
+                let permissions :=
+                    receiver.(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor) in
+                let instruction_permissions :=
+                    permissions.(FFA_memory_access_permissions_descriptor_struct_permisions_instruction) in
+                let data_permissions :=
+                    permissions.(FFA_memory_access_permissions_descriptor_struct_permisions_data) in
+                match func_type, instruction_permissions, data_permissions with
+                (* valid case 
+                   - TODO(XXX): It is not actually correct... we need to update the instruction_access 
+                   in region_descriptor as FFA_INSTRUCTION_ACCESS_NX *)
+                |  FFA_MEM_SHARE,  FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED
+                   => Ret (init_FFA_value_type, region_descriptor, receiver_id, clear_flag,
+                          FFA_INSTRUCTION_ACCESS_NX, data_permissions)
+
+                |  FFA_MEM_LEND, _, FFA_DATA_ACCESS_NOT_SPECIFIED
+                |  FFA_MEM_DONATE, _, FFA_DATA_ACCESS_NOT_SPECIFIED
+                   => Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
+                          FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
+
+                (* valid case *)
+                |  FFA_MEM_DONATE, FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, _
+                   => Ret (init_FFA_value_type, region_descriptor, receiver_id, clear_flag,
+                          instruction_permissions, data_permissions)
+                (* valid case *)
+                |  FFA_MEM_LEND, FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, _
+                   => Ret (init_FFA_value_type, region_descriptor, receiver_id, clear_flag,
+                          instruction_permissions, data_permissions)
+                | _, _, _ 
+                  => Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
+                         FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
+                end
+              end
+            else Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
+                      FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
+      end.
+
+    (* update memory properties for all addresses in the region descriptor *)             
+    Fixpoint update_memory_properties_in_constituent_iter (page_count : nat) (base_address: Z) (attributes: MemProperties)
+             (state : AbstractState) : AbstractState :=
+      match page_count with
+      | O => state {hafnium_context / mem_properties:
+                     ZTree.set base_address attributes state.(hafnium_context).(mem_properties)}
+      | S n' =>
+        let state' := update_memory_properties_in_constituent_iter n' base_address attributes state in
+        state' {hafnium_context / mem_properties:
+                  ZTree.set ((base_address + (Z.of_nat (S n')) * FFA_PAGE_SIZE)%Z)
+                            attributes state.(hafnium_context).(mem_properties)}
+      end.
+                               
+                     
+    Definition update_memory_properties_in_constituent (constituent_info: FFA_memory_region_constituent_struct)
+               (properties: MemProperties) (state : AbstractState) : AbstractState :=
+      match constituent_info with
+      | mkFFA_memory_region_constituent_struct base_address page_count
+        => update_memory_properties_in_constituent_iter page_count base_address properties state
+      end.
+
+    Fixpoint update_memory_properties_in_composite_iter (constituents: list FFA_memory_region_constituent_struct)
+               (properties: MemProperties) (state : AbstractState) : AbstractState :=
+      match constituents with
+      | nil => state
+      | hd::tl =>
+        let state' := update_memory_properties_in_composite_iter tl properties state in
+        update_memory_properties_in_constituent hd properties state'
+      end.
+        
+    Definition update_memory_properties_in_composite (composite_info: FFA_composite_memory_region_struct)
+               (properties: MemProperties) (state : AbstractState) : AbstractState :=
+      match composite_info with
+      | mkFFA_composite_memory_region_struct page_count constituents =>
+        update_memory_properties_in_composite_iter constituents properties state
       end.
 
 
-    (* TODO(XXX): need to fill out *)
+    Definition find_first_constituent (constituents: list FFA_memory_region_constituent_struct) :=
+      match constituents with
+      | nil => None
+      | hd::tl => Some hd
+      end.
+    
+    (* TODO(XXX): need to modify them *)
     Definition ffa_mem_send_change_mem_spec
+               (func_type : FFA_FUNCTION_TYPE)               
                (region_descriptor: FFA_memory_region_struct)
-      : itree HafniumEE (FFA_value_type) :=
+               (receiver_id : ffa_vm_id_t)
+               (clear_flag: bool)
+               (instruction_access_type: FFA_INSTRUCTION_ACCESS_TYPE)
+               (data_access_type: FFA_DATA_ACCESS_TYPE)
+      : itree HafniumEE (Z) :=
+      (* get the mode of the base address *)
+      do receiver <- get_receiver region_descriptor.(FFA_memory_region_struct_receivers) ;;;
+      (* TODO(XXX): need to see the consistency of all addresses by checking all properties of all 
+         areas *)
+      do composite <- receiver.(FFA_memory_access_descriptor_struct_composite_memory_region_offset) ;;;
+      do first_constituent <- find_first_constituent 
+                               composite.(FFA_composite_memory_region_struct_constituents) ;;;
+      let base_address := first_constituent.(FFA_memory_region_constituent_struct_address) in 
+      st <- trigger GetState;;
+      (* find out the new mode *)      
+      do mem_property <- ZTree.get base_address st.(hafnium_context).(mem_properties) ;;;
+      match mem_property.(accessible_by) with 
+      | NoAccess => triggerUB "wrong access"
+      | HasAccess owner others =>
+        let new_mem_property := 
+            mkMemProperties (mem_property.(owned_by)) (HasAccess owner (others++receiver_id::nil))
+                            (instruction_access_type) (data_access_type) (mem_property.(mem_attribute))
+                            (if clear_flag then MemClean else mem_property.(mem_dirty)) in
+        (* update the memory state *)
+        let updated_st := update_memory_properties_in_composite composite new_mem_property st in
+        (* update the share state *)
+        let new_ffa_memory_share_state :=
+            mkFFA_memory_share_state_struct region_descriptor func_type                                 
+                                            (ZMap.set 0 (* first receiver *) false (ZMap.init true)) in
+        let cur_share_state_index := (updated_st.(hafnium_context).(fresh_index_for_ffa_share_state)) in 
+        let updated_st' :=
+            updated_st {hafnium_context / ffa_share_state :
+                          ZTree.set cur_share_state_index new_ffa_memory_share_state
+                                    (updated_st.(hafnium_context).(ffa_share_state))}
+                       {hafnium_context / fresh_index_for_ffa_share_state :
+                          (cur_share_state_index + 1)%Z} in
+        trigger (SetState updated_st');;
+        Ret (Z.lor cur_share_state_index FFA_MEMORY_HANDLE_ALLOCATOR_HYPERVISOR_Z)
+      end.
+      
+    Definition ffa_mem_send_deliver_msg_to_receivers (reciever_id handle : Z) 
+      : itree HafniumEE (unit) :=
+      st <- trigger GetState;;
+      (* record the message *)
+      (* TODO(XXX): need to modify the following parts to 
+         properly create a message and update the mailbox for retrieve *)
+      trigger (SetState st);;
       triggerUB "ffa_mem_send_change_memory_attributes_spec: Not implemented yet".
     
-    (* TODO(XXX): need to fill out *)
-    Definition ffa_mem_send_deliver_msg_to_receivers
-      : itree HafniumEE (unit) :=
-      triggerUB "ffa_mem_send_change_memory_attributes_spec: Not implemented yet".
-
     (* Note that we ignored next pointer in our modeling because it is not quite necessary.
        - TODO: figure out the functionality of the "update_vi" function call in "hvc_handler" 
          
@@ -569,8 +708,7 @@ Section FFAMemoryHypCall.
             			  uint32_t fragment_length, ipaddr_t address,
             			  uint32_t page_count, struct vcpu *current,
             			  struct vcpu **next)
-                                  
-     *) 
+     *)
     Definition api_ffa_mem_send_spec (func_type:  FFA_FUNCTION_TYPE)
                (length fragment_length address page_count current_vm_id : Z)
       : itree HafniumEE (FFA_value_type) :=
@@ -580,21 +718,21 @@ Section FFAMemoryHypCall.
       | FFA_RESULT_CODE_IDENTIFIER FFA_ERROR => Ret (argument_check_res)
       | _ =>
         check_result <- ffa_mem_send_check_memory_region_descriptor_spec func_type current_vm_id ;;
-        let '(descriptor_check_res, region_descriptor) := check_result in
+        let '(descriptor_check_res, region_descriptor, receiver_id, clear_flag,
+              instruction_access_permissions, data_access_permissions) := check_result in
         match descriptor_check_res.(ffa_type) with 
-        |  FFA_RESULT_CODE_IDENTIFIER FFA_ERROR =>
-           Ret (descriptor_check_res)
+        |  FFA_RESULT_CODE_IDENTIFIER FFA_ERROR => Ret (descriptor_check_res)
         | _ =>
-          ffa_result <- ffa_mem_send_change_mem_spec region_descriptor;;
-          ffa_mem_send_deliver_msg_to_receivers;;
-          Ret (ffa_result)
+          handle <- ffa_mem_send_change_mem_spec
+                         func_type region_descriptor receiver_id clear_flag
+                         instruction_access_permissions data_access_permissions ;;          
+          ffa_mem_send_deliver_msg_to_receivers receiver_id handle;;
+          Ret (ffa_mem_success handle)
         end
       end.
     
-        
   End FFAMemoryHypCallSend.
 
-  
   Section FFAMemoryHypCallRetrieve.
   (*
     struct ffa_value api_ffa_mem_retrieve_req(uint32_t length,

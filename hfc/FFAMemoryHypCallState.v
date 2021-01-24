@@ -46,6 +46,9 @@ Import Int64.
 Require Import Maps.
 Set Implicit Arguments.
 
+Definition Z_64MAX := ((Z.pow 2 64) - 1)%Z.
+Definition Z_not := fun val => (Z.lxor Z_64MAX val).
+
 (*************************************************************)
 (*                 FFA function keyword                      *) 
 (*************************************************************)
@@ -193,7 +196,8 @@ Section FFA_TYPE_ALAISING.
   Definition ffa_memory_attributes_t := Z.
   Definition ffa_memory_receiver_flags_t := Z.
   Definition ffa_memory_region_flags_t := Z.
-  Definition ffa_mailbox_t := Type.
+  Definition ffa_mailbox_send_msg_t := Type.
+  Definition ffa_mailbox_recv_msg_t := Type.
   
 End FFA_TYPE_ALAISING.
 
@@ -230,7 +234,8 @@ Section FFA_DESCRIPTIONS.
   Record FFA_memory_region_constituent_struct :=
     mkFFA_memory_region_constituent_struct {
         FFA_memory_region_constituent_struct_address : ffa_address_t; (* length: 8 bytes / offset: 0 bytes *)
-        FFA_memory_region_constituent_struct_page_count : Z; (* length: 4 bytes / offset: 4 bytes *)
+        (* natural number for recursion *)
+        FFA_memory_region_constituent_struct_page_count : nat; (* length: 4 bytes / offset: 4 bytes *)
         (* reserved MBZ *) (* length: 4 bytes / offset: 12 byte *) 
       }.
 
@@ -653,6 +658,8 @@ Section FFA_DESCRIPTIONS.
 
   Definition FFA_MEMORY_HANDLE_ALLOCATOR_MASK_Z := Z.shiftl 1 63.
   Definition FFA_MEMORY_HANDLE_ALLOCATOR_HYPERVISOR_Z := Z.shiftl 1 63.
+
+  Definition FFA_MEMORY_REGION_FLAG_CLEAR_Z := 1.
   
 End FFA_DESCRIPTIONS.
 
@@ -1037,7 +1044,17 @@ Section FFA_VM_CONTEXT.
         cpu_id : option ffa_cpu_id_t; (* the connect *)
         vm_id: option ffa_vm_id_t;
         vcpu_regs: ArchRegs;
-      }.     
+      }.
+
+  Record MAILBOX_struct :=
+    mkMAILBOX_struct {
+        send : ffa_mailbox_send_msg_t;
+        recv : ffa_mailbox_send_msg_t;
+        recv_sender : ffa_vm_id_t;
+        recv_size : Z;
+        recv_func : FFA_FUNCTION_TYPE;
+      }.
+                      
   
   (* Simplified VM context - we assume VM only has own vcpu *)
   Record VM_struct :=
@@ -1051,7 +1068,7 @@ Section FFA_VM_CONTEXT.
         (* Each VM has its own mailbox. *)
         (* IN FFA ABI handling, the actual information for the handling is in mailboxes. 
            In this sense, we includes this informaiton in this state definition *)
-        mailbox : ffa_mailbox_t;
+        mailbox : MAILBOX_struct;
         (* all other parts are ignored at this moment *)        
       }.
   
@@ -1153,10 +1170,10 @@ Section AbstractState.
     mkFFA_memory_share_state_struct {
         memory_region : FFA_memory_region_struct;
         share_func : FFA_FUNCTION_TYPE;
-        retrieved : ZTree.t bool;
+        retrieved : ZMap.t bool;
       }.
 
-  Definition share_state_pool := ZMap.t (option FFA_memory_share_state_struct).
+  Definition share_state_pool := ZTree.t FFA_memory_share_state_struct.
 
   
   Record Hafnium_struct :=
@@ -1223,10 +1240,19 @@ Section AbstractState.
     entity_list : list ffa_entity_id_t := hafnium_id::vm_ids;
 
     (* mailbox to descriptors *)
-    mailbox_to_region_struct : ffa_mailbox_t -> option FFA_memory_region_struct;
-    mailbox_to_relinqiush_struct: ffa_mailbox_t -> option FFA_mem_relinquish_struct;
-    region_struct_to_mailbox : FFA_memory_region_struct -> option ffa_mailbox_t;
-    relinqiush_struct_to_mailbox : FFA_mem_relinquish_struct -> option ffa_mailbox_t;
+    mailbox_send_msg_to_region_struct : ffa_mailbox_send_msg_t -> option FFA_memory_region_struct;
+    mailbox_send_msg_to_relinqiush_struct: ffa_mailbox_send_msg_t -> option FFA_mem_relinquish_struct;
+    mailbox_send_msg_to_Z : ffa_mailbox_send_msg_t -> option Z;
+    region_struct_to_mailbox_send_msg : FFA_memory_region_struct -> option ffa_mailbox_send_msg_t;
+    relinqiush_struct_to_mailbox_send_msg : FFA_mem_relinquish_struct -> option ffa_mailbox_send_msg_t;
+    Z_to_mailbox_send_msg : Z -> option ffa_mailbox_send_msg_t;
+
+    mailbox_recv_msg_to_region_struct : ffa_mailbox_recv_msg_t -> option FFA_memory_region_struct;
+    mailbox_recv_msg_to_relinqiush_struct: ffa_mailbox_recv_msg_t -> option FFA_mem_relinquish_struct;
+    mailbox_recv_msg_to_Z: ffa_mailbox_recv_msg_t -> option Z;
+    region_struct_to_mailbox_recv_msg : FFA_memory_region_struct -> option ffa_mailbox_recv_msg_t;
+    relinqiush_struct_to_mailbox_recv_msg : FFA_mem_relinquish_struct -> option ffa_mailbox_recv_msg_t;
+    Z_to_mailbox_recv_msg : Z -> option ffa_mailbox_recv_msg_t;
     
     (* We may be able to use some feature of interaction tree for this scheduling? *)
     scheduler : AbstractState -> ffa_entity_id_t; 
