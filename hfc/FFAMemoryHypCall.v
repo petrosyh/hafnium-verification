@@ -56,7 +56,9 @@ Import Int64.
 Require Import Maps.
 Set Implicit Arguments.
 
+Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
+Require Export FFAMemoryHypCallCoreStep.
 
 (*************************************************************)
 (*         Auxiliary functions                               *)
@@ -271,6 +273,373 @@ Notation " 'check' A ;;; B" := (if A then B else Ret None)
   : itree_monad_scope.
  
 Local Open Scope itree_monad_scope.
+
+
+
+(*************************************************************)
+(*             Valid Combinations                            *)
+(*************************************************************)
+Section VALID_COMBINATIONS.
+  (* This part is one of the most important parts that describe ownership and accessibility options. 
+       It is similar to "valid" check in the abstract model by Jade *)
+  
+  (* Related parts: 
+       Table 5.3: Valid combinations of ownership and access states     
+       Table 5.4: Valid combinations of ownership and access states between two components *)
+  
+  (* There are valid combinations of ownership and access states for each endpoint and 
+       between two components. 
+       
+       To directly translate them, our state definition needs to contain ownership and access 
+       states for each endpoint. However, our MemProperties is a global data structure that are 
+       shared by all endpoints. Therefore, we re-interpret table 5.3. and 5.4. to represent them 
+       with our MemProperties. For the local behaviours of each endpoint, we may be able to make a 
+       project function from the global MemProperties (when we have a valid address range) or 
+       we can add local MemProperties pool and always check consistency between that local pools
+       with the global MemProperties later *)
+
+  Definition mem_states_valid_combination
+             (a b : ffa_entity_id_t) (ownership: OwnershipState) (access: AccessState) :=
+    match ownership, access with
+    (* XXX: TODO *)
+    | _, _ => true
+    end.
+  
+End VALID_COMBINATIONS.
+
+(*************************************************************)
+(*             Core step rules                               *)
+(*************************************************************)
+(* This file contains a core transition rules of each FFA interface related to memory managements. 
+   This does not include any safety check on arguments, attributes, and descriptors or consider 
+   transitions on multiple pages. It only consider memory ownership and accessibility. *)
+
+(* Transition rules in this file are similar to those in Jade's abstract machine definition. 
+   - https://github.com/project-oak/hafnium-verification/tree/hfo2/coq-verification/src
+*)
+
+Section FFA_MEMORY_INTERFACE_CORE_STEPS.
+
+  Context `{address_translation: AddressTranslation}.
+  Context `{hafnium_memory_management_context :
+              !HafniumMemoryManagementContext (address_translation := address_translation)}.
+  Context `{vm_context : VMContext}.
+  Context `{abstract_state_context: !AbstractStateContext
+                                     (hafnium_memory_management_context
+                                        := hafnium_memory_management_context)}.
+
+  Section FFA_MEM_DONATE_CORE_STEPS.
+    
+  (* Related parts
+     - 11.1.1.2 Relayer responsibilities
+       There are two cases, but we only consider the case mentioned in 12.1.1, 
+       the case when a Borrower is a PE endpoint.
+       * Owner-NA for the Owner.
+       * !Owner-NA for the Receiver.
+     - Note that it differs from the well-defined transition in
+       Table 5.9: Donate memory transaction state machine.
+       This is due to the fact that the transition defined in "Table 5.9" is actually 
+       divided into two parts, FFA_MEM_DONATE and FFA_MEM_RETRIEVE_REQ
+
+       But, the possible initial state of two endpoints are defined in Table 5.10:
+       Owner-EA !Owner-NA
+   *)
+
+    Definition ffa_mem_donate_mem_transition_spec (lender borrower : ffa_entity_id_t) (address: Z)
+    : itree HafniumEE (unit) :=
+      st <- trigger GetState ;;
+      do mem_property <- ZTree.get address st.(hafnium_context).(mem_properties) ;;;
+      match mem_property with
+      | mkMemProperties owned_by accessible_by _ _ _ _ =>
+        match mem_states_valid_combination lender borrower owned_by accessible_by,
+              owned_by with
+        | true, Owned id => if decide (id = lender)
+                     then match accessible_by with
+                          | ExclusiveAccess id' =>
+                            if decide (id' = lender)
+                            then let new_mem_property :=
+                                     mem_property {owned_by : Owned id} {accessible_by: NoAccess} in
+                                 let new_mem_properties :=
+                                     ZTree.set address new_mem_property
+                                               st.(hafnium_context).(mem_properties) in
+                                 let new_st := st {hafnium_context / mem_properties : new_mem_properties} in
+                                 trigger (SetState new_st)
+                            else triggerUB "wrong behavior"
+                          | _ =>  triggerUB "wrong behavior"
+                          end
+                     else triggerUB "wrong behavior"
+        | _, _ => triggerUB "wrong behavior"
+        end
+      end.
+    
+  End FFA_MEM_DONATE_CORE_STEPS.
+
+  Section FFA_MEM_LEND_CORE_STEPS.
+    
+  (* Related parts
+     - 11.2.1.2 Relayer responsibilities
+       There are two cases, but we only consider the case mentioned in 12.1.1, 
+       the case when a Borrower is a PE endpoint.
+       * Owner-NA for the Owner.
+       * !Owner-NA for the Receiver.
+     - Note that it differs from the well-defined transition in
+       Table 5.10: Lend memory transaction state machine.
+       This is due to the fact that the transition defined in "Table 5.10" is actually 
+       divided into two parts, FFA_MEM_LEND and FFA_MEM_RETRIEVE_REQ
+
+       But, the possible initial state of two endpoints are defined in Table 5.10:
+       Owner-EA !Owner-NA
+   *)
+
+    Definition ffa_mem_lend_mem_transition_spec (lender borrower: ffa_entity_id_t)
+               (borrower_num: Z) (address: Z)
+    : itree HafniumEE (unit) :=
+      st <- trigger GetState ;;
+      do mem_property <- ZTree.get address st.(hafnium_context).(mem_properties) ;;;
+      match mem_property with
+      | mkMemProperties owned_by accessible_by _ _ _ _ =>
+        match mem_states_valid_combination lender borrower owned_by accessible_by,
+              owned_by with
+        | true, Owned id => if decide (id = lender)
+                     then match accessible_by with
+                          | ExclusiveAccess id' =>
+                            if decide (id' = lender)
+                            then let new_mem_property :=
+                                     mem_property {owned_by : Owned id} {accessible_by: NoAccess} in
+                                 let new_mem_properties :=
+                                     ZTree.set address new_mem_property
+                                               st.(hafnium_context).(mem_properties) in
+                                 let new_st := st {hafnium_context / mem_properties : new_mem_properties} in
+                                 trigger (SetState new_st)
+                            else triggerUB "wrong behavior"
+                          | _ =>  triggerUB "wrong behavior"
+                          end
+                     else triggerUB "wrong behavior"
+        | _, _ => triggerUB "wrong behavior"
+        end
+      end.    
+    
+  End FFA_MEM_LEND_CORE_STEPS.
+    
+  Section FFA_MEM_SHARE_CORE_STEPS.
+
+  (* Related parts
+     - 11.3.1.2 Relayer responsibilities
+       There are two cases, but we only consider the case mentioned in 12.1.1, 
+       the case when a Borrower is a PE endpoint.
+       * Owner-SA for the Owner.
+       * !Owner-NA for the Receiver.
+     - Note that it differs from the well-defined transition in
+       Table 5.11: Share memory transaction state machine.
+       This is due to the fact that the transition defined in "Table 5.11" is actually 
+       divided into two parts, FFA_MEM_SHARE and FFA_MEM_RETRIEVE_REQ 
+
+       But, the possible initial state of two endpoints are defined in Table 5.10:
+       Owner-EA !Owner-NA
+   *)
+
+    Definition ffa_mem_share_mem_transition_spec (lender borrower: ffa_entity_id_t) (address: Z)
+    : itree HafniumEE (unit) :=
+      st <- trigger GetState ;;
+      do mem_property <- ZTree.get address st.(hafnium_context).(mem_properties) ;;;
+      match mem_property with
+      | mkMemProperties owned_by accessible_by _ _ _ _ =>
+        match mem_states_valid_combination lender borrower owned_by accessible_by,
+              owned_by with
+        | true, Owned id => if decide (id = lender)
+                     then match accessible_by with
+                          | ExclusiveAccess id' =>
+                            if decide (id' = lender)
+                            then let new_mem_property :=
+                                     mem_property {owned_by : Owned id}
+                                                  {accessible_by: SharedAccess (id::nil)} in
+                                 let new_mem_properties :=
+                                     ZTree.set address new_mem_property
+                                               st.(hafnium_context).(mem_properties) in
+                                 let new_st := st {hafnium_context / mem_properties : new_mem_properties} in
+                                 trigger (SetState new_st)
+                            else triggerUB "wrong behavior"
+                          | _ =>  triggerUB "wrong behavior"
+                          end
+                     else triggerUB "wrong behavior"
+        | _, _ => triggerUB "wrong behavior"
+        end
+      end.        
+
+  End FFA_MEM_SHARE_CORE_STEPS.
+
+  Section FFA_MEM_RETRIEVE_REQ_CORE_STEP.
+
+  (* Related parts
+     - 11.4.1.2 Relayer responsibilities
+       Depending on the previous call and recipient numbers, retrieve request has 
+       different behaviors. 
+       
+       If the transaction type is FFA_MEM_DONATE,
+       – !Owner-NA for the Owner.
+       – Owner-EA for the Receiver
+   
+       If the transaction type is FFA_MEM_LEND, and the count of Borrowers in the transaction is = 1,
+       – Owner-NA for the Lender.
+       – !Owner-EA for the Borrower
+
+       If the transaction type is FFA_MEM_LEND, and the count of Borrowers in the transaction is > 1,
+       – Owner-SA for the Lender.
+       – !Owner-SA for the Borrower.
+
+       If the transaction type is FFA_MEM_SHARE,
+       – Owner-SA for the Lender.
+       – !Owner-SA for the Borrower.
+
+       - Note that it describes the second half behaviors in
+       Table 5.9: Donate memory transaction state machine.
+       Table 5.10: Lend memory transaction state machine.
+       Table 5.11: Share memory transaction state machine.
+   *)
+
+    Definition ffa_mem_donate_retrieve_request_mem_transition_spec (lender borrower: ffa_entity_id_t)
+               (address: Z)
+    : itree HafniumEE (unit) :=
+      st <- trigger GetState ;;
+      do mem_property <- ZTree.get address st.(hafnium_context).(mem_properties) ;;;
+      match mem_property with
+      | mkMemProperties owned_by accessible_by _ _ _ _ =>
+        match mem_states_valid_combination lender borrower owned_by accessible_by,
+              owned_by with
+        | true, Owned id => if decide (id = lender)
+                     then match accessible_by with
+                          | NoAccess =>
+                            let new_mem_property :=
+                                mem_property {owned_by : Owned borrower}
+                                             {accessible_by: ExclusiveAccess borrower} in
+                            let new_mem_properties :=
+                                ZTree.set address new_mem_property
+                                          st.(hafnium_context).(mem_properties) in
+                            let new_st := st {hafnium_context / mem_properties : new_mem_properties} in
+                            trigger (SetState new_st)
+                          | _ =>  triggerUB "wrong behavior"
+                          end
+                     else triggerUB "wrong behavior"
+        | _, _ => triggerUB "wrong behavior"
+        end
+      end.        
+
+    Definition ffa_mem_lend_retrieve_request_mem_transition_spec (lender borrower: ffa_entity_id_t)
+               (borrower_num : Z) (address: Z)
+    : itree HafniumEE (unit) :=
+      st <- trigger GetState ;;
+      do mem_property <- ZTree.get address st.(hafnium_context).(mem_properties) ;;;
+      match mem_property with
+      | mkMemProperties owned_by accessible_by _ _ _ _ =>
+        match mem_states_valid_combination lender borrower owned_by accessible_by,
+              owned_by with
+        | true, Owned id => let new_mem_property_op :=
+                               if decide (id = lender) && decide (borrower_num >= 1)
+                               then
+                                 match accessible_by with
+                                 | NoAccess =>
+                                   Some (mem_property {owned_by : Owned id}
+                                                      {accessible_by :
+                                                         (if decide (borrower_num > 1)
+                                                          then (SharedAccess (borrower::nil))
+                                                          else (ExclusiveAccess borrower))})
+                                 | SharedAccess borrowers =>
+                                   if decide (borrower_num > 1)
+                                   then Some (mem_property
+                                                {owned_by : Owned id}
+                                                {accessible_by : SharedAccess (borrower::borrowers)})
+                                   else None
+                                 | _ =>  None
+                                 end
+                               else None in
+                           match new_mem_property_op with
+                           | Some new_mem_property =>
+                             let new_mem_properties :=
+                                 ZTree.set address new_mem_property
+                                           st.(hafnium_context).(mem_properties) in
+                             let new_st := st {hafnium_context / mem_properties : new_mem_properties} in
+                             trigger (SetState new_st)
+                           | _ => triggerUB "wrong behavior"
+                           end
+        | _, _ => triggerUB "wrong behavior"
+        end
+      end.        
+         
+    Definition ffa_mem_share_retrieve_request_mem_transition_spec (lender borrower : ffa_entity_id_t) 
+               (address: Z)
+      : itree HafniumEE (unit) :=
+      st <- trigger GetState ;;
+      do mem_property <- ZTree.get address st.(hafnium_context).(mem_properties) ;;;
+      match mem_property with
+      | mkMemProperties owned_by accessible_by _ _ _ _ =>
+        match mem_states_valid_combination lender borrower owned_by accessible_by,
+              owned_by with
+        | true, Owned id => if decide (id = lender)
+                     then match accessible_by with
+                          | SharedAccess (id::nil) =>
+                            let new_mem_property :=
+                                mem_property {owned_by : Owned id}
+                                             {accessible_by: SharedAccess (id::borrower::nil)} in
+                            let new_mem_properties :=
+                                ZTree.set address new_mem_property
+                                          st.(hafnium_context).(mem_properties) in
+                            let new_st := st {hafnium_context / mem_properties : new_mem_properties} in
+                            trigger (SetState new_st)
+                          | _ =>  triggerUB "wrong behavior"
+                          end
+                     else triggerUB "wrong behavior"
+        | _, _ => triggerUB "wrong behavior"
+        end
+      end.
+
+  End FFA_MEM_RETRIEVE_REQ_CORE_STEP.
+
+  Section FFA_MEM_RELINGQUISH_CORE_STEPS.
+
+    Definition ffa_mem_relinquish_mem_transition_spec (lender borrower address: Z)
+    : itree HafniumEE (unit) :=
+      st <- trigger GetState ;;
+      do mem_property <- ZTree.get address st.(hafnium_context).(mem_properties) ;;;
+      match mem_property with
+      | mkMemProperties owned_by accessible_by _ _ _ _ =>
+        match owned_by with
+        | Owned id => if decide (id = lender)
+                     then
+                       let check_access := match accessible_by with
+                                           | ExclusiveAccess id' => if decide (id' = borrower)
+                                                                   then true else false
+                                           | SharedAccess (shared_vms) =>
+                                             if in_dec zeq borrower shared_vms
+                                             then if in_dec zeq id shared_vms then false else true
+                                             else false
+                                           | _ => false
+                                           end in
+                       if check_access then 
+                         let new_mem_property :=
+                                mem_property {owned_by : Owned id}
+                                             {accessible_by: ExclusiveAccess id} in
+                         let new_mem_properties :=
+                             ZTree.set address new_mem_property
+                                       st.(hafnium_context).(mem_properties) in
+                         let new_st := st {hafnium_context / mem_properties : new_mem_properties} in
+                         trigger (SetState new_st)
+                       else triggerUB "wrong behavior"
+                     else triggerUB "wrong behavior"
+        | _ => triggerUB "wrong behavior"
+        end
+      end.
+         
+  End FFA_MEM_RELINGQUISH_CORE_STEPS.
+
+  Section FFA_MEM_RECLAIM_CORE_STEPS.
+
+    
+    
+  End FFA_MEM_RECLAIM_CORE_STEPS.
+  
+End FFA_MEMORY_INTERFACE_CORE_STEPS.
+
+
 
 Section FFAMemoryHypCall.
 
@@ -669,10 +1038,9 @@ Section FFAMemoryHypCall.
       (* find out the new mode *)      
       do mem_property <- ZTree.get base_address st.(hafnium_context).(mem_properties) ;;;
       match mem_property.(accessible_by) with 
-      | NoAccess => triggerUB "wrong access"
-      | HasAccess owner others =>
+      | ExclusiveAccess owner =>
         let new_mem_property := 
-            mkMemProperties (mem_property.(owned_by)) (HasAccess owner (others++receiver_id::nil))
+            mkMemProperties (mem_property.(owned_by)) (SharedAccess (owner::receiver_id::nil))
                             (instruction_access_type) (data_access_type) (mem_property.(mem_attribute))
                             (if clear_flag then MemClean else mem_property.(mem_dirty)) in
         (* update the memory state *)
@@ -690,6 +1058,7 @@ Section FFAMemoryHypCall.
                           (cur_share_state_index + 1)%Z} in
         trigger (SetState updated_st');;
         Ret (Z.lor cur_share_state_index FFA_MEMORY_HANDLE_ALLOCATOR_HYPERVISOR_Z)
+      | _ => triggerUB "wrong access"
       end.
       
     Definition ffa_mem_send_deliver_msg_to_receivers (reciever_id handle : Z) 

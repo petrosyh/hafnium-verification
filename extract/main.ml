@@ -313,6 +313,13 @@ let rec my_rr q =
 
 let main =
   Random.self_init();
+  print_endline "-----------------------MPOOL TEST------------------------------" ;
+  print_endline "-------------------------TEST 1--------------------------------" ;
+  print_endline "------------------------LOW SPEC-------------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem1) ;
+  print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
+  run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem2) ;
+  (*
   print_endline "-------------------   MM ptable init  ------------------------" ;
   run (MemoryManagementTest.MMTEST.INITFINI.isem) ;
   print_endline "--------------------------------------------------------------" ;
@@ -325,6 +332,7 @@ let main =
   print_endline "------------------ ArchMM HIGH TEST --------------------------" ;
   run (ArchMMTest.ArchMMTEST.ARCHMMPARTIALTEST.isem2) ;
   print_endline "------------------   ArchMM TEST Passed  ---------------------" ;
+  *)
   ()
 
 let main t =
