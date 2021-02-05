@@ -56,205 +56,33 @@ Import Int64.
 Require Import Maps.
 Set Implicit Arguments.
 
+(* FFA Memory management related parts *)
+Require Import FFAMemoryHypCallIntro.
 Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
-Require Export FFAMemoryHypCallCoreStep.
+Require Export FFAMemoryHypCallAuxFunctions.
 
 (*************************************************************)
-(*         Auxiliary functions                               *)
+(** *             Hafnium State                              *)
 (*************************************************************)
-Section FFAAuxiliaryFunctions.
-  
-  (* Auxiliary functions *)
-  (*
-  static inline ffa_vm_id_t ffa_msg_send_sender(struct ffa_value args)
-         {
-	   return (args.arg1 >> 16) & 0xffff;
-         }
-   *)
+Section HAFNIUM_EE.
 
-  Definition ffa_msg_send_sender (args: FFA_value_type) : Z :=
-    Z.land (Z.shiftr (ZMap.get 1 (args.(vals))) 16) 65535.
+  Context `{ffa_types_and_constants : FFA_TYPES_AND_CONSTANTS}.
 
-
-  (*
-  static inline ffa_vm_id_t ffa_msg_send_receiver(struct ffa_value args)
-  {
-          return args.arg1 & 0xffff;
-  }
-   *)
-  Definition ffa_msg_receiver_sender (args: FFA_value_type) : Z :=
-    Z.land (ZMap.get 1 (args.(vals))) 65535.
-
-  
-  (*
-  static inline uint32_t ffa_msg_send_size(struct ffa_value args)
-  {
-          return args.arg3;
-  }
-   *)
-  Definition ffa_msg_send_size (args: FFA_value_type) : Z :=
-    ZMap.get 3 args.(vals).
-
-  (*
-  static inline uint32_t ffa_msg_send_attributes(struct ffa_value args)
-  {
-          return args.arg4;
-  }
-   *)
-  Definition ffa_msg_send_attributes (args: FFA_value_type) : Z :=
-    ZMap.get 4 args.(vals).
-
-  (*
-  static inline ffa_memory_handle_t ffa_assemble_handle(uint32_t a1, uint32_t a2)
-  {
-          return (uint64_t)a1 | (uint64_t)a2 << 32;
-  }
-   *)
-  Definition ffa_assemble_handle (a1 a2 : Z) : ffa_memory_handle_t :=
-    Z.lor a1 (Z.shiftl a2 32).
-  
-
-  (*
-  static inline ffa_memory_handle_t ffa_mem_success_handle(struct ffa_value args)
-  {
-          return ffa_assemble_handle(args.arg2, args.arg3);
-  }
-  *)
-  Definition ffa_mem_success_handle (args : FFA_value_type) : ffa_memory_handle_t :=
-    ffa_assemble_handle (ZMap.get 2 args.(vals)) (ZMap.get 3 args.(vals)).
-
-  (*
-  static inline struct ffa_value ffa_mem_success(ffa_memory_handle_t handle)
-  {
-          return (struct ffa_value){.func = FFA_SUCCESS_32,
-          			  .arg2 = (uint32_t)handle,
-          			  .arg3 = (uint32_t)(handle >> 32)};
-  }
-   *)
-
-  Definition ffa_mem_success (handle : ffa_memory_handle_t) : FFA_value_type :=
-    mkFFA_value_type (FFA_RESULT_CODE_IDENTIFIER FFA_SUCCESS)
-                     (ZMap.set 2 handle (ZMap.set 3 (Z.shiftr handle 32) (ZMap.init 0))).
-    
-
-  (*
-  static inline ffa_vm_id_t ffa_vm_id(struct ffa_value args)
-  {
-          return (args.arg1 >> 16) & 0xffff;
-  }
-   *)
-
-  Definition ffa_vm_id (args : FFA_value_type) : ffa_vm_id_t :=
-    Z.land (ZMap.get 1 (args.(vals))) 65535.
-    
-  
-  (*
-  static inline ffa_vcpu_index_t ffa_vcpu_index(struct ffa_value args)
-  {
-          return args.arg1 & 0xffff;
-  }
-   *)
-  Definition ffa_vcpu_index (args : FFA_value_type) : ffa_vcpu_index_t :=
-    Z.land (ZMap.get 1 (args.(vals))) 65535.
-    
-  (*
-  static inline uint64_t ffa_vm_vcpu(ffa_vm_id_t vm_id,
-          			   ffa_vcpu_index_t vcpu_index)
-  {
-          return ((uint32_t)vm_id << 16) | vcpu_index;
-  }
-   *)
-  Definition ffa_vm_vcpu (vm_id : ffa_vm_id_t) (vcpu_index : ffa_vcpu_index_t) : Z :=
-    Z.lor (Z.shiftl vm_id 16) vcpu_index.
-
-  (*
-  /**
-   * Clear memory region contents after unmapping it from the sender and before
-   * mapping it for any receiver.
-   */
-  #define FFA_MEMORY_REGION_FLAG_CLEAR 0x1
-   
-  /**
-   * Whether the hypervisor may time slice the memory sharing or retrieval
-   * operation.
-   */
-  #define FFA_MEMORY_REGION_FLAG_TIME_SLICE 0x2
-   
-  /**
-   * Whether the hypervisor should clear the memory region after the receiver
-   * relinquishes it or is aborted.
-   */
-  #define FFA_MEMORY_REGION_FLAG_CLEAR_RELINQUISH 0x4
-   
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_MASK ((0x3U) << 3)
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_UNSPECIFIED ((0x0U) << 3)
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_SHARE ((0x1U) << 3)
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_LEND ((0x2U) << 3)
-  #define FFA_MEMORY_REGION_TRANSACTION_TYPE_DONATE ((0x3U) << 3)
-   *)
-
-
-  Definition FFA_MEMORY_REGION_FLAG_CLEAR_Z := 1.
-  Definition FFA_MEMORY_REGION_FLAAG_TIME_SLICE_Z := 2.
-  Definition FFA_MEMORY_REGION_FLAG_CLEAR_RELINGQUISH_Z := 4.
-
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_MASK_Z := Z.shiftl 3 3.
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_UNSPECIFIED_Z := Z.shiftl 0 3.
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_SHARE_Z := Z.shiftl 1 3.
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_LEND_Z := Z.shiftl 2 3.
-  Definition FFA_MEMORY_REGION_TRANSACTION_TYPE_DONATE_Z := Z.shiftl 3 3.
-
-  (* TODO : need to do something with the following functions *) 
-  (*
-  /**
-   * Gets the `ffa_composite_memory_region` for the given receiver from an
-   * `ffa_memory_region`, or NULL if it is not valid.
-   */
-  static inline struct ffa_composite_memory_region *
-  ffa_memory_region_get_composite(struct ffa_memory_region *memory_region,
-          			uint32_t receiver_index)
-  {
-          uint32_t offset = memory_region->receivers[receiver_index]
-          			  .composite_memory_region_offset;
-   
-          if (offset == 0) {
-          	return NULL;
-          }
-   
-          return (struct ffa_composite_memory_region * )((uint8_t * )memory_region +
-          					      offset);
-  }
-   
-  static inline uint32_t ffa_mem_relinquish_init(
-          struct ffa_mem_relinquish *relinquish_request,
-          ffa_memory_handle_t handle, ffa_memory_region_flags_t flags,
-          ffa_vm_id_t sender)
-  {
-          relinquish_request->handle = handle;
-          relinquish_request->flags = flags;
-          relinquish_request->endpoint_count = 1;
-          relinquish_request->endpoints[0] = sender;
-          return sizeof(struct ffa_mem_relinquish) + sizeof(ffa_vm_id_t);
-  }
-  *)
-   
-End FFAAuxiliaryFunctions.
-
-
-Inductive updateStateE: Type -> Type :=
-| GetState : updateStateE AbstractState
-| SetState (st: AbstractState): updateStateE unit.
+  Inductive updateStateE: Type -> Type :=
+  | GetState : updateStateE AbstractState
+  | SetState (st: AbstractState): updateStateE unit.
  
-Definition updateState_handler {E: Type -> Type}
-  : updateStateE ~> stateT AbstractState (itree E) :=
-  fun _ e st =>
-    match e with
-    | GetState => Ret (st, st)
-    | SetState st' => Ret (st', tt)
-    end.
- 
-Notation HafniumEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
+  Definition updateState_handler {E: Type -> Type}
+    : updateStateE ~> stateT AbstractState (itree E) :=
+    fun _ e st =>
+      match e with
+      | GetState => Ret (st, st)
+      | SetState st' => Ret (st', tt)
+      end.
+
+End HAFNIUM_EE.
+  
  
 Notation "'do' X <- A ;;; B" := (match A with Some X => B | None => triggerUB "None" end)
   (at level 200, X ident, A at level 100, B at level 200)
@@ -274,20 +102,56 @@ Notation " 'check' A ;;; B" := (if A then B else Ret None)
  
 Local Open Scope itree_monad_scope.
 
+(** Three roles in the FFA_XXX communications, and endpoints in the communications *)
+(**
+   In all transactions, an endpoint must be a Sender or Receiver. 
+   This depends on the type of transaction as follows.
 
+   - In a transaction to donate ownership of a memory region, 
+     the Sender is the current Owner and the Receiver is the new Owner.
+   - In a transaction to lend or share access to a memory region, 
+     the Sender is the Lender and the Receiver is the Borrower.
+   - In a transaction to relinquish access to a memory region, 
+     the Sender is the Borrower and the Receiver is the Lender.
+*)
+
+(** 5.4.1 Ownership and access rules
+   - There are invariants that we have to enforce 
+   *)
 
 (*************************************************************)
-(*             Valid Combinations                            *)
+(** *             Valid Combinations                         *)
 (*************************************************************)
 Section VALID_COMBINATIONS.
-  (* This part is one of the most important parts that describe ownership and accessibility options. 
+
+  Context `{ffa_types_and_constants : FFA_TYPES_AND_CONSTANTS}.
+  
+  (** This part is one of the most important parts that describe ownership and accessibility options. 
        It is similar to "valid" check in the abstract model by Jade *)
   
-  (* Related parts: 
+  (** Related parts: 
        Table 5.3: Valid combinations of ownership and access states     
-       Table 5.4: Valid combinations of ownership and access states between two components *)
+       Table 5.4: Valid combinations of ownership and access states between two components
+
+     No.     Component  Component       Descriptions
+             A state    B state
+     1       Owner-EA   !Owner-NA       Component A has exclusive access and ownership of 
+                                        a memory region that is inaccessible from component B.
+     2       Owner-NA   !Owner-NA       Component A has granted exclusive access to 
+                                        a memory region it owns to another component. 
+                                        It is inaccessible from component B.
+     3       Owner-NA   !Owner-EA       Component A has granted exclusive access to a memory 
+                                        region it owns to component B.
+     4       Owner-NA   !Owner-SA       Component A has relinquished access to a memory 
+                                        region it owns. Access to the memory region is shared
+                                        between component B and at least one other component
+     5       Owner-SA   !Owner-NA       Component A shares access to a region of memory it owns
+                                        with another component. Component B cannot access the memory region.
+     6       Owner-SA    !Owner-SA      Component A shares access to a region of memory it
+                                        owns with component B and possibly other components.
+   *)
   
-  (* There are valid combinations of ownership and access states for each endpoint and 
+  (** There are valid combinations of ownership and access states for each endpoint and 
        between two components. 
        
        To directly translate them, our state definition needs to contain ownership and access 
@@ -299,38 +163,48 @@ Section VALID_COMBINATIONS.
        with the global MemProperties later *)
 
   Definition mem_states_valid_combination
-             (a b : ffa_entity_id_t) (ownership: OwnershipState) (access: AccessState) :=
-    match ownership, access with
-    (* XXX: TODO *)
-    | _, _ => true
-    end.
+             (a b : ffa_UUID_t) (ownership: OWNERSHIP_STATE_TYPE) (access: ACCESS_STATE_TYPE) :=
+    if decide (a <> b) 
+    then match ownership, access with
+         | Owned id, NoAccess =>
+           if decide (a = id) || decide (b = id) then true else false                                  
+         | Owned id, ExclusiveAccess id' =>
+           if decide (a = id) || decide (b = id)
+           then if decide (a = id') || decide (b = id') then true else false
+           else false
+         | Owned id, SharedAccess ids =>
+           if decide (a = id) || decide (b = id)
+           then if (in_dec zeq a ids) || (in_dec zeq b ids) then true else false
+           else false
+         | _, _ => false (* at least one component has ownerhsip *)
+         end
+    else false.
   
 End VALID_COMBINATIONS.
 
+(*
 (*************************************************************)
-(*             Core step rules                               *)
+(** *             Core step rules                            *)
 (*************************************************************)
-(* This file contains a core transition rules of each FFA interface related to memory managements. 
+(** This file contains a core transition rules of each FFA interface related to memory managements. 
    This does not include any safety check on arguments, attributes, and descriptors or consider 
    transitions on multiple pages. It only consider memory ownership and accessibility. *)
 
-(* Transition rules in this file are similar to those in Jade's abstract machine definition. 
+(** Transition rules in this file are similar to those in Jade's abstract machine definition. 
    - https://github.com/project-oak/hafnium-verification/tree/hfo2/coq-verification/src
 *)
 
 Section FFA_MEMORY_INTERFACE_CORE_STEPS.
-
-  Context `{address_translation: AddressTranslation}.
-  Context `{hafnium_memory_management_context :
-              !HafniumMemoryManagementContext (address_translation := address_translation)}.
-  Context `{vm_context : VMContext}.
-  Context `{abstract_state_context: !AbstractStateContext
-                                     (hafnium_memory_management_context
-                                        := hafnium_memory_management_context)}.
+  
+  Context `{abstract_state_context: AbstractStateContext}.
 
   Section FFA_MEM_DONATE_CORE_STEPS.
+
+    (*************************************************************)
+    (** *             FFA_MEM_DONATE                             *)
+    (*************************************************************)
     
-  (* Related parts
+    (** Related parts
      - 11.1.1.2 Relayer responsibilities
        There are two cases, but we only consider the case mentioned in 12.1.1, 
        the case when a Borrower is a PE endpoint.
@@ -343,7 +217,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
 
        But, the possible initial state of two endpoints are defined in Table 5.10:
        Owner-EA !Owner-NA
-   *)
+     *)
 
     Definition ffa_mem_donate_mem_transition_spec (lender borrower : ffa_entity_id_t) (address: Z)
     : itree HafniumEE (unit) :=
@@ -594,7 +468,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
 
   End FFA_MEM_RETRIEVE_REQ_CORE_STEP.
 
-  Section FFA_MEM_RELINGQUISH_CORE_STEPS.
+  Section FFA_MEM_RELINQUISH_CORE_STEPS.
 
     Definition ffa_mem_relinquish_mem_transition_spec (lender borrower address: Z)
     : itree HafniumEE (unit) :=
@@ -629,41 +503,38 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
         end
       end.
          
-  End FFA_MEM_RELINGQUISH_CORE_STEPS.
+  End FFA_MEM_RELINQUISH_CORE_STEPS.
 
-  Section FFA_MEM_RECLAIM_CORE_STEPS.
-
-    
-    
-  End FFA_MEM_RECLAIM_CORE_STEPS.
+  (* For FFA_MEM_RETRIEVE_RESP and FFA_MEM_RECLAIM, the memory state won't be changed. 
+     FFA_MEM_RETRIEVE_RESP is the return value of RRA_MEM_RETRIEVE_REQ, and FFA_MEM_RECLAIM 
+     is the mssage to trigger FFA_MEM_RELINQUISH. *)
   
 End FFA_MEMORY_INTERFACE_CORE_STEPS.
+ *)
 
 
-
-Section FFAMemoryHypCall.
-
-  Context `{address_translation: AddressTranslation}.
-  Context `{hafnium_memory_management_context :
-              !HafniumMemoryManagementContext (address_translation := address_translation)}.
-  Context `{vm_context : VMContext}.
-  Context `{abstract_state_context: !AbstractStateContext
-                                     (hafnium_memory_management_context
-                                        := hafnium_memory_management_context)}.
-
-  (************************************************************************)
-  (*                 Context switching related parts                      *)
-  (************************************************************************)
-  (* most parts are related to save registers in "/src/arch/aarch64/hypervisor/exceptions.S"
+(***********************************************************************)
+(** *                 Context switching related parts                  *)
+(***********************************************************************)
+Section FFAContextSwitching.
+  
+  Context `{abstract_state_context: AbstractStateContext}.
+  
+  Notation HafniumEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
+  (**
+     [JIEUNG:We referred context switchigns in Hafnium, but we believe it could be similar when 
+     we provide abstract models for different implementations]
+     
+     In Hafnium, most parts are related to save registers in "/src/arch/aarch64/hypervisor/exceptions.S"
      We dramatically simplify them by saving and restoring FFA-related register values. 
      In reality, we may need to reflect the entire register save and recovery in the file:
      "save_volatile_to_vcpu", "save_register_access", "vcpu_switch", "vcpu_restore_all_and_run",
      "vcpu_restore_lazy_and_run", "vcpu_restore_nonvolatile_and_run", and 
      "vcpu_restore_volatile_and_run" in  "/src/arch/aarch64/hypervisor/exceptions.S". 
-
+    
      In addition to that, "handle_system_register_access" in "/src/arch/aarch64/hypervisor/handler.c"
      also a function that handles register values when handling exceptions. 
-
+    
      How it works:
      When an exception occurs, it first checks the exception value in the register ("vector_table_el2" 
      in the file). Then, if the exception number is either "sync_lower_64" or "sync_lower_32", 
@@ -671,85 +542,85 @@ Section FFAMemoryHypCall.
      
      Then, "lower_sync_exception" performs context switching and calls a C handler function to
      service the exception.
-  *)  
-  Section FFAContextSwitching.
-
-    (* Save contexts *)
-    Definition save_regs_to_vcpu_spec  :
-      itree HafniumEE (unit) := 
-      st <- trigger GetState;;
-      (* check whether the current running entity is one of VMs *)
-      if decide (st.(cur_entity_id) <> hafnium_id) && in_dec zeq st.(cur_entity_id) vm_ids
-      then (* get contexts for the currently running entity ID *)
-        do vm_userspace <- ZTree.get st.(cur_entity_id) st.(vms_userspaces) ;;;
-        do vcpu_regs <- ZTree.get vm_userspace.(userspace_cur_vcpu_index) vm_userspace.(userspace_vcpus) ;;;
-        (* get vm contexts in Hanfium to save the userspace information in it *)              
-        do vm_context <- ZTree.get st.(cur_entity_id) st.(hafnium_context).(vms_contexts) ;;;
-        if decide (vm_context.(vcpu_num) = vm_userspace.(userspace_vcpu_num)) &&
-           decide (vcpu_regs.(vm_id) = Some st.(cur_entity_id))
-        then
-          let new_vcpu_id := vm_userspace.(userspace_cur_vcpu_index) in
-          let new_vm_context := vm_context {vm_cur_vcpu_index: new_vcpu_id}
-                                           {vm_vcpus:
-                                              ZTree.set new_vcpu_id vcpu_regs vm_context.(vcpus)} in
-          let new_vms_contexts :=
-              ZTree.set st.(cur_entity_id) new_vm_context st.(hafnium_context).(vms_contexts) in
-          let new_st := st {cur_entity_id: hafnium_id}
-                           {hafnium_context/tpidr_el2: Some vcpu_regs}
-                           {hafnium_context/vms_contexts: new_vms_contexts} in 
-          trigger (SetState new_st)
-        else triggerUB "save_resg_to_vcpu_spec: inconsistency in total vcpu number"
-      else triggerUB "save_resg_to_vcpu_spec: wrong cur entity id".
-
-    
-    Definition save_regs_to_vcpu_call (args : list Lang.val) :=
-      match args with
-      | nil => save_regs_to_vcpu_spec
-      | _ => triggerUB "save_regs_to_vcpu_call: wrong arguments"
-      end.
-
-    (* Restore contexts and run.
-       It also contains choosing the next vm to run by using an abstract scheduler  
-     *)
-    Definition vcpu_restore_and_run_spec  :
-      itree HafniumEE (unit) := 
-      st <- trigger GetState;;
-      (* find out the next vm to be scheduled *)
-      let next_vm_id := scheduler st in
-      (* check whether the current running entity is Hafnium *)
-      if decide (st.(cur_entity_id) = hafnium_id) && in_dec zeq next_vm_id vm_ids
+   *)
+  (** Save contexts *)    
+  Definition save_regs_to_vcpu_spec  :
+    itree HafniumEE (unit) := 
+    st <- trigger GetState;;
+    (* check whether the current running entity is one of VMs *)
+    if decide (st.(cur_entity_id) <> hafnium_id) && in_dec zeq st.(cur_entity_id) vm_ids
+    then (* get contexts for the currently running entity ID *)
+      do vm_userspace <- ZTree.get st.(cur_entity_id) st.(vms_userspaces) ;;;
+      do vcpu_regs <- ZTree.get vm_userspace.(userspace_cur_vcpu_index) vm_userspace.(userspace_vcpus) ;;;
+      (* get vm contexts in Hanfium to save the userspace information in it *)              
+      do vm_context <- ZTree.get st.(cur_entity_id) st.(hafnium_context).(vms_contexts) ;;;
+      if decide (vm_context.(vcpu_num) = vm_userspace.(userspace_vcpu_num)) &&
+         decide (vcpu_regs.(vm_id) = Some st.(cur_entity_id))
       then
-        (* get the userspace information *)
-        do vm_userspace <- ZTree.get next_vm_id st.(vms_userspaces) ;;;
-        (* get vm context to restore the userspace information *)
-        do vm_context <- ZTree.get next_vm_id st.(hafnium_context).(vms_contexts) ;;;
-        (* get vcpu register information *)
-        do vcpu_regs <- ZTree.get vm_context.(cur_vcpu_index) vm_context.(vcpus) ;;;
-           if decide (vm_context.(vcpu_num) = vm_userspace.(userspace_vcpu_num)) &&
-              decide (vm_context.(cur_vcpu_index) = vm_userspace.(userspace_cur_vcpu_index)) &&
-              decide (vcpu_regs.(vm_id) = Some next_vm_id)
-              (* TODO: add cpu connection check with vcpu_regs later *)
-           then
-             let new_vm_userspace := 
-                 vm_userspace {userspace_vcpus :
-                                 (ZTree.set (vm_userspace.(userspace_cur_vcpu_index))
-                                            vcpu_regs (vm_userspace.(userspace_vcpus)))} in
-             let new_vms_userspaces :=
-                 ZTree.set next_vm_id new_vm_userspace st.(vms_userspaces) in
-             let new_st := st {cur_entity_id: next_vm_id}
-                              {hafnium_context/tpidr_el2: None}
-                              {vms_userspaces: new_vms_userspaces} in 
-             trigger (SetState new_st)
-           else triggerUB "vcpu_restore_and_run__spec: inconsistency in vcpu number"
-      else triggerUB "vcpu_restore_and_run__spec: wrong cur entity id".
+        let new_vcpu_id := vm_userspace.(userspace_cur_vcpu_index) in
+        let new_vm_context := vm_context {vm_cur_vcpu_index: new_vcpu_id}
+                                         {vm_vcpus:
+                                            ZTree.set new_vcpu_id vcpu_regs vm_context.(vcpus)} in
+        let new_vms_contexts :=
+            ZTree.set st.(cur_entity_id) new_vm_context st.(hafnium_context).(vms_contexts) in
+        let new_st := st {cur_entity_id: hafnium_id}
+                         {hafnium_context/tpidr_el2: Some vcpu_regs}
+                         {hafnium_context/vms_contexts: new_vms_contexts} in 
+        trigger (SetState new_st)
+      else triggerUB "save_resg_to_vcpu_spec: inconsistency in total vcpu number"
+    else triggerUB "save_resg_to_vcpu_spec: wrong cur entity id".
+  
+  Definition save_regs_to_vcpu_call (args : list Lang.val) :=
+    match args with
+    | nil => save_regs_to_vcpu_spec
+    | _ => triggerUB "save_regs_to_vcpu_call: wrong arguments"
+    end.
+  
+  (** Restore contexts and run.
+     It also contains choosing the next vm to run by using an abstract scheduler  
+   *)
+  Definition vcpu_restore_and_run_spec  :
+    itree HafniumEE (unit) := 
+    st <- trigger GetState;;
+    (** find out the next vm to be scheduled *)
+    let next_vm_id := scheduler st in
+    (** check whether the current running entity is Hafnium *)
+    if decide (st.(cur_entity_id) = hafnium_id) && in_dec zeq next_vm_id vm_ids
+    then
+      (** get the userspace information *)
+      do vm_userspace <- ZTree.get next_vm_id st.(vms_userspaces) ;;;
+      (** get vm context to restore the userspace information *)
+      do vm_context <- ZTree.get next_vm_id st.(hafnium_context).(vms_contexts) ;;;
+      (** get vcpu register information *)
+      do vcpu_regs <- ZTree.get vm_context.(cur_vcpu_index) vm_context.(vcpus) ;;;
+         if decide (vm_context.(vcpu_num) = vm_userspace.(userspace_vcpu_num)) &&
+            decide (vm_context.(cur_vcpu_index) = vm_userspace.(userspace_cur_vcpu_index)) &&
+            decide (vcpu_regs.(vm_id) = Some next_vm_id)
+            (* TODO: add cpu connection check with vcpu_regs later *)
+         then
+           let new_vm_userspace := 
+               vm_userspace {userspace_vcpus :
+                               (ZTree.set (vm_userspace.(userspace_cur_vcpu_index))
+                                          vcpu_regs (vm_userspace.(userspace_vcpus)))} in
+           let new_vms_userspaces :=
+               ZTree.set next_vm_id new_vm_userspace st.(vms_userspaces) in
+           let new_st := st {cur_entity_id: next_vm_id}
+                            {hafnium_context/tpidr_el2: None}
+                            {vms_userspaces: new_vms_userspaces} in 
+           trigger (SetState new_st)
+         else triggerUB "vcpu_restore_and_run__spec: inconsistency in vcpu number"
+    else triggerUB "vcpu_restore_and_run__spec: wrong cur entity id".
+  
+  Definition vcpu_restore_and_run_call (args : list Lang.val) :=
+    match args with
+    | nil => vcpu_restore_and_run_spec
+    | _ => triggerUB "vcpu_restore_and_run_call: wrong arguments"
+    end.
+  
+End FFAContextSwitching.
 
-    Definition vcpu_restore_and_run_call (args : list Lang.val) :=
-      match args with
-      | nil => vcpu_restore_and_run_spec
-      | _ => triggerUB "vcpu_restore_and_run_call: wrong arguments"
-      end.
-    
-  End FFAContextSwitching.
+
+(*
 
   (************************************************************************)
   (*                 FFA ABI for memory management                        *)
@@ -1223,5 +1094,6 @@ Section FFAMemoryHypCall.
   
   End FFADispatch.
   
-End FFAMemoryHypCall.
+*)
+
 
