@@ -180,6 +180,23 @@ Section MEM_AND_PTABLE.
         mem_attribute : MEM_ATTRIBUTES_TYPE;
       }.
 
+  Definition gen_borrow_mem_local_properties (lender : ffa_UUID_t) (iap : FFA_INSTRUCTION_ACCESS_TYPE)
+             (dap : FFA_DATA_ACCESS_TYPE) (attr: MEM_ATTRIBUTES_TYPE) :=
+    mkMemLocalProperties (LocalBorrowed lender) iap dap attr.
+  
+  Definition gen_borrow_mem_local_properties_wrapper (lender : ffa_UUID_t) (local_props: MemLocalProperties) :=
+    gen_borrow_mem_local_properties lender (local_props.(instruction_access_property))
+                                    (local_props.(data_access_property)) (local_props.(mem_attribute)).
+  
+  Definition own_mem_local_properties (iap : FFA_INSTRUCTION_ACCESS_TYPE)
+             (dap : FFA_DATA_ACCESS_TYPE) (attr: MEM_ATTRIBUTES_TYPE) :=
+    mkMemLocalProperties LocalOwned iap dap attr.
+
+  Definition gen_own_mem_local_properties_wrapper (local_props: MemLocalProperties) :=
+     own_mem_local_properties (local_props.(instruction_access_property))
+                              (local_props.(data_access_property)) (local_props.(mem_attribute)).
+
+ 
   (** key is an address of memory *)
   Definition mem_local_properties_pool := ZTree.t MemLocalProperties.
   (** key is a entity id of the system *)  
@@ -532,17 +549,17 @@ Section AbstractStateContext.
 
     (** mailbox to/from descriptors *)
     mailbox_send_msg_to_region_struct : ffa_mailbox_send_msg_t -> option FFA_memory_region_struct;
-    mailbox_send_msg_to_relinqiush_struct: ffa_mailbox_send_msg_t -> option FFA_mem_relinquish_struct;
+    mailbox_send_msg_to_relinqiush_struct: ffa_mailbox_send_msg_t -> option FFA_memory_relinquish_struct;
     mailbox_send_msg_to_Z : ffa_mailbox_send_msg_t -> option Z;
     region_struct_to_mailbox_send_msg : FFA_memory_region_struct -> option ffa_mailbox_send_msg_t;
-    relinqiush_struct_to_mailbox_send_msg : FFA_mem_relinquish_struct -> option ffa_mailbox_send_msg_t;
+    relinqiush_struct_to_mailbox_send_msg : FFA_memory_relinquish_struct -> option ffa_mailbox_send_msg_t;
     Z_to_mailbox_send_msg : Z -> option ffa_mailbox_send_msg_t;
 
     mailbox_recv_msg_to_region_struct : ffa_mailbox_recv_msg_t -> option FFA_memory_region_struct;
-    mailbox_recv_msg_to_relinqiush_struct: ffa_mailbox_recv_msg_t -> option FFA_mem_relinquish_struct;
+    mailbox_recv_msg_to_relinqiush_struct: ffa_mailbox_recv_msg_t -> option FFA_memory_relinquish_struct;
     mailbox_recv_msg_to_Z: ffa_mailbox_recv_msg_t -> option Z;
     region_struct_to_mailbox_recv_msg : FFA_memory_region_struct -> option ffa_mailbox_recv_msg_t;
-    relinqiush_struct_to_mailbox_recv_msg : FFA_mem_relinquish_struct -> option ffa_mailbox_recv_msg_t;
+    relinqiush_struct_to_mailbox_recv_msg : FFA_memory_relinquish_struct -> option ffa_mailbox_recv_msg_t;
     Z_to_mailbox_recv_msg : Z -> option ffa_mailbox_recv_msg_t;
     
     (** We may be able to use some feature of interaction tree for this scheduling? *)

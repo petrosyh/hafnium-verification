@@ -533,13 +533,20 @@ Section FFA_DESCRIPTIONS.
         FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor :
           FFA_memory_access_permissions_descriptor_struct; (** length: 4 bytes / offset: 0 bytes *)
 
+        (* TODO: the following things are somewhat vauge for me how to use them. 
+           If it points one constituent in the list of constituents, will it use only one constituent? 
+           Or, can we provide a length that represents the number of constituents that we hope to use? *)
         (**
            NOTE: In Hafnium and FF-A document, the following field is defined as an offset 
            to point out the memory region that contains "FFA_composite_memory_region". 
            Instead of following them, we explicitly map "FFA_composite_memory_region_struct" 
            in here with option type to handle the case when offset points out NULL *)
-        FFA_memory_access_descriptor_struct_composite_memory_region_offset :
+        FFA_memory_access_descriptor_struct_composite_memory_region_struct :
           option FFA_composite_memory_region_struct;
+        (** It indicates one of constituents inside the composite_memory_region_struct to 
+            retrieve specific memory region *)
+        FFA_memory_access_descriptor_struct_composite_memory_region_offset : nat;
+        
         (** memory region struct is created and destroyed when hypervisor starts/finishes 
             their handling. Instead of merging it into  *)
         (** NOTE: the original size of the above offset value is as follows *)
@@ -549,8 +556,21 @@ Section FFA_DESCRIPTIONS.
   
   Definition init_FFA_endpoint_memory_access_descriptor_struct :=
     mkFFA_endpoint_memory_access_descriptor_struct
-      init_FFA_memory_access_permissions_descriptor_struct None.
+      init_FFA_memory_access_permissions_descriptor_struct None 0.
 
+
+  Definition well_formed_FFA_endpoint_memory_access_descriptor_struct
+             (descriptor : FFA_endpoint_memory_access_descriptor_struct) :=
+    match descriptor.(FFA_memory_access_descriptor_struct_composite_memory_region_struct) with
+    | None => if decide (descriptor.(FFA_memory_access_descriptor_struct_composite_memory_region_offset) = 0%nat)
+             then true else false
+    | Some composite =>
+      if decide ((length (composite.(FFA_composite_memory_region_struct_constituents)) >=
+                 descriptor.(FFA_memory_access_descriptor_struct_composite_memory_region_offset))%nat)
+      then well_formed_FFA_composite_memory_region_struct composite
+      else false
+    end.
+  
   (*****************************************************)
   (** * 5.11.2 Data access permissions usage           *)
   (*****************************************************)
@@ -1069,7 +1089,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
               - b’1: Relayer must zero the memory region contents.
             * MBZ in an invocation of FFA_MEM_SHARE, else the Relayer must return INVALID_PARAMETERS.
             * MBZ if the Owner has Read-only access to the memory region , else the Relayer must return DENIED. *)
-        zero_memory_flag_in_FFA_mem_default_flags_struct: bool;
+        FFA_mem_default_flags_struct_zero_memory_flag: bool;
         (** Bit[1]
             Operation time slicing flag.
             * In an invocation of FFA_MEM_DONATE, FFA_MEM_LEND or
@@ -1079,7 +1099,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
             *  MBZ if the Relayer does not support time slicing of memory management
               operations (see 12.2.3 Time slicing of memory management operations), else the
               Relayer must return INVALID_PARAMETERS. *)
-        operation_time_slicing_flag_in_FFA_mem_default_flags_struct: bool;
+        FFA_mem_default_flags_struct_operation_time_slicing_flag: bool;
         (** Bit[31:2] - Reserved (MBZ). *)
       }.
   
@@ -1110,7 +1130,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
             – MBZ if the Receiver has previously retrieved this memory region, else the Relayer
               must return INVALID_PARAMETERS (see 11.4.2 Support for multiple retrievals by
               a Borrower). *)
-        zero_memory_before_retrieval_flag_in_FFA_mem_relinquish_req_flags_struct: bool;
+        FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag: bool;
         (** Bit[1]
             Operation time slicing flag.
             – In an invocation of FFA_MEM_RETRIEVE_REQ, this flag specifies if the Relayer can time slice this operation.
@@ -1119,7 +1139,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
             – MBZ if the Relayer does not support time slicing of memory management
               operations (see 12.2.3 Time slicing of memory management operations), else the
               Relayer must return INVALID_PARAMETERS. *)
-        operation_time_slicing_flag_in_FFA_mem_relinquish_req_flags_struct: bool;
+        FFA_mem_relinquish_req_flags_struct_operation_time_slicing_flag: bool;
         (** Bit[2]
             Zero memory after relinquish flag.
             – In an invocation of FFA_MEM_RETRIEVE_REQ, this flag specifies whether the Relayer must zero the memory 
@@ -1134,7 +1154,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
               The Receiver could be a PE endpoint or a dependent peripheral device.
             – MBZ in a transaction to share a memory region, else the Relayer must return
               INVALID_PARAMETER. *)
-        zero_memory_after_retrieval_flag_in_FFA_mem_relinquish_req_flags_struct: bool;
+        FFA_mem_relinquish_req_flags_struct_zero_memory_after_retrieval_flag: bool;
         (**  Bit[4:3]
              Memory management transaction type flag.
              – In an invocation of FFA_MEM_RETRIEVE_REQ, this flag is used by the Receiver
@@ -1148,7 +1168,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
              – Relayer must return INVALID_PARAMETERS if the transaction type specified by the
                Receiver is not the same as that specified by the Sender for the memory region
                identified by the Handle value specified in the transaction descriptor. *)
-        memory_management_transaction_type_flag_in_FFA_mem_relinquish_req_flags_struct:
+        FFA_mem_relinquish_req_flags_struct_memory_management_transaction_type_flag:
           FFA_memory_management_transaction_type;
         (** Bit[9:5]
             Address range alignment hint.
@@ -1166,7 +1186,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
             – Relayer must return DENIED if it is not possible to allocate the address ranges at the
               alignment boundary specified by the Receiver.
             – Relayer must return INVALID_PARAMETERS if a reserved value is specified by the Receiver. *)
-        address_range_alignment_hint_in_FFA_mem_relinquish_req_flags_struct: (bool (** Bit[9] *) * Z (** Bit[8:5] *) )%type;
+        FFA_mem_relinquish_req_flags_struct_address_range_alignment_hint: (bool (** Bit[9] *) * Z (** Bit[8:5] *) )%type;
         (** Bit[31:10] - Reserved (MBZ) *)
       }.
 
@@ -1326,7 +1346,23 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
   Definition init_FFA_memory_region_struct :=
     mkFFA_memory_region_struct 0 init_FFA_memory_region_attributes_descriptor_struct
                                MEMORY_REGION_FLAG_DEFAULT 0 init_ffa_memory_region_tag nil.
-                              
+
+
+  Fixpoint well_formed_FFA_memory_region_struct_receivers
+           (access_descriptors: list FFA_endpoint_memory_access_descriptor_struct) :=
+    match access_descriptors with
+    | nil => true
+    | hd::tl => well_formed_FFA_endpoint_memory_access_descriptor_struct hd &&
+              well_formed_FFA_memory_region_struct_receivers tl
+    end.
+  
+  (* TODO: need more constraints in here *)
+  Definition well_formed_FFA_memory_region_struct
+             (memory_region : FFA_memory_region_struct) :=
+    well_formed_FFA_memory_region_struct_receivers (memory_region.(FFA_memory_region_struct_receivers)).
+    
+
+  (** The following value is a struct size of C, but it may not need in this high-level modeling *)
   Definition FFA_memory_region_struct_size := 36%Z.
 
   (*************************************************************************)
@@ -1463,20 +1499,47 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
   };
    *)
 
-  Record FFA_mem_relinquish_struct :=
-    mkFFA_mem_relinquish_struct {
-        FFA_mem_relinquish_struct_handle : ffa_memory_handle_t; (** length: 8 bytes / offset: 0 bytes *)
-        FFA_mem_relinquish_struct_flags : ffa_memory_region_flags_t;
+  Record FFA_memory_relinquish_struct :=
+    mkFFA_memory_relinquish_struct {
+        (** Globally unique Handle to identify a memory region. *)
+        FFA_memory_relinquish_struct_handle : ffa_memory_handle_t; (** length: 8 bytes / offset: 0 bytes *)
+        (** Bit[0]: Zero memory after relinquish flag.
+            – This flag specifies if the Relayer must clear memory region contents after unmapping it
+              from from the translation regime of the Borrower.
+              * b’0: Relayer must not zero the memory region contents.
+              * b’1: Relayer must zero the memory region contents.
+            – If the memory region was lent to multiple Borrowers, the Relayer must clear memory
+              region contents after unmapping it from the translation regime of each Borrower, if any
+              Borrower including the caller sets this flag.
+            – MBZ if the memory region was shared, else the Relayer must return INVALID_PARAMETERS.
+            – MBZ if the Borrower has Read-only access to the memory region, else the Relayer must return DENIED.
+            – Relayer must fulfill memory zeroing requirements listed in 5.12.4 Flags usage.
+
+            Bit[1]: Operation time slicing flag.
+            – This flag specifies if the Relayer can time slice this operation.
+              * b’0: Relayer must not time slice this operation.
+              * b’1: Relayer can time slice this operation.
+            - MBZ if the Relayer does not support time slicing of memory management operations
+            (see 12.2.3 Time slicing of memory management operations). 
+
+            Bit[31:2]: Reserved (MBZ). *)
+        FFA_memory_relinquish_struct_flags : ffa_memory_region_flags_t;
         (** length: 3 bytes / offset: 8 bytes *)
+        (** Count of endpoints. *)
         (** we ignored this one by representing endpoints as a list 
            FFA_mem_relinquish_struct_endpoint_count : Z; (* length: 4 bytes / offset: 12 bytes *) 
          *)
-        FFA_mem_relinquish_struct_endpoints : list ffa_UUID_t;
+        (** Array of endpoint IDs. Each entry contains a 16-bit ID. *)
+        FFA_memory_relinquish_struct_endpoints : list ffa_UUID_t;
         (** length: FFA_mem_relinquish_struct_endpoint_count * 2 bytes / offset: 16 bytes *)
       }.
 
   Definition init_FFA_mem_relinquish_struct :=
-    mkFFA_mem_relinquish_struct 0 MEMORY_REGION_FLAG_DEFAULT nil.
+    mkFFA_memory_relinquish_struct 0 MEMORY_REGION_FLAG_DEFAULT nil.
 
+  (* TODO: need more constraints in here *)
+  Definition well_formed_FFA_memory_relinquish_struct
+             (memory_region : FFA_memory_relinquish_struct) := true.
+  
 End FFA_MEMORY_REGION_DESCRIPTOR.
 
