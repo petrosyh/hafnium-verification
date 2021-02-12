@@ -1,18 +1,3 @@
-(*
- * Copyright 2020 Jieung Kim (jieungkim@google.com)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *)
 From Coq Require Import
      Arith.PeanoNat
      Lists.List
@@ -55,7 +40,6 @@ Require Import Constant.
 Require Import Decision.
 
 (* FFA Memory management related parts *)
-Require Export FFAMemoryHypCall.
 Require Import FFAMemoryHypCallIntro.
 
 Import LangNotations.
@@ -67,18 +51,8 @@ Import Int64.
 Require Import Maps.
 Set Implicit Arguments.
 
-
 Definition Z_64MAX := ((Z.pow 2 64) - 1)%Z.
 Definition Z_not := fun val => (Z.lxor Z_64MAX val).
-
-(*************************************************************)
-(** *                 FFA Descriptor                         *) 
-(*************************************************************)
-
-(** This file contains formalizations for FFA memory management descriptors. The most relavant parts regarding 
-    this file is from Section 5.10 to Section 5.12 in the document.
-*)
-
 
 (*************************************************************)
 (** *                 FFA function keyword                   *) 
@@ -91,23 +65,23 @@ Section FFA_DATATYPES.
      document. 
   *)
 
-  (** The following types are defined in Chapter 11 (Memory management interfaces document) 
-      They are ignored in our modeling. 
-   - [#define FFA_MEM_DONATE_32            0x84000071]
-     - Defined in Table 11.3 FFA_MEM_DONATE function syntax         
-   - [#define FFA_MEM_LEND_32              0x84000072]
-     - Defined in Table 11.8 FFA_MEM_LEND function syntax           
-   - [#define FFA_MEM_SHARE_32             0x84000073]
-     - Defined in Table 11.13: FFA_MEM_SHARE function syntax        
-   - [#define FFA_MEM_RETRIEVE_REQ_32      0x84000074] 
-     - Defined in Table 11.18 FFA_MEM_RETRIEVE_REQ function syntax  
-   - [#define FFA_MEM_RETRIEVE_RESP_32     0x84000075]
-     - Defined in Table 11.22: FFA_MEM_RETRIEVE_RESP function synta 
-   - [#define FFA_MEM_RELINQUISH_32        0x84000076] 
-     - Defined in Table 11.27: FFA_MEM_RELINQUISH function syntax   
-   - [#define FFA_MEM_RECLAIM_32           0x84000077]
-     -  Defined in Table 11.31: FFA_MEM_RECLAIM function syntax      
+  (** The following numbers are defined in Chapter 11 (Memory management interfaces document) 
+   #define FFA_MEM_DONATE_32            0x84000071 - Defined in Table 11.3 FFA_MEM_DONATE function syntax
+   #define FFA_MEM_LEND_32              0x84000072 - Defined in Table 11.8 FFA_MEM_LEND function syntax           
+   #define FFA_MEM_SHARE_32             0x84000073 - Defined in Table 11.13: FFA_MEM_SHARE function syntax        
+   #define FFA_MEM_RETRIEVE_REQ_32      0x84000074 - Defined in Table 11.18 FFA_MEM_RETRIEVE_REQ function syntax  
+   #define FFA_MEM_RETRIEVE_RESP_32     0x84000075 - Defined in Table 11.22: FFA_MEM_RETRIEVE_RESP function synta 
+   #define FFA_MEM_RELINQUISH_32        0x84000076 - Defined in Table 11.27: FFA_MEM_RELINQUISH function syntax   
+   #define FFA_MEM_RECLAIM_32           0x84000077 - Defined in Table 11.31: FFA_MEM_RECLAIM function syntax      
    *)
+  
+  Definition FFA_MEM_DONATE_32 : Z := 2214592625.
+  Definition FFA_MEM_LEND_32 : Z := 2214592626.
+  Definition FFA_MEM_SHARE_32 : Z := 2214592627.
+  Definition FFA_MEM_RETRIEVE_REQ_32 : Z := 2214592628.
+  Definition FFA_MEM_RETRIEVE_RESP_32 : Z := 2214592629.
+  Definition FFA_MEM_RELINGQUISH_32 : Z := 2214592630.
+  Definition FFA_MEM_RECLAIM_32 : Z := 2214592631.
 
   Inductive FFA_FUNCTION_TYPE :=
   | FFA_MEM_DONATE
@@ -225,6 +199,53 @@ Section FFA_TYPES_AND_CONSTANT.
     ffa_mailbox_recv_msg_t_dec : forall (mailbox_recv_msg1 mailbox_recv_msg2: ffa_mailbox_recv_msg_t),
         {mailbox_recv_msg1 = mailbox_recv_msg2} + {mailbox_recv_msg1 <> mailbox_recv_msg2};    
     }.
+
+
+  (** The following values are specific values for Hafnium. *)
+  (** The following options are for message send and receive. So we ignore them in the current setting 
+  /* FF-A function specific constants. */
+  <<
+  #define FFA_MSG_RECV_BLOCK 0x1
+  #define FFA_MSG_RECV_BLOCK_MASK 0x1 
+
+  #define FFA_MSG_SEND_NOTIFY 0x1
+  #define FFA_MSG_SEND_NOTIFY_MASK 0x1
+
+  #define FFA_SLEEP_INDEFINITE 0
+  >>
+  *)
+
+  (** This one is used as a flag value for reclaim (FFA_MEM_RECLAIM). 
+  <<
+  #define FFA_MEM_RECLAIM_CLEAR 0x1
+  >>
+   *)
+  
+  Definition FFA_MEM_RECLAIM_CLEAR := 1.
+  
+  (**
+  <<
+  /** 
+   * For use where the FF-A specification refers explicitly to '4K pages'. Not to
+   * be confused with PAGE_SIZE, which is the translation granule Hafnium is
+   * configured to use.
+   */
+  #define FFA_PAGE_SIZE 4096
+
+  /* The maximum length possible for a single message. */
+  #define FFA_MSG_PAYLOAD_MAX HF_MAILBOX_SIZE
+
+  Definition FFA_PAGE_SIZE := 4096.
+  Definition HF_MAILBOX_SIZE := 4096.
+  Definition FFA_MSG_PAYLOAD_MAX := HF_MAILBOX_SIZE.
+  >>
+  *)
+   
+
+  Context `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS}.
+  Definition FFA_PAGE_SIZE := granuale.
+  Definition HF_MAILBOX_SIZE := granuale.
+  Definition FFA_MSG_PAYLOAD_MAX := HF_MAILBOX_SIZE.
   
 End FFA_TYPES_AND_CONSTANT.
 
@@ -387,6 +408,11 @@ Section FFA_DESCRIPTIONS.
   };
   *)
 
+  Definition FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED_Z := 0.
+  Definition FFA_INSTRUCTION_ACCESS_NX_Z := 1.
+  Definition FFA_INSTRUCTION_ACCESS_X_Z := 2.
+  Definition FFA_INSTRUCTION_ACCESS_RESERVED_Z := 3.
+
   (**
     Execute permission is more permissive than Execute-never permission. 
      - 5.11.3 Instruction access permissions usage *)  
@@ -404,6 +430,12 @@ Section FFA_DESCRIPTIONS.
           FFA_DATA_ACCESS_RESERVED,
   };
    *)
+
+  Definition FFA_DATA_ACCESS_NOT_SPECIFIED_Z := 0.
+  Definition FFA_DATA_ACCESS_RO_Z := 1.
+  Definition FFA_DATA_ACCESS_RW_Z := 2.
+  Definition FFA_DATA_ACCESS_RESERVED_Z := 3.
+
   (**
     Read-write permission is more permissive than Read-only permission. 
      - 5.11.2 Data access permissions usage shows invariants about this fields *)
@@ -700,6 +732,16 @@ Section FFA_DESCRIPTIONS.
   | FFA_MEMORY_DEV_NGRE
   | FFA_MEMORY_DEV_GRE.
 
+  Definition FFA_MEMORY_CACHE_RESERVED_Z := 0.
+  Definition FFA_MEMORY_CACHE_NON_CACHEABLE_z := 1.
+  Definition FFA_MEMORY_CACHE_RESERVED_1_Z := 2.
+  Definition FFA_MEMORY_CACHE_WRITE_BACK_Z := 3.
+
+  Definition FFA_MEMORY_DEV_NGNRNE_Z := 0.
+  Definition FFA_MEMORY_DEV_NGNRE_Z := 1.
+  Definition FFA_MEMORY_DEV_NGRE_Z := 2.
+  Definition  FFA_MEMORY_DEV_GRE_Z := 3.
+
   (** The followings are values for 
   enum ffa_memory_type {
           FFA_MEMORY_NOT_SPECIFIED_MEM,
@@ -707,6 +749,10 @@ Section FFA_DESCRIPTIONS.
           FFA_MEMORY_NORMAL_MEM,
   };
    *)
+
+  Definition FFA_MEMORY_NOT_SPECIFIED_MEM_Z := 0.
+  Definition FFA_MEMORY_DEVICE_MEM_Z := 1.
+  Definition FFA_MEMORY_NORMAL_MEM_Z := 2.
   
   (**
   enum ffa_memory_shareability {
@@ -722,6 +768,11 @@ Section FFA_DESCRIPTIONS.
   | FFA_MEMORY_SHARE_RESERVED
   | FFA_MEMORY_OUTER_SHAREABLE
   | FFA_MEMORY_INNER_SHAREABLE.
+
+  Definition FFA_MEMORY_SHARE_NON_SHAREABLE_Z := 0.
+  Definition FFA_MEMORY_SHARE_RESERVED_Z := 1.
+  Definition FFA_MEMORY_OUTER_SHAREABLE_Z := 2.
+  Definition FFA_MEMORY_INNER_SHAREABLE_Z := 3.  
 
   Inductive FFA_MEMORY_TYPE :=
   | FFA_MEMORY_NOT_SPECIFIED_MEM
@@ -831,7 +882,93 @@ Section FFA_DESCRIPTIONS.
       mapped back into the translation regime of the Lender with the same attributes that were used at the start of the
       transaction to lend the memory region. This is done in response to an invocation of the FFA_MEM_RECLAIM ABI.
     *)
-    
+  
+  (** Definitions from here are implementation specific definitions in Hafnium *)
+  (* XXX: We may be able to remove them later *)
+ (**
+  #define FFA_DATA_ACCESS_OFFSET (0x0U)
+  #define FFA_DATA_ACCESS_MASK ((0x3U) << FFA_DATA_ACCESS_OFFSET)
+   
+  #define FFA_INSTRUCTION_ACCESS_OFFSET (0x2U)
+  #define FFA_INSTRUCTION_ACCESS_MASK ((0x3U) << FFA_INSTRUCTION_ACCESS_OFFSET)
+   
+  #define FFA_MEMORY_TYPE_OFFSET (0x4U)
+  #define FFA_MEMORY_TYPE_MASK ((0x3U) << FFA_MEMORY_TYPE_OFFSET)
+   
+  #define FFA_MEMORY_CACHEABILITY_OFFSET (0x2U)
+  #define FFA_MEMORY_CACHEABILITY_MASK ((0x3U) << FFA_MEMORY_CACHEABILITY_OFFSET)
+   
+  #define FFA_MEMORY_SHAREABILITY_OFFSET (0x0U)
+  #define FFA_MEMORY_SHAREABILITY_MASK ((0x3U) << FFA_MEMORY_SHAREABILITY_OFFSET)
+  *)
+
+  Definition FFA_DATA_ACCESS_OFFSET_Z :=  0.
+  Definition FFA_DATA_ACCESS_MASK_Z := Z.shiftl 3 FFA_DATA_ACCESS_OFFSET_Z.
+
+  Definition FFA_INSTRUCTION_ACCESS_OFFSET_Z := 2.
+  Definition FFA_INSTRUCTION_ACCESS_MASK_Z := Z.shiftl 3 FFA_INSTRUCTION_ACCESS_OFFSET_Z.
+
+  Definition FFA_MEMORY_TYPE_OFFSET_Z := 4.
+  Definition FFA_MEMORY_TYPE_MASK_Z := Z.shiftl 3 FFA_MEMORY_TYPE_OFFSET_Z.
+
+  Definition FFA_MEMORY_CACHEABILITY_OFFSET_Z := 2.
+  Definition FFA_MEMORY_CACHEABILITY_MASK_Z := Z.shiftl 3 FFA_MEMORY_CACHEABILITY_OFFSET_Z.
+
+  Definition FFA_MEMORY_SHAREABILITY_OFFSET_Z := 0.
+  Definition FFA_MEMORY_SHAREABILITY_MASK_Z := Z.shiftl 3 FFA_MEMORY_SHAREABILITY_OFFSET_Z.  
+  
+  (**
+  #define ATTR_FUNCTION_SET(name, container_type, offset, mask)                \
+          static inline void ffa_set_##name##_attr(container_type *attr,       \
+          					 const enum ffa_##name perm) \
+          {                                                                    \
+          	*attr = ( *attr & ~(mask)) | ((perm << offset) & mask);       \
+          }
+   
+  #define ATTR_FUNCTION_GET(name, container_type, offset, mask)      \
+          static inline enum ffa_##name ffa_get_##name##_attr(       \
+          	container_type attr)                               \
+          {                                                          \
+          	return (enum ffa_##name)((attr & mask) >> offset); \
+          }
+  ATTR_FUNCTION_SET(data_access, ffa_memory_access_permissions_t,
+          	  FFA_DATA_ACCESS_OFFSET, FFA_DATA_ACCESS_MASK)
+  ATTR_FUNCTION_GET(data_access, ffa_memory_access_permissions_t,
+          	  FFA_DATA_ACCESS_OFFSET, FFA_DATA_ACCESS_MASK)
+   
+  ATTR_FUNCTION_SET(instruction_access, ffa_memory_access_permissions_t,
+          	  FFA_INSTRUCTION_ACCESS_OFFSET, FFA_INSTRUCTION_ACCESS_MASK)
+  ATTR_FUNCTION_GET(instruction_access, ffa_memory_access_permissions_t,
+          	  FFA_INSTRUCTION_ACCESS_OFFSET, FFA_INSTRUCTION_ACCESS_MASK)
+   
+  ATTR_FUNCTION_SET(memory_type, ffa_memory_attributes_t, FFA_MEMORY_TYPE_OFFSET,
+          	  FFA_MEMORY_TYPE_MASK)
+  ATTR_FUNCTION_GET(memory_type, ffa_memory_attributes_t, FFA_MEMORY_TYPE_OFFSET,
+          	  FFA_MEMORY_TYPE_MASK)
+   
+  ATTR_FUNCTION_SET(memory_cacheability, ffa_memory_attributes_t,
+          	  FFA_MEMORY_CACHEABILITY_OFFSET, FFA_MEMORY_CACHEABILITY_MASK)
+  ATTR_FUNCTION_GET(memory_cacheability, ffa_memory_attributes_t,
+          	  FFA_MEMORY_CACHEABILITY_OFFSET, FFA_MEMORY_CACHEABILITY_MASK)
+   
+  ATTR_FUNCTION_SET(memory_shareability, ffa_memory_attributes_t,
+          	  FFA_MEMORY_SHAREABILITY_OFFSET, FFA_MEMORY_SHAREABILITY_MASK)
+  ATTR_FUNCTION_GET(memory_shareability, ffa_memory_attributes_t,
+          	  FFA_MEMORY_SHAREABILITY_OFFSET, FFA_MEMORY_SHAREABILITY_MASK)
+   *)
+
+  (**
+  #define FFA_MEMORY_HANDLE_ALLOCATOR_MASK \
+          ((ffa_memory_handle_t)(UINT64_C(1) << 63))
+  #define FFA_MEMORY_HANDLE_ALLOCATOR_HYPERVISOR \
+          ((ffa_memory_handle_t)(UINT64_C(1) << 63))
+   *)
+
+  Definition FFA_MEMORY_HANDLE_ALLOCATOR_MASK_Z := Z.shiftl 1 63.
+  Definition FFA_MEMORY_HANDLE_ALLOCATOR_HYPERVISOR_Z := Z.shiftl 1 63.
+
+  Definition FFA_MEMORY_REGION_FLAG_CLEAR_Z := 1.
+  
 End FFA_DESCRIPTIONS.
 
 (*************************************************************)

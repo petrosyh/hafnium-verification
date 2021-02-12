@@ -40,6 +40,7 @@ Require Import Constant.
 Require Import Decision.
 
 (* FFA Memory management related parts *)
+Require Import FFAMemoryHypCall.
 Require Import FFAMemoryHypCallIntro.
 Require Export FFAMemoryHypCallDescriptorState.
 
@@ -857,3 +858,4 @@ Notation "a '{' 'cur_entity_id' : b '}'" := (update_cur_entity_id a b) (at level
 Notation "a '{' 'hafnium_context' : b '}'" := (update_hafnium_context a b) (at level 1).
 Notation "a '{' 'vms_userspaces' : b '}'" := (update_vms_userspaces a b) (at level 1).
 
+ 

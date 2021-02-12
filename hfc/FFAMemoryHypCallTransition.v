@@ -47,14 +47,29 @@ Local Open Scope monad_scope.
 Local Open Scope string_scope.
 Require Import Coqlib sflib.
 
+
+Inductive terminate {E} {R} (it:itree E R) : Prop :=
+| TermRet
+    v
+    (RET: observe it = RetF v)
+| TermTau
+    (TAU: observe it = TauF it).
+
 (* From HafniumCore *)
 Require Import Lang.
 Require Import Values.
 Require Import Integers.
 Require Import Constant.
+Require Import Decision.
+
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
+
+Import Int64.
+
+Require Import Maps.
+Set Implicit Arguments.
 
 (* FFA Memory management related parts *)
 Require Import FFAMemoryHypCall.
@@ -62,37 +77,3 @@ Require Import FFAMemoryHypCallIntro.
 Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
 Require Export FFAMemoryHypCallCoreTransition.
-Require Export FFAMemoryHypCallTransition.
-
-
-Section WELLFORMEDLEMMA.
-  
-  (*
-  Lemma ffa_mem_send_well_formed_preserve:
-    forall (st: AbstractState) (share_func : FFA_FUNCTION_TYPE) (length address page_count: Z),
-      well_formed st ->
-      match api_ffa_mem_send share_func length address page_count st with
-      | Ret (_, st') => well_formed st 
-      | _ => True
-      end.
-  Admitted.
-   *)
-  
-End WELLFORMEDLEMMA.
-
-
-Section WELLFORMEDPROOF.
-  
-  (*
-  Lemma ffa_mem_send_well_formed_preserve:
-    forall (st: AbstractState) (share_func : FFA_FUNCTION_TYPE) (length address page_count: Z),
-      well_formed st ->
-      match api_ffa_mem_send share_func length address page_count st with
-      | Ret (_, st') => well_formed st 
-      | _ => True
-      end.
-  Admitted.
-   *)
-  
-End WELLFORMEDPROOF.
-
