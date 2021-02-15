@@ -53,6 +53,7 @@ Import Int64.
 Require Import Maps.
 Set Implicit Arguments.
 
+(*
 (*************************************************************)
 (*         Auxiliary functions                               *)
 (*************************************************************)
@@ -236,3 +237,4 @@ Section FFAAuxiliaryFunctions.
    
 End FFAAuxiliaryFunctions.
 
+*)
