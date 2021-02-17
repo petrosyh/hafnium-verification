@@ -21,10 +21,12 @@ following files are relavant to this formalization.
     by adding several safety checks and/or invariants that the document contains.
   - The relevant parts with this file in the FF-A document are Chapters 5 and 11.
 - [FFAMemoryHypCallTestingInterface.v]
-  - This file provides testing interfaces (e.g., context switchings, dispatch, and so on.
+  - This file provides testing interfaces (e.g., context switchings, dispatch, and so on).
+- [FFAMemoryHypCallTesting.v]
+  - This file provides test cases.
 - [FFAMemoryHypCallWellFormedProof.v]
   - This file contains the safety proof of our specifications, especially proofs
     related to well-formedness conditions that FFA memory management
     transitions have to preserve (e.g., safety of memory ownership and
-    accessibility)
+    accessibility).
 *)

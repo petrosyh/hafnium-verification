@@ -57,13 +57,12 @@ Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
 
 (* FFA Memory management related parts *)
-Require Import FFAMemoryHypCall.
-Require Import FFAMemoryHypCallIntro.
+Require Export FFAMemoryHypCall.
+Require Export FFAMemoryHypCallIntro.
 Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
 Require Export FFAMemoryHypCallCoreTransition.
-Require Export FFAMemoryHypCallTransition.
-
+Require Export FFAMemoryHypCallTestingInterface.
 
 Section WELLFORMEDLEMMA.
   

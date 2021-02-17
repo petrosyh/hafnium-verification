@@ -125,12 +125,7 @@ Section FFA_TYPES_AND_CONSTANT.
     init_ffa_memory_region_tag : ffa_memory_region_tag_t;
     init_ffa_mailbox_send_msg: ffa_mailbox_send_msg_t;
     init_ffa_mailbox_recv_msg: ffa_mailbox_recv_msg_t;
-    }.
-
-  (** Some basic properties of the above values. *)
-  Class FFA_TYPES_AND_CONSTANTS_CONTEXTS
-        `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS} := 
-    {
+    
     (** - Basic decidability properties of them *)
     ffa_memory_region_tag_t_dec : forall (tag1 tag2: ffa_memory_region_tag_t),
         {tag1 = tag2} + {tag1 <> tag2};
@@ -356,9 +351,48 @@ Section FFA_DESCRIPTIONS.
 
   (** Basic well-formedness condition
       - "Figure 5.2: Example memory region description" shows how those two are related 
+      - Some parts in 5.12 also explains invariants that the above definitions has to satisfy 
+        (addresses should not be overlapped)
       - [TODO: Need to add more conditions]
    *)
 
+
+  Fixpoint check_overlap_in_ranges
+    (ranges : list (Z * Z)) (range : (Z * Z)) :=
+    match ranges with
+    | nil => true
+    | hd::tl =>
+      check_overlap_in_ranges tl range &&
+      (decide ((fst hd) > (snd range)) || decide ((fst range) > snd (hd)))
+    end.
+  
+  Fixpoint check_overlap_of_constituents_aux
+           (constituents : list FFA_memory_region_constituent_struct)
+           (ranges : list (Z * Z)) : option (list (Z * Z)) :=
+    match constituents with
+    | nil => Some ranges
+    | hd::tl =>
+      match check_overlap_of_constituents_aux tl ranges with
+      | Some ranges' =>
+        let first_addr := hd.(FFA_memory_region_constituent_struct_address) in
+        let last_addr :=
+            (first_addr +
+            granuale *
+            hd.(FFA_memory_region_constituent_struct_page_count))%Z in
+        if check_overlap_in_ranges ranges' (first_addr, last_addr)
+        then Some ((first_addr, last_addr)::ranges')
+        else None
+      | _ => None
+      end
+    end.
+      
+  Definition check_overlap_of_constituents
+             (constituents : list FFA_memory_region_constituent_struct) :=
+    match check_overlap_of_constituents_aux constituents nil with
+    | Some _ => true
+    | _ => false
+    end.
+    
   Fixpoint well_formed_FFA_composite_memory_region_struct_aux
            (page_counts : Z)
            (constituents : list FFA_memory_region_constituent_struct) :=
@@ -379,7 +413,9 @@ Section FFA_DESCRIPTIONS.
              (composite: FFA_composite_memory_region_struct) :=
     well_formed_FFA_composite_memory_region_struct_aux
       (composite.(FFA_composite_memory_region_struct_page_count))
-      (composite.(FFA_composite_memory_region_struct_constituents)).
+      (composite.(FFA_composite_memory_region_struct_constituents)) &&
+    check_overlap_of_constituents 
+      composite.(FFA_composite_memory_region_struct_constituents).
   
   (***********************************************************************)
   (** ***                       Memory region handle                     *) 
@@ -474,12 +510,12 @@ Section FFA_DESCRIPTIONS.
         (**
            - memory access permissions: length: 1 bytes / offset: 2 bytes
              - bits(7:4): Reserved (MBZ).
-             – bits(3:2): Instruction access permission.
+             - bits(3:2): Instruction access permission.
                - b00: Not specified and must be ignored.
                - b01: Not executable.
                - b10: Executable.
                - b11: Reserved. Must not be used.
-             – bits(1:0): Data access permission.
+             - bits(1:0): Data access permission.
                - b00: Not specified and must be ignored.
                - b01: Read-only.
                - b10: Read-write.
@@ -490,8 +526,8 @@ Section FFA_DESCRIPTIONS.
           FFA_DATA_ACCESS_TYPE;
         (**
            - the flag value is only used for [FFA_MEM_RETRIEVE_REQ] and [FFA_MEM_RETRIEVE_RESP]. For 
-           [FFA_MEM_DONATE], [FFA_MEM_LEND], and [FFA_MEM_SHARE], this field is empty. They need to be 
-           enforced as invariants.
+             [FFA_MEM_DONATE], [FFA_MEM_LEND], and [FFA_MEM_SHARE], this field is empty. They need to be 
+             enforced as invariants.
 
            - Bit(0): Non-retrieval Borrower flag.
              - In a memory management transaction with multiple Borrowers, during the retrieval
@@ -584,24 +620,28 @@ Section FFA_DESCRIPTIONS.
         to an invocation of the FFA_MEM_SHARE or FFA_MEM_LEND ABIs. The Relayer must return the
         DENIED error code if the validation fails.
         - At the Non-secure physical FF-A instance, an IMPLEMENTATION DEFINED mechanism is used to perform validation.
+          - [JIEUNG: The above sentence is too vague]
         - At any virtual FF-A instance, if the endpoint is running in EL1 or S-EL1 in either Execution state,
           the permission specified by the Lender is considered valid only if it is the same or less permissive
           than the permission used by the Relayer in the S2AP field in the stage 2 translation table descriptors
           for the memory region in one of the following translation regimes:
           - Secure EL1&0 translation regime, when S-EL2 is enabled.
           - Non-secure EL1&0 translation regime, when EL2 is enabled.
+          - [JIEUNG: S2AP should be modeled - It is about read / write permissions]
         – At the Secure virtual FF-A instance, if the endpoint is running in S-EL0 in either Execution state,
           the permission specified by the Lender is considered valid only if it is the same or less permissive
-          than the permission used by the Relayer in the AP[1] field in the stage 1 translation table descriptors
+          than the permission used by the Relayer in the AP(1) field in the stage 1 translation table descriptors
           for the memory region in one of the following translation regimes:
           - Secure EL1&0 translation regime, when EL2 is disabled.
           - Secure PL1&0 translation regime, when EL2 is disabled.
           - Secure EL2&0 translation regime, when Armv8.1-VHE is enabled.
+          - [JIEUNG: AP in Stage 1 should be modeled - It is about read / write permissions]
           If the Borrower is an independent peripheral device, then the validated permission is used to map the
           memory region into the address space of the device.
         - The Borrower (if a PE or Proxy endpoint) should specify the level of access that it would like to have on
-          the memory region. In a transaction to share or lend memory with more than one Borrower, each Borrower (if a PE or Proxy
-          endpoint) could also specify the level of access that other Borrowers have on the memory region.
+          the memory region. In a transaction to share or lend memory with more than one Borrower, 
+          each Borrower (if a PE or Proxy endpoint) could also specify the level of access that other 
+          Borrowers have on the memory region.
           This is done while invoking the FFA_MEM_RETRIEVE_REQ ABI.
         - The Relayer must validate the permissions, if specified by the Borrower (if a PE or Proxy endpoint) in
           response to an invocation of the FFA_MEM_RETRIEVE_REQ ABI.
@@ -619,12 +659,12 @@ Section FFA_DESCRIPTIONS.
      - The value of data access permission field specified by the Owner must be interpreted by the Relayer as
        follows. This is done in response to an invocation of the FFA_MEM_DONATE ABI.
        – If the Receiver is a PE or Proxy endpoint, the Relayer must return INVALID_PARAMETERS if the
-         value is not b’00.
-       – If the Receiver is an independent peripheral device and the value is not b’00, the Relayer must take
+         value is not b00.
+       – If the Receiver is an independent peripheral device and the value is not b00, the Relayer must take
          one of the following actions.
          - Return DENIED if the permission is determined to be invalid through an IMPLEMENTATION DEFINED mechanism.
          - Use the permission specified by the Owner to map the memory region into the address space of the device.
-       - If the Receiver is an independent peripheral device and the value is b’00, the Relayer must determine
+       - If the Receiver is an independent peripheral device and the value is b00, the Relayer must determine
          the permission value through an IMPLEMENTATION DEFINED mechanism.
      - The Receiver (if a PE or Proxy endpoint) should specify the level of access that it would like to have on
        the memory region. This is done while invoking the FFA_MEM_RETRIEVE_REQ ABI.
@@ -642,6 +682,7 @@ Section FFA_DESCRIPTIONS.
         mapped back into the translation regime of the Lender with the same data access permission that was used
         at the start of the transaction to lend the memory region. This is done in response to an invocation of the
         FFA_MEM_RECLAIM ABI.
+      - [JIEUNG: We need a way to store the previous permissions] 
    *)
 
   (*******************************************************)
@@ -652,7 +693,7 @@ Section FFA_DESCRIPTIONS.
       An endpoint could have either Execute (X) or Execute-never (XN) instruction access permission to a memory
       region from the highest Exception level it runs in.
       - Execute permission is more permissive than Execute-never permission.
-      - Instruction access permission is specified by setting Bits[3:2] in Table 5.15 to the appropriate value.
+      - Instruction access permission is specified by setting Bits(3:2) in Table 5.15 to the appropriate value.
         This access control is used in memory management transactions as follows.
 
       - Only XN permission must be used in the following transactions.
@@ -661,7 +702,7 @@ Section FFA_DESCRIPTIONS.
          Bits(3:2) in Table 5.15 must be set to b00 as follows.
          - By the Lender in an invocation of FFA_MEM_SHARE or FFA_MEM_LEND ABIs.
          - By the Borrower in an invocation of the FFA_MEM_RETRIEVE_REQ ABI.
-         The Relayer must set Bits[3:2] in Table 5.15 to b01 while invoking the FFA_MEM_RETRIEVE_RESP ABI.
+         The Relayer must set Bits(3:2) in Table 5.15 to b01 while invoking the FFA_MEM_RETRIEVE_RESP ABI.
       - In a transaction to donate memory or lend memory to a single Borrower,
          - Whether the Owner/Lender is allowed to specify the level of access that the Receiver is permitted to
            have on the memory region depends on the type of Receiver.
@@ -878,7 +919,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
                 if the memory region contents must be zeroed by the Relayer after the memory
                 region has been unmapped from the translation regime of the Owner.
                 - b0: Relayer must not zero the memory region contents.
-              - b1: Relayer must zero the memory region contents.
+                - b1: Relayer must zero the memory region contents.
               - MBZ in an invocation of FFA_MEM_SHARE, else the Relayer must return INVALID_PARAMETERS.
               - MBZ if the Owner has Read-only access to the memory region , else the Relayer must return DENIED. *)
         FFA_mem_default_flags_struct_zero_memory_flag: bool;
@@ -914,11 +955,11 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
                   the Relayer to zero its contents prior to retrieval.
                 - b1: Retrieve the memory region only if the Sender requested the Relayer to
                   zero its contents prior to retrieval by setting the Bit[0] in Table 5.20).
-              – MBZ in a transaction to share a memory region, else the Relayer must return
+              - MBZ in a transaction to share a memory region, else the Relayer must return
                 INVALID_PARAMETER.
-              – If the Sender has Read-only access to the memory region and the Receiver sets
+              - If the Sender has Read-only access to the memory region and the Receiver sets
                 Bit(0), the Relayer must return DENIED.
-              – MBZ if the Receiver has previously retrieved this memory region, else the Relayer
+              - MBZ if the Receiver has previously retrieved this memory region, else the Relayer
                 must return INVALID_PARAMETERS (see 11.4.2 Support for multiple retrievals by
                 a Borrower). *)
         FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag:
@@ -965,8 +1006,8 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
                 allocated by the Relayer to map the memory region must be aligned.
               – Bit(9): Hint valid flag.
                 - b0: Relayer must choose the alignment boundary. Bits[8:5] are reserved and MBZ.
-                - b1: Relayer must use the alignment boundary specified in Bits[8:5].
-              – Bit(8:5): Alignment hint.
+                - b1: Relayer must use the alignment boundary specified in Bits(8:5).
+              - Bit(8:5): Alignment hint.
                 - If the value in this field is n, then the address ranges must be aligned to the 2*n x 4KB boundary.
               - MBZ if the Receiver specifies the IPA or VA address ranges that must be used by the
                 Relayer to map the memory region, else the Relayer must return
@@ -1071,34 +1112,35 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
     mkFFA_memory_region_struct {
         (** - length: 2 bytes / offset: 0 bytes *)        
         FFA_memory_region_struct_sender : ffa_UUID_t;
-        (** - length: 1 bytes / offset: 2 bytes *)        
+        (** - length: 1 bytes / offset: 2 bytes *)
         FFA_memory_region_struct_attributes :
           FFA_memory_region_attributes_descriptor_struct;
-        (** - length: 1 bytes / offset: 3 bytes (Reserved (MBZ))
-
+        (** - length: 1 bytes / offset: 3 bytes (Reserved (MBZ)) *)
+        FFA_memory_region_struct_flags : ffa_memory_region_flags_t;
+        (** - length: 8 bytes / offset: 8 bytes
+           
             - length: 4 bytes / offset: 4 bytes
-              - This field must be zero (MBZ) in an invocation of the following ABIs.
+            - This field must be zero (MBZ) in an invocation of the following ABIs.
               - FFA_MEM_DONATE.
-                - FFA_MEM_LEND.
-                - FFA_MEM_SHARE.
+              - FFA_MEM_LEND.
+              - FFA_MEM_SHARE.
                 A successful invocation of each of the preceding ABIs returns a Handle (see 5.10.2 Memory region handle)
                 to identify the memory region in the transaction.
-              - The Sender must convey the Handle to the Receiver through a Partition message.
-              - This field must be used by the Receiver to encode this Handle in an invocation of the FFA_MEM_RETRIEVE_REQ
-                ABI.
-              - A Relayer must validate this field in an invocation of the FFA_MEM_RETRIEVE_REQ ABI as follows.
-                – Ensure that it holds a Handle value that was previously allocated and has not been reclaimed by the
-                  Owner.
-                – Ensure that the Handle identifies a memory region that was shared, lent or donated to the Receiver.
-                – Ensure that the Handle was allocated to the Owner specified in the Sender endpoint ID field of the
-                  transaction descriptor.
+            - The Sender must convey the Handle to the Receiver through a Partition message.
+            - This field must be used by the Receiver to encode this Handle in an invocation of the FFA_MEM_RETRIEVE_REQ
+              ABI.
+            - A Relayer must validate this field in an invocation of the FFA_MEM_RETRIEVE_REQ ABI as follows.
+              – Ensure that it holds a Handle value that was previously allocated and has not been reclaimed by the
+                Owner.
+              – Ensure that the Handle identifies a memory region that was shared, lent or donated to the Receiver.
+              – Ensure that the Handle was allocated to the Owner specified in the Sender endpoint ID field of the
+                transaction descriptor.
                 It must return INVALID_PARAMETERS if the validation fails.
-              - This field must be used by the Relayer to encode the Handle in an invocation of the FFA_MEM_RETRIEVE_RESP
-                ABI.
-        *)
-        FFA_memory_region_struct_flags : ffa_memory_region_flags_t;
-
-        (** - length: 8 bytes / offset: 8 bytes
+            - This field must be used by the Relayer to encode the Handle in an invocation of the FFA_MEM_RETRIEVE_RESP
+              ABI.
+         *)
+        FFA_memory_region_struct_handle : ffa_memory_handle_t;
+        (** - length : 8 bytes / offset 16 bytes
 
             - This 64-bit field must be used to specify an IMPLEMENTATION DEFINED value associated with the transaction
               and known to participating endpoints.
@@ -1113,9 +1155,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
               the Sender. It must return INVALID_PARAMETERS if the validation fails.
             - This field must be used by the Relayer to encode the Tag value in an invocation of the FFA_MEM_RETRIEVE_RESP
               ABI.
-         *)
-        FFA_memory_region_struct_handle : ffa_memory_handle_t;
-        (** - length : 8 bytes / offset 16 bytes *)
+        *)
         FFA_memory_region_struct_tag : ffa_memory_region_tag_t; 
         (** - length: 4 bytes / offset: 24 bytes (Reserved (MBZ))
 
@@ -1289,7 +1329,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         (** - length: 3 bytes / offset: 8 bytes
 
             - Bit(0): Zero memory after relinquish flag.
-              – This flag specifies if the Relayer must clear memory region contents after unmapping it
+              - This flag specifies if the Relayer must clear memory region contents after unmapping it
                 from from the translation regime of the Borrower.
                 - b0: Relayer must not zero the memory region contents.
                 - b1: Relayer must zero the memory region contents.
