@@ -64,34 +64,29 @@ Require Export FFAMemoryHypCallState.
 Require Export FFAMemoryHypCallCoreTransition.
 Require Export FFAMemoryHypCallTestingInterface.
 
-Section WELLFORMEDLEMMA.
+Section WELLFORMED.
+
+  Context `{abstract_state_context: AbstractStateContext}.  
+  Notation HypervisorEE :=
+    (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
+
+  Definition get_input_output_donate_state_spec
+             (caller total_length fragment_length address count : Z) :
+    itree HypervisorEE
+          (AbstractState * AbstractState) :=
+    input <- trigger GetState;;
+    ffa_mem_donate_spec caller total_length fragment_length address count;;
+    output <- trigger GetState;;
+    Ret (input, output).
+    
   
-  (*
-  Lemma ffa_mem_send_well_formed_preserve:
-    forall (st: AbstractState) (share_func : FFA_FUNCTION_TYPE) (length address page_count: Z),
-      well_formed st ->
-      match api_ffa_mem_send share_func length address page_count st with
-      | Ret (_, st') => well_formed st 
+  Lemma ffa_mem_donate_well_formed_preserve:
+    forall caller total_length fragment_length address count,
+      match get_input_output_donate_state_spec caller total_length fragment_length address count with 
+      | Ret (input, output) => well_formed input -> well_formed output
       | _ => True
       end.
   Admitted.
-   *)
   
-End WELLFORMEDLEMMA.
-
-
-Section WELLFORMEDPROOF.
-  
-  (*
-  Lemma ffa_mem_send_well_formed_preserve:
-    forall (st: AbstractState) (share_func : FFA_FUNCTION_TYPE) (length address page_count: Z),
-      well_formed st ->
-      match api_ffa_mem_send share_func length address page_count st with
-      | Ret (_, st') => well_formed st 
-      | _ => True
-      end.
-  Admitted.
-   *)
-  
-End WELLFORMEDPROOF.
+End WELLFORMED.
 
