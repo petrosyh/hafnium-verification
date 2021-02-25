@@ -288,27 +288,77 @@ End FFA_STRUCTURES.
 (*************************************************************)
 (** *                       Descriptors                      *) 
 (*************************************************************)
-(** The following parts are related to "5.10 Memory region description" and "5.11 Memory region properties" *)
+(** [The following parts are related to "5.10 Memory region description" and "5.11 Memory region properties"] *)
 Section FFA_DESCRIPTIONS.
 
   (**************************************)
   (** ** 5.10 Memory region description *)
   (**************************************)
+
+  (** 
+      A memory region is described in a memory management transaction either through a Composite memory region
+      descriptor (see 5.10.1 Composite memory region descriptor) or a globally unique Handle (see 5.10.2 Memory
+      region handle).
+      
+      The former is used to describe a memory region when a transaction to share, lend or donate memory is 
+      initiated by the Owner and when the memory region is retrieved by the Receiver.
+
+      The latter is used to describe a memory region when it is retrieved by a Receiver, relinquished by a 
+      Borrower and reclaimed by the Owner.
+   *)
   Context `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS}.
 
   (****************************************************************************)
   (** ***  Constituent memory region and composite_memory_region descriptors  *) 
   (****************************************************************************)  
-  (** We define descriptors that are used in FFA interfaces. Sender, Relayer, and Borrower use them 
-      to figure out the information and check validity of the query by using them *) 
+  (** [We define descriptors that are used in FFA interfaces. Sender, Relayer, and Borrower use them 
+      to figure out the information and check validity of the query by using them] *)
+  (** A memory region is described in a memory management transaction by specifying the list and count of 4K sized
+      pages that constitute it (see Table 5.13). 
+
+      [JIEUNG: due to the dependency, we reordered the table. we first introduce Table 5.14, then 
+      introduce Table 5.13] *)
      
-  (** Table 5.14: Constituent memory region descriptor
+  (** 
+      The list is specified by using one or more constituent memory region descriptors (see Table 5.14). 
+      Each descriptor specifies the base address and size of a virtually or physically contiguous memory region.
+
+      Table 5.14: Constituent memory region descriptor
       - [uint64_t address;]: base IPA of the constituent memory region, aligned to 4 kiB page size granularity.
         The number of 4 kiB pages in the constituent memory region. 
       - [uint32_t page_count;]
       - [uint32_t reserved;]: Reserved field, must be 0.
    *)
+  (* 
+     Field              Byte length     Byte offset     Description
+     Address            8               -               - Base VA, PA or IPA of constituent memory region aligned to
+                                                          the page size (4K) granularity.
+     Page count         4               8               - Number of 4K pages in constituent memory region.
+     Reserved (MBZ)     4               12 
+   *)
 
+  (**
+     The pages are addressed using VAs, IPAs or PAs depending on the FF-A instance at which the transaction is taking
+     place. This is as follows.
+     - VAs are used at a Secure virtual FF-A instance if the partition runs in Secure EL0 or Secure User mode.
+     - IPAs are used at a virtual FF-A instance if the partition runs in one of the following Exception levels.
+       - Secure EL1.
+       - Secure Supervisor mode.
+       - EL1.
+       - Supervisor mode.
+     - PAs are used at all physical FF-A instances.
+
+     Figure 5.2 describes a virtually contiguous memory region range VA_0 of size 16K through its composite memory
+     region descriptors at the virtual and physical FF-A instances. VA_0 was allocated through a dynamic memory
+     management mechanism inside an endpoint for example, malloc. It is composed of:
+
+     - Two constituent IPA regions IPA_0 and IPA_1 of size 8K each at the virtual FF-A instance.
+     - IPA_0 is comprised of two PA regions PA_0 and PA_1 at the physical FF-A instance. Each PA region is of
+       size 4K.
+     - IPA_1 is comprised of two PA regions PA_2 and PA_3 at the physical FF-A instance. Each PA region is of
+       size 4K.
+   *)
+  
   (** **** FFA Memory Region Constituent Coq Definition *)
   Record FFA_memory_region_constituent_struct :=
     mkFFA_memory_region_constituent_struct {
@@ -332,6 +382,20 @@ Section FFA_DESCRIPTIONS.
       - [struct ffa_memory_region_constituent* constituents;]: An array of `constituent_count` memory region constituents.
    *)
 
+  (*
+    Field                Byte length     Byte offset     Description
+    Total page count     4               0               - Size of the memory region described as the count
+                                                           of 4K pages.
+                                                         - Must be equal to the sum of page counts specified
+                                                           in each constituent memory region descriptor. See
+                                                           Table 5.14.
+    Address range count  4               4               - Count of address ranges specified using
+                                                           constituent memory region descriptors.
+    Reserved (MBZ)       8               8
+    Address range array  –               16              - Array of address ranges specified using
+                                                           constituent memory region descriptors.
+   *)
+
   (** **** FFA Composition Memory Region Coq Definition *)  
   Record FFA_composite_memory_region_struct :=
     mkFFA_composite_memory_region_struct {
@@ -348,14 +412,13 @@ Section FFA_DESCRIPTIONS.
      
   Definition init_FFA_composite_memory_region_struct := 
     mkFFA_composite_memory_region_struct 0 nil.
-
+  
   (** Basic well-formedness condition
       - "Figure 5.2: Example memory region description" shows how those two are related 
       - Some parts in 5.12 also explains invariants that the above definitions has to satisfy 
         (addresses should not be overlapped)
       - [TODO: Need to add more conditions]
    *)
-
 
   Fixpoint check_overlap_in_ranges
     (ranges : list (Z * Z)) (range : (Z * Z)) :=
@@ -421,8 +484,13 @@ Section FFA_DESCRIPTIONS.
   (** ***                       Memory region handle                     *) 
   (***********************************************************************)  
   (** Handle : 64-bit, and the handle is allocated by teh replayer 
-     - The Hypervisor must allocate the Handle if no Receiver participating in the memory management
-       transaction is an SP or SEPID associated with a Secure Stream ID in the SMMU.
+     - A 64-bit Handle is used to identify a composite memory region description for example, VA_0 described in
+       Figure 5.2
+     - The Handle is allocated by the Relayer as follows.
+       – The SPM must allocate the Handle if any Receiver participating in the memory management transaction
+         is an SP or SEPID associated with a Secure Stream ID in the SMMU.
+       – The Hypervisor must allocate the Handle if no Receiver participating in the memory management
+         transaction is an SP or SEPID associated with a Secure Stream ID in the SMMU.
      - A Handle is allocated once a transaction to lend, share or donate memory is successfully 
        initiated by the Owner.
      - Each Handle identifies a single unique composite memory region description that is, 
@@ -439,7 +507,8 @@ Section FFA_DESCRIPTIONS.
          - Rx = Handle(31:0).
          - Ry = Handle(63:32). *)
 
-  (** Memory region handle in Hafnium is actually the index of "share_state_pool" (defined in FFAMemoryHypCallState.v) 
+  (** Memory region handle in Hafnium is actually the index of "share_state_pool" 
+      defined in FFAMemoryHypCallState.v) 
       which contains the information that receivers has to look up. *)
 
   (**************************************)
@@ -460,7 +529,9 @@ Section FFA_DESCRIPTIONS.
      permissions descriptor (In Table 5.15: Memory access permissions descriptor). 
    *)
 
-
+  (** There is a 1:1 association between an endpoint and the permissions with which it can access a memory region.
+      This is specified in Table 5.15. *)
+  
   (**
     Execute permission is more permissive than Execute-never permission. 
      - 5.11.3 Instruction access permissions usage 
@@ -501,6 +572,26 @@ Section FFA_DESCRIPTIONS.
    permission to the same memory region.
    *)
 
+  (* Table 5.15: Memory access permissions descriptor 
+     Field       Byte length   Byte offset            Description
+     Endpoint    2             -                      - 16-bit ID of endpoint to which the memory access
+     ID                                                 permissions apply. 
+     Memory      1             2                      - Permissions used to access a memory region.
+     access                                             – bits[7:4]: Reserved (MBZ).
+     permissions                                        – bits[3:2]: Instruction access permission.
+                                                          - b’00: Not specified and must be ignored.
+                                                          - b’01: Not executable.
+                                                          - b’10: Executable.
+                                                          - b’11: Reserved. Must not be used.
+                                                        – bits[1:0]: Data access permission.
+                                                          - b’00: Not specified and must be ignored.
+                                                          - b’01: Read-only.
+                                                          - b’10: Read-write.
+                                                          - b’11: Reserved. Must not be used.
+     Flags       1             3                        - ABI specific flags as described in 5.11.1 ABI-specific 
+                                                          flags usage.
+   *)
+
   (** **** FFA Memory Access Permissions Descriptor Coq Definitoin *)
   Record FFA_memory_access_permissions_descriptor_struct :=
     mkFFA_memory_access_permissions_descriptor_struct {
@@ -529,6 +620,21 @@ Section FFA_DESCRIPTIONS.
              [FFA_MEM_DONATE], [FFA_MEM_LEND], and [FFA_MEM_SHARE], this field is empty. They need to be 
              enforced as invariants.
 
+           - ABI-specific flags usage [JIEUNG: Check for the flag field is required]
+           - An endpoint can specify properties specific to the memory management ABI being invoked through 
+             this field. In this version of the Framework, the Flags field MBZ and is reserved in an 
+             invocation of the following ABIs.
+             - FFA_MEM_DONATE.
+             - FFA_MEM_LEND.
+             - FFA_MEM_SHARE.
+           - The Flags field must be encoded by the Receiver and the Relayer as specified in Table 5.17 in an 
+             invocation of the following ABIs.
+             - FFA_MEM_RETRIEVE_REQ.
+             - FFA_MEM_RETRIEVE_RESP.
+           - The Relayer must return INVALID_PARAMETERS if the Flags field has been incorrectly encoded.
+
+           - Table 5.17: Flags usage in FFA_MEM_RETRIEVE_REQ and FFA_MEM_RETRIEVE_RESP ABIs
+
            - Bit(0): Non-retrieval Borrower flag.
              - In a memory management transaction with multiple Borrowers, during the retrieval
                of the memory region, this flag specifies if the memory region must be or was
@@ -545,6 +651,17 @@ Section FFA_DESCRIPTIONS.
           ffa_memory_receiver_flags_t;
       }.
 
+  (**
+     Table 5.16 specifies the data structure that is used in memory management transactions to create an association
+     between an endpoint, memory access permissions and a composite memory region description.
+
+     This data structure must be included in other data structures that are used in memory management transactions
+     instead of being used as a stand alone data structure (see 5.12 Lend, donate, and share transaction descriptor).
+     A composite memory region description is referenced by specifying an offset to it as described in Table 5.16.
+     This enables one or more endpoints to be associated with the same memory region but with different memory
+     access permissions for example, SP0 could have RO data access permission and SP1 could have RW data access
+     permission to the same memory region. *)
+  
   Definition init_FFA_memory_access_permissions_descriptor_struct :=
     mkFFA_memory_access_permissions_descriptor_struct
       0 FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED
@@ -557,6 +674,25 @@ Section FFA_DESCRIPTIONS.
       - [uint64_t reserved_0;]
    *)
 
+  (* 
+     Table 5.16: Endpoint memory access descriptor
+     Field                       Byte length     Byte offset    Description
+     Memory access               4               -              - Memory access permissions descriptor as
+     permissions descriptor                                       specified in Table 5.15.
+     Composite memory            4               4              - Offset to the composite memory region descriptor
+     region descriptor offset                                     to which the endpoint access permissions apply
+                                                                  (see Table 5.13).
+                                                                - Offset must be calculated from the base address of
+                                                                  the data structure this descriptor is included in.
+                                                                - An offset value of 0 indicates that the endpoint
+                                                                  access permissions apply to a memory region
+                                                                  description identified by the Handle parameter
+                                                                  specified in the data structure that includes this
+                                                                  one.
+     Reserved (MBZ)              8               8
+     *)
+
+  
   (** **** FFA Endpoint Memory Access Descriptor Coq Definitoin *)  
   Record FFA_endpoint_memory_access_descriptor_struct :=
     mkFFA_endpoint_memory_access_descriptor_struct {
@@ -610,8 +746,13 @@ Section FFA_DESCRIPTIONS.
   (*******************************************************)
   (** [JIEUNG: The following things need to be implemented in the transition rules] 
   
+      An endpoint could have either Read-only or Read-write data access permission to a memory region from the
+      highest Exception level it runs in.
+
       - Read-write permission is more permissive than Read-only permission.
-      - Data access permission is specified by setting Bits[1:0] in Table 5.15 to the appropriate value
+      - Data access permission is specified by setting Bits(1:0) in Table 5.15 to the appropriate value
+
+      This access control is used in memory management transactions as follows.
 
       Restrictions in lend or share memory:
       - The Lender must specify the level of access that the Borrower is permitted to have on the memory region.
@@ -639,14 +780,19 @@ Section FFA_DESCRIPTIONS.
           If the Borrower is an independent peripheral device, then the validated permission is used to map the
           memory region into the address space of the device.
         - The Borrower (if a PE or Proxy endpoint) should specify the level of access that it would like to have on
-          the memory region. In a transaction to share or lend memory with more than one Borrower, 
+          the memory region.
+          
+          In a transaction to share or lend memory with more than one Borrower, 
           each Borrower (if a PE or Proxy endpoint) could also specify the level of access that other 
           Borrowers have on the memory region.
+          
           This is done while invoking the FFA_MEM_RETRIEVE_REQ ABI.
         - The Relayer must validate the permissions, if specified by the Borrower (if a PE or Proxy endpoint) in
           response to an invocation of the FFA_MEM_RETRIEVE_REQ ABI.
+          
           It must ensure that the permission of the Borrower is the same or less permissive than the permission
           that was specified by the Lender and validated by the Relayer.
+          
           It must ensure that the permissions for other Borrowers are the same as those specified by the Lender
           and validated by the Relayer. The Relayer must return the DENIED error code if the validation fails.
 
@@ -694,7 +840,7 @@ Section FFA_DESCRIPTIONS.
       region from the highest Exception level it runs in.
       - Execute permission is more permissive than Execute-never permission.
       - Instruction access permission is specified by setting Bits(3:2) in Table 5.15 to the appropriate value.
-        This access control is used in memory management transactions as follows.
+      This access control is used in memory management transactions as follows.
 
       - Only XN permission must be used in the following transactions.
          - In a transaction to share memory with one or more Borrowers.
@@ -710,9 +856,11 @@ Section FFA_DESCRIPTIONS.
            - If the Receiver is an independent peripheral device, the Owner could specify the level of access.
            The Owner must specify its choice in an invocation of the FFA_MEM_DONATE or FFA_MEM_LEND ABIs.
          - The value of instruction access permission field specified by the Owner/Lender must be interpreted   
-           by the Relayer as follows. This is done in response to an invocation of the FFA_MEM_DONATE or FFA_MEM_LEND ABIs.
-           - If the Receiver is a PE or Proxy endpoint, the Relayer must return INVALID_PARAMETERS if the value is not b’00.
-           - If the Receiver is an independent peripheral device and the value is not b’00, the Relayer must take 
+           by the Relayer as follows. This is done in response to an invocation of the
+           FFA_MEM_DONATE or FFA_MEM_LEND ABIs.
+           - If the Receiver is a PE or Proxy endpoint, the Relayer must return INVALID_PARAMETERS if the 
+           value is not b00.
+           - If the Receiver is an independent peripheral device and the value is not b00, the Relayer must take 
              one of the following actions.
              - Return DENIED if the permission is determined to be invalid through an IMPLEMENTATION DEFINED mechanism.
              - Use the permission specified by the Owner to map the memory region into the address space of the device.
@@ -725,8 +873,16 @@ Section FFA_DESCRIPTIONS.
            IMPLEMENTATION DEFINED mechanism.
            - For example, the Relayer could deny executable access to a Borrower on a memory region of Device
              memory type.
-         - This is done in response to an invocation of the FFA_MEM_RETRIEVE_REQ ABI. The Relayer must
+           This is done in response to an invocation of the FFA_MEM_RETRIEVE_REQ ABI. The Relayer must
            return the DENIED error code if the validation fails.
+
+           If the invocation of FFA_MEM_RETRIEVE_REQ succeeds, the Relayer must set Bits(3:2) in Table
+           5.15 to either b01 or b10 while invoking the FFA_MEM_RETRIEVE_RESP ABI.
+
+      - In a transaction to relinquish memory that was lent to one or more Borrowers, the memory region must be
+        mapped back into the translation regime of the Lender with the same instruction access permission that was
+        used at the start of the transaction to lend the memory region. This is done in response to an 
+        invocation of the FFA_MEM_RECLAIM ABI.
   *)
   
   (*******************************************************)
@@ -736,6 +892,30 @@ Section FFA_DESCRIPTIONS.
       
       - Cacheability attribute : Non-cacheable < Write-Back Cacheable.
       - Shareability attribute : Non-Shareable < Inner Shareable < Outer shareable. *)
+  (** 
+      An endpoint can access a memory region by specifying attributes as follows.
+      - Memory type. This could be Device or Normal. Device memory type could be one of the following types.
+        - Device-nGnRnE.
+        - Device-nGnRE.
+        - Device-nGRE.
+        - Device-GRE.
+        The precedence rules for memory types are as follows. < should be read as is less permissive than.
+        - Device-nGnRnE < Device-nGnRE < Device-nGRE < Device-GRE < Normal.
+      - Cacheability attribute. This could be one of the following types.
+        - Non-cacheable.
+        - Write-Back Cacheable.
+        These attributes are used to specify both inner and outer cacheability. The precedence rules are as follows.
+        - Non-cacheable < Write-Back Cacheable.
+      - Shareability attribute. This could be one of the following types.
+        - Non-shareable.
+        - Outer Shareable.
+        - Inner Shareable.
+        The precedence rules are as follows.
+        - Non-Shareable < Inner Shareable < Outer shareable.
+
+      Memory region attributes are specified by an endpoint by setting Bits[5:0] in Table 5.18 to appropriate values.
+      The data structure to encode memory region attributes is specified in Table 5.18.
+   *)
 
   Inductive FFA_MEMORY_CACHEABILITY_TYPE_1 :=
   | FFA_MEMORY_CACHE_RESERVED
@@ -835,8 +1015,8 @@ Section FFA_DESCRIPTIONS.
       - In a transaction to donate memory or lend memory to a single Borrower,
         - Whether the Owner/Lender is allowed to specify the memory region attributes that the Receiver must
           use to access the memory region depends on the type of Receiver.
-        - If the Receiver is a PE or Proxy endpoint, the Owner must not specify the attributes.
-        - If the Receiver is an independent peripheral device, the Owner could specify the attributes.
+          - If the Receiver is a PE or Proxy endpoint, the Owner must not specify the attributes.
+          - If the Receiver is an independent peripheral device, the Owner could specify the attributes.
           The Owner must specify its choice in an invocation of the FFA_MEM_DONATE or FFA_MEM_LEND ABIs.
         - The values in the memory region attributes field specified by the Owner/Lender must be interpreted
           by the Relayer as follows. This is done in response to an invocation of the FFA_MEM_DONATE or
@@ -889,27 +1069,50 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
 
      - Flags are used to govern the behavior of a memory management transaction.
 
-     - 5.12.4.1 Zero memory flag: In some ABI invocations, the caller could set a 
-       flag to request the Relayer to zero a memory region. To do this, the Relayer must:
+     - Usage of the Flags field in an invocation of the following ABIs is specified in Table 5.20.
+        - FFA_MEM_DONATE.
+        - FFA_MEM_LEND.
+        - FFA_MEM_SHARE.
+     - Usage of the Flags field in an invocation of the FFA_MEM_RETRIEVE_REQ ABI is specified in Table 5.21.
+     - Usage of the Flags field in an invocation of the FFA_MEM_RETRIEVE_RESP ABI is specified in Table 5.22.
+   *)
+
+  (** **** Zero memory flag
+      In some ABI invocations, the caller could set a 
+      flag to request the Relayer to zero a memory region. To do this, the Relayer must:
 
        - Map the memory region in its translation regime once it is not mapped in the translation regime of any other 
        FF-A component.
 
-       - The caller must ensure that the memory region fulfills the size and alignment requirements listed in 2.7
-         Memory granularity and alignment to allow the Relayer to map this memory region. It must discover these
-         requirements by invoking the FFA_FEATURES interface with the function ID of the FFA_RXTX_MAP
-         interface (see 8.2 FFA_FEATURES).
-         The Relayer must return INVALID_PARAMETERS if the memory region does not meet these requirements.
+       The caller must ensure that the memory region fulfills the size and alignment requirements listed in 2.7
+       Memory granularity and alignment to allow the Relayer to map this memory region. It must discover these
+       requirements by invoking the FFA_FEATURES interface with the function ID of the FFA_RXTX_MAP
+       interface (see 8.2 FFA_FEATURES).
+       
+       The Relayer must return INVALID_PARAMETERS if the memory region does not meet these requirements.
 
-         - Zero the memory region and perform cache maintenance such that the memory regions contents are coherent
-           between any PE caches, system caches and system memory.
-         - Unmap the memory region from its translation regime before it is mapped in the translation regime of any
-           other FF-A component.
+       - Zero the memory region and perform cache maintenance such that the memory regions contents are coherent
+         between any PE caches, system caches and system memory.
+       - Unmap the memory region from its translation regime before it is mapped in the translation regime of any
+         other FF-A component.
    *)
 
   (** [FFA_MEM_DONATE], [FFA_MEM_LEND], and [FFA_MEM_SHARE]
       
       Table 5.20: Flags usage in [FFA_MEM_DONATE], [FFA_MEM_LEND] and [FFA_MEM_SHARE] ABIs *)
+  (* 
+     Field      Description
+     Bit(1)     - Operation time slicing flag.
+                  - In an invocation of FFA_MEM_DONATE, FFA_MEM_LEND or
+                    FFA_MEM_SHARE, this flag specifies if the Relayer can time slice this operation.
+                    - b0: Relayer must not time slice this operation.
+                    - b1: Relayer can time slice this operation.
+                  – MBZ if the Relayer does not support time slicing of memory management
+                    operations (see 12.2.3 Time slicing of memory management operations), else the
+                    Relayer must return INVALID_PARAMETERS.
+     Bit(31:2)  - Reserved (MBZ).
+     *)
+
 
   (** **** FFA Mem Default Flags *)  
   Record FFA_mem_default_flags_struct :=
@@ -937,6 +1140,84 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
   
   (** FFA_MEM_RETRIEVE_REQ 
       Table 5.21: Flags usage in FFA_MEM_RETRIEVE_REQ ABI *)
+  (* 
+     Field      Description
+     Bit(0)     - Zero memory before retrieval flag.
+                  - In an invocation of FFA_MEM_RETRIEVE_REQ, during a transaction to lend or
+                    donate memory, this flag is used by the Receiver to specify whether the memory
+                    region must be retrieved with or without zeroing its contents first.
+                    - b0: Retrieve the memory region irrespective of whether the Sender requested
+                      the Relayer to zero its contents prior to retrieval.
+                    - b1: Retrieve the memory region only if the Sender requested the Relayer to
+                      zero its contents prior to retrieval by setting the Bit[0] in Table 5.20).
+                  - MBZ in a transaction to share a memory region, else the Relayer must return
+                    INVALID_PARAMETER.
+                  - If the Sender has Read-only access to the memory region and the Receiver sets
+                    Bit(0), the Relayer must return DENIED.
+                  - MBZ if the Receiver has previously retrieved this memory region, else the Relayer
+                    must return INVALID_PARAMETERS (see 11.4.2 Support for multiple retrievals by
+                    a Borrower).
+
+     Bit(1)     - Operation time slicing flag.
+                  - In an invocation of FFA_MEM_RETRIEVE_REQ, this flag specifies if the Relayer
+                    can time slice this operation.
+                    - b0: Relayer must not time slice this operation.
+                    - b1: Relayer can time slice this operation.
+                  - MBZ if the Relayer does not support time slicing of memory management
+                    operations (see 12.2.3 Time slicing of memory management operations), else the
+                    Relayer must return INVALID_PARAMETERS.
+
+
+     Bit(2)     - Zero memory after relinquish flag.
+                  - In an invocation of FFA_MEM_RETRIEVE_REQ, this flag specifies whether the
+                    Relayer must zero the memory region contents after unmapping it from the
+                    translation regime of the Borrower or if the Borrower crashes.
+                    - b0: Relayer must not zero the memory region contents.
+                    - b1: Relayer must zero the memory region contents.
+                  - If the memory region is lent to multiple Borrowers, the Relayer must clear memory
+                    region contents after unmapping it from the translation regime of each Borrower, if
+                    any Borrower including the caller sets this flag.
+                  - This flag could be overridden by the Receiver in an invocation of
+                    FFA_MEM_RELINQUISH (see Flags field in Table 11.25).
+                  - MBZ if the Receiver has Read-only access to the memory region, else the Relayer
+                    must return DENIED. The Receiver could be a PE endpoint or a dependent
+                    peripheral device.
+                  – MBZ in a transaction to share a memory region, else the Relayer must return
+                    INVALID_PARAMETER.
+
+     Bit(4:3)   - Memory management transaction type flag.
+                  - In an invocation of FFA_MEM_RETRIEVE_REQ, this flag is used by the Receiver
+                    to either specify the memory management transaction it is participating in or indicate
+                    that it will discover this information in the invocation of
+                    FFA_MEM_RETRIEVE_RESP corresponding to this request.
+                    - b00: Relayer must specify the transaction type in FFA_MEM_RETRIEVE_RESP.
+                    - b01: Share memory transaction.
+                    - b10: Lend memory transaction.
+                    - b11: Donate memory transaction.
+                  - Relayer must return INVALID_PARAMETERS if the transaction type specified by the
+                    Receiver is not the same as that specified by the Sender for the memory region
+                    identified by the Handle value specified in the transaction descriptor.
+
+     Bit(9:5)   - Address range alignment hint.
+                  - In an invocation of FFA_MEM_RETRIEVE_REQ, this flag is used by the Receiver
+                    to specify the boundary, expressed as multiples of 4KB, to which the address ranges
+                    allocated by the Relayer to map the memory region must be aligned.
+                  - Bit(9): Hint valid flag.
+                    - b0: Relayer must choose the alignment boundary. Bits[8:5] are reserved and MBZ.
+                    - b1: Relayer must use the alignment boundary specified in Bits[8:5].
+                  – Bit(8:5): Alignment hint.
+                  - If the value in this field is n, then the address ranges must be aligned to the 2*n
+                    x 4KB boundary.
+                  - MBZ if the Receiver specifies the IPA or VA address ranges that must be used by the
+                    Relayer to map the memory region, else the Relayer must return
+                    INVALID_PARAMETERS.
+                  – Relayer must return DENIED if it is not possible to allocate the address ranges at the
+                    alignment boundary specified by the Receiver.
+                  – Relayer must return INVALID_PARAMETERS if a reserved value is specified by the
+                    Receiver.
+
+     Bit(31:10) - Reserved (MBZ)
+   *)
 
   Inductive FFA_memory_management_transaction_type :=
   | MEMORY_MANAGEMENT_DEFAULT_TRANSACTION
@@ -1028,7 +1309,27 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
 
   (** FFA_MEM_RETRIEVE_RESP
       Table 5.22: Flags usage in FFA_MEM_RETRIEVE_RESP ABI *)
-
+  (*
+    Field       Description
+    Bit(0)      - Zero memory before retrieval flag.
+                  - In an invocation of FFA_MEM_RETRIEVE_RESP during a transaction to lend or
+                    donate memory, this flag is used by the Relayer to specify whether the memory
+                    region was retrieved with or without zeroing its contents first.
+                    - b0: Memory region was retrieved without zeroing its contents.
+                    - b1: Memory region was retrieved after zeroing its contents.
+                  - MBZ in a transaction to share a memory region.
+                  - MBZ if the Sender has Read-only access to the memory region.
+    Bit(2:1)    - Reserved (MBZ).
+    Bit(4:3)    - Memory management transaction type flag.
+                  - In an invocation of FFA_MEM_RETRIEVE_RESP, this flag is used by the Relayer
+                    to specify the memory management transaction the Receiver is participating in.
+                    - b00: Reserved.
+                    - b01: Share memory transaction.
+                    - b10: Lend memory transaction.
+                    - b11: Donate memory transaction.
+    Bit(31:5)   - Reserved (MBZ).
+   *)
+  
   (** **** FFA Mem Relinquish Resp Flags Coq Definition *)
   Record FFA_mem_relinquish_resp_flags_struct :=
     mkFFA_mem_relinquish_resp_flags_struct {
@@ -1105,6 +1406,31 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         attributes with which this memory region should be mapped in that
         endpoint's page table.
       - [struct ffa_memory_access receivers[];]
+   *)
+  (* 
+     Field              Byte length     Byte offset     Description
+     Sender endpoint ID 2               0               - ID of the Owner endpoint.
+     Memory region      1               2               - Attributes must be encoded as specified in 5.11.4
+     attributes                                           Memory region attributes usage.
+                                                        - Attribute usage is subject to validation at the
+                                                          virtual and physical FF-A instances as specified in
+                                                          5.11.4 Memory region attributes usage.
+     Reserved (MBZ)     1               3
+     Flags              4               4               - Flags must be encoded as specified in in 5.12.4
+                                                          Flags usage.
+     Handle             8               8               - Memory region handle in ABI invocations
+                                                          specified in 5.12.1 Handle usage.
+     Tag                8               16              - This field must be encoded as specified in 5.12.2
+                                                          Tag usage.
+     Reserved (MBZ)     4               24
+     Endpoint memory    4               28              - Count of endpoint memory access descriptors.
+     access descriptor 
+     count
+     Endpoint memory    –               32              - Each entry in the array must be encoded as
+     access descriptor                                    specified in 5.12.3 Endpoint memory access
+     array                                                descriptor array usage. See Table 5.16 for the
+                                                          encoding of the endpoint memory access
+                                                          descriptor.
    *)
 
   (** **** FFA Memory Region Coq Definition *)
@@ -1188,12 +1514,55 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
              (memory_region : FFA_memory_region_struct) :=
     well_formed_FFA_memory_region_struct_receivers
       (memory_region.(FFA_memory_region_struct_receivers)).
+  (*************************************************************************)
+  (** **           Handle Usage                                            *)
+  (*************************************************************************)
+  (** 
+      - This field must be zero (MBZ) in an invocation of the following ABIs.
+        - FFA_MEM_DONATE.
+        - FFA_MEM_LEND.
+        - FFA_MEM_SHARE.
+      - A successful invocation of each of the preceding ABIs returns a Handle (see 5.10.2 Memory region handle)
+        to identify the memory region in the transaction.
+      - The Sender must convey the Handle to the Receiver through a Partition message.
+      - This field must be used by the Receiver to encode this Handle in an invocation of the FFA_MEM_RETRIEVE_REQ
+        ABI.
+      - A Relayer must validate this field in an invocation of the FFA_MEM_RETRIEVE_REQ ABI as follows.
+        - Ensure that it holds a Handle value that was previously allocated and has not been reclaimed by the
+          Owner.
+        - Ensure that the Handle identifies a memory region that was shared, lent or donated to the Receiver.
+        - Ensure that the Handle was allocated to the Owner specified in the Sender endpoint ID field of the
+          transaction descriptor.
+        It must return INVALID_PARAMETERS if the validation fails.
+      - This field must be used by the Relayer to encode the Handle in an invocation of the FFA_MEM_RETRIEVE_RESP
+        ABI.
+   *)
+  
+  (*************************************************************************)
+  (** **           Tag usage                                               *)
+  (*************************************************************************)
+  (**
+     - This 64-bit field must be used to specify an IMPLEMENTATION DEFINED value associated with the transaction
+       and known to participating endpoints.
+     - The Sender must specify this field to the Relayer in an invocation of the following ABIs.
+       - FFA_MEM_DONATE.
+       - FFA_MEM_LEND.
+       - FFA_MEM_SHARE.
+     - The Sender must convey the Tag to the Receiver through a Partition message.
+     - This field must be used by the Receiver to encode the Tag in an invocation of the FFA_MEM_RETRIEVE_REQ
+       ABI.
+     - The Relayer must ensure the Tag value specified by the Receiver is equal to the value that was specified by
+       the Sender. It must return INVALID_PARAMETERS if the validation fails.
+     - This field must be used by the Relayer to encode the Tag value in an invocation of the FFA_MEM_RETRIEVE_RESP
+       ABI. 
+   *)
     
   (*************************************************************************)
-  (** **  Endpoint memory access descriptor array usage                     *)
+  (** **  Endpoint memory access descriptor array usage                    *)
   (*************************************************************************)
   (** [JIEUNG: similar to the previous usage descriptions, the following 
       things has to be defined as invariants] *)
+  (** *** Sender usage *)
   (** A Sender must use this field to specify one or more Receivers and the access permissions each should have on the
       memory region it is donating, lending or sharing through an invocation of one of the following ABIs.
       - FFA_MEM_DONATE.
@@ -1229,7 +1598,9 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
           the composite memory region descriptor. This implies that all values of the Offset field must be equal.
    *)
 
-  (** A Receiver must use this field to specify the access permissions it should have on the memory region being donated,
+  (** *** Receiver usage *)  
+  (** A Receiver must use this field to specify the access permissions it should have on the memory region
+      being donated,
       lent or shared in an invocation of the FFA_MEM_RETRIEVE_REQ ABI. This is specified in 5.11.3 Instruction
       access permissions usage and 5.11.2 Data access permissions usage.
       - A Receiver could do this on its behalf if it is a PE endpoint.
@@ -1263,7 +1634,8 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         The value 0 must be specified in the Offset field of the corresponding endpoint memory access descriptor in
         the array.
    *)
-
+  
+  (** *** Relayer usage *)  
   (** A Relayer must validate the Endpoint memory access descriptor count and each entry in the Endpoint memory
       access descriptor array as follows.
       - The Relayer could support memory management transactions targeted to only a single Receiver endpoint.
@@ -1319,6 +1691,49 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
       - [ffa_memory_region_flags_t flags;]
       - [uint32_t endpoint_count;]
       - [ffa_vm_id_t * endpoints;]
+   *)
+  (* 
+     Field              Byte length     Byte offset     Description
+     Handle             8               0               - Globally unique Handle to identify a memory
+                                                          region.
+     Flags              4               8               - Bit(0): Zero memory after relinquish flag.
+                                                          - This flag specifies if the Relayer must clear
+                                                            memory region contents after unmapping it
+                                                            from from the translation regime of the
+                                                            Borrower.
+                                                            - b0: Relayer must not zero the memory
+                                                              region contents.
+                                                            - b1: Relayer must zero the memory
+                                                              region contents.
+                                                          - If the memory region was lent to multiple
+                                                            Borrowers, the Relayer must clear memory
+                                                            region contents after unmapping it from the
+                                                            translation regime of each Borrower, if any
+                                                            Borrower including the caller sets this flag.
+                                                          - MBZ if the memory region was shared, else
+                                                            the Relayer must return
+                                                            INVALID_PARAMETERS.
+                                                          - MBZ if the Borrower has Read-only access
+                                                            to the memory region, else the Relayer must
+                                                            return DENIED.
+                                                          - Relayer must fulfill memory zeroing
+                                                            requirements listed in 5.12.4 Flags usage.
+                                                        - Bit(1): Operation time slicing flag.
+                                                          - This flag specifies if the Relayer can time
+                                                            slice this operation.
+                                                            - b0: Relayer must not time slice this
+                                                              operation .
+                                                            - b1: Relayer can time slice this
+                                                              operation.
+                                                          - MBZ if the Relayer does not support time slicing
+                                                            of memory management operations (see 12.2.3
+                                                            Time slicing of memory management operations).
+
+                                                        - Bit(31:2): Reserved (MBZ).
+
+     Endpoint count     4               12              - Count of endpoints.
+     Endpoint array     -               16              - Array of endpoint IDs. Each entry contains a
+                                                          16-bit ID.
    *)
 
   Record FFA_memory_relinquish_struct :=
