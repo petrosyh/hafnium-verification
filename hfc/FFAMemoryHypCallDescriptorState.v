@@ -559,10 +559,10 @@ Section FFA_DESCRIPTIONS.
 
  (** FFA memory access permissions descriptor
      - [ffa_vm_id_t receiver;]: The ID of the VM to which the memory is being given or shared. 
-       The permissions with which the memory region should be mapped in the receiver's page table.
      - [ffa_memory_access_permissions_t permissions;]: 
+       The permissions with which the memory region should be mapped in the receiver's page table.       
+     - [ffa_memory_receiver_flags_t flags;]:
        Flags used during FFA_MEM_RETRIEVE_REQ and FFA_MEM_RETRIEVE_RESP for memory regions with multiple borrowers.
-     - [ffa_memory_receiver_flags_t flags;]
   *)
 
   (**
@@ -572,6 +572,36 @@ Section FFA_DESCRIPTIONS.
    permission to the same memory region.
    *)
 
+  (** **** Order of instruction access and data access to check
+      whether a is more permissive. 
+      - It will return true if a is more permissive than b. 
+      - It will return false in the following two cases.
+        - When b is more permissive than a.
+        - When a or b has an invalid value. 
+          [JIEUNG: We can easily add option type when it is required later, but handling them
+                   as false might be good at this moment] *)
+  
+  Definition instruction_access_permissive (a b: FFA_INSTRUCTION_ACCESS_TYPE) : bool :=
+    match a, b with
+    | FFA_INSTRUCTION_ACCESS_X, FFA_INSTRUCTION_ACCESS_X
+    | FFA_INSTRUCTION_ACCESS_X, FFA_INSTRUCTION_ACCESS_NX
+    | FFA_INSTRUCTION_ACCESS_NX, FFA_INSTRUCTION_ACCESS_NX => true
+    | FFA_INSTRUCTION_ACCESS_NX, FFA_INSTRUCTION_ACCESS_X => false
+    (** invalid pairs *)
+    | _, _ => false
+    end.
+
+  Definition data_access_permissive (a b: FFA_DATA_ACCESS_TYPE) : bool :=
+    match a, b with
+    | FFA_DATA_ACCESS_RW, FFA_DATA_ACCESS_RW
+    | FFA_DATA_ACCESS_RW, FFA_DATA_ACCESS_RO
+    | FFA_DATA_ACCESS_RO, FFA_DATA_ACCESS_RO => true
+    | FFA_DATA_ACCESS_RO, FFA_DATA_ACCESS_RW => false
+    (** invalid pairs *)
+    | _, _ => false
+    end.
+
+  
   (* Table 5.15: Memory access permissions descriptor 
      Field       Byte length   Byte offset            Description
      Endpoint    2             -                      - 16-bit ID of endpoint to which the memory access
@@ -650,6 +680,11 @@ Section FFA_DESCRIPTIONS.
         FFA_memory_access_permissions_descriptor_struct_flags:
           ffa_memory_receiver_flags_t;
       }.
+  
+  Definition init_FFA_memory_access_permissions_descriptor_struct :=
+    mkFFA_memory_access_permissions_descriptor_struct
+      0 FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED
+      FFA_DATA_ACCESS_NOT_SPECIFIED None.
 
   (**
      Table 5.16 specifies the data structure that is used in memory management transactions to create an association
@@ -661,11 +696,7 @@ Section FFA_DESCRIPTIONS.
      This enables one or more endpoints to be associated with the same memory region but with different memory
      access permissions for example, SP0 could have RO data access permission and SP1 could have RW data access
      permission to the same memory region. *)
-  
-  Definition init_FFA_memory_access_permissions_descriptor_struct :=
-    mkFFA_memory_access_permissions_descriptor_struct
-      0 FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED
-      FFA_DATA_ACCESS_NOT_SPECIFIED None.
+
   
   (** Table 5.16: Endpoint memory access descriptor 
       - [struct ffa_memory_region_attributes receiver_permissions;]: 
@@ -691,7 +722,6 @@ Section FFA_DESCRIPTIONS.
                                                                   one.
      Reserved (MBZ)              8               8
      *)
-
   
   (** **** FFA Endpoint Memory Access Descriptor Coq Definitoin *)  
   Record FFA_endpoint_memory_access_descriptor_struct :=
@@ -724,7 +754,6 @@ Section FFA_DESCRIPTIONS.
     mkFFA_endpoint_memory_access_descriptor_struct
       init_FFA_memory_access_permissions_descriptor_struct None 0.
 
-
   Definition well_formed_FFA_endpoint_memory_access_descriptor_struct
              (descriptor : FFA_endpoint_memory_access_descriptor_struct) :=
     match descriptor.(FFA_memory_access_descriptor_struct_composite_memory_region_struct) with
@@ -753,7 +782,9 @@ Section FFA_DESCRIPTIONS.
       - Data access permission is specified by setting Bits(1:0) in Table 5.15 to the appropriate value
 
       This access control is used in memory management transactions as follows.
+   *)
 
+  (**
       Restrictions in lend or share memory:
       - The Lender must specify the level of access that the Borrower is permitted to have on the memory region.
         This is done while invoking the FFA_MEM_SHARE or FFA_MEM_LEND ABIs.
@@ -761,11 +792,11 @@ Section FFA_DESCRIPTIONS.
         to an invocation of the FFA_MEM_SHARE or FFA_MEM_LEND ABIs. The Relayer must return the
         DENIED error code if the validation fails.
         - At the Non-secure physical FF-A instance, an IMPLEMENTATION DEFINED mechanism is used to perform validation.
-          - [JIEUNG: The above sentence is too vague]
+          - [JIEUNG: The above sentence is vague]
         - At any virtual FF-A instance, if the endpoint is running in EL1 or S-EL1 in either Execution state,
           the permission specified by the Lender is considered valid only if it is the same or less permissive
-          than the permission used by the Relayer in the S2AP field in the stage 2 translation table descriptors
-          for the memory region in one of the following translation regimes:
+          than the permission used by the Relayer in the S2AP (RW permissions) field in the stage 2 translation 
+          table descriptors for the memory region in one of the following translation regimes:
           - Secure EL1&0 translation regime, when S-EL2 is enabled.
           - Non-secure EL1&0 translation regime, when EL2 is enabled.
           - [JIEUNG: S2AP should be modeled - It is about read / write permissions]
@@ -795,7 +826,10 @@ Section FFA_DESCRIPTIONS.
           
           It must ensure that the permissions for other Borrowers are the same as those specified by the Lender
           and validated by the Relayer. The Relayer must return the DENIED error code if the validation fails.
+   *)
 
+
+  (**
      Restrictions in dontate memory: 
      - Whether the Owner is allowed to specify the level of access that the Receiver is permitted to have on the
        memory region depends on the type of Receiver.
@@ -831,6 +865,49 @@ Section FFA_DESCRIPTIONS.
       - [JIEUNG: We need a way to store the previous permissions] 
    *)
 
+  (** **** Access permission checker *)
+  (** Definitions to check access permissions.
+
+      Summarized rules (LEND and SHARE) 
+      - The Relayer must validate the permission specified by the Lender
+      - the permission specified by the Lender is considered valid only if it is the same or less permissive
+        than the permission used by the Relayer in the S2AP (RW permissions) field in the stage 2 translation 
+        table descriptors for the memory region
+      - the permission of the Borrower is the same or less permissive than the permission
+        that was specified by the Lender and validated by the Relayer
+        
+      - [JIEUNG: It does not mention that when Relayer check the premissions of Borrowers. I assume it will be checked
+        during retrieve] 
+
+      Summarized rules (DONATE)
+      - If the Receiver is a PE or Proxy endpoint, the Relayer must return INVALID_PARAMETERS if the
+        value is not b00.
+      - The Receiver (if a PE or Proxy endpoint) should specify the level of access that it would like to have on
+        the memory region. This is done while invoking the FFA_MEM_RETRIEVE_REQ ABI.
+      - The Relayer must validate the permission specified by the Receiver to ensure that it is the same or less
+        permissive than the permission determined by the Relayer through an IMPLEMENTATION DEFINED
+        mechanism. This is done in response to an invocation of the FFA_MEM_RETRIEVE_REQ ABI. The
+        Relayer must return the DENIED error code if the validation fails.
+   *)
+
+  (** I added the following checkers, but some of them may not be used due to the redundancy *)
+  Definition check_lender_data_permissions (global lender: FFA_DATA_ACCESS_TYPE) :=
+    data_access_permissive global lender.
+  
+  Definition check_lend_and_share_descriptor_data_permissions (descriptor global lender: FFA_DATA_ACCESS_TYPE) :=
+    data_access_permissive global descriptor && data_access_permissive lender descriptor.
+
+  (** When it is not satisfied, the spec needs to return INVALID_PARAMETER *)
+  Definition check_donate_descriptor_data_permissions (descriptor: FFA_DATA_ACCESS_TYPE) :=
+    match descriptor with
+    | FFA_DATA_ACCESS_NOT_SPECIFIED => true
+    | _ => false
+    end.
+  
+  (** When it is not satisfied, the spec needs to return DENIED *) 
+  Definition check_borrower_data_permissions (borrower global descriptor: FFA_DATA_ACCESS_TYPE) :=
+    data_access_permissive global borrower && data_access_permissive descriptor borrower.
+
   (*******************************************************)
   (** *** 5.11.3 Instruction access permissions usage    *)
   (*******************************************************)
@@ -843,12 +920,37 @@ Section FFA_DESCRIPTIONS.
       This access control is used in memory management transactions as follows.
 
       - Only XN permission must be used in the following transactions.
+        [JIEUNG: What's the meaning of XN in here. b00 is not XN...]
          - In a transaction to share memory with one or more Borrowers.
          - In a transaction to lend memory to more than one Borrower.
          Bits(3:2) in Table 5.15 must be set to b00 as follows.
          - By the Lender in an invocation of FFA_MEM_SHARE or FFA_MEM_LEND ABIs.
          - By the Borrower in an invocation of the FFA_MEM_RETRIEVE_REQ ABI.
          The Relayer must set Bits(3:2) in Table 5.15 to b01 while invoking the FFA_MEM_RETRIEVE_RESP ABI.
+   *)
+  
+  (** for lender's descriptor - FFA_MEM_SHARE and FFA_MEM_LEND for multiple borrowers *)
+  Definition check_share_and_multiple_borrow_lender_descriptor (descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    match descriptor with
+    | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => true
+    | _ => false
+    end.
+    
+  (** for borower's descriptor - FFA_MEM_SHARE and FFA_MEM_LEND for multiple borrowers *)
+  Definition check_share_and_multiple_borrow_borrower_descriptor (descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    match descriptor with
+    | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => true
+    | _ => false
+    end.
+  
+  (** for resp's descriptor - FFA_MEM_SHARE and FFA_MEM_LEND for multiple borrowers *)
+  Definition check_share_and_multiple_borrow_resp_descriptor (descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    match descriptor with
+    | FFA_INSTRUCTION_ACCESS_NX => true
+    | _ => false
+    end.
+
+  (**
       - In a transaction to donate memory or lend memory to a single Borrower,
          - Whether the Owner/Lender is allowed to specify the level of access that the Receiver is permitted to
            have on the memory region depends on the type of Receiver.
@@ -859,12 +961,12 @@ Section FFA_DESCRIPTIONS.
            by the Relayer as follows. This is done in response to an invocation of the
            FFA_MEM_DONATE or FFA_MEM_LEND ABIs.
            - If the Receiver is a PE or Proxy endpoint, the Relayer must return INVALID_PARAMETERS if the 
-           value is not b00.
+             value is not b00.
            - If the Receiver is an independent peripheral device and the value is not b00, the Relayer must take 
              one of the following actions.
              - Return DENIED if the permission is determined to be invalid through an IMPLEMENTATION DEFINED mechanism.
              - Use the permission specified by the Owner to map the memory region into the address space of the device.
-           - If the Receiver is an independent peripheral device and the value is b’00, the Relayer must determine 
+           - If the Receiver is an independent peripheral device and the value is b00, the Relayer must determine 
              the permission value through an IMPLEMENTATION DEFINED mechanism.
          - The Receiver (if a PE or Proxy endpoint) should specify the level of access that it would like to 
            have on the memory region. This must be done in an invocation of the FFA_MEM_RETRIEVE_REQ ABI.
@@ -883,7 +985,32 @@ Section FFA_DESCRIPTIONS.
         mapped back into the translation regime of the Lender with the same instruction access permission that was
         used at the start of the transaction to lend the memory region. This is done in response to an 
         invocation of the FFA_MEM_RECLAIM ABI.
-  *)
+   *)
+
+  (** for lender's descriptor - FFA_MEM_DONATE and FFA_MEM_LEND for single borrowers *)
+  (** We are currently focusing on the case when two components are PE or Proxy endpoint. Therefore, the following
+      rule is applied.
+      - If the Receiver is a PE or Proxy endpoint, the Relayer must return INVALID_PARAMETERS if the 
+        value is not b00. *)
+  Definition check_donate_and_single_borrow_lender_descriptor (descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    match descriptor with
+    | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => true
+    | _ => false
+    end.
+
+  (** Something is a little bit tricky for us to define. For example, the following condition has to be handled, but 
+      it is somewhat vague. "For example, the Relayer could deny executable access to a Borrower on a memory 
+      region of Device memory type." *)
+
+  (** for borrower's descriptor *)
+  (** We need to check whether the specified instruction access is less permissive than the global access *)
+  Definition check_donate_and_single_borrow_borrower_descriptor (descriptor global: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    instruction_access_permissive global descriptor.
+
+  (** TODO: need to add as invariants in the state 
+      - For data and instruction access, the following thing has to be modeled as an invariant. 
+        - forall ranges, the access permission in the global properties has to be more permissive than 
+          any corresponding permissions in local properties *)
   
   (*******************************************************)
   (** *** 5.11.4 Memory region attributes usage          *)
@@ -935,6 +1062,39 @@ Section FFA_DESCRIPTIONS.
   | FFA_MEMORY_OUTER_SHAREABLE
   | FFA_MEMORY_INNER_SHAREABLE.
 
+
+  Definition FFA_MEMORY_CACHEABILITY_TYPE_1_permissive (a b: FFA_MEMORY_CACHEABILITY_TYPE_1) :=
+    match a, b with
+    | FFA_MEMORY_CACHE_WRITE_BACK, FFA_MEMORY_CACHE_WRITE_BACK
+    | FFA_MEMORY_CACHE_WRITE_BACK, FFA_MEMORY_CACHE_NON_CACHEABLE
+    | FFA_MEMORY_CACHE_NON_CACHEABLE, FFA_MEMORY_CACHE_NON_CACHEABLE => true
+    | FFA_MEMORY_CACHE_NON_CACHEABLE, FFA_MEMORY_CACHE_WRITE_BACK => false
+    | _, _ => false
+    end.
+                                                                       
+  Definition FFA_MEMORY_CACHEABILITY_TYPE_2_permissive (a b: FFA_MEMORY_CACHEABILITY_TYPE_2) :=
+    match a, b with
+    | FFA_MEMORY_DEV_GRE, _ => true
+    | FFA_MEMORY_DEV_NGRE, FFA_MEMORY_DEV_GRE => false
+    | FFA_MEMORY_DEV_NGRE, _ => true
+    | FFA_MEMORY_DEV_NGNRE, FFA_MEMORY_DEV_GRE
+    | FFA_MEMORY_DEV_NGNRE, FFA_MEMORY_DEV_NGRE => false
+    | FFA_MEMORY_DEV_NGNRE, _ => true
+    | FFA_MEMORY_DEV_NGNRNE, FFA_MEMORY_DEV_NGNRNE => true
+    | _, _ => false
+    end.
+
+  Definition FFA_MEMORY_SHAREABILITY_permissive (a b : FFA_MEMORY_SHAREABILITY) :=
+    match a, b with
+    | FFA_MEMORY_OUTER_SHAREABLE, FFA_MEMORY_SHARE_RESERVED => false
+    | FFA_MEMORY_OUTER_SHAREABLE, _ => true
+    | FFA_MEMORY_INNER_SHAREABLE, FFA_MEMORY_INNER_SHAREABLE
+    | FFA_MEMORY_INNER_SHAREABLE, FFA_MEMORY_SHARE_NON_SHAREABLE => true
+    | FFA_MEMORY_INNER_SHAREABLE, _ => false
+    | FFA_MEMORY_SHARE_NON_SHAREABLE, FFA_MEMORY_SHARE_NON_SHAREABLE => true
+    | _, _ => false
+    end.
+      
   Inductive FFA_MEMORY_TYPE :=
   | FFA_MEMORY_NOT_SPECIFIED_MEM
   | FFA_MEMORY_DEVICE_MEM
@@ -943,6 +1103,22 @@ Section FFA_DESCRIPTIONS.
       (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_1)
       (shareability_type: FFA_MEMORY_SHAREABILITY)
   | FFA_MEMORY_MEM_RESERVED.
+
+
+  Definition FFA_MEMORY_TYPE_permissive (a b : FFA_MEMORY_TYPE) :=
+    match a, b with
+    | FFA_MEMORY_DEVICE_MEM cacheability_type_a,
+      FFA_MEMORY_DEVICE_MEM cacheability_type_b
+      => FFA_MEMORY_CACHEABILITY_TYPE_2_permissive
+          cacheability_type_a cacheability_type_b
+    | FFA_MEMORY_NORMAL_MEM cacheability_type_a shareability_type_a,
+      FFA_MEMORY_NORMAL_MEM cacheability_type_b shareability_type_b =>
+      FFA_MEMORY_CACHEABILITY_TYPE_1_permissive
+        cacheability_type_a cacheability_type_b && 
+      FFA_MEMORY_SHAREABILITY_permissive
+        shareability_type_a shareability_type_b
+    | _, _ => false
+    end.
 
   (** **** FFA Memory Region Attributes Descriptor Coq definition *)
   Record FFA_memory_region_attributes_descriptor_struct :=
@@ -1011,7 +1187,17 @@ Section FFA_DESCRIPTIONS.
           that they are the same or less permissive than the attributes that were specified by the Lender and
           validated by the Relayer. This is done in response to an invocation of the FFA_MEM_RETRIEVE_REQ
           ABI. The Relayer must return the DENIED error code if the validation fails.
+   *)
 
+  Definition attributes_share_and_multiple_borrowers_lender_checks (descriptor lender global : FFA_MEMORY_TYPE) :=
+    FFA_MEMORY_TYPE_permissive lender descriptor &&
+    FFA_MEMORY_TYPE_permissive global descriptor &&
+    FFA_MEMORY_TYPE_permissive global lender.
+  
+  Definition attributes_share_and_multiple_borrowers_borrower_checks (descriptor global : FFA_MEMORY_TYPE) :=
+    FFA_MEMORY_TYPE_permissive global descriptor.
+  
+  (**
       - In a transaction to donate memory or lend memory to a single Borrower,
         - Whether the Owner/Lender is allowed to specify the memory region attributes that the Receiver must
           use to access the memory region depends on the type of Receiver.
@@ -1037,18 +1223,28 @@ Section FFA_DESCRIPTIONS.
           that they are the same or less permissive than the attributes determined by the Relayer through an
           IMPLEMENTATION DEFINED mechanism.
       
-        This is done in response to an invocation of the FFA_MEM_RETRIEVE_REQ ABI. The Relayer must
-        return the DENIED error code if the validation fails.
+          This is done in response to an invocation of the FFA_MEM_RETRIEVE_REQ ABI. The Relayer must
+          return the DENIED error code if the validation fails.
 
-      - The Relayer must specify the memory region attributes that were used to map the memory region
-        in the translation regime of the Receiver or Borrower. This must be done while invoking the
-        FFA_MEM_RETRIEVE_RESP ABI.
+        - The Relayer must specify the memory region attributes that were used to map the memory region
+          in the translation regime of the Receiver or Borrower. This must be done while invoking the
+          FFA_MEM_RETRIEVE_RESP ABI.
     
-      - In a transaction to relinquish memory that was lent to one or more Borrowers, the memory region must be
-        mapped back into the translation regime of the Lender with the same attributes that were used at the start of the
-        transaction to lend the memory region. This is done in response to an invocation of the FFA_MEM_RECLAIM ABI.
-    *)
-    
+        - In a transaction to relinquish memory that was lent to one or more Borrowers, the memory region must be
+          mapped back into the translation regime of the Lender with the same attributes that were used at the start of the
+          transaction to lend the memory region. This is done in response to an invocation of the FFA_MEM_RECLAIM ABI.
+   *)
+
+  Definition attributes_donate_and_single_borrower_lender_checks (descriptor lender global : FFA_MEMORY_TYPE) :=
+    match descriptor with
+    | FFA_MEMORY_NOT_SPECIFIED_MEM => true
+    | _ => false
+    end && 
+    FFA_MEMORY_TYPE_permissive global lender.
+  
+  Definition attributes_donate_and_single_borrower_borrower_checks (descriptor global : FFA_MEMORY_TYPE) :=
+    FFA_MEMORY_TYPE_permissive global descriptor.
+  
 End FFA_DESCRIPTIONS.
 
 (*************************************************************)
@@ -1137,6 +1333,23 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         FFA_mem_default_flags_struct_operation_time_slicing_flag: bool;
         (** - Bit(31:2): Reserved (MBZ). *)
       }.
+
+
+  Definition check_FFA_mem_default_flags_struct_for_donate_and_lend
+             (default_flag: FFA_mem_default_flags_struct) (data_access : FFA_DATA_ACCESS_TYPE) :=
+    if default_flag.(FFA_mem_default_flags_struct_zero_memory_flag)
+    then match data_access with
+         | FFA_DATA_ACCESS_RW => true
+         | _ => false
+         end
+    else true.
+
+  Definition check_FFA_mem_default_flags_struct_for_share
+             (default_flag: FFA_mem_default_flags_struct) :=
+    if default_flag.(FFA_mem_default_flags_struct_zero_memory_flag)
+    then false
+    else true.
+
   
   (** FFA_MEM_RETRIEVE_REQ 
       Table 5.21: Flags usage in FFA_MEM_RETRIEVE_REQ ABI *)
@@ -1253,7 +1466,8 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
                 operations (see 12.2.3 Time slicing of memory management operations), else the
                 Relayer must return INVALID_PARAMETERS. *)
         FFA_mem_relinquish_req_flags_struct_operation_time_slicing_flag: bool;
-        (** - Bit(2): Zero memory after relinquish flag.
+        (** [JIEUNG: This one has to be reflected in our spec]
+            - Bit(2): Zero memory after relinquish flag.
               – In an invocation of FFA_MEM_RETRIEVE_REQ, this flag specifies whether the Relayer must zero the memory 
                 region contents after unmapping it from the translation regime of the Borrower or if the Borrower crashes.
                 - b0: Relayer must not zero the memory region contents.
@@ -1262,12 +1476,13 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
                 unmapping it from the translation regime of each Borrower, if any Borrower including the caller sets this flag.
               – This flag could be overridden by the Receiver in an invocation of FFA_MEM_RELINQUISH
                 (see Flags field in Table 11.25).
-              - MBZ if the Receiver has Read-only access to the memory region, else the Relayer  must return DENIED. 
+              - MBZ if the Receiver has Read-only access to the memory region, else the Relayer must return DENIED. 
                 The Receiver could be a PE endpoint or a dependent peripheral device.
               - MBZ in a transaction to share a memory region, else the Relayer must return
                 INVALID_PARAMETER. *)
         FFA_mem_relinquish_req_flags_struct_zero_memory_after_retrieval_flag: bool;
-        (**  - Bit(4:3): Memory management transaction type flag.
+        (** [JIEUNG: This one has to be reflected in our spec]
+            - Bit(4:3): Memory management transaction type flag.
                – In an invocation of FFA_MEM_RETRIEVE_REQ, this flag is used by the Receiver
                  to either specify the memory management transaction it is participating in or indicate
                  that it will discover this information in the invocation of
@@ -1301,6 +1516,28 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         (** - Bit[31:10] - Reserved (MBZ) *)
       }.
 
+  Definition check_FFA_mem_relinquish_req_zero_flag_for_donate_and_lend
+             (relinquish_flag: FFA_mem_relinquish_req_flags_struct) (data_access : FFA_DATA_ACCESS_TYPE) :=
+    if relinquish_flag.(FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag)
+    then match data_access with
+         | FFA_DATA_ACCESS_RW => true
+         | _ => false
+         end
+    else true.
+
+  Definition check_FFA_mem_relinquish_req_zero_flag_for_share
+             (relinquish_flag: FFA_mem_relinquish_req_flags_struct) :=
+    if relinquish_flag.(FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag)
+    then false
+    else true.
+
+  Definition check_FFA_mem_relinquish_req_alignment_hint
+             (relinquish_flag: FFA_mem_relinquish_req_flags_struct) (address : Z) :=
+    if fst (relinquish_flag.(FFA_mem_relinquish_req_flags_struct_address_range_alignment_hint))
+    then let alignment := snd (relinquish_flag.(FFA_mem_relinquish_req_flags_struct_address_range_alignment_hint)) in
+         if (decide (0 = Z.modulo address (Z.mul 2 (Z.mul alignment 4096)))) then true else false
+    else true.
+ 
   Definition init_FFA_mem_relinquish_req_flags_struct :=
     mkFFA_mem_relinquish_req_flags_struct
       false false false
@@ -1357,6 +1594,21 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
           FFA_memory_management_transaction_type;        
         (** - Bit(31:5) - Reserved (MBZ). *)
       }.
+
+  Definition check_FFA_mem_relinquish_resp_flags_for_donate_and_lend
+             (relinquish_resp_flag: FFA_mem_relinquish_resp_flags_struct) (data_access : FFA_DATA_ACCESS_TYPE) :=
+    if relinquish_resp_flag.(zero_memory_before_retrieval_flag_in_FFA_mem_relinquish_resp_flags_struct)
+    then match data_access with
+         | FFA_DATA_ACCESS_RW => true
+         | _ => false
+         end
+    else true.
+
+  Definition check_FFA_mem_relinquish_resp_flags_for_share
+             (relinquish_resp_flag: FFA_mem_relinquish_resp_flags_struct) :=
+    if  relinquish_resp_flag.(zero_memory_before_retrieval_flag_in_FFA_mem_relinquish_resp_flags_struct)
+    then false
+    else true.
 
   Definition init_FFA_mem_relinquish_resp_flags_struct :=
     mkFFA_mem_relinquish_resp_flags_struct
@@ -1443,6 +1695,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
           FFA_memory_region_attributes_descriptor_struct;
         (** - length: 1 bytes / offset: 3 bytes (Reserved (MBZ)) *)
         FFA_memory_region_struct_flags : ffa_memory_region_flags_t;
+        (** [JIEUNG: The following two things has to be handled in the specification] *)
         (** - length: 8 bytes / offset: 8 bytes
            
             - length: 4 bytes / offset: 4 bytes
@@ -1450,8 +1703,8 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
               - FFA_MEM_DONATE.
               - FFA_MEM_LEND.
               - FFA_MEM_SHARE.
-                A successful invocation of each of the preceding ABIs returns a Handle (see 5.10.2 Memory region handle)
-                to identify the memory region in the transaction.
+              A successful invocation of each of the preceding ABIs returns a Handle (see 5.10.2 Memory region handle)
+              to identify the memory region in the transaction.
             - The Sender must convey the Handle to the Receiver through a Partition message.
             - This field must be used by the Receiver to encode this Handle in an invocation of the FFA_MEM_RETRIEVE_REQ
               ABI.
@@ -1581,8 +1834,9 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
       following non-exhaustive list of checks.
       - Ensure that the address ranges specified in the composite memory region descriptor do not overlap each other.
       - Total page count is equal to the sum of the Page count fields in each Constituent memory region descriptor.
-     
-     The offset to this descriptor from the base of Table 5.19 must be specified in the Offset field of the Endpoint
+        [JIEUNG: It is already checked with our well-formedness]
+
+      The offset to this descriptor from the base of Table 5.19 must be specified in the Offset field of the Endpoint
       memory access descriptor as follows.
       
       - In a FFA_MEM_DONATE ABI invocation,

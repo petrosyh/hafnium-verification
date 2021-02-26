@@ -143,7 +143,32 @@ Section MEM_AND_PTABLE.
       - who wrote values in the address
       - Note that accesssors will not be nil *)
   | MemWritten (writers: list ffa_UUID_t).
-  
+
+  Inductive MEM_ATTRIBUTES_TYPE :=
+  (** initial value *)
+  | MemAttributes_Undef
+  | MemAttributes_DeviceMem
+      (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_2)
+  | MemAttributes_NormalMem
+      (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_1)
+      (shareability_type: FFA_MEMORY_SHAREABILITY).
+
+  Definition MEM_ATTRIBUTES_TYPE_permissive (a b:MEM_ATTRIBUTES_TYPE) :=
+    match a, b with
+    | _, MemAttributes_Undef => true
+    | MemAttributes_DeviceMem cacheability_type_a,
+      MemAttributes_DeviceMem cacheability_type_b =>
+      FFA_MEMORY_CACHEABILITY_TYPE_2_permissive cacheability_type_a
+                                                cacheability_type_b
+    | MemAttributes_NormalMem cacheability_type_a shareability_type_a,
+      MemAttributes_NormalMem cacheability_type_b shareability_type_b =>
+      FFA_MEMORY_CACHEABILITY_TYPE_1_permissive cacheability_type_a
+                                                cacheability_type_b &&
+      FFA_MEMORY_SHAREABILITY_permissive shareability_type_a
+                                         shareability_type_b
+    | _, _ => false
+    end.
+                              
   (** This memory properties are key features that we may hope to guarantee in our system -
       There are some redundant information in between them, and we may need to 
       make invariants to guarantee well-formed relations between the following different properties 
@@ -154,8 +179,15 @@ Section MEM_AND_PTABLE.
         owned_by : OWNERSHIP_STATE_TYPE;
         (** - access information *)
         accessible_by : ACCESS_STATE_TYPE;
+
+        (** They specifies executable / non-executalbe and read / writer permissions *)
+        global_instruction_access_property : FFA_INSTRUCTION_ACCESS_TYPE;
+        global_data_access_property: FFA_DATA_ACCESS_TYPE;
+        (** memory attributes - e.g., sharable or cacheability *)
+        global_mem_attribute : MEM_ATTRIBUTES_TYPE;
+        
         (** - check whether there are written contents in the memory or not *)
-        mem_dirty: MEM_DIRTY_TYPE;
+        mem_dirty: MEM_DIRTY_TYPE;        
       }.
 
   (** key is a base address of memory region *)
@@ -174,14 +206,6 @@ Section MEM_AND_PTABLE.
      shareability flag indicates it is possible. 
 
      This memory attributes need to be consistent with AccessState. *)
-  Inductive MEM_ATTRIBUTES_TYPE :=
-  (** initial value *)
-  | MemAttributes_Undef
-  | MemAttributes_DeviceMem
-      (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_2)
-  | MemAttributes_NormalMem
-      (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_1)
-      (shareability_type: FFA_MEMORY_SHAREABILITY).  
   
   Record MemLocalProperties :=
     mkMemLocalProperties {
@@ -463,6 +487,8 @@ Section AbstractState.
         cpu_num : Z;
         cpus: ZTree.t CPU_struct;
 
+        time_slice_enabled: bool;
+
         (** - Registers that we have to keep to handle FFA ABIs 
 
             - The following register keeps the currently existing VCPU information that is 
@@ -585,92 +611,7 @@ Section AbstractStateContext.
     FFA_memory_region_struct_size
       (contituents: Z) : Z; (* probably 36 *)
     
-    initial_state : AbstractState;
-    
-    (* TODO: we need invariants about fileds, cpu_id and vm_id, in VCPU_struct *)
-
-    (* TODO: add more invariants in here. *)
-    (** Separate this well_formedness as two parts - 
-       1. Computable parts - return bool
-       2. Uncomputable parts - return Prop *)
-    well_formed (state: AbstractState) : Prop;
-    initial_state_well_formed : well_formed initial_state;
-    
-    well_formed_guarantee_well_formed_scheduler_result :
-      forall st next_id, well_formed st -> scheduler st = next_id -> In next_id vm_ids;
-
-    mem_properties_prop_low_out_of_bound :
-      forall addr st,
-        (addr < address_low)%Z ->
-        ZTree.get
-          addr
-          (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = None;
-    mem_properties_prop_high_out_of_bound :
-      forall addr st,
-        (address_high < addr)%Z ->
-        ZTree.get
-          addr
-          (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = None;
-    mem_properties_prop_not_aligned :
-      forall addr st,
-        (Z.modulo addr alignment_value)%Z <> 0 ->
-        ZTree.get
-          addr
-          (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = None;
-    mem_global_properties_well_formed1 :
-      forall addr st,
-        (address_low <= addr <= address_high)%Z ->
-        (Z.modulo addr alignment_value)%Z = 0 ->
-        exists global_properties,
-          ZTree.get
-            addr
-            (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-          = Some global_properties;
-
-    mem_properties_consistency1 :
-      forall addr st global_properties owner, 
-        ZTree.get
-          addr
-          (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = Some global_properties ->
-        global_properties.(owned_by) = Owned owner ->
-        exists local_properties_pool local_properties,
-          ZTree.get
-            owner
-            (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
-          = Some local_properties_pool /\
-          ZTree.get addr local_properties_pool = Some local_properties /\
-          local_properties.(mem_local_owned) = LocalOwned;
-    mem_properties_consistency2 :
-      forall addr st global_properties owner, 
-        ZTree.get
-          addr
-          (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = Some global_properties ->
-        global_properties.(owned_by) = Owned owner ->
-        forall other,
-          other <> owner ->
-          ((ZTree.get
-              other
-              (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
-            = None) \/
-           (exists local_properties_pool,
-               ZTree.get
-                 other
-                 (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
-               = Some local_properties_pool /\
-               ZTree.get addr local_properties_pool = None) \/
-           (exists local_properties_pool local_properties,
-               ZTree.get
-                 owner
-                 (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
-               = Some local_properties_pool /\
-               ZTree.get addr local_properties_pool = Some local_properties /\
-               local_properties.(mem_local_owned) <> LocalOwned));
-
+    initial_state : AbstractState;    
     }.
 
 End AbstractStateContext.
@@ -687,15 +628,48 @@ Section AbstractStateUpdate.
   (** update memory global properties *)
   Definition update_owned_by_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties b (a.(accessible_by)) (a.(mem_dirty)).
+    mkMemGlobalProperties b (a.(accessible_by))
+                          (a.(global_instruction_access_property))
+                          (a.(global_data_access_property))
+                          (a.(global_mem_attribute)) (a.(mem_dirty)).
   
   Definition update_accessible_by_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by)) b (a.(mem_dirty)).
-  
+    mkMemGlobalProperties (a.(owned_by)) b
+                          (a.(global_instruction_access_property))
+                          (a.(global_data_access_property))
+                          (a.(global_mem_attribute))
+                          (a.(mem_dirty)).
+
+  Definition update_global_instruction_access_property_in_mem_global_properties
+             (a : MemGlobalProperties) b :=
+    mkMemGlobalProperties (a.(owned_by)) (a.(accessible_by)) b
+                          (a.(global_data_access_property))
+                          (a.(global_mem_attribute))
+                          (a.(mem_dirty)).
+             
+  Definition update_global_data_access_property_in_mem_global_properties
+             (a : MemGlobalProperties) b :=
+    mkMemGlobalProperties (a.(owned_by)) (a.(accessible_by))
+                          (a.(global_instruction_access_property))
+                          b (a.(global_mem_attribute))
+                          (a.(mem_dirty)).
+
+  Definition update_global_mem_attribute_in_mem_global_properties
+             (a : MemGlobalProperties) b :=
+    mkMemGlobalProperties (a.(owned_by)) (a.(accessible_by))
+                          (a.(global_instruction_access_property))
+                          (a.(global_data_access_property)) b
+                          (a.(mem_dirty)).
+
+    
   Definition update_mem_dirty_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by)) (a.(accessible_by)) b.
+    mkMemGlobalProperties (a.(owned_by)) (a.(accessible_by))
+                          (a.(global_instruction_access_property))
+                          (a.(global_data_access_property))
+                          (a.(global_mem_attribute))
+                          b.
   
   (** update memory local properties *)
   Definition update_mem_local_owned_in_mem_local_properties
@@ -713,7 +687,7 @@ Section AbstractStateUpdate.
     mkMemLocalProperties (a.(mem_local_owned))
                          (a.(instruction_access_property)) b (a.(mem_attribute)).
 
-  Definition update_mem_attributes_in_mem_local_properties
+  Definition update_mem_attribute_in_mem_local_properties
              (a : MemLocalProperties) b :=
     mkMemLocalProperties (a.(mem_local_owned))
                          (a.(instruction_access_property))
@@ -745,7 +719,9 @@ Section AbstractStateUpdate.
   (** update hafnium context *)
   Definition update_current_cpu_id_in_hafnium_context
              (a: hypervisor_struct) b :=
-    mkHypervisor_struct b (a.(cpu_num)) (a.(cpus)) (a.(tpidr_el2))
+    mkHypervisor_struct b (a.(cpu_num)) (a.(cpus))
+                        (a.(time_slice_enabled))
+                        (a.(tpidr_el2))
                         (a.(api_page_pool_size))
                         (a.(ffa_share_state))
                         (a.(fresh_index_for_ffa_share_state))
@@ -754,7 +730,9 @@ Section AbstractStateUpdate.
 
   Definition update_cpu_num_in_hafnium_context
              (a: hypervisor_struct) b :=
-    mkHypervisor_struct (a.(current_cpu_id)) b (a.(cpus)) (a.(tpidr_el2))
+    mkHypervisor_struct (a.(current_cpu_id)) b (a.(cpus))
+                        (a.(time_slice_enabled))
+                        (a.(tpidr_el2))
                         (a.(api_page_pool_size))
                         (a.(ffa_share_state))
                         (a.(fresh_index_for_ffa_share_state))
@@ -763,7 +741,19 @@ Section AbstractStateUpdate.
 
   Definition update_cpus_in_hafnium_context
              (a: hypervisor_struct) b :=
-    mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) b (a.(tpidr_el2))
+    mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) b
+                        (a.(time_slice_enabled))
+                        (a.(tpidr_el2))
+                        (a.(api_page_pool_size))
+                        (a.(ffa_share_state))
+                        (a.(fresh_index_for_ffa_share_state))
+                        (a.(mem_properties)) (a.(vm_count))
+                        (a.(vms_contexts)).
+
+  Definition update_time_slice_enabled_in_hafnium_context
+             (a: hypervisor_struct) b :=
+    mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus)) b
+                        (a.(tpidr_el2))
                         (a.(api_page_pool_size))
                         (a.(ffa_share_state))
                         (a.(fresh_index_for_ffa_share_state))
@@ -772,7 +762,8 @@ Section AbstractStateUpdate.
   
   Definition update_tpidr_el2_in_hafnium_context
              (a: hypervisor_struct) b :=
-    mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus)) b
+    mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus))
+                        (a.(time_slice_enabled)) b
                         (a.(api_page_pool_size))
                         (a.(ffa_share_state))
                         (a.(fresh_index_for_ffa_share_state))
@@ -782,6 +773,7 @@ Section AbstractStateUpdate.
   Definition update_api_page_pool_size_in_hafnium_context
              (a: hypervisor_struct) b :=
     mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus))
+                        (a.(time_slice_enabled))                        
                         (a.(tpidr_el2)) b
                         (a.(ffa_share_state))
                         (a.(fresh_index_for_ffa_share_state))
@@ -791,6 +783,7 @@ Section AbstractStateUpdate.
   Definition update_ffa_share_state_in_hafnium_context
              (a: hypervisor_struct) b :=
     mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus))
+                        (a.(time_slice_enabled))                        
                         (a.(tpidr_el2))
                         (a.(api_page_pool_size)) b
                         (a.(fresh_index_for_ffa_share_state))
@@ -800,6 +793,7 @@ Section AbstractStateUpdate.
   Definition update_fresh_index_for_ffa_share_state_in_hafnium_context
              (a: hypervisor_struct) b :=
     mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus))
+                        (a.(time_slice_enabled))                        
                         (a.(tpidr_el2))
                         (a.(api_page_pool_size)) (a.(ffa_share_state)) b
                         (a.(mem_properties)) (a.(vm_count))
@@ -808,6 +802,7 @@ Section AbstractStateUpdate.
   Definition update_mem_properties_in_hafnium_context
              (a: hypervisor_struct) b :=
     mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus))
+                        (a.(time_slice_enabled))                        
                         (a.(tpidr_el2))
                         (a.(api_page_pool_size)) (a.(ffa_share_state))
                         (a.(fresh_index_for_ffa_share_state))
@@ -816,6 +811,7 @@ Section AbstractStateUpdate.
   Definition update_vm_count_in_hafnium_context
              (a: hypervisor_struct) b :=
     mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus))
+                        (a.(time_slice_enabled))                        
                         (a.(tpidr_el2))
                         (a.(api_page_pool_size)) (a.(ffa_share_state))
                         (a.(fresh_index_for_ffa_share_state))
@@ -825,6 +821,7 @@ Section AbstractStateUpdate.
   Definition update_vms_contexts_in_hafnium_context
              (a: hypervisor_struct) b :=
     mkHypervisor_struct (a.(current_cpu_id)) (a.(cpu_num)) (a.(cpus))
+                        (a.(time_slice_enabled))                        
                         (a.(tpidr_el2))
                         (a.(api_page_pool_size)) (a.(ffa_share_state))
                         (a.(fresh_index_for_ffa_share_state))
@@ -932,6 +929,12 @@ Notation "a '{' 'owned_by' : b '}'" :=
   (update_owned_by_in_mem_global_properties a b) (at level 1).
 Notation "a '{' 'accessible_by' : b '}'" :=
   (update_accessible_by_in_mem_global_properties a b) (at level 1).
+Notation "a '{' 'global_instruction_access_property' : b '}'" :=
+  (update_global_instruction_access_property_in_mem_global_properties a b) (at level 1).
+Notation "a '{' 'global_data_access_property' : b '}'" :=
+  (update_global_data_access_property_in_mem_global_properties a b) (at level 1).
+Notation "a '{' 'global_mem_attribute' : b '}'" :=
+  (update_global_mem_attribute_in_mem_global_properties a b) (at level 1).
 Notation "a '{' 'mem_dirty' : b '}'" :=
   (update_mem_dirty_in_mem_global_properties a b) (at level 1).
   
@@ -942,8 +945,8 @@ Notation "a '{' 'instruction_access_property' : b '}'" :=
   (update_instruction_access_property_in_mem_local_properties a b) (at level 1).
 Notation "a '{' 'data_access_property' : b '}'" :=
   (update_data_access_property_in_mem_local_properties a b) (at level 1).
-Notation "a '{' 'mem_attributes' : b '}'" :=
-  (update_mem_attributes_in_mem_local_properties a b) (at level 1).
+Notation "a '{' 'mem_attribute' : b '}'" :=
+  (update_mem_attribute_in_mem_local_properties a b) (at level 1).
 
 (** update memory properties *)
 Notation "a '{' 'mem_global_properties' : b '}'" :=

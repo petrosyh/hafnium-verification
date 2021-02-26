@@ -350,7 +350,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
        *)
       match global_property, lender_property,
             ZTree.get address borrower_properties_pool  with
-      | mkMemGlobalProperties owned accessible dirty,
+      | mkMemGlobalProperties owned accessible _ _ _ dirty,
         mkMemLocalProperties local_owned _ _ _, None =>
         (** - Check the valid onwership and accessibility combination for lender and borrower *)
         match mem_states_valid_combination lender borrower owned accessible,
@@ -362,8 +362,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                 be performed in the retrieve *)
             let new_global_properties :=
                 ZTree.set
-                  address (global_property {accessible_by: NoAccess}
-                                           {mem_dirty : dirty})
+                  address (global_property {accessible_by: NoAccess})
                   st.(hypervisor_context).(mem_properties).(mem_global_properties) in
             let new_st :=
                 st {hypervisor_context / mem_properties :
@@ -446,7 +445,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
       match global_property, lender_property,
             ZTree.get address borrower_properties_pool,
             decide (borrower_num >= 1) with
-      | mkMemGlobalProperties owned accessible dirty,
+      | mkMemGlobalProperties owned accessible _ _ _ dirty,
         mkMemLocalProperties local_owned _ _ _, None, left _ =>
         (** - Check the valid onwership and accessibility combination for lender and borrower *)        
         match mem_states_valid_combination lender borrower owned accessible,
@@ -457,8 +456,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                    be performed in the retrieve *)                 
                let new_global_properties :=
                    ZTree.set
-                     address (global_property {accessible_by: NoAccess}
-                                              {mem_dirty : dirty})
+                     address (global_property {accessible_by: NoAccess})
                      st.(hypervisor_context).(mem_properties).(mem_global_properties) in
                let new_st :=
                    st {hypervisor_context / mem_properties :
@@ -539,7 +537,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
        *)
       match global_property, lender_property,
             ZTree.get address borrower_properties_pool with
-      | mkMemGlobalProperties owned accessible dirty,
+      | mkMemGlobalProperties owned accessible _ _ _ dirty,
         mkMemLocalProperties local_owned _ _ _, None =>
         (** Check the valid onwership and accessibility combination for lender and borrower *)        
         match mem_states_valid_combination lender borrower owned accessible,
@@ -552,8 +550,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                 ZTree.set
                   address
                   (global_property
-                     {accessible_by: SharedAccess (lender::nil)}
-                     {mem_dirty : dirty})
+                     {accessible_by: SharedAccess (lender::nil)})
                   st.(hypervisor_context).(mem_properties).(mem_global_properties) in
             let new_st :=
                 st {hypervisor_context / mem_properties :
@@ -633,7 +630,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
        *)
       match global_property, lender_property,
             ZTree.get address borrower_properties_pool  with
-      | mkMemGlobalProperties owned accessible dirty,
+      | mkMemGlobalProperties owned accessible _ _ _ dirty,
         mkMemLocalProperties local_owned _ _ _, None =>
         (** - Check the valid onwership and accessibility combination for lender and borrower *)
         match mem_states_valid_combination lender borrower owned accessible,
@@ -728,7 +725,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
       match global_property, lender_property,
             ZTree.get address borrower_properties_pool,
             decide (borrower_num >= 1)  with
-      | mkMemGlobalProperties owned accessible dirty,
+      | mkMemGlobalProperties owned accessible _ _ _ dirty,
         mkMemLocalProperties local_owned _ _ _, None, left _ =>
         (** - Check the valid onwership and accessibility combination for lender and borrower *)
         match mem_states_valid_combination
@@ -803,7 +800,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
        *)
       match global_property, lender_property,
             ZTree.get address borrower_properties_pool  with
-      | mkMemGlobalProperties owned accessible dirty,
+      | mkMemGlobalProperties owned accessible _ _ _ dirty,
         mkMemLocalProperties local_owned _ _ _, None =>
         (** - Check the valid onwership and accessibility combination for lender and borrower *)
         match mem_states_valid_combination lender borrower owned accessible,
@@ -949,7 +946,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
        *)
       match global_property, lender_property,
             ZTree.get address borrower_properties_pool  with
-      | mkMemGlobalProperties owned accessible dirty,
+      | mkMemGlobalProperties owned accessible _ _ _ dirty,
         mkMemLocalProperties local_owned _ _ _, None =>
         (** - Check the valid onwership and accessibility combination for lender and borrower *)
         match mem_states_valid_combination lender borrower owned accessible,
