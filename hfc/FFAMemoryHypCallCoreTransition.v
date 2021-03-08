@@ -30,42 +30,9 @@ From ExtLib Require Import
      Data.Option
      Data.Monads.OptionMonad.
 
-From ITree Require Import
-     ITree
-     ITreeFacts
-     Events.MapDefault
-     Events.StateFacts.
-
-From ITree Require Import
-     ITree ITreeFacts.
-
-Import ITreeNotations.
-Import Monads.
-Import MonadNotation.
-Local Open Scope monad_scope.
-Local Open Scope string_scope.
 Require Import Coqlib sflib.
 
-
-Inductive terminate {E} {R} (it:itree E R) : Prop :=
-| TermRet
-    v
-    (RET: observe it = RetF v)
-| TermTau
-    (TAU: observe it = TauF it).
-
-(* From HafniumCore *)
-Require Import Lang.
-Require Import Values.
-Require Import Integers.
-Require Import Constant.
 Require Import Decision.
-
-Import LangNotations.
-Local Open Scope expr_scope.
-Local Open Scope stmt_scope.
-
-Import Int64.
 
 Require Import Maps.
 Set Implicit Arguments.
@@ -80,49 +47,19 @@ Require Export FFAMemoryHypCallState.
 (** *             Core Step Rules                            *)
 (*************************************************************)
 (** This file defines the core step rules of FFA memory management 
-    interfaces *)
-Section HAFNIUM_EE.
-
-  Context `{ffa_types_and_constants : FFA_TYPES_AND_CONSTANTS}.
-
-  Inductive updateStateE: Type -> Type :=
-  | GetState : updateStateE AbstractState
-  | SetState (st: AbstractState): updateStateE unit.
- 
-  Definition updateState_handler {E: Type -> Type}
-    : updateStateE ~> stateT AbstractState (itree E) :=
-    fun _ e st =>
-      match e with
-      | GetState => Ret (st, st)
-      | SetState st' => Ret (st', tt)
-      end.
-
-End HAFNIUM_EE.
-  
+    interfaces *)  
  
 Notation "'do' X <- A ;;; B" :=
   (match A with Some X => B |
-           None => triggerUB "None" end)
-    (at level 200, X ident, A at level 100, B at level 200)
-  : itree_monad_scope.
- 
-Notation "'do' X , Y <- A ;;; B" :=
-  (match A with Some (X, Y) => B |
-           None => triggerUB "None" end)
-    (at level 200, X ident, Y ident, A at level 100, B at level 200)
-  : itree_monad_scope.
- 
-Notation "'do' X , Y , Z <- A ;;; B" :=
-  (match A with Some (X, Y, Z) => B | None => triggerUB "None" end)
-    (at level 200, X ident, Y ident, Z ident, A at level 100, B at level 200)
-  : itree_monad_scope.
+           None => None
+   end)
+    (at level 200, X ident, A at level 100, B at level 200) : ffa_monad_scope.
  
 Notation " 'check' A ;;; B" :=
-  (if A then B else Ret None)
-    (at level 200, A at level 100, B at level 200)
-  : itree_monad_scope.
- 
-Local Open Scope itree_monad_scope.
+  (if A then B else None)
+    (at level 200, A at level 100, B at level 200) : ffa_monad_scope.
+
+Local Open Scope ffa_monad_scope.
 
 (** Three roles in the FFA_XXX communications, and endpoints in the communications 
 
@@ -202,7 +139,14 @@ Section VALID_COMBINATIONS.
          | _, _ => false
          end
     else false.
- 
+
+  Definition hyp_mem_global_props (st : AbstractState) :=
+    st.(hypervisor_context).(mem_properties).(mem_global_properties).
+
+  Definition hyp_mem_local_props (st : AbstractState) :=
+    st.(hypervisor_context).(mem_properties).(mem_local_properties).
+
+  
 End VALID_COMBINATIONS.
 
 (*************************************************************)
@@ -250,7 +194,6 @@ End VALID_COMBINATIONS.
 
     To do that, we referred Hafinum's dispatch code (but we did not strictly follow the code).
 *)
-    
 
 (*************************************************************)
 (** **  1. Core memory ownership and access state change     *)
@@ -276,8 +219,6 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
    *)
 
   Context `{abstract_state_context: AbstractStateContext}.
-  Notation HypervisorEE :=
-    (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
 
   Section FFA_MEM_DONATE_CORE_STEPS.    
 
@@ -326,22 +267,12 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
      *)
     
     Definition ffa_mem_donate_core_transition_spec
-               (lender borrower : ffa_UUID_t) (address: Z)
-    : itree HypervisorEE (bool) :=
-      st <- trigger GetState ;;
+               (lender borrower : ffa_UUID_t) (address: Z) (st: AbstractState)
+    : option (AbstractState * bool) :=
       (** - Find out memory properties *) 
-      do global_property <-
-         ZTree.get
-           address
-           st.(hypervisor_context).(mem_properties).(mem_global_properties) ;;;
-      do lender_properties_pool <-
-         ZTree.get
-           lender
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
-      do borrower_properties_pool <-
-         ZTree.get
-           borrower
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
+      do global_property <- ZTree.get address (hyp_mem_global_props st) ;;; 
+      do lender_properties_pool <- ZTree.get lender (hyp_mem_local_props st) ;;;
+      do borrower_properties_pool <- ZTree.get borrower (hyp_mem_local_props st) ;;;
       do lender_property <- ZTree.get address lender_properties_pool ;;;
       (** - check memory properties :
             - lender has to have onwership
@@ -360,21 +291,17 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
           then
             (** - Only change accessibility option of the lender. The remaining operations will
                 be performed in the retrieve *)
-            let new_global_properties :=
-                ZTree.set
-                  address (global_property {accessible_by: NoAccess})
-                  st.(hypervisor_context).(mem_properties).(mem_global_properties) in
+            let new_global_props :=
+                ZTree.set address (global_property {accessible_by: NoAccess})
+                          (hyp_mem_global_props st) in
             let new_st :=
                 st {hypervisor_context / mem_properties :
-                      mkMemProperties
-                        new_global_properties
-                        st.(hypervisor_context).(mem_properties).(mem_local_properties)} in
-            trigger (SetState new_st);;
-            Ret (true)
-          else Ret (false)
-        | _, _, _, _ => Ret (false)
+                      mkMemProperties new_global_props (hyp_mem_local_props st)} in
+            Some (new_st, true)
+          else Some (st, false)
+        | _, _, _, _ => Some (st, false)
         end
-      | _, _, _ => Ret (false)
+      | _, _, _ => Some (st, false)
       end.
          
   End FFA_MEM_DONATE_CORE_STEPS.
@@ -419,23 +346,13 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
      *)
 
     Definition ffa_mem_lend_core_transition_spec
-               (lender borrower : ffa_UUID_t) (borrower_num : Z)
+               (lender borrower : ffa_UUID_t) (borrower_num : Z) (st : AbstractState)
                (address: Z)
-    : itree HypervisorEE (bool) :=
-      st <- trigger GetState ;;
+    : option (AbstractState * bool) :=
       (** - Find out memory properties *) 
-      do global_property <-
-         ZTree.get
-           address
-           st.(hypervisor_context).(mem_properties).(mem_global_properties) ;;;
-      do lender_properties_pool <-
-         ZTree.get
-           lender
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
-      do borrower_properties_pool <-
-         ZTree.get
-           borrower
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
+      do global_property <- ZTree.get address (hyp_mem_global_props st) ;;;
+      do lender_properties_pool <- ZTree.get lender (hyp_mem_local_props st) ;;;
+      do borrower_properties_pool <- ZTree.get borrower (hyp_mem_local_props st) ;;;
       do lender_property <- ZTree.get address lender_properties_pool ;;;
       (** - check memory properties :
             - lender has to have onwership
@@ -454,21 +371,18 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
           if decide (owner = lender) && decide (ex_accessor = lender)
           then (** Only change accessibility option of the lender. The remaining operations will
                    be performed in the retrieve *)                 
-               let new_global_properties :=
+               let new_global_props :=
                    ZTree.set
                      address (global_property {accessible_by: NoAccess})
-                     st.(hypervisor_context).(mem_properties).(mem_global_properties) in
+                     (hyp_mem_global_props st) in
                let new_st :=
                    st {hypervisor_context / mem_properties :
-                         mkMemProperties
-                           new_global_properties
-                           st.(hypervisor_context).(mem_properties).(mem_local_properties)} in
-               trigger (SetState new_st);;
-               Ret (true)
-          else Ret (false)
-        | _, _, _, _ => Ret (false)
+                         mkMemProperties new_global_props (hyp_mem_local_props st)} in
+               Some (new_st, true)
+          else Some (st, false)
+        | _, _, _, _ => Some (st, false)
         end
-      | _, _, _, _ => Ret (false)
+      | _, _, _, _ => Some (st, false)
       end.
     
   End FFA_MEM_LEND_CORE_STEPS.
@@ -512,24 +426,13 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
          calling the FFA_MEM_RECLAIM ABI (see 11.7 FFA_MEM_RECLAIM).
      *)
     Definition ffa_mem_share_core_transition_spec
-               (lender borrower : ffa_UUID_t) (address: Z)
-    : itree HypervisorEE (bool) :=
-      st <- trigger GetState ;;
+               (lender borrower : ffa_UUID_t) (address: Z) (st : AbstractState)
+    : option (AbstractState * bool) :=
       (** - Find out memory properties *) 
-      do global_property <-
-         ZTree.get
-           address
-           st.(hypervisor_context).(mem_properties).(mem_global_properties) ;;;
-      do lender_properties_pool <-
-         ZTree.get
-           lender
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
-      do borrower_properties_pool <-
-         ZTree.get
-           borrower
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
-      do lender_property <-
-         ZTree.get address lender_properties_pool ;;;
+      do global_property <- ZTree.get address (hyp_mem_global_props st) ;;;
+      do lender_properties_pool <- ZTree.get lender (hyp_mem_local_props st) ;;;
+      do borrower_properties_pool <- ZTree.get borrower (hyp_mem_local_props st) ;;;
+      do lender_property <- ZTree.get address lender_properties_pool ;;;
       (** - check memory properties :
             - lender has to have onwership
             - lender has to have exclusive access to the address
@@ -546,22 +449,19 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
           if decide (owner = lender) && decide (ex_accessor = lender)
           then (** Only change accessibility option of the lender. The remaining operations will
                    be performed in the retrieve *)                 
-            let new_global_properties :=
-                ZTree.set
-                  address
-                  (global_property
-                     {accessible_by: SharedAccess (lender::nil)})
-                  st.(hypervisor_context).(mem_properties).(mem_global_properties) in
+            let new_global_props :=
+                ZTree.set address
+                          (global_property
+                             {accessible_by: SharedAccess (lender::nil)})
+                          (hyp_mem_global_props st) in
             let new_st :=
                 st {hypervisor_context / mem_properties :
-                      mkMemProperties new_global_properties
-                                      st.(hypervisor_context).(mem_properties).(mem_local_properties)} in
-            trigger (SetState new_st);;
-            Ret (true)
-          else Ret (false)
-        | _, _, _, _ => Ret (false)
+                      mkMemProperties new_global_props (hyp_mem_local_props st)} in
+            Some (new_st, true)
+          else Some (st, false)
+        | _, _, _, _ => Some (st, false)
         end
-      | _, _, _ => Ret (false)
+      | _, _, _ => Some (st, false)
       end.
 
   End FFA_MEM_SHARE_CORE_STEPS.
@@ -606,22 +506,12 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
     (*************************************************************)    
 
     Definition ffa_mem_donate_retrieve_req_core_transition_spec
-               (lender borrower : ffa_UUID_t) (address: Z) (clean: bool)
-    : itree HypervisorEE (bool) :=
-      st <- trigger GetState ;;
+               (lender borrower : ffa_UUID_t) (address: Z) (clean: bool) (st: AbstractState)
+    : option (AbstractState * bool) :=
       (** - Find out memory properties *) 
-      do global_property <-
-         ZTree.get
-           address
-           st.(hypervisor_context).(mem_properties).(mem_global_properties) ;;;
-      do lender_properties_pool <-
-         ZTree.get
-           lender
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
-      do borrower_properties_pool <-
-         ZTree.get
-           borrower
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
+      do global_property <- ZTree.get address (hyp_mem_global_props st) ;;; 
+      do lender_properties_pool <- ZTree.get lender (hyp_mem_local_props st) ;;;
+      do borrower_properties_pool <- ZTree.get borrower (hyp_mem_local_props st) ;;;
       do lender_property <- ZTree.get address lender_properties_pool ;;;
       (** - check memory properties :
             - lender has to have onwership
@@ -641,44 +531,37 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                (** - Only change accessibility option of the lender. The remaining operations will
                      be performed in the retrieve *)
                let new_global_properties :=
-                   ZTree.set
-                     address
-                     (global_property
-                        {owned_by: Owned borrower}
-                        {accessible_by: ExclusiveAccess borrower}
-                        {mem_dirty : new_dirty})
-                     st.(hypervisor_context).(mem_properties).(mem_global_properties) in
+                   ZTree.set address
+                             (global_property
+                                {owned_by: Owned borrower}
+                                {accessible_by: ExclusiveAccess borrower}
+                                {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
                (** - Remove the corresponding map in the lender memory local properties pool *)
                let new_lender_properties_pool :=
                    ZTree.remove address lender_properties_pool in
                (** - Create the new  memory local properties pool for the borrower.
-                     Instead of making a new initial state, we copied the previous local properties that lender had. 
-                     Next opeartions can adjust the properties if it is necessary *)
+                     Instead of making a new ini  tial state, we copied the previous local properties that lender had. 
+                     Next opeartions can adjust th     e properties if it is necessary *)
                let new_borrower_properties_pool :=
-                   ZTree.set
-                     address
-                     (gen_own_mem_local_properties_wrapper lender_property) 
-                     borrower_properties_pool in
+                   ZTree.set address
+                             (gen_own_mem_local_properties_wrapper lender_property) 
+                             borrower_properties_pool in
                let new_local_properties_global_pool' :=
-                   ZTree.set
-                     lender new_lender_properties_pool
-                     st.(hypervisor_context).(mem_properties).(mem_local_properties) in
+                   ZTree.set lender new_lender_properties_pool
+                             (hyp_mem_local_props st) in
                let new_local_properties_global_pool :=
-                   ZTree.set
-                     borrower
-                     new_borrower_properties_pool
-                     new_local_properties_global_pool' in
+                   ZTree.set borrower
+                             new_borrower_properties_pool
+                             new_local_properties_global_pool' in
                let new_st :=
                    st {hypervisor_context / mem_properties :
-                         mkMemProperties
-                           new_global_properties
-                           new_local_properties_global_pool} in
-               trigger (SetState new_st);;
-               Ret (true)
-          else Ret (false)
-        | _, _, _, _ => Ret (false)
+                         mkMemProperties new_global_properties
+                                         new_local_properties_global_pool} in
+               Some (new_st, true)
+          else Some (st, false)
+        | _, _, _, _ => Some (st, false)
         end
-      | _, _, _ => Ret (false)
+      | _, _, _ => Some (st, false)
       end.
 
     (*************************************************************)
@@ -700,22 +583,12 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
     
     Definition ffa_mem_lend_retrieve_req_core_transition_spec
                (lender borrower : ffa_UUID_t) (borrower_num : Z)
-               (address: Z) (clean: bool)
-    : itree HypervisorEE (bool) :=
-      st <- trigger GetState ;;
+               (address: Z) (clean: bool) (st: AbstractState)
+    : option (AbstractState * bool) :=
       (** - Find out memory properties *) 
-      do global_property <-
-         ZTree.get
-           address
-           st.(hypervisor_context).(mem_properties).(mem_global_properties) ;;;
-      do lender_properties_pool <-
-         ZTree.get
-           lender
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
-      do borrower_properties_pool <-
-         ZTree.get
-           borrower
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
+      do global_property <- ZTree.get address (hyp_mem_global_props st) ;;;
+      do lender_properties_pool <- ZTree.get lender (hyp_mem_local_props st) ;;;
+      do borrower_properties_pool <- ZTree.get borrower (hyp_mem_local_props st) ;;;
       do lender_property <- ZTree.get address lender_properties_pool ;;;
       (** - check memory properties :
             - lender has to have onwership
@@ -738,36 +611,32 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                (** - Only change accessibility option of the lender. The remaining operations will
                      be performed in the retrieve *)
                let new_global_properties :=
-                   ZTree.set
-                     address
-                     (global_property
-                        {owned_by: Owned borrower}
-                        {accessible_by: new_accessibility}
-                        {mem_dirty : new_dirty})
-                     st.(hypervisor_context).(mem_properties).(mem_global_properties) in
+                   ZTree.set address
+                             (global_property
+                                {owned_by: Owned borrower}
+                                {accessible_by: new_accessibility}
+                                {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
                (** - Create the new memory local properties pool for the borrower.
                      Instead of making a new initial state, we copied the previous local properties that lender had. 
                      Next opeartions can adjust the properties if it is necessary *)
                let new_borrower_properties_pool :=
-                   ZTree.set
-                     address
-                     (gen_borrow_mem_local_properties_wrapper lender lender_property) 
-                     borrower_properties_pool in
+                   ZTree.set address
+                             (gen_borrow_mem_local_properties_wrapper
+                                lender lender_property) 
+                             borrower_properties_pool in
                let new_local_properties_global_pool :=
-                   ZTree.set
-                     borrower
-                     new_borrower_properties_pool
-                     st.(hypervisor_context).(mem_properties).(mem_local_properties) in
+                   ZTree.set borrower
+                             new_borrower_properties_pool
+                             (hyp_mem_local_props st) in
                let new_st :=
                    st {hypervisor_context / mem_properties :
                          mkMemProperties new_global_properties
                                          new_local_properties_global_pool} in
-               trigger (SetState new_st);;
-               Ret (true)
-          else Ret (false)
-        | _, _, _, _ => Ret (false)
+               Some (new_st, true)
+          else Some (st, false)
+        | _, _, _, _ => Some (st, false)
         end
-      | _, _, _, _ => Ret (false)
+      | _, _, _, _ => Some (st, false)
       end.
 
     (*************************************************************)
@@ -775,24 +644,13 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
     (*************************************************************)    
          
     Definition ffa_mem_share_retrieve_req_core_transition_spec
-               (lender borrower : ffa_UUID_t) (address: Z) (clean: bool)
-      : itree HypervisorEE (bool) :=
-      st <- trigger GetState ;;
+               (lender borrower : ffa_UUID_t) (address: Z) (clean: bool) (st : AbstractState)
+      : option (AbstractState * bool) :=
       (** - Find out memory properties *) 
-      do global_property <-
-         ZTree.get
-           address
-           st.(hypervisor_context).(mem_properties).(mem_global_properties) ;;;
-      do lender_properties_pool <-
-         ZTree.get
-           lender
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
-      do borrower_properties_pool <-
-         ZTree.get
-           borrower
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
-      do lender_property <-
-         ZTree.get address lender_properties_pool ;;;
+      do global_property <- ZTree.get address (hyp_mem_global_props st) ;;;
+      do lender_properties_pool <- ZTree.get lender (hyp_mem_local_props st) ;;;
+      do borrower_properties_pool <- ZTree.get borrower (hyp_mem_local_props st) ;;;
+      do lender_property <- ZTree.get address lender_properties_pool ;;;
       (** - check memory properties :
             - lender has to have onwership
             - lender has to have exclusive access to the address
@@ -811,36 +669,32 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                (** - Only change accessibility option of the lender. The remaining operations will
                      be performed in the retrieve *)
                let new_global_properties :=
-                   ZTree.set
-                     address
-                     (global_property
-                        {owned_by: Owned borrower}
-                        {accessible_by: SharedAccess (borrower::accessors)}
-                        {mem_dirty : new_dirty})
-                     st.(hypervisor_context).(mem_properties).(mem_global_properties) in
+                   ZTree.set address
+                             (global_property
+                                {owned_by: Owned borrower}
+                                {accessible_by: SharedAccess (borrower::accessors)}
+                                {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
                (** - Create the new  memory local properties pool for the borrower.
                      Instead of making a new initial state, we copied the previous local properties that lender had. 
                      Next opeartions can adjust the properties if it is necessary *)
                let new_borrower_properties_pool :=
-                   ZTree.set
-                     address
-                     (gen_borrow_mem_local_properties_wrapper lender lender_property) 
-                     borrower_properties_pool in
+                   ZTree.set address
+                             (gen_borrow_mem_local_properties_wrapper
+                                lender lender_property) 
+                             borrower_properties_pool in
                let new_local_properties_global_pool :=
-                   ZTree.set
-                     borrower
-                     new_borrower_properties_pool
-                     st.(hypervisor_context).(mem_properties).(mem_local_properties) in
+                   ZTree.set borrower
+                             new_borrower_properties_pool
+                             (hyp_mem_local_props st) in
                let new_st :=
                    st {hypervisor_context / mem_properties :
                          mkMemProperties new_global_properties
                                          new_local_properties_global_pool} in
-               trigger (SetState new_st);;
-               Ret (true)
-          else Ret (false)
-        | _, _, _, _ => Ret (false)
+               Some (new_st, true)
+          else Some (st, false)
+        | _, _, _, _ => Some (st, false)
         end
-      | _, _, _ => Ret (false)
+      | _, _, _ => Some (st, false)
       end.
 
   End FFA_MEM_RETRIEVE_REQ_CORE_STEP.
@@ -922,22 +776,12 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
       end.
 
     Definition ffa_mem_relinquish_core_transition_spec
-               (lender borrower : ffa_UUID_t) (address: Z) (clean: bool)
-      : itree HypervisorEE (bool) :=
-      st <- trigger GetState ;;
-      (** - Find out memory properties *) 
-      do global_property <-
-         ZTree.get
-           address
-           st.(hypervisor_context).(mem_properties).(mem_global_properties) ;;;
-      do lender_properties_pool <-
-         ZTree.get
-           lender
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
-      do borrower_properties_pool <-
-         ZTree.get
-           borrower
-           st.(hypervisor_context).(mem_properties).(mem_local_properties) ;;;
+               (lender borrower : ffa_UUID_t) (address: Z) (clean: bool) (st: AbstractState)
+      : option (AbstractState * bool) :=
+      (** - Find out memory properties *)
+      do global_property <- ZTree.get address (hyp_mem_global_props st) ;;;
+      do lender_properties_pool <- ZTree.get lender (hyp_mem_local_props st) ;;;
+      do borrower_properties_pool <- ZTree.get borrower (hyp_mem_local_props st) ;;;
       do lender_property <- ZTree.get address lender_properties_pool ;;;
       (** - check memory properties :
             - lender has to have onwership
@@ -960,27 +804,25 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                    ZTree.set address (global_property
                                         {owned_by: Owned lender}
                                         {accessible_by: new_accessibility}
-                                        {mem_dirty : new_dirty})
-                             st.(hypervisor_context).(mem_properties).(mem_global_properties) in
+                                        {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
                (** - Create the new  memory local properties pool for the borrower.
                      Instead of making a new initial state, we copied the previous local properties that lender had. 
                      Next opeartions can adjust the properties if it is necessary *)               
                let new_borrower_properties_pool :=
                    ZTree.remove address borrower_properties_pool in
                let new_local_properties_global_pool :=
-                   ZTree.set
-                     borrower new_borrower_properties_pool
-                     st.(hypervisor_context).(mem_properties).(mem_local_properties) in
+                   ZTree.set borrower
+                             new_borrower_properties_pool
+                             (hyp_mem_local_props st) in
                let new_st :=
                    st {hypervisor_context / mem_properties :
                          mkMemProperties new_global_properties
                                          new_local_properties_global_pool} in
-               trigger (SetState new_st);;
-               Ret (true)
-          else Ret (false)
-        | _, _, _, _ => Ret (false)
+               Some (new_st, true)
+          else Some (st, false)
+        | _, _, _, _ => Some (st, false)
         end
-      | _, _, _ => Ret (false)
+      | _, _, _ => Some (st, false)
       end.
 
   End FFA_MEM_RELINQUISH_CORE_STEPS.
@@ -997,8 +839,6 @@ End FFA_MEMORY_INTERFACE_CORE_STEPS.
 Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
 
   Context `{abstract_state_context: AbstractStateContext}.
-  
-  Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
 
   (** TODO: when TX/RX buffers are used to trasmit descriptors, 
       [length], [fragement_length], [address], and [page_count] 
@@ -1013,7 +853,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     else false. 
   
   (** Get a memory region descriptor for send (donate, lend, share) operations *)
-  Definition get_send_memory_region_descriptor (caller : Z) (state: AbstractState)
+  Definition get_send_memory_region_descriptor
+             (caller : Z) (state: AbstractState)
     : option FFA_memory_region_struct := 
     match ZTree.get caller state.(hypervisor_context).(vms_contexts) with
     | Some vm_context =>
@@ -1024,7 +865,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
 
   (** TODO: need to consider offset when implement LEND and SHARE *)
   Fixpoint get_constituents_from_receivers
-             (receivers: list FFA_endpoint_memory_access_descriptor_struct) :=
+           (receivers: list FFA_endpoint_memory_access_descriptor_struct) :=
     match receivers with
     | nil => nil
     | receiver::receivers' =>
@@ -1037,15 +878,82 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       end
     end.
 
-  (* TODO: need to fill out the following things *)
-  Definition check_mem_properties_with_descriptor
-             (vid : ffa_UUID_t)
-             (memory_region_descriptor: FFA_memory_region_struct)
-             (mem_properties : MemProperties) :=
-    if decide (memory_region_descriptor.(FFA_memory_region_struct_sender) = vid)
-    then true
-    else false.
+  Definition get_instruction_access_information_from_descriptor
+             (receiver: FFA_endpoint_memory_access_descriptor_struct) :=
+    receiver
+    .(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor)
+    .(FFA_memory_access_permissions_descriptor_struct_permisions_instruction).
+
+  Definition get_data_access_information_from_descriptor
+             (receiver: FFA_endpoint_memory_access_descriptor_struct) :=
+    receiver
+    .(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor)
+    .(FFA_memory_access_permissions_descriptor_struct_permisions_data).
+
+  Definition get_attributes_information_from_descriptor
+             (region: FFA_memory_region_struct) :=
+    region.(FFA_memory_region_struct_attributes)
+    .(FFA_memory_region_attributes_descriptor_struct_memory_type).
+
   
+  Definition get_instruction_access_from_global_local_props
+             (id : ffa_UUID_t) (address : Z)
+             (global_local_props: mem_local_properties_global_pool) :=
+    do local_props <- ZTree.get id global_local_props ;;;
+    do local_prop <- ZTree.get address local_props ;;;
+    Some local_prop.(instruction_access_property).
+
+  Definition get_data_access_from_global_local_props
+             (id : ffa_UUID_t) (address : Z)
+             (global_local_props: mem_local_properties_global_pool) :=
+    do local_props <- ZTree.get id global_local_props ;;;
+    do local_prop <- ZTree.get address local_props ;;;
+    Some local_prop.(instruction_access_property).
+       
+  Definition get_attributes_from_global_local_props
+             (id : ffa_UUID_t) (address : Z)
+             (global_local_props: mem_local_properties_global_pool) :=
+    do local_props <- ZTree.get id global_local_props ;;;
+    do local_prop <- ZTree.get address local_props ;;;
+    Some local_prop.(mem_attribute).
+
+       
+  Definition get_instruction_access_from_global_props
+             (id : ffa_UUID_t) (address : Z)
+             (global_props: mem_global_properties_pool) :=
+    do global_prop <- ZTree.get address global_props ;;;
+    Some global_prop.(global_instruction_access_property).
+
+  Definition get_data_access_from_global_props
+             (id : ffa_UUID_t) (address : Z)
+             (global_props: mem_global_properties_pool) :=
+    do global_prop <- ZTree.get address global_props ;;;
+    Some global_prop.(global_data_access_property).
+       
+  Definition get_attributes_from_global_props
+             (id : ffa_UUID_t) (address : Z)
+             (global_props: mem_global_properties_pool) :=
+    do global_prop <- ZTree.get address global_props ;;;
+    Some global_prop.(global_mem_attribute).
+
+  (** There are some redundancies, but we do not care it *)
+  (** check additional properties *)
+  Definition donate_and_lend_single_borrower_check
+             (vid : ffa_UUID_t)
+             (mem_properties: MemProperties)
+             (memory_region_descriptor: FFA_memory_region_struct) :=
+    if decide (memory_region_descriptor.(FFA_memory_region_struct_sender) = vid)
+    then true else false.
+
+
+  Definition share_and_lend_multiple_borrower_check
+             (vid : ffa_UUID_t)
+             (mem_properties: MemProperties)
+             (memory_region_descriptor: FFA_memory_region_struct) :=
+    if decide (memory_region_descriptor.(FFA_memory_region_struct_sender) = vid)
+    then true else false.
+  
+           
   Definition get_receivers (memory_region_descriptor: FFA_memory_region_struct)
     : list FFA_endpoint_memory_access_descriptor_struct :=
     memory_region_descriptor.(FFA_memory_region_struct_receivers).
@@ -1139,52 +1047,54 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       match region_descriptor.(FFA_memory_region_struct_receivers) with
       | hd::nil =>
         Some 
-          hd.(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor).(FFA_memory_access_permissions_descriptor_struct_receiver)
+          hd.(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor)
+        .(FFA_memory_access_permissions_descriptor_struct_receiver)
       | _ => None
       end.
 
     Definition ffa_mem_donate_spec
                (caller : ffa_UUID_t)
                (total_length fragment_length address count : Z)
-      : itree HypervisorEE (FFA_RESULT_CODE_TYPE) :=
+               (st: AbstractState)
+      : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
       (** - Check the arguments *)
       if ffa_mem_send_check_arguments total_length fragment_length address count
-      then                          
-        st <- trigger (GetState);;
-        match get_send_memory_region_descriptor caller st with
-        | Some memory_region_descriptor =>
+      then
+        (** - Get the current memory region descriptor *)
+        do memory_region_descriptor <-
+           get_send_memory_region_descriptor caller st ;;;
           (** - Check the well_formed conditions of the memory region descriptor *)
           if well_formed_FFA_memory_region_struct
-               memory_region_descriptor &&
+               caller memory_region_descriptor &&
              decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
           then if decide ((st.(hypervisor_context).(api_page_pool_size)
                            < (FFA_memory_region_struct_size
                                 (Zlength (get_constituents_from_receivers
                                             (get_receivers memory_region_descriptor)))))%Z)
                then
-                 if (check_mem_properties_with_descriptor
-                       caller memory_region_descriptor st.(hypervisor_context).(mem_properties))
+                 if (donate_and_lend_single_borrower_check
+                       caller st.(hypervisor_context).(mem_properties)
+                                                        memory_region_descriptor)
                  then 
                    do receiver_id <- (get_receiver_id memory_region_descriptor);;;
                    let cur_addresses := addresses memory_region_descriptor in
                    (* TODO: add cases to handle multiple address transfer *)
                    match cur_addresses with
                    | cur_address::nil =>
-                     result <- ffa_mem_donate_core_transition_spec caller receiver_id cur_address;;
-                     match result with  
+                     do res <- ffa_mem_donate_core_transition_spec
+                                caller receiver_id cur_address st ;;;
+                     match res with  
                      (* TODO: need to creage handle! - 0 is the wrong value  *)
                      (* TODO: need to reduce mpool size *) 
-                     | true => Ret (FFA_SUCCESS 0)
-                     | flase => Ret (FFA_ERROR FFA_DENIED)
+                     | (st', true) => Some (st, FFA_SUCCESS 0)
+                     | (st', flase) => Some (st, FFA_ERROR FFA_DENIED)
                      end
-                   | _ => Ret (FFA_ERROR FFA_INVALID_PARAMETERS)
+                   | _ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
                    end
-                 else Ret (FFA_ERROR FFA_INVALID_PARAMETERS)
-               else Ret (FFA_ERROR FFA_NO_MEMORY)
-          else Ret (FFA_ERROR FFA_DENIED)
-        | _ => triggerUB "this case cannot happen at this moment"
-        end
-      else Ret (FFA_ERROR FFA_INVALID_PARAMETERS).
+                 else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+               else Some (st, FFA_ERROR FFA_NO_MEMORY)
+          else Some (st, FFA_ERROR FFA_DENIED)
+      else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS).
     
   End FFA_MEM_DONATE_ADDITIONAL_STEPS.
 
@@ -1193,216 +1103,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     Definition ffa_mem_lend_spec
                (caller : ffa_UUID_t)
                (total_length fragment_length address count : Z)
-    : itree HypervisorEE (FFA_RESULT_CODE_TYPE) :=
-      triggerUB "Not Implemented Yet".
+               (st: AbstractState)
+    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      None.
     
   End FFA_MEM_LEND_ADDITIONAL_STEPS.
 
-  Section FFA_MEM_SHARE_ADDITIONAL_STEPS.
-   
-    Definition ffa_mem_share_spec
-               (caller : ffa_UUID_t)               
-               (total_length fragment_length address count : Z)
-    : itree HypervisorEE (FFA_RESULT_CODE_TYPE) :=
-      triggerUB "Not Implemented Yet".
-    
-  End FFA_MEM_SHARE_ADDITIONAL_STEPS.
 
-  Section FFA_MEM_RETRIEVE_REQ_ARGUMENT_CHECKS.
-    (***********************************************************************)
-    (** ***  11.4 FFA_MEM_RETRIEVE_REQ                                     *)
-    (***********************************************************************)
-    (** 
-      - Structure
-        - paramemter
-          - stored register
-          - description 
-
-      - Table 11.18: FFA_MEM_RETRIEVE_REQ function syntax
-        - uint32 Function ID
-          - w0
-          - 0x84000074
-        - uint32 Total length
-          - w1
-          - Total length of the memory transaction descriptor in bytes.
-        - uint32 Fragment length 
-          - w2
-          - Length in bytes of the memory transaction descriptor passed in this ABI invocation.
-          - Fragment length must be <= Total length.
-          - If Fragment length < Total length then see 12.2.2 Transmission of transaction 
-            descriptor in fragments about how the remainder of the descriptor will be
-            transmitted.
-        - uint32/uint64 Address
-          - w3
-          - Base address of a buffer allocated by the Owner and distinct from the TX buffer. See 12.2.1
-            Transmission of transaction descriptor in dynamically allocated buffers.
-          - MBZ if the TX buffer is used.
-        - uint32 Page count
-          - w4
-          - Number of 4K pages in the buffer allocated by the 
-            Owner and distinct from the TX buffer. See 12.2.1
-            Transmission of transaction descriptor in dynamically allocated buffers.
-          - MBZ if the TX buffer is used.
-        - Other Parameter registers 
-          - w5-w7
-          - Reserved (MBZ)
-
-      - Table 11.19: FFA_ERROR encoding
-        - int32 Error code 
-          - w2
-          - INVALID_PARAMETERS / DENIED / NO_MEMORY / BUSY / ABORTED
-     *)
-
-    Definition ffa_mem_retrieve_req_spec
-               (caller : ffa_UUID_t)
-               (total_length fragment_length address count : Z)
-    : itree HypervisorEE (FFA_RESULT_CODE_TYPE) :=
-      triggerUB "Not Implemented Yet".
-    
-  End FFA_MEM_RETRIEVE_REQ_ARGUMENT_CHECKS.
-
-  Section FFA_MEM_RETRIEVE_RESP_ARGUMENT_CHECKS.
-    (***********************************************************************)
-    (** ***  11.5 FFA_MEM_RETRIEVE_RESP                                    *)
-    (***********************************************************************)
-    (** 
-      - Structure
-        - paramemter
-          - stored register
-          - description 
-
-      - Table 11.22: FFA_MEM_RETRIEVE_RESP function syntax
-        - uint32 Function ID
-          - w0
-          - 0x84000075
-        - uint32 Total length
-          - w1
-          - Total length of the memory transaction descriptor in bytes.
-        - uint32 Fragment length 
-          - w2
-          - Length in bytes of the memory transaction descriptor passed in this ABI invocation.
-          - Fragment length must be <= Total length.
-          - If Fragment length < Total length then see 12.2.2 Transmission of transaction 
-            descriptor in fragments about how the remainder of the descriptor will be
-            transmitted.
-        - uint32/uint64 Parameter
-          - w3
-          - Reserved (MBZ)
-        - uint32/uint64 Parameter
-          - w4
-          - Reserved (MBZ)
-        - Other Parameter registers 
-          - w5-w7
-          - Reserved (MBZ)
-
-      - Table 11.23: FFA_ERROR encoding
-        - int32 Error code 
-          - w2
-          - INVALID_PARAMETERS / NO_MEMORY
-     *)
-    
-    Definition ffa_mem_retrieve_resp_spec
-               (caller : ffa_UUID_t)               
-               (total_length fragment_length : Z)
-    : itree HypervisorEE (FFA_RESULT_CODE_TYPE) :=
-      triggerUB "Not Implemented Yet".    
-    
-  End FFA_MEM_RETRIEVE_RESP_ARGUMENT_CHECKS.
-
-  Section FFA_MEM_RELINQUISH_ARGUMENT_CHECKS.
-    (***********************************************************************)
-    (** ***  11.6 FFA_MEM_RELINQUISH                                       *)
-    (***********************************************************************)
-    (** 
-      - Structure
-        - paramemter
-          - stored register
-          - description 
-
-      - Table 11.27: FFA_MEM_RELINQUISH function syntax
-        - uint32 Function ID
-          - w0
-          - 0x84000076
-        - Other Parameter registers
-          - w1-w7
-          - Reserved (MBZ)
-
-      - Table 11.28: FFA_ERROR encoding
-        - int32 Error code 
-          - w2
-          - INVALID_PARAMETERS / DENIED / NO_MEMORY / ABORTED
-     *)
-
-    Definition ffa_mem_relinquish_spec
-               (caller : ffa_UUID_t)               
-    : itree HypervisorEE (FFA_RESULT_CODE_TYPE) :=
-      triggerUB "Not Implemented Yet".
-
-    
-  End FFA_MEM_RELINQUISH_ARGUMENT_CHECKS.
-    
-  Section FFA_MEM_RECLAIM_ARGUMENT_CHECKS.
-    (***********************************************************************)
-    (** ***  11.7 FFA_MEM_RECLAIM                                          *)
-    (***********************************************************************)
-    (** 
-      - Structure
-        - paramemter
-          - stored register
-          - description 
-
-      - Table 11.31: FFA_MEM_RECLAIM function syntax
-        - uint32 Function ID
-          - w0
-          - 0x84000077
-        - uint64 Handle
-          - w1/w2
-          - Globally unique Handle to identify the memory region (see 5.10.2 Memory region handle).
-        - uint32 Flags
-          - w3
-          - Bit(0): Zero memory before reclaim flag.
-            – This flag specifies if the Relayer must clear memory region contents before mapping it in
-              the Owner translation regime.
-              - b0: Relayer must not zero the memory region contents.
-              - b1: Relayer must zero the memory region contents.
-            – Relayer must fulfill memory zeroing requirements listed in in 5.12.4 Flags usage.
-            – MBZ if the Owner has Read-only access to the memory region, else the Relayer must return DENIED.
-          - Bit(1): Operation time slicing flag.
-            – This flag specifies if the Relayer can time slice this operation.
-              - b0: Relayer must not time slice this operation.
-              - b1: Relayer can time slice this operation.
-            - MBZ if the Relayer does not support time slicing of memory management operations (see 12.2.3 Time
-              slicing of memory management operations) .
-          - Bit(31:2): Reserved (MBZ).
-        - Other Parameter registers
-          - w4-w7
-          - Reserved (MBZ)
-
-      - Table 11.32: FFA_ERROR encoding
-        - int32 Error code 
-          - w2
-          - INVALID_PARAMETERS / DENIED / NO_MEMORY / ABORTED
-     *)
-
-    Definition ffa_mem_reclaim_spec
-               (caller : ffa_UUID_t)               
-               (handle_high handle_low flags : Z)
-    : itree HypervisorEE (FFA_RESULT_CODE_TYPE) :=
-      triggerUB "Not Implemented Yet".
-    
-  End FFA_MEM_RECLAIM_ARGUMENT_CHECKS.
-    
-End FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
-
-
-
-
-
-
-
-
-(************************************************************************************************)
-(* In the below: ignore them  *)
 
 
 (*
@@ -1530,6 +1237,213 @@ End FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
    
 *)
 
+
+  
+  Section FFA_MEM_SHARE_ADDITIONAL_STEPS.
+   
+    Definition ffa_mem_share_spec
+               (caller : ffa_UUID_t)               
+               (total_length fragment_length address count : Z)
+               (st: AbstractState)
+    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      None.
+    
+  End FFA_MEM_SHARE_ADDITIONAL_STEPS.
+
+  Section FFA_MEM_RETRIEVE_REQ_ARGUMENT_CHECKS.
+    (***********************************************************************)
+    (** ***  11.4 FFA_MEM_RETRIEVE_REQ                                     *)
+    (***********************************************************************)
+    (** 
+      - Structure
+        - paramemter
+          - stored register
+          - description 
+
+      - Table 11.18: FFA_MEM_RETRIEVE_REQ function syntax
+        - uint32 Function ID
+          - w0
+          - 0x84000074
+        - uint32 Total length
+          - w1
+          - Total length of the memory transaction descriptor in bytes.
+        - uint32 Fragment length 
+          - w2
+          - Length in bytes of the memory transaction descriptor passed in this ABI invocation.
+          - Fragment length must be <= Total length.
+          - If Fragment length < Total length then see 12.2.2 Transmission of transaction 
+            descriptor in fragments about how the remainder of the descriptor will be
+            transmitted.
+        - uint32/uint64 Address
+          - w3
+          - Base address of a buffer allocated by the Owner and distinct from the TX buffer. See 12.2.1
+            Transmission of transaction descriptor in dynamically allocated buffers.
+          - MBZ if the TX buffer is used.
+        - uint32 Page count
+          - w4
+          - Number of 4K pages in the buffer allocated by the 
+            Owner and distinct from the TX buffer. See 12.2.1
+            Transmission of transaction descriptor in dynamically allocated buffers.
+          - MBZ if the TX buffer is used.
+        - Other Parameter registers 
+          - w5-w7
+          - Reserved (MBZ)
+
+      - Table 11.19: FFA_ERROR encoding
+        - int32 Error code 
+          - w2
+          - INVALID_PARAMETERS / DENIED / NO_MEMORY / BUSY / ABORTED
+     *)
+
+    Definition ffa_mem_retrieve_req_spec
+               (caller : ffa_UUID_t)
+               (total_length fragment_length address count : Z)
+               (st : AbstractState)
+    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      None.
+    
+  End FFA_MEM_RETRIEVE_REQ_ARGUMENT_CHECKS.
+
+  Section FFA_MEM_RETRIEVE_RESP_ARGUMENT_CHECKS.
+    (***********************************************************************)
+    (** ***  11.5 FFA_MEM_RETRIEVE_RESP                                    *)
+    (***********************************************************************)
+    (** 
+      - Structure
+        - paramemter
+          - stored register
+          - description 
+
+      - Table 11.22: FFA_MEM_RETRIEVE_RESP function syntax
+        - uint32 Function ID
+          - w0
+          - 0x84000075
+        - uint32 Total length
+          - w1
+          - Total length of the memory transaction descriptor in bytes.
+        - uint32 Fragment length 
+          - w2
+          - Length in bytes of the memory transaction descriptor passed in this ABI invocation.
+          - Fragment length must be <= Total length.
+          - If Fragment length < Total length then see 12.2.2 Transmission of transaction 
+            descriptor in fragments about how the remainder of the descriptor will be
+            transmitted.
+        - uint32/uint64 Parameter
+          - w3
+          - Reserved (MBZ)
+        - uint32/uint64 Parameter
+          - w4
+          - Reserved (MBZ)
+        - Other Parameter registers 
+          - w5-w7
+          - Reserved (MBZ)
+
+      - Table 11.23: FFA_ERROR encoding
+        - int32 Error code 
+          - w2
+          - INVALID_PARAMETERS / NO_MEMORY
+     *)
+    
+    Definition ffa_mem_retrieve_resp_spec
+               (caller : ffa_UUID_t)               
+               (total_length fragment_length : Z)
+               (st : AbstractState)
+    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      None.
+    
+  End FFA_MEM_RETRIEVE_RESP_ARGUMENT_CHECKS.
+
+  Section FFA_MEM_RELINQUISH_ARGUMENT_CHECKS.
+    (***********************************************************************)
+    (** ***  11.6 FFA_MEM_RELINQUISH                                       *)
+    (***********************************************************************)
+    (** 
+      - Structure
+        - paramemter
+          - stored register
+          - description 
+
+      - Table 11.27: FFA_MEM_RELINQUISH function syntax
+        - uint32 Function ID
+          - w0
+          - 0x84000076
+        - Other Parameter registers
+          - w1-w7
+          - Reserved (MBZ)
+
+      - Table 11.28: FFA_ERROR encoding
+        - int32 Error code 
+          - w2
+          - INVALID_PARAMETERS / DENIED / NO_MEMORY / ABORTED
+     *)
+
+    Definition ffa_mem_relinquish_spec
+               (caller : ffa_UUID_t)
+               (st : AbstractState)
+    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      None.
+
+    
+  End FFA_MEM_RELINQUISH_ARGUMENT_CHECKS.
+    
+  Section FFA_MEM_RECLAIM_ARGUMENT_CHECKS.
+    (***********************************************************************)
+    (** ***  11.7 FFA_MEM_RECLAIM                                          *)
+    (***********************************************************************)
+    (** 
+      - Structure
+        - paramemter
+          - stored register
+          - description 
+
+      - Table 11.31: FFA_MEM_RECLAIM function syntax
+        - uint32 Function ID
+          - w0
+          - 0x84000077
+        - uint64 Handle
+          - w1/w2
+          - Globally unique Handle to identify the memory region (see 5.10.2 Memory region handle).
+        - uint32 Flags
+          - w3
+          - Bit(0): Zero memory before reclaim flag.
+            – This flag specifies if the Relayer must clear memory region contents before mapping it in
+              the Owner translation regime.
+              - b0: Relayer must not zero the memory region contents.
+              - b1: Relayer must zero the memory region contents.
+            – Relayer must fulfill memory zeroing requirements listed in in 5.12.4 Flags usage.
+            – MBZ if the Owner has Read-only access to the memory region, else the Relayer must return DENIED.
+          - Bit(1): Operation time slicing flag.
+            – This flag specifies if the Relayer can time slice this operation.
+              - b0: Relayer must not time slice this operation.
+              - b1: Relayer can time slice this operation.
+            - MBZ if the Relayer does not support time slicing of memory management operations (see 12.2.3 Time
+              slicing of memory management operations) .
+          - Bit(31:2): Reserved (MBZ).
+        - Other Parameter registers
+          - w4-w7
+          - Reserved (MBZ)
+
+      - Table 11.32: FFA_ERROR encoding
+        - int32 Error code 
+          - w2
+          - INVALID_PARAMETERS / DENIED / NO_MEMORY / ABORTED
+     *)
+
+    Definition ffa_mem_reclaim_spec
+               (caller : ffa_UUID_t)
+               (handle_high handle_low flags : Z)
+               (st : AbstractState)
+    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      None.
+    
+  End FFA_MEM_RECLAIM_ARGUMENT_CHECKS.
+    
+End FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
+
+
+
+(************************************************************************************************)
+(* In the below: ignore them  *)
 
 
 

@@ -67,23 +67,56 @@ Require Export FFAMemoryHypCallTestingInterface.
 
 Require Import Maps.
 
-Section WELLFORMED.
+Section AbstractStateContextProps.
 
-  Context `{abstract_state_context: AbstractStateContext}.  
-  Notation HypervisorEE :=
-    (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
 
-  (** ** Wrapper spec *)
-  (** The following definition is a wrapper spec to easily find out 
-      input and output states *)
-  Definition get_input_output_donate_state_spec
-             (caller total_length fragment_length address count : Z) :
-    itree HypervisorEE
-          (AbstractState * AbstractState) :=
-    input <- trigger GetState;;
-    ffa_mem_donate_spec caller total_length fragment_length address count;;
-    output <- trigger GetState;;
-    Ret (input, output).
+  Class AbstractStateContextBasicProp `{abstract_state_context: AbstractStateContext} :=
+    {
+    (** - Basic decidability properties of them *)
+    ffa_memory_region_tag_t_dec : forall (tag1 tag2: ffa_memory_region_tag_t),
+        {tag1 = tag2} + {tag1 <> tag2};
+    ffa_mailbox_send_msg_t_dec :
+      forall (mailbox_send_msg1 mailbox_send_msg2: ffa_mailbox_send_msg_t),
+        {mailbox_send_msg1 = mailbox_send_msg2} +
+        {mailbox_send_msg1 <> mailbox_send_msg2};
+    ffa_mailbox_recv_msg_t_dec :
+      forall (mailbox_recv_msg1 mailbox_recv_msg2: ffa_mailbox_recv_msg_t),
+        {mailbox_recv_msg1 = mailbox_recv_msg2} +
+        {mailbox_recv_msg1 <> mailbox_recv_msg2};    
+
+    
+    entity_list_prop := NoDup entity_list;
+
+    well_formed_granuale : Z.modulo granuale alignment_value = 0;
+    alignment_value_non_zero_prop :
+      alignment_value > 0;
+    address_low_alignment_prop :
+      (Z.modulo address_low alignment_value)%Z = 0;
+    address_high_alignment_prop :
+      (Z.modulo (address_high + 1) alignment_value)%Z = 0;
+
+    (** all results of  the address translation needs to be in betweeen low and high *)
+    address_translation_table_prop :
+      forall addr,
+        match hafnium_address_translation_table addr with
+        | Some addr' => (address_low <= addr' <= address_high)
+        | _ => True
+        end;
+    (* TODO: add more invariants *)    
+    
+    vcpu_num_prop (vm: VM_struct) : 0 < vm.(vcpu_num) <= vcpu_max_num;
+    cur_vcpu_id_prop (vm: VM_struct) : 0 <= vm.(cur_vcpu_index) < vm.(vcpu_num);
+    (* TODO: add more invariants *)
+
+    
+    userspace_vcpu_num_prop (vm_userspace: VM_USERSPACE_struct) :
+      0 < vm_userspace.(userspace_cur_vcpu_index) <= vcpu_max_num;
+    userspace_cur_vcpu_id_prop (vm_userspace: VM_USERSPACE_struct) :
+      0 <= vm_userspace.(userspace_cur_vcpu_index)
+      < vm_userspace.(userspace_vcpu_num);
+    (* TODO: add more invariants *)
+  
+    }.
 
   (** ** Invariants for memory *)
   (** We specified several (basic) invariants for memory attributes, properties, etc *)
@@ -94,93 +127,96 @@ Section WELLFORMED.
   
   (* TODO: we need invariants about fileds, cpu_id and vm_id, in VCPU_struct *)
 
-    Definition mem_properties_prop_low_out_of_bound (st : AbstractState) :=
-      forall addr,
-        (addr < address_low)%Z ->
-        ZTree.get
-          addr
-          (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = None.
-    
-    Definition mem_properties_prop_high_out_of_bound (st : AbstractState) :=
-      forall addr,
-        (address_high < addr)%Z ->
-        ZTree.get
-          addr
-          (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = None.
-    
-    Definition mem_properties_prop_not_aligned  (st : AbstractState) :=
-      forall addr,
-        (Z.modulo addr alignment_value)%Z <> 0 ->
-        ZTree.get
-          addr
-          (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = None.
-    
-    Definition mem_properties_global_properties_existence  (st : AbstractState) :=
-      forall addr,
-        (address_low <= addr <= address_high)%Z ->
-        (Z.modulo addr alignment_value)%Z = 0 ->
-        exists global_properties,
-          ZTree.get
-            addr
-            (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-          = Some global_properties.
 
-    Definition mem_properties_consistency_owner  (st : AbstractState) :=
-      forall addr global_properties owner, 
+  Context `{abstract_state_context: AbstractStateContext}.
+  
+  Definition mem_properties_prop_low_out_of_bound (st : AbstractState) :=
+    forall addr,
+      (addr < address_low)%Z ->
+      ZTree.get
+        addr
+        (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
+      = None.
+  
+  Definition mem_properties_prop_high_out_of_bound (st : AbstractState) :=
+    forall addr,
+      (address_high < addr)%Z ->
+      ZTree.get
+        addr
+        (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
+      = None.
+  
+  Definition mem_properties_prop_not_aligned  (st : AbstractState) :=
+    forall addr,
+      (Z.modulo addr alignment_value)%Z <> 0 ->
+      ZTree.get
+        addr
+        (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
+      = None.
+  
+  Definition mem_properties_global_properties_existence  (st : AbstractState) :=
+    forall addr,
+      (address_low <= addr <= address_high)%Z ->
+      (Z.modulo addr alignment_value)%Z = 0 ->
+      exists global_properties,
         ZTree.get
           addr
           (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = Some global_properties ->
-        global_properties.(owned_by) = Owned owner ->
-        exists local_properties_pool local_properties,
-          ZTree.get
-            owner
+        = Some global_properties.
+
+  Definition mem_properties_consistency_owner  (st : AbstractState) :=
+    forall addr global_properties owner, 
+      ZTree.get
+        addr
+        (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
+      = Some global_properties ->
+      global_properties.(owned_by) = Owned owner ->
+      exists local_properties_pool local_properties,
+        ZTree.get
+          owner
+          (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
+        = Some local_properties_pool /\
+        ZTree.get addr local_properties_pool = Some local_properties /\
+        local_properties.(mem_local_owned) = LocalOwned /\
+        data_access_permissive (global_properties.(global_data_access_property))
+                               (local_properties.(data_access_property)) /\
+        instruction_access_permissive (global_properties.(global_instruction_access_property))
+                                      (local_properties.(instruction_access_property)) /\
+        MEM_ATTRIBUTES_TYPE_permissive (global_properties.(global_mem_attribute))
+                                       (local_properties.(mem_attribute)).
+  
+  Definition mem_properties_consistency_no_owner  (st : AbstractState) :=
+    forall addr global_properties owner, 
+      ZTree.get
+        addr
+        (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
+      = Some global_properties ->
+      global_properties.(owned_by) = Owned owner ->
+      forall other,
+        other <> owner ->
+        ((ZTree.get
+            other
             (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
-          = Some local_properties_pool /\
-          ZTree.get addr local_properties_pool = Some local_properties /\
-          local_properties.(mem_local_owned) = LocalOwned /\
-          data_access_permissive (global_properties.(global_data_access_property))
-                                 (local_properties.(data_access_property)) /\
-          instruction_access_permissive (global_properties.(global_instruction_access_property))
-                                 (local_properties.(instruction_access_property)) /\
-          MEM_ATTRIBUTES_TYPE_permissive (global_properties.(global_mem_attribute))
-                                         (local_properties.(mem_attribute)).
-    
-    Definition mem_properties_consistency_no_owner  (st : AbstractState) :=
-      forall addr global_properties owner, 
-        ZTree.get
-          addr
-          (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
-        = Some global_properties ->
-        global_properties.(owned_by) = Owned owner ->
-        forall other,
-          other <> owner ->
-          ((ZTree.get
-              other
-              (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
-            = None) \/
-           (exists local_properties_pool,
-               ZTree.get
-                 other
-                 (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
-               = Some local_properties_pool /\
-               ZTree.get addr local_properties_pool = None) \/
-           (exists local_properties_pool local_properties,
-               ZTree.get
-                 owner
-                 (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
-               = Some local_properties_pool /\
-               ZTree.get addr local_properties_pool = Some local_properties /\
-               local_properties.(mem_local_owned) <> LocalOwned /\
-               data_access_permissive (global_properties.(global_data_access_property))
-                                      (local_properties.(data_access_property)) /\
-               instruction_access_permissive (global_properties.(global_instruction_access_property))
-                                             (local_properties.(instruction_access_property)) /\
-               MEM_ATTRIBUTES_TYPE_permissive (global_properties.(global_mem_attribute))
-                                              (local_properties.(mem_attribute)))).
+          = None) \/
+         (exists local_properties_pool,
+             ZTree.get
+               other
+               (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
+             = Some local_properties_pool /\
+             ZTree.get addr local_properties_pool = None) \/
+         (exists local_properties_pool local_properties,
+             ZTree.get
+               owner
+               (st.(hypervisor_context)).(mem_properties).(mem_local_properties)
+             = Some local_properties_pool /\
+             ZTree.get addr local_properties_pool = Some local_properties /\
+             local_properties.(mem_local_owned) <> LocalOwned /\
+             data_access_permissive (global_properties.(global_data_access_property))
+                                    (local_properties.(data_access_property)) /\
+             instruction_access_permissive (global_properties.(global_instruction_access_property))
+                                           (local_properties.(instruction_access_property)) /\
+             MEM_ATTRIBUTES_TYPE_permissive (global_properties.(global_mem_attribute))
+                                            (local_properties.(mem_attribute)))).
   
   Record well_formed (state : AbstractState) :=
     {
@@ -199,24 +235,32 @@ Section WELLFORMED.
     well_formed_guarantee_well_formed_scheduler_result :
       forall st next_id, well_formed st -> scheduler st = next_id -> In next_id vm_ids;
     }.
+  
+End AbstractStateContextProps.
 
-  Context `{well_formed_context :  WellFormedConext}.
+
+Section WELLFORMED.
+
+  Context `{abstract_state_context: AbstractStateContext}.  
+  Notation HypervisorEE :=
+    (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
+
+  (** ** Wrapper spec *)
+  (** The following definition is a wrapper spec to easily find out 
+      input and output states *)
+
+  Context `{WellFormedConext}.
   
   Lemma ffa_mem_donate_well_formed_preserve:
-    forall caller total_length fragment_length address count,
-      match get_input_output_donate_state_spec caller total_length fragment_length address count with 
-      | Ret (input, output) => well_formed input -> well_formed output
-      | _ => True
-      end.
+    forall st caller total_length fragment_length address count st' res
+      (Hspec: ffa_mem_donate_spec
+                caller total_length fragment_length address count st
+              = Some (st', res))
+      (Hwell_formed: well_formed st),
+    well_formed st'.
   Proof.
     intros.
-    destruct (_observe) eqn:?; auto.
-    unfold _observe in Heqi.
-    unfold x in Heqi.
-    unfold get_input_output_donate_state_spec in Heqi.
-    unfold ffa_mem_donate_spec in Heqi.
-    simpl in Heqi.
-    
+    unfold ffa_mem_donate_spec in Hspec.
   Admitted.
   
 End WELLFORMED.

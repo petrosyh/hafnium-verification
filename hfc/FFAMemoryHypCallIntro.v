@@ -27,7 +27,6 @@ Require Import FFAMemoryHypCall.
    
    With the given descriptions, we formalize our target with the following four files. 
 
-
    The following explanations are mostly copied from the FF-A document. If there are something that we hope to mention, 
    we add [JIEUNG:...] to distinguish them with the original texts.
 *)

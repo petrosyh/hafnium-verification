@@ -15,40 +15,14 @@ From ExtLib Require Import
      Data.Option
      Data.Monads.OptionMonad.
 
-
-From ITree Require Import
-     ITree
-     ITreeFacts
-     Events.MapDefault
-     Events.StateFacts.
-
-From ITree Require Import
-     ITree ITreeFacts.
-
-Import ITreeNotations.
-Import Monads.
-Import MonadNotation.
-Local Open Scope monad_scope.
-Local Open Scope string_scope.
-Require Import Coqlib sflib.
-
-(* From HafniumCore *)
-Require Import Lang.
-Require Import Values.
-Require Import Integers.
-Require Import Constant.
 Require Import Decision.
+
+Require Import Coqlib sflib.
 
 (* FFA Memory management related parts *)
 Require Import FFAMemoryHypCall.
 Require Import FFAMemoryHypCallIntro.
 Require Export FFAMemoryHypCallDescriptorState.
-
-Import LangNotations.
-Local Open Scope expr_scope.
-Local Open Scope stmt_scope.
-
-Import Int64.
 
 Require Import Maps.
 Set Implicit Arguments.
@@ -56,45 +30,6 @@ Set Implicit Arguments.
 (** * Introduction - state definition                        *)
 (*************************************************************)
 (** This file provides a state definition for FF-A memory management interfaces. *)
-
-Section PtrTreeLibrary.
-
-  Definition PtrTree_set (ptr: positive * Z) (v: positive)
-             (map: PTree.t (ZTree.t positive)) :=
-    let zt := match PTree.get (fst ptr) map with
-              | Some zt => zt
-              | None => (ZTree.empty positive)
-              end in
-    PTree.set (fst ptr) (ZTree.set (snd ptr) v zt) map
-  .
-  
-  Definition PtrTree_get (ptr: positive * Z)
-             (map: PTree.t (ZTree.t positive)) :=
-    zt <- PTree.get (fst ptr) map;;
-    ZTree.get (snd ptr) zt
-  .
-
-  Definition PtrTree_remove (ptr: positive * Z)
-             (map: PTree.t (ZTree.t positive)) :=
-    match PTree.get (fst ptr) map with
-    | Some zt => PTree.set (fst ptr) (ZTree.remove (snd ptr) zt) map
-    | None => map
-    end
-  .
-  
-End PtrTreeLibrary.
-
-Variable Z_to_string: Z -> string.
-Extract Constant Z_to_string =>
-"fun z -> (HexString.of_Z z)"
-.
-
-(* Variable A: Type. *)
-Definition A : Type := positive * Z.
-
-Definition A_to_string (a: A): string :=
-  "(" ++ (Z_to_string (Zpos' (fst a))) ++ ", " ++ (Z_to_string (snd a)) ++ ")"
-.
 
 (*************************************************************)
 (** **        memory and ptable                              *)
@@ -172,7 +107,40 @@ Section MEM_AND_PTABLE.
   (** This memory properties are key features that we may hope to guarantee in our system -
       There are some redundant information in between them, and we may need to 
       make invariants to guarantee well-formed relations between the following different properties 
-      (and other parts of the abstract state *)
+      (and other parts of the abstract state.
+
+     Table 3.2. is related to this field *)
+  (*
+     Table 3.2: Memory regions                                                                                     
+     Information fields        Mandatory  Description                                                              
+     Base address              No         - Absence of this field indicates that a memory region of                
+                                            specified size and attributes                                          
+                                            must be mapped into the partition translation regime.                  
+                                          - If present, this field could specify a PA, VA                          
+                                            (for S-EL0 partitions) or IPA (for S-EL1 and EL1 partitions).          
+                                            - If a PA is specified, then the memory region must be identity        
+                                              mapped with the same IPA or VA as the PA.                            
+                                            - If a VA or IPA is specified, then the memory could be identity       
+                                              or non-identity mapped.                                              
+                                          - If present, the address must be aligned to the Translation             
+                                            granule size.                                                          
+     Page count                Yes        - Size of memory region expressed as a count of 4K pages.                
+                                          - For example, if the memory region size is 16K, value of                
+                                            this field is 4.                                                       
+     Attributes                Yes        - Memory access permissions.                                             
+                                            - Instruction access permission.                                       
+                                            - Data access permission.                                              
+                                          - Memory region attributes.                                              
+                                            - Memory type.                                                         
+                                            - Shareability attributes.                                             
+                                            - Cacheability attributes.                                             
+                                          - Memory Security state.                                                 
+                                            - Non-secure for a NS-Endpoint.                                        
+                                            - Non-secure or Secure for an S-Endpoint.                              
+     Name                      No         - Name of the memory region for example, for debugging purposes    
+     *)
+
+  
   Record MemGlobalProperties :=
     mkMemGlobalProperties {
         (** - there can be only one owner *)
@@ -293,24 +261,6 @@ Section MEM_AND_PTABLE_CONTEXT.
 
     (** usually 4096 *)
     alignment_value : Z;
-
-    (** properties *)
-    well_formed_granuale : Z.modulo granuale alignment_value = 0;
-    alignment_value_non_zero_prop :
-      alignment_value > 0;
-    address_low_alignment_prop :
-      (Z.modulo address_low alignment_value)%Z = 0;
-    address_high_alignment_prop :
-      (Z.modulo (address_high + 1) alignment_value)%Z = 0;
-
-    (** all results of  the address translation needs to be in betweeen low and high *)
-    address_translation_table_prop :
-      forall addr,
-        match hafnium_address_translation_table addr with
-        | Some addr' => (address_low <= addr' <= address_high)
-        | _ => True
-        end;
-    (* TODO: add more invariants *)    
     }.
 
 End MEM_AND_PTABLE_CONTEXT.
@@ -401,9 +351,6 @@ Section FFA_VM_CONTEXT.
   Class VMContext `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS} := 
     {
     vcpu_max_num : Z;
-    vcpu_num_prop (vm: VM_struct) : 0 < vm.(vcpu_num) <= vcpu_max_num;
-    cur_vcpu_id_prop (vm: VM_struct) : 0 <= vm.(cur_vcpu_index) < vm.(vcpu_num);
-    (* TODO: add more invariants *)
     }.
 
 End FFA_VM_CONTEXT.
@@ -430,20 +377,6 @@ Section VM_CLIENTS.
       }.
 
 End VM_CLIENTS.
-
-Section VM_CLIENTS_CONTEXT.
-
-  Class VMUserSpaceContext `{vm_context: VMContext} := 
-    {
-    userspace_vcpu_num_prop (vm_userspace: VM_USERSPACE_struct) :
-      0 < vm_userspace.(userspace_cur_vcpu_index) <= vcpu_max_num;
-    userspace_cur_vcpu_id_prop (vm_userspace: VM_USERSPACE_struct) :
-      0 <= vm_userspace.(userspace_cur_vcpu_index)
-      < vm_userspace.(userspace_vcpu_num);
-    (* TODO: add more invariants *)
-    }.
-  
-End VM_CLIENTS_CONTEXT.
 
 (*************************************************************)
 (** **     AbstractState for FFA modeling                    *)
@@ -563,9 +496,7 @@ Section AbstractStateContext.
              (address_translation := address_translation)}
         `{vm_context :
             !VMContext
-             (ffa_types_and_constants := ffa_types_and_constants)} 
-        `{vm_user_space_context :
-            !VMUserSpaceContext (vm_context := vm_context)} :=
+             (ffa_types_and_constants := ffa_types_and_constants)} :=
     {
     hafnium_id : ffa_UUID_t := 0;
     primary_vm_id: ffa_UUID_t;
@@ -603,8 +534,6 @@ Section AbstractStateContext.
     (** We may be able to use some feature of interaction tree for this scheduling? *)
     scheduler : AbstractState -> ffa_UUID_t; 
     
-    entity_list_prop := NoDup entity_list;
-
     cur_entity_id_prop (state : AbstractState) :
       In state.(cur_entity_id) entity_list;
 
@@ -615,6 +544,11 @@ Section AbstractStateContext.
     }.
 
 End AbstractStateContext.
+
+(** There are update functions and notations for those update functions. 
+    However, I hide them in the generated doc *)
+
+(* begin hide *)
 
 (*************************************************************)
 (** **        Update functions for readability               *)
@@ -1004,3 +938,4 @@ Notation "a '{' 'hypervisor_context' : b '}'" :=
 Notation "a '{' 'vms_userspaces' : b '}'" :=
   (update_vms_userspaces a b) (at level 1).
  
+(* end hide *)

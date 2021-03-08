@@ -2,8 +2,8 @@
 
 
 (** This work formalizes memroy management interfaces described in Arm Firmware
-Framework for Armv8-A (https://developer.arm.com/documentation/den0077/latest). The
-following files are relavant to this formalization. 
+    Framework for Armv8-A (https://developer.arm.com/documentation/den0077/latest). The
+    following files are relavant to this formalization. 
 
 - [FFAMemoryHypCallIntro.v]
   - This file introduces several relavant concepts that are necessary in the FF-A
@@ -30,3 +30,4 @@ following files are relavant to this formalization.
     transitions have to preserve (e.g., safety of memory ownership and
     accessibility).
 *)
+

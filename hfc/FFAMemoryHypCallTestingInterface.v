@@ -204,6 +204,19 @@ Local Open Scope itree_monad_scope.
 Section FFAContextSwitching.
   
   Context `{abstract_state_context: AbstractStateContext}.
+
+  Inductive updateStateE: Type -> Type :=
+  | GetState : updateStateE (AbstractState)
+  | SetState (st1: AbstractState): updateStateE unit.
+
+  Definition updateState_handler {E: Type -> Type}
+    : updateStateE ~> stateT (AbstractState) (itree E) :=
+    fun _ e st =>
+      match e with
+      | GetState => Ret (st, st)
+      | SetState st' => Ret (st', tt)
+      end.
+
   
   Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
   (**
@@ -313,6 +326,34 @@ Section FFADispatch.
   Context `{abstract_state_context: AbstractStateContext}.
   
   Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
+
+
+  Definition dispatch_functions
+             (ffa_function_type: FFA_FUNCTION_TYPE)
+             (vid: ffa_UUID_t)
+             (vals: ZMap.t Z) (st : AbstractState) :=
+    match ffa_function_type with
+    | FFA_MEM_DONATE 
+      => ffa_mem_donate_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
+                            (ZMap.get 3 vals) (ZMap.get 4 vals) st
+    | FFA_MEM_LEND
+      => ffa_mem_lend_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
+                          (ZMap.get 3 vals) (ZMap.get 4 vals) st
+    | FFA_MEM_SHARE
+      => ffa_mem_share_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
+                           (ZMap.get 3 vals) (ZMap.get 4 vals) st
+    | FFA_MEM_RETREIVE_REQ
+      => ffa_mem_retrieve_req_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
+                                  (ZMap.get 3 vals) (ZMap.get 4 vals) st
+    | FFA_MEM_RETREIVE_RESP
+      => ffa_mem_retrieve_resp_spec vid (ZMap.get 1 vals)
+                                   (ZMap.get 2 vals) st
+    | FFA_MEM_RELINQUISH 
+      => ffa_mem_relinquish_spec vid st
+    | FFA_MEM_RECLAIM
+      => ffa_mem_reclaim_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
+                             (ZMap.get 3 vals) st
+    end.
   
   Definition ffa_dispatch_spec :  itree HypervisorEE (unit) := 
     (** - Extract the curretnt vcpu *)
@@ -328,53 +369,38 @@ Section FFADispatch.
           match func_type with
           | FFA_FUNCTION_IDENTIFIER ffa_function_type =>
             (** - Find out the result of the FFA ABI calls by using the proper handling functions *)
-            ffa_result <-
-            match ffa_function_type with
-            | FFA_MEM_DONATE 
-              => ffa_mem_donate_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
-                                    (ZMap.get 3 vals) (ZMap.get 4 vals)
-            | FFA_MEM_LEND
-              => ffa_mem_lend_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
-                                  (ZMap.get 3 vals) (ZMap.get 4 vals)
-            | FFA_MEM_SHARE
-              => ffa_mem_share_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
-                                   (ZMap.get 3 vals) (ZMap.get 4 vals)
-            | FFA_MEM_RETREIVE_REQ
-              => ffa_mem_retrieve_req_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
-                                          (ZMap.get 3 vals) (ZMap.get 4 vals)
-            | FFA_MEM_RETREIVE_RESP
-              => ffa_mem_retrieve_resp_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
-            | FFA_MEM_RELINQUISH 
-              => ffa_mem_relinquish_spec vid 
-            | FFA_MEM_RECLAIM
-              => ffa_mem_reclaim_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
-                                     (ZMap.get 3 vals)
-            end;;
-            (** - Get the updated state *)
-            updated_st <- trigger GetState;;
-            (** - Set the result inside the updated state *)
-            do vm_context <-
-               ZTree.get
-                 vid
-                 updated_st.(hypervisor_context).(vms_contexts);;;
-            do vcpu_reg <-
-               ZTree.get
-                 vm_context.(cur_vcpu_index) vm_context.(vcpus);;;
-            let new_vcpu_reg :=
-                mkVCPU_struct (vcpu_reg.(cpu_id)) (vcpu_reg.(vm_id))
-                              (mkArchRegs (ffa_value_gen ffa_result)) in
-            let new_vm_context := 
-                vm_context
-                  {vm_vcpus: ZTree.set (vm_context.(cur_vcpu_index))
-                                       new_vcpu_reg 
-                                       vm_context.(vcpus)} in
-            let new_st :=
-                updated_st
-                  {hypervisor_context / vms_contexts:
-                     ZTree.set vid new_vm_context
-                               (updated_st.(hypervisor_context).(vms_contexts))} in
-            trigger (SetState new_st)
-          | _ => triggerUB "ffa_dispatch_spec: impossible case happens"
+            let result_op := dispatch_functions ffa_function_type
+                                                vid vals st in
+            (** - Get the updated state and result *)
+            do result <- result_op ;;; 
+             match result with                                
+            | (updated_st, ffa_result) =>
+              (** - Set the result inside the updated state *)
+              do vm_context <-
+                 ZTree.get
+                   vid
+                   updated_st.(hypervisor_context).(vms_contexts);;;
+              do vcpu_reg <-
+                 ZTree.get
+                   vm_context.(cur_vcpu_index) vm_context.(vcpus);;;
+              let new_vcpu_reg :=
+                  mkVCPU_struct (vcpu_reg.(cpu_id)) (vcpu_reg.(vm_id))
+                                (mkArchRegs (ffa_value_gen ffa_result)) in
+              let new_vm_context := 
+                  vm_context
+                    {vm_vcpus: ZTree.set (vm_context.(cur_vcpu_index))
+                                         new_vcpu_reg 
+                                         vm_context.(vcpus)} in
+              let new_st :=
+                  updated_st
+                    {hypervisor_context / vms_contexts:
+                       ZTree.set vid new_vm_context
+                                 (updated_st.(hypervisor_context).(vms_contexts))} in
+              trigger (SetState new_st)
+            end                                     
+
+
+             | _ => triggerUB "ffa_dispatch_spec: impossible case happens"
           end
         end
       | _ => triggerUB "ffa_dispatch_spec: impossible case happens"
