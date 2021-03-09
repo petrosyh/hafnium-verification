@@ -856,28 +856,54 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
   Definition get_send_memory_region_descriptor
              (caller : Z) (state: AbstractState)
     : option FFA_memory_region_struct := 
-    match ZTree.get caller state.(hypervisor_context).(vms_contexts) with
-    | Some vm_context =>
-      mailbox_send_msg_to_region_struct vm_context.(mailbox).(send)
-    | _ => None
-    end.
-    
+    do vm_context <- ZTree.get caller state.(hypervisor_context).(vms_contexts) ;;;
+    mailbox_send_msg_to_region_struct vm_context.(mailbox).(send).
+       
+  (** Set a memory region descriptor for receivers (donate, lend, share) *)
+  Definition set_send_memory_region_descriptor
+             (sender receiver : ffa_UUID_t) (size : Z)
+             (region_descriptor: FFA_memory_region_struct)
+             (recv_func : FFA_FUNCTION_TYPE)
+             (state: AbstractState)
+    : option AbstractState := 
+    do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
+    do message <- region_struct_to_mailbox_recv_msg region_descriptor ;;; 
+    let new_vm_context := vm_context {vm_mailbox :
+                                        mkMAILBOX_struct 
+                                          (vm_context.(mailbox).(send))
+                                          message sender size recv_func } in
+    let new_vm_contexts :=
+        ZTree.set receiver new_vm_context
+                  state.(hypervisor_context).(vms_contexts) in
+    Some state {hypervisor_context / vms_contexts : new_vm_contexts}.
 
-  (** TODO: need to consider offset when implement LEND and SHARE *)
-  Fixpoint get_constituents_from_receivers
-           (receivers: list FFA_endpoint_memory_access_descriptor_struct) :=
-    match receivers with
-    | nil => nil
-    | receiver::receivers' =>
-      let constituents' := get_constituents_from_receivers receivers' in
-      match receiver.(FFA_memory_access_descriptor_struct_composite_memory_region_struct) with
-      | Some composite =>
-        composite.(FFA_composite_memory_region_struct_constituents)
-                    ++ constituents' 
-      | _ => nil ++ constituents' 
-      end
-    end.
+  (** Get a memory region descriptor for send (donate, lend, share) operations *)
+  Definition get_send_handle_value
+             (caller : Z) (state: AbstractState)
+    : option Z := 
+    do vm_context <- ZTree.get caller state.(hypervisor_context).(vms_contexts) ;;;
+    mailbox_send_msg_to_Z vm_context.(mailbox).(send).
 
+  (** Set a memory region descriptor for receivers (donate, lend, share) *)
+  Definition set_send_handle
+             (sender receiver : ffa_UUID_t) (size : Z)
+             (handle: Z)
+             (recv_func : FFA_FUNCTION_TYPE)
+             (state: AbstractState)
+    : option AbstractState := 
+    do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
+    do message <- Z_to_mailbox_recv_msg handle ;;; 
+    let new_vm_context := vm_context {vm_mailbox :
+                                        mkMAILBOX_struct 
+                                          (vm_context.(mailbox).(send))
+                                          message sender size recv_func } in
+    let new_vm_contexts :=
+        ZTree.set receiver new_vm_context
+                  state.(hypervisor_context).(vms_contexts) in
+    Some state {hypervisor_context / vms_contexts : new_vm_contexts}.
+
+       
+  (** Get memory attributes and access infomation from descriptor *) 
   Definition get_instruction_access_information_from_descriptor
              (receiver: FFA_endpoint_memory_access_descriptor_struct) :=
     receiver
@@ -896,28 +922,29 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     .(FFA_memory_region_attributes_descriptor_struct_memory_type).
 
   
-  Definition get_instruction_access_from_global_local_props
+  (** Get memory attributes and access infomation from local pools *) 
+  Definition get_instruction_access_from_global_local_pool_props
              (id : ffa_UUID_t) (address : Z)
              (global_local_props: mem_local_properties_global_pool) :=
     do local_props <- ZTree.get id global_local_props ;;;
     do local_prop <- ZTree.get address local_props ;;;
     Some local_prop.(instruction_access_property).
 
-  Definition get_data_access_from_global_local_props
+  Definition get_data_access_from_global_local_pool_props
              (id : ffa_UUID_t) (address : Z)
              (global_local_props: mem_local_properties_global_pool) :=
     do local_props <- ZTree.get id global_local_props ;;;
     do local_prop <- ZTree.get address local_props ;;;
-    Some local_prop.(instruction_access_property).
-       
-  Definition get_attributes_from_global_local_props
+    Some local_prop.(data_access_property).
+
+  Definition get_attributes_from_global_local_pool_props
              (id : ffa_UUID_t) (address : Z)
              (global_local_props: mem_local_properties_global_pool) :=
     do local_props <- ZTree.get id global_local_props ;;;
     do local_prop <- ZTree.get address local_props ;;;
     Some local_prop.(mem_attribute).
-
        
+  (** Get memory attributes and access infomation from global pools *)        
   Definition get_instruction_access_from_global_props
              (id : ffa_UUID_t) (address : Z)
              (global_props: mem_global_properties_pool) :=
@@ -936,51 +963,186 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     do global_prop <- ZTree.get address global_props ;;;
     Some global_prop.(global_mem_attribute).
 
+  Fixpoint get_addresses (base_address :Z) (page_count : nat) :=
+    match page_count with
+    | O => nil
+    | S page_count' =>
+      let res := get_addresses base_address page_count' in
+      res ++ (base_address + (Z.of_nat page_count) * 4096)::nil
+    end.
+       
+  Definition get_addreses_from_single_constituent 
+           (constituent: FFA_memory_region_constituent_struct) := 
+    get_addresses
+      constituent.(FFA_memory_region_constituent_struct_address)     
+      (Z.to_nat (constituent.(FFA_memory_region_constituent_struct_page_count))).
+
+  Fixpoint get_addreses_from_constituents
+           (constituents: list FFA_memory_region_constituent_struct) :=
+    match constituents with
+    | nil => nil
+    | hd::tl =>
+      (get_addreses_from_single_constituent hd)
+        ++ (get_addreses_from_constituents tl)
+    end.
+
+  Definition get_addreses_from_composite
+           (composite: FFA_composite_memory_region_struct) :=
+    get_addreses_from_constituents
+      composite.(FFA_composite_memory_region_struct_constituents).
+
+  Fixpoint donate_checks  
+           (vid : ffa_UUID_t)
+           (time_slice_enabled: bool)
+           (mem_properties: MemProperties)
+           (memory_region_descriptor: FFA_memory_region_struct)
+           (addrs: list Z)
+           (descriptor_inst_access: FFA_INSTRUCTION_ACCESS_TYPE)
+           (descriptor_data_access: FFA_DATA_ACCESS_TYPE)
+           (descriptor_attributes: FFA_MEMORY_TYPE)
+    : option (FFA_ERROR_CODE_TYPE) :=
+    match addrs with
+    | nil => None
+    | hd::tl =>
+      do local_inst_access <-
+          get_instruction_access_from_global_local_pool_props
+            vid hd mem_properties.(mem_local_properties) ;;;
+      do local_data_access <-
+          get_data_access_from_global_local_pool_props
+            vid hd mem_properties.(mem_local_properties) ;;;
+      do local_attributes <-
+          get_attributes_from_global_local_pool_props
+            vid hd mem_properties.(mem_local_properties) ;;;
+
+      do global_inst_access <-
+          get_instruction_access_from_global_props
+            vid hd mem_properties.(mem_global_properties) ;;;
+      do global_data_access <-
+          get_data_access_from_global_props
+            vid hd mem_properties.(mem_global_properties) ;;;
+      do global_attributes <-
+          get_attributes_from_global_props
+            vid hd mem_properties.(mem_global_properties) ;;;
+
+      match data_permissions_check_donate_lender_check
+              descriptor_data_access global_data_access local_data_access with
+      | Some res => Some res
+      | None =>
+        match instruction_permissions_donate_and_lend_single_borrower_lender_descriptor_check
+                descriptor_inst_access global_inst_access with
+        | Some res => Some res
+        | None =>
+          match attributes_donate_and_single_borrower_lender_check
+                  descriptor_attributes local_attributes
+                  global_attributes with
+          | Some res => Some res
+          | None =>
+            match memory_region_descriptor.(FFA_memory_region_struct_flags) with
+            | MEMORY_REGION_FLAG_NORMAL flags =>
+              match check_FFA_mem_default_flags_struct_for_donate_and_lend
+                      flags  local_data_access time_slice_enabled with
+              | Some res => Some res
+              | None => 
+                donate_checks vid time_slice_enabled mem_properties
+                              memory_region_descriptor tl
+                              descriptor_inst_access
+                              descriptor_data_access
+                              descriptor_attributes
+              end
+            | _ => Some (FFA_INVALID_PARAMETERS)
+            end
+          end
+        end 
+      end
+    end.             
+    
   (** There are some redundancies, but we do not care it *)
   (** check additional properties *)
-  Definition donate_and_lend_single_borrower_check
+  Definition donate_check
              (vid : ffa_UUID_t)
+             (time_slice_enabled: bool)
              (mem_properties: MemProperties)
              (memory_region_descriptor: FFA_memory_region_struct) :=
     if decide (memory_region_descriptor.(FFA_memory_region_struct_sender) = vid)
-    then true else false.
-
-
-  Definition share_and_lend_multiple_borrower_check
-             (vid : ffa_UUID_t)
-             (mem_properties: MemProperties)
-             (memory_region_descriptor: FFA_memory_region_struct) :=
-    if decide (memory_region_descriptor.(FFA_memory_region_struct_sender) = vid)
-    then true else false.
+    then
+      (** - Check well formed of memory region descriptor *)
+      match well_formed_FFA_memory_region_struct
+              vid memory_region_descriptor FFA_MEM_DONATE with
+      | None =>
+        match memory_region_descriptor
+              .(FFA_memory_region_struct_flags) with
+        | MEMORY_REGION_FLAG_NORMAL flags =>
+          (** - Check access and attributes *)
+          match memory_region_descriptor
+                .(FFA_memory_region_struct_receivers) with
+          | hd::nil
+            =>
+            let addrs :=
+                get_addreses_from_composite
+                  (memory_region_descriptor.(FFA_memory_region_struct_composite)) in
+            let descriptor_inst_access :=
+                get_instruction_access_information_from_descriptor hd in
+            let descriptor_data_access :=
+                get_data_access_information_from_descriptor hd in
+            let descriptor_attributes :=
+                get_attributes_information_from_descriptor memory_region_descriptor in
+            match donate_checks vid time_slice_enabled
+                                mem_properties memory_region_descriptor addrs
+                                descriptor_inst_access descriptor_data_access
+                                descriptor_attributes with 
+            | None =>
+              FFA_memory_access_permissions_descriptor_struct_flags_check
+                FFA_MEM_DONATE
+                (hd.(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor))
+                (Zlength memory_region_descriptor
+                 .(FFA_memory_region_struct_receivers))
+            | res => res
+            end
+          | _ => Some (FFA_INVALID_PARAMETERS)
+          end
+        | _ => Some (FFA_INVALID_PARAMETERS)
+        end
+      | res => res
+      end
+    else Some (FFA_INVALID_PARAMETERS).
   
-           
+  (*
+  Definition lend_multiple_check
+             (vid : ffa_UUID_t)
+             (mem_properties: MemProperties)
+             (memory_region_descriptor: FFA_memory_region_struct) :=
+    if decide (memory_region_descriptor.(FFA_memory_region_struct_sender) = vid)
+    then true else false.
+
+  Definition share_check
+
+             
+  Definition retrieve_donate_check
+
+  Definition retrieve_lend_single_check
+  
+  Definition retrieve_lend_multiple_check
+
+  Definition retrieve_share_check
+   *)  
+
+  Definition get_receiver_id
+             (receiver : FFA_endpoint_memory_access_descriptor_struct) :=
+    receiver
+    .(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor)
+    .(FFA_memory_access_permissions_descriptor_struct_receiver).
+  
   Definition get_receivers (memory_region_descriptor: FFA_memory_region_struct)
     : list FFA_endpoint_memory_access_descriptor_struct :=
     memory_region_descriptor.(FFA_memory_region_struct_receivers).
 
-  Fixpoint get_addresses (address: ffa_address_t) (page_count : nat) :=
-    match page_count with
-    | O => nil
-    | S n' => let addresses' := get_addresses address n' in
-             ((address + granuale * (Z.of_nat page_count))%Z)::addresses'
-    end.
-
-  Fixpoint get_addresses_from_constituents
-           (constituents : list FFA_memory_region_constituent_struct) :=
-    match constituents with
-    | nil => nil
-    | hd::tl =>
-      (get_addresses (hd.(FFA_memory_region_constituent_struct_address))
-                     (Z.to_nat (hd.(FFA_memory_region_constituent_struct_page_count))))
-        ++ (get_addresses_from_constituents tl)
-    end.
   
-  Definition addresses (memory_region_descriptor: FFA_memory_region_struct) :=
-    let constituents :=
-        get_constituents_from_receivers 
-          memory_region_descriptor.(FFA_memory_region_struct_receivers) in
-    get_addresses_from_constituents constituents.
-    
+  Definition get_receiver_ids (memory_region_descriptor: FFA_memory_region_struct)
+    : list Z :=
+    map get_receiver_id memory_region_descriptor.(FFA_memory_region_struct_receivers).
+
+
+  
   (***********************************************************************)
   (** ***  11.1 FFA_MEM_DONATE                                           *)
   (***********************************************************************)
@@ -1043,7 +1205,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
   
   Section FFA_MEM_DONATE_ADDITIONAL_STEPS.
 
-    Definition get_receiver_id (region_descriptor: FFA_memory_region_struct) : option ffa_UUID_t :=
+    Definition get_receiver_id_op (region_descriptor: FFA_memory_region_struct) : option ffa_UUID_t :=
       match region_descriptor.(FFA_memory_region_struct_receivers) with
       | hd::nil =>
         Some 
@@ -1052,6 +1214,61 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       | _ => None
       end.
 
+    
+    Fixpoint apply_ffa_mem_donate_core_transition_spec
+             (caller receiver_id : ffa_UUID_t) (addresses : list Z)
+             (st : AbstractState) :=
+      match addresses with
+      | nil => Some (st, true)
+      | hd::tl =>
+        let st' := apply_ffa_mem_donate_core_transition_spec
+                     caller receiver_id tl st in
+        match st' with
+        | Some st'' =>
+          match ffa_mem_donate_core_transition_spec
+                  caller receiver_id hd st with
+          | Some res =>
+            match res with
+            | (st''', true) => Some (st''', true)
+            | (st''', false) => Some (st''', false)
+            end
+          | _ => None
+          end
+        | None => None
+        end
+      end.
+
+    Fixpoint init_recievers_map (receivers: list ffa_UUID_t) :=
+      match receivers with
+      | nil => ZMap.init true
+      | hd::tl =>
+        let res := init_recievers_map tl in
+        ZMap.set hd false res
+      end.
+    
+    Definition set_memory_region_in_shared_state
+               (size : Z)
+               (func_type: FFA_FUNCTION_TYPE)
+               (receivers: list ffa_UUID_t)
+               (memory_region: FFA_memory_region_struct)
+               (st : AbstractState) : (AbstractState * Z) := 
+      let new_shared_state :=
+          mkFFA_memory_share_state_struct
+            memory_region func_type (init_recievers_map receivers) in
+      let new_index :=
+          st.(hypervisor_context).(fresh_index_for_ffa_share_state) in
+      let next_index := new_index + 1 in
+      let new_api_page_pool_size :=
+          st.(hypervisor_context).(api_page_pool_size) - size in
+      let new_shared_state_pool :=
+          ZTree.set new_index
+                    new_shared_state
+                    st.(hypervisor_context).(ffa_share_state) in
+      (st { hypervisor_context / api_page_pool_size : new_api_page_pool_size }
+          { hypervisor_context / ffa_share_state : new_shared_state_pool }
+          { hypervisor_context / fresh_index_for_ffa_share_state : next_index },
+       new_index).
+                 
     Definition ffa_mem_donate_spec
                (caller : ffa_UUID_t)
                (total_length fragment_length address count : Z)
@@ -1064,35 +1281,46 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         do memory_region_descriptor <-
            get_send_memory_region_descriptor caller st ;;;
           (** - Check the well_formed conditions of the memory region descriptor *)
-          if well_formed_FFA_memory_region_struct
-               caller memory_region_descriptor &&
-             decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
-          then if decide ((st.(hypervisor_context).(api_page_pool_size)
-                           < (FFA_memory_region_struct_size
-                                (Zlength (get_constituents_from_receivers
-                                            (get_receivers memory_region_descriptor)))))%Z)
-               then
-                 if (donate_and_lend_single_borrower_check
-                       caller st.(hypervisor_context).(mem_properties)
-                                                        memory_region_descriptor)
-                 then 
-                   do receiver_id <- (get_receiver_id memory_region_descriptor);;;
-                   let cur_addresses := addresses memory_region_descriptor in
-                   (* TODO: add cases to handle multiple address transfer *)
-                   match cur_addresses with
-                   | cur_address::nil =>
-                     do res <- ffa_mem_donate_core_transition_spec
-                                caller receiver_id cur_address st ;;;
-                     match res with  
-                     (* TODO: need to creage handle! - 0 is the wrong value  *)
-                     (* TODO: need to reduce mpool size *) 
-                     | (st', true) => Some (st, FFA_SUCCESS 0)
-                     | (st', flase) => Some (st, FFA_ERROR FFA_DENIED)
-                     end
-                   | _ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
-                   end
-                 else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
-               else Some (st, FFA_ERROR FFA_NO_MEMORY)
+          if decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
+          then
+            let region_size := (FFA_memory_region_struct_size
+                                (Zlength
+                                   (memory_region_descriptor
+                                    .(FFA_memory_region_struct_composite)
+                                    .(FFA_composite_memory_region_struct_constituents)))) in
+            if decide ((st.(hypervisor_context).(api_page_pool_size) < region_size)%Z)
+            then
+              if (donate_check
+                    caller
+                    (st.(hypervisor_context).(time_slice_enabled))
+                    (st.(hypervisor_context).(mem_properties))
+                    memory_region_descriptor)
+              then 
+                do receiver_id <- (get_receiver_id_op memory_region_descriptor);;;
+                let cur_addresses := get_addreses_from_composite
+                                       memory_region_descriptor
+                                     .(FFA_memory_region_struct_composite) in
+                (* TODO: add cases to handle multiple address transfer *)
+                do res <- apply_ffa_mem_donate_core_transition_spec
+                         caller receiver_id cur_addresses st ;;;
+                match res with  
+                (* TODO: need to creage handle! - 0 is the wrong value  *)
+                (* TODO: need to reduce mpool size *) 
+                | (st', true) =>
+                  match set_memory_region_in_shared_state
+                          region_size FFA_MEM_DONATE
+                          (get_receiver_ids memory_region_descriptor)
+                          memory_region_descriptor st' with
+                  | (st'', value) =>
+                    do res_st <- set_send_handle caller receiver_id
+                                                region_size value FFA_MEM_DONATE
+                                                st'' ;;;
+                    Some (res_st, FFA_SUCCESS value)
+                  end
+                | (st', flase) => Some (st, FFA_ERROR FFA_DENIED)
+                end
+              else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+            else Some (st, FFA_ERROR FFA_NO_MEMORY)
           else Some (st, FFA_ERROR FFA_DENIED)
       else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS).
     
@@ -1108,136 +1336,6 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       None.
     
   End FFA_MEM_LEND_ADDITIONAL_STEPS.
-
-
-
-
-(*
-    Definition ffa_mem_send_check_memory_region_descriptor_spec (func_type : FFA_FUNCTION_TYPE)
-               (current_vm_id : Z)
-      : itree HafniumEE (FFA_value_type * FFA_memory_region_struct *
-                         ffa_vm_id_t (* receiver *) * bool (* clear or not-clear *) *
-                         FFA_INSTRUCTION_ACCESS_TYPE * FFA_DATA_ACCESS_TYPE (* permission *)) :=
-      st <- trigger GetState;; 
-      (* Check mailbox and convert it into the region descriptor *)
-      do sender_vm_context <- ZTree.get current_vm_id st.(hafnium_context).(vms_contexts);;;
-      match mailbox_send_msg_to_region_struct (sender_vm_context.(mailbox).(send)) with 
-      | None => Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
-                    FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
-      | Some region_descriptor =>
-        (* Check whether we have a proper free memory *) 
-        if decide ((st.(hafnium_context).(api_page_pool_size) < FFA_memory_region_struct_size)%Z)
-        then Ret (ffa_error FFA_NO_MEMORY, init_FFA_memory_region_struct, 0, false,
-                  FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
-        else
-          if decide (region_descriptor.(FFA_memory_region_struct_sender) <> current_vm_id) ||
-             decide ((length region_descriptor.(FFA_memory_region_struct_receivers) <> 1%nat))
-          then Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
-                    FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)                    
-          else
-            do receiver <-  get_receiver (region_descriptor.(FFA_memory_region_struct_receivers)) ;;;
-            let receiver_id := receiver.(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor).(FFA_memory_access_permissions_descriptor_struct_receiver) in
-            if in_dec zeq receiver_id vm_ids || decide (current_vm_id <> receiver_id)
-            then
-              (* check clear flags *)
-              let clear_flag := if decide ((Z.land region_descriptor.(FFA_memory_region_struct_flags)
-                                                                       FFA_MEMORY_REGION_FLAG_CLEAR_Z) <> 0)
-                                then true else false in
-              let other_flags := if decide ((Z.land region_descriptor.(FFA_memory_region_struct_flags)
-                                                                       (Z_not FFA_MEMORY_REGION_FLAG_CLEAR_Z)) <> 0)
-                                then true else false in
-              match func_type, clear_flag, other_flags with
-              | FFA_MEM_SHARE, true, _ 
-              | _, _, true =>
-                Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
-                     FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
-              | _, _, _ =>
-                (* check instruction permissions *)
-                let permissions :=
-                    receiver.(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor) in
-                let instruction_permissions :=
-                    permissions.(FFA_memory_access_permissions_descriptor_struct_permisions_instruction) in
-                let data_permissions :=
-                    permissions.(FFA_memory_access_permissions_descriptor_struct_permisions_data) in
-                match func_type, instruction_permissions, data_permissions with
-                (* valid case 
-                   - TODO(XXX): It is not actually correct... we need to update the instruction_access 
-                   in region_descriptor as FFA_INSTRUCTION_ACCESS_NX *)
-                |  FFA_MEM_SHARE,  FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED
-                   => Ret (init_FFA_value_type, region_descriptor, receiver_id, clear_flag,
-                          FFA_INSTRUCTION_ACCESS_NX, data_permissions)
-
-                |  FFA_MEM_LEND, _, FFA_DATA_ACCESS_NOT_SPECIFIED
-                |  FFA_MEM_DONATE, _, FFA_DATA_ACCESS_NOT_SPECIFIED
-                   => Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
-                          FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
-
-                (* valid case *)
-                |  FFA_MEM_DONATE, FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, _
-                   => Ret (init_FFA_value_type, region_descriptor, receiver_id, clear_flag,
-                          instruction_permissions, data_permissions)
-                (* valid case *)
-                |  FFA_MEM_LEND, FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, _
-                   => Ret (init_FFA_value_type, region_descriptor, receiver_id, clear_flag,
-                          instruction_permissions, data_permissions)
-                | _, _, _ 
-                  => Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
-                         FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
-                end
-              end
-            else Ret (ffa_error FFA_INVALID_PARAMETERS, init_FFA_memory_region_struct, 0, false,
-                      FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_DATA_ACCESS_NOT_SPECIFIED)
-      end.
-                               
-                     
-
-    
-      
-    Definition ffa_mem_send_deliver_msg_to_receivers (reciever_id handle : Z) 
-      : itree HafniumEE (unit) :=
-      st <- trigger GetState;;
-      (* record the message *)
-      (* TODO(XXX): need to modify the following parts to 
-         properly create a message and update the mailbox for retrieve *)
-      trigger (SetState st);;
-      triggerUB "ffa_mem_send_change_memory_attributes_spec: Not implemented yet".
-    
-    (* Note that we ignored next pointer in our modeling because it is not quite necessary.
-       - TODO: figure out the functionality of the "update_vi" function call in "hvc_handler" 
-         
-    struct ffa_value api_ffa_mem_send(uint32_t share_func, uint32_t length,
-            			  uint32_t fragment_length, ipaddr_t address,
-            			  uint32_t page_count, struct vcpu *current,
-            			  struct vcpu **next)
-     *)
-    Definition api_ffa_mem_send_spec (func_type:  FFA_FUNCTION_TYPE)
-               (length fragment_length address page_count current_vm_id : Z)
-      : itree HafniumEE (FFA_value_type) :=
-      argument_check_res <- ffa_mem_send_check_arguments_spec func_type length
-                                                             fragment_length address page_count ;;
-      match argument_check_res.(ffa_type) with
-      | FFA_RESULT_CODE_IDENTIFIER FFA_ERROR => Ret (argument_check_res)
-      | _ =>
-        check_result <- ffa_mem_send_check_memory_region_descriptor_spec func_type current_vm_id ;;
-        let '(descriptor_check_res, region_descriptor, receiver_id, clear_flag,
-              instruction_access_permissions, data_access_permissions) := check_result in
-        match descriptor_check_res.(ffa_type) with 
-        |  FFA_RESULT_CODE_IDENTIFIER FFA_ERROR => Ret (descriptor_check_res)
-        | _ =>
-          handle <- ffa_mem_send_change_mem_spec
-                         func_type region_descriptor receiver_id clear_flag
-                         instruction_access_permissions data_access_permissions ;;          
-          ffa_mem_send_deliver_msg_to_receivers receiver_id handle;;
-          Ret (ffa_mem_success handle)
-        end
-      end.
-    
-  End FFAMemoryHypCallSend.
-
-   
-*)
-
-
   
   Section FFA_MEM_SHARE_ADDITIONAL_STEPS.
    
@@ -1439,137 +1537,4 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
   End FFA_MEM_RECLAIM_ARGUMENT_CHECKS.
     
 End FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
-
-
-
-(************************************************************************************************)
-(* In the below: ignore them  *)
-
-
-
-
-  
-  (*    
-  
-  (** **** FFA Mem Default Flags *)  
-  Record FFA_mem_default_flags_struct :=
-    mkFFA_mem_default_flags_struct {
-        (** - Bit(0): Zero memory flag.
-              - In an invocation of FFA_MEM_DONATE or FFA_MEM_LEND, this flag specifies
-                if the memory region contents must be zeroed by the Relayer after the memory
-                region has been unmapped from the translation regime of the Owner.
-                - b0: Relayer must not zero the memory region contents.
-                - b1: Relayer must zero the memory region contents.
-              - MBZ in an invocation of FFA_MEM_SHARE, else the Relayer must return INVALID_PARAMETERS.
-              - MBZ if the Owner has Read-only access to the memory region , else the Relayer must return DENIED. *)
-        FFA_mem_default_flags_struct_zero_memory_flag: bool;
-        (** - Bit(1): Operation time slicing flag.
-              - In an invocation of FFA_MEM_DONATE, FFA_MEM_LEND or
-                FFA_MEM_SHARE, this flag specifies if the Relayer can time slice this operation.
-                - b0: Relayer must not time slice this operation.
-                - b1: Relayer can time slice this operation.
-              -  MBZ if the Relayer does not support time slicing of memory management
-                 operations (see 12.2.3 Time slicing of memory management operations), else the
-                 Relayer must return INVALID_PARAMETERS. *)
-        FFA_mem_default_flags_struct_operation_time_slicing_flag: bool;
-        (** - Bit(31:2): Reserved (MBZ). *)
-      }.
-      *)
-(*
-(*
-11.1.1.2 Relayer responsibilities
-1. Must validate the Total length input parameter to ensure that the length of the transaction descriptor does not
-exceed the size of the buffer it has been populated in. Must return INVALID_PARAMETERS in case of an
-error.
-*)
-
-(*    
-2. Must validate the Sender endpoint ID field in the transaction descriptor to ensure that the Sender is the Owner
-of the memory region and a PE endpoint. Must return DENIED in case of an error.
- *)
-(*
-3. Must ensure that a request by an SP to donate Secure memory to a NS-Endpoint is rejected by returning the
-DENIED error code.
- *)
- (*
-4. Must ensure that the memory region is in the Owner-EA state for the Owner (see Table 5.9). It must return
-DENIED in case of an error.
-  *)
-
-(*    
-5. Must validate that the Endpoint memory access descriptor count & Endpoint memory access descriptor array
-fields in the transaction descriptor as specified in 5.12.3.3 Relayer usage.
- *)
-
-(*    
-6. Must validate the Memory region attributes field in the transaction descriptor as specified in 5.11.4 Memory
-region attributes usage.
- *)
-
-(*
-7. Must validate the Flags field specified in the transaction descriptor as specified in 5.12.4 Flags usage.
- *)
-
-(*
-8. Must validate the Handle field specified in the transaction descriptor as specified in 5.12.1 Handle usage.
- *)
-
-(*    
-9. Unmap the memory region from the translation regime of the Owner, if managed by the Relayer as specified
-in 5.3 Address translation regimes.
- *)
-
-    (*
-10. If the Receiver is a PE endpoint or a Stream endpoint with a proxy endpoint managed by the Relayer, then
-the Relayer must:
-1. Save the transaction descriptor information so that it can be validated when retrieved through invocations
-of the FFA_MEM_RETRIEVE_REQ & FFA_MEM_RETRIEVE_RESP interfaces.
-2. Return NO_MEMORY if there is not enough memory to complete this operation.
-*)
-
-(*    
-11. If the Receiver is a Stream endpoint associated with an independent device managed by the Relayer, then the
-Relayer must:
-1. Allocate an IPA range and map the memory region in the translation regime of the Receiver managed by
-the Relayer as specified in 5.3 Address translation regimes.
-The mapping must be created with the memory region attributes and permissions specified in the
-transaction descriptor.
-2. Describe the memory region to the device using the SEPID through an IMPLEMENTATION DEFINED
-mechanism.
- *)
-
-(*
-12. If the call executes successfully, the Relayer must:
-1. Ensure that the state of the memory region in the participating FF-A components is observed as follows:
-1. If the Receiver is a PE endpoint or a SEPID associated with a dependent peripheral device, then:
-• Owner-NA for the Owner.
-• !Owner-NA for the Receiver.
-2. If the Receiver is a SEPID associated with an independent peripheral device, then:
-• !Owner-NA for the Owner.
-• Owner-EA for the Receiver.
-2. Allocate and return a Handle as described in 5.10.2 Memory region handle.
- *)
-(*    
-13. If the Owner is a VM and the Receiver is an SP or SEPID associated with a Secure Stream ID, the Hypervisor
-must forward the memory transaction descriptor to the SPM. This must be done by invoking this interface at
-the Non-secure physical FF-A instance as follows.
-1. The fields of the transaction descriptor must be unchanged apart from the following exception.
-1. The memory region must be described as composed of physically addressed constituent 4K pages in
-one or more Constituent memory region descriptors.
-This must be done by performing the VA or IPA to PA translation of the memory region described
-by the Owner at the non-secure virtual FF-A instance.
-The order in which the address ranges are specified by the Owner must be preserved by the
-Hypervisor.
-2. The Constituent memory region descriptors must be described in a Composite memory region
-descriptor which must be referenced by the Endpoint memory access descriptor included in the
-transaction descriptor.
-2. The updated transaction descriptor must be copied into the TX buffer shared between the Hypervisor
-and SPM.
-If the TX buffer is busy, the Hypervisor must return BUSY.
-If the TX buffer is too small and it is not possible to use the optional features to transmit the descriptor
-listed in 12.2.2 Transmission of transaction descriptor in fragments and 12.2.1 Transmission of
-transaction descriptor in dynamically allocated buffers, the Hypervisor must return NO_MEMORY
-The SPM must fulfill the Relayer responsibilities listed in this section.
-  *)               
-  *)
 

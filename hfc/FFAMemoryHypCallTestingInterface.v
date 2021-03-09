@@ -327,8 +327,7 @@ Section FFADispatch.
   
   Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
 
-
-  Definition dispatch_functions
+  Definition function_dispatcher
              (ffa_function_type: FFA_FUNCTION_TYPE)
              (vid: ffa_UUID_t)
              (vals: ZMap.t Z) (st : AbstractState) :=
@@ -369,10 +368,8 @@ Section FFADispatch.
           match func_type with
           | FFA_FUNCTION_IDENTIFIER ffa_function_type =>
             (** - Find out the result of the FFA ABI calls by using the proper handling functions *)
-            let result_op := dispatch_functions ffa_function_type
-                                                vid vals st in
-            (** - Get the updated state and result *)
-            do result <- result_op ;;; 
+            do result <- function_dispatcher ffa_function_type
+                                            vid vals st ;;;
              match result with                                
             | (updated_st, ffa_result) =>
               (** - Set the result inside the updated state *)

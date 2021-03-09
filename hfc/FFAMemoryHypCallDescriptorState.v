@@ -81,7 +81,7 @@ Section FFA_TYPES_AND_CONSTANT.
     ffa_memory_handle_t := Z;
     (** - Type for one of descriptor information. They are only used in two FFA interfaces, 
         [FFA_MEM_RETRIEVE_REQ] and [FFA_MEM_RETRIEVE_RESP] *)
-    ffa_memory_receiver_flags_t := (option bool);
+    ffa_memory_receiver_flags_t := bool;
 
     (** - Type for an implementation defined values that are used in 
         [FFA_MEM_DONATE], [FFA_MEM_SHARE], and [FFA_MEM_LEND]. So, we cannot specify the value by
@@ -379,6 +379,7 @@ Section FFA_DESCRIPTIONS.
       - [TODO: Need to add more conditions]
    *)
 
+  (** **** Well formed conditions *)
   Fixpoint check_overlap_in_ranges
     (ranges : list (Z * Z)) (range : (Z * Z)) :=
     match ranges with
@@ -431,13 +432,15 @@ Section FFA_DESCRIPTIONS.
       end
     end.
 
+  (** Return INVALID_PARAMETER when it is not satisfied *)
   Definition well_formed_FFA_composite_memory_region_struct
              (composite: FFA_composite_memory_region_struct) :=
-    well_formed_FFA_composite_memory_region_struct_aux
-      (composite.(FFA_composite_memory_region_struct_page_count))
-      (composite.(FFA_composite_memory_region_struct_constituents)) &&
-    check_overlap_of_constituents 
-      composite.(FFA_composite_memory_region_struct_constituents).
+    if (well_formed_FFA_composite_memory_region_struct_aux
+          (composite.(FFA_composite_memory_region_struct_page_count))
+          (composite.(FFA_composite_memory_region_struct_constituents)) &&
+        check_overlap_of_constituents 
+          composite.(FFA_composite_memory_region_struct_constituents))
+    then None else Some (FFA_INVALID_PARAMETERS).
   
   (***********************************************************************)
   (** ***                       Memory region handle                     *) 
@@ -469,6 +472,7 @@ Section FFA_DESCRIPTIONS.
   (** Memory region handle in Hafnium is actually the index of "share_state_pool" 
       defined in FFAMemoryHypCallState.v) 
       which contains the information that receivers has to look up. *)
+
 
   (**************************************)
   (** ** 5.11 Memory region properties  *)
@@ -540,7 +544,8 @@ Section FFA_DESCRIPTIONS.
           [JIEUNG: We can easily add option type when it is required later, but handling them
                    as false might be good at this moment] *)
   
-  Definition instruction_access_permissive (a b: FFA_INSTRUCTION_ACCESS_TYPE) : bool :=
+  Definition instruction_access_permissive
+             (a b: FFA_INSTRUCTION_ACCESS_TYPE) : bool :=
     match a, b with
     | FFA_INSTRUCTION_ACCESS_X, FFA_INSTRUCTION_ACCESS_X
     | FFA_INSTRUCTION_ACCESS_X, FFA_INSTRUCTION_ACCESS_NX
@@ -643,8 +648,33 @@ Section FFA_DESCRIPTIONS.
   Definition init_FFA_memory_access_permissions_descriptor_struct :=
     mkFFA_memory_access_permissions_descriptor_struct
       0 FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED
-      FFA_DATA_ACCESS_NOT_SPECIFIED None.
+      FFA_DATA_ACCESS_NOT_SPECIFIED false.
 
+
+  (** **** Well formed conditions *)  
+  (** The call should return INVALID_PARAMETERS when the following is not satisfied *)
+  Definition FFA_memory_access_permissions_descriptor_struct_flags_check
+             (function_type : FFA_FUNCTION_TYPE)
+             (descriptor: FFA_memory_access_permissions_descriptor_struct)
+             (receiver_number: Z) :=
+    match function_type with
+    | FFA_MEM_DONATE
+    | FFA_MEM_LEND
+    | FFA_MEM_SHARE =>
+      if (descriptor
+          .(FFA_memory_access_permissions_descriptor_struct_flags))
+      then Some (FFA_INVALID_PARAMETERS) else None
+    | FFA_MEM_RETREIVE_REQ
+    | FFA_MEM_RETREIVE_RESP =>
+      if decide (receiver_number > 1) then  None
+      else if (descriptor
+               .(FFA_memory_access_permissions_descriptor_struct_flags))
+           then Some (FFA_INVALID_PARAMETERS)
+           else None
+    (** - Don't care about this case *)
+    | _ => None
+    end.
+  
   (**
      Table 5.16 specifies the data structure that is used in memory management transactions to create an association
      between an endpoint, memory access permissions and a composite memory region description.
@@ -689,16 +719,14 @@ Section FFA_DESCRIPTIONS.
         FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor :
           FFA_memory_access_permissions_descriptor_struct;
         
-        (** - length: 4 bytes / offset: 4 bytes
-
-           - NOTE: In Hafnium and FF-A document, the following field is defined as an offset 
-           to point out the memory region that contains [FFA_composite_memory_region]. 
-           In stead of following them, we explicitly map [FFA_composite_memory_region_struct] 
-           in here with option type to handle the case when offset points out NULL *)
-        FFA_memory_access_descriptor_struct_composite_memory_region_struct :
-          option FFA_composite_memory_region_struct;
+        (** - length: 4 bytes / offset: 4 bytes *)
         (** - It indicates one of constituents inside the composite_memory_region_struct to 
             retrieve specific memory region *)
+        (** - 0 and 1 is used for the specific purpose in this offset 
+              - 0 : points out this data structure 
+              - 1 : points out the composite descriptor 
+              - 2 : points out constituents that the composite descriptor holds
+         *)
         FFA_memory_access_descriptor_struct_composite_memory_region_offset : nat;
         
         (** - memory region struct is created and destroyed when hypervisor starts/finishes 
@@ -711,19 +739,23 @@ Section FFA_DESCRIPTIONS.
   
   Definition init_FFA_endpoint_memory_access_descriptor_struct :=
     mkFFA_endpoint_memory_access_descriptor_struct
-      init_FFA_memory_access_permissions_descriptor_struct None 0.
+      init_FFA_memory_access_permissions_descriptor_struct 0.
 
+  (** **** Well formed conditions *)  
+  (** [JIEUNG: The error code is not defined when the following offset is not correct. 
+      I will return INVALID_PARAMETER for this case] *)
   Definition well_formed_FFA_endpoint_memory_access_descriptor_struct
-             (descriptor : FFA_endpoint_memory_access_descriptor_struct) :=
-    match descriptor.(FFA_memory_access_descriptor_struct_composite_memory_region_struct) with
-    | None => false
-    | Some composite =>
-      if decide
-           ((length (composite.(FFA_composite_memory_region_struct_constituents)) >=
-             descriptor.(FFA_memory_access_descriptor_struct_composite_memory_region_offset))%nat)
-      then well_formed_FFA_composite_memory_region_struct composite
-      else false
-    end.
+             (access_descriptor : FFA_endpoint_memory_access_descriptor_struct)
+             (composite_descriptor : FFA_composite_memory_region_struct) :=
+    let offset :=
+        (access_descriptor
+         .(FFA_memory_access_descriptor_struct_composite_memory_region_offset))%nat in
+    if decide
+         (((length (composite_descriptor
+                    .(FFA_composite_memory_region_struct_constituents)) + 2)%nat >=
+           offset)%nat)
+    then true
+    else false.
   
   (*******************************************************)
   (** *** 5.11.2 Data access permissions usage           *)
@@ -845,25 +877,35 @@ Section FFA_DESCRIPTIONS.
         Relayer must return the DENIED error code if the validation fails.
    *)
 
+  (** **** Well formed conditions *)
   (** I added the following checkers, but some of them may not be used due to the redundancy *)
-  Definition data_permissions_lend_and_share_lender
+  (** Returns DENIED, when it returns false *)
+  Definition data_permissions_lend_and_share_lender_check
              (descriptor global lender: FFA_DATA_ACCESS_TYPE) :=
-    data_access_permissive global descriptor &&
-    data_access_permissive lender descriptor.
-
+    if (data_access_permissive global descriptor &&
+        data_access_permissive lender descriptor)
+    then None else Some (FFA_DENIED).
+        
   (** When it is not satisfied, the spec needs to return INVALID_PARAMETER *)
-  Definition data_permissions_check_donate_lender
-             (descriptor: FFA_DATA_ACCESS_TYPE) :=
+  (** Return INVALID_PARAMETER when it returns false *)
+  Definition data_permissions_check_donate_lender_check
+             (descriptor global lender: FFA_DATA_ACCESS_TYPE) :=
     match descriptor with
-    | FFA_DATA_ACCESS_NOT_SPECIFIED => true
-    | _ => false
+    | FFA_DATA_ACCESS_NOT_SPECIFIED =>
+      if (data_access_permissive global descriptor &&
+          data_access_permissive lender descriptor)
+      then None else Some (FFA_INVALID_PARAMETERS)
+    | _ => Some (FFA_INVALID_PARAMETERS)
     end.
   
-  (** When it is not satisfied, the spec needs to return DENIED *) 
-  Definition data_permissions_borrower
-             (borrower global descriptor: FFA_DATA_ACCESS_TYPE) :=
-    data_access_permissive global borrower &&
-    data_access_permissive descriptor borrower.
+  (** Return INVALID_PARAMETER when it returns false *)
+  Definition data_permissions_borrower_check
+             (global descriptor: FFA_DATA_ACCESS_TYPE) :=
+    if (data_access_permissive global descriptor)
+    then None
+    else Some (FFA_INVALID_PARAMETERS).
+
+  (** [JIEUNG: This does not specify which we have to store in resp.] *)
 
   (*******************************************************)
   (** *** 5.11.3 Instruction access permissions usage    *)
@@ -877,7 +919,6 @@ Section FFA_DESCRIPTIONS.
       This access control is used in memory management transactions as follows.
 
       - Only XN permission must be used in the following transactions.
-        [JIEUNG: What's the meaning of XN in here. b00 is not XN...]
          - In a transaction to share memory with one or more Borrowers.
          - In a transaction to lend memory to more than one Borrower.
          Bits(3:2) in Table 5.15 must be set to b00 as follows.
@@ -885,41 +926,50 @@ Section FFA_DESCRIPTIONS.
          - By the Borrower in an invocation of the FFA_MEM_RETRIEVE_REQ ABI.
          The Relayer must set Bits(3:2) in Table 5.15 to b01 while invoking the FFA_MEM_RETRIEVE_RESP ABI.
    *)
-    
-  (** for borower's descriptor - FFA_MEM_SHARE and FFA_MEM_LEND for multiple borrowers *)
-  Definition instruction_permissions_share_and_lend_multiple_borrower_lender
-             (lender global descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
-    match descriptor with
-    | FFA_INSTRUCTION_ACCESS_NX =>
-      instruction_access_permissive global lender &&
-      instruction_access_permissive lender descriptor 
-    | _ => false
-    end.
   
-  (** for borower's descriptor - FFA_MEM_DONATE and FFA_MEM_LEND for single borrowers *)
-  Definition check_donate_and_lend_single_borrower_instruction_permissions
-             (lender global descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
+  (** **** Well formed conditions *)
+  (** [JIEUNG: it is not specified, but return INVALID_PARAMETER when it returns false] *)
+  (** Return INVALID_PARAMETER when it is not specified *)
+  Definition instruction_permissions_share_and_lend_multiple_borrower_lender_descriptor_check
+             (global descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
     match descriptor with
     | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED =>
-      instruction_access_permissive global lender &&
-      instruction_access_permissive lender descriptor       
-    | _ => false
+      if (instruction_access_permissive global descriptor)
+      then None else Some (FFA_INVALID_PARAMETERS)
+    | _  => Some (FFA_INVALID_PARAMETERS)
+    end.
+
+  (** [JIEUNG: it is not specified, but return DENIED when it returns false] *)
+  (** Return DENIED when it is not specified *)
+  Definition instruction_permissions_share_and_lend_multiple_borrower_lender_check
+             (global lender: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    match lender with
+    | FFA_INSTRUCTION_ACCESS_NX =>
+      if instruction_access_permissive global lender
+      then None else Some (FFA_DENIED)
+    | _ => Some (FFA_DENIED)
+    end.
+
+  (** [JIEUNG: it is not specified, but return INVALID_PARAMETER when it returns false *)
+  (** Return DENIED when it is not specified *)  
+  Definition instruction_permissions_share_and_lend_multiple_borrower_borrower_descriptor_check
+             (global descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    match descriptor with
+    | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED =>
+      if (instruction_access_permissive global descriptor)
+      then None else Some (FFA_DENIED)
+    | _ => Some (FFA_DENIED)
     end.
   
   (** for resp's descriptor - FFA_MEM_SHARE and FFA_MEM_LEND for multiple borrowers *)
-  Definition check_share_and_multiple_borrow_resp_descriptor
+  (** Return INVALID_PARAMETER when it is not specified *)  
+  Definition instruction_permissions_share_and_lend_multiple_borrower_resp_check
              (descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
     match descriptor with
-    | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => true
-    | _ => false
+    | FFA_INSTRUCTION_ACCESS_NX => None
+    | _ => Some (FFA_INVALID_PARAMETERS)
     end.
 
-  (** When it is not satisfied, the spec needs to return DENIED *) 
-  Definition instruction_permissions_borrower
-             (borrower global descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
-    instruction_access_permissive global borrower &&
-    instruction_access_permissive descriptor borrower.
-  
   (**
       - In a transaction to donate memory or lend memory to a single Borrower,
          - Whether the Owner/Lender is allowed to specify the level of access that the Receiver is permitted to
@@ -956,6 +1006,45 @@ Section FFA_DESCRIPTIONS.
         used at the start of the transaction to lend the memory region. This is done in response to an 
         invocation of the FFA_MEM_RECLAIM ABI.
    *)
+
+  (** **** Well formed conditions *)
+  (** for borower's descriptor - FFA_MEM_DONATE and FFA_MEM_LEND for single borrowers *)
+  (** Return INVALID_PARAMETER when it returns false *)
+  Definition instruction_permissions_donate_and_lend_single_borrower_lender_descriptor_check
+             (global descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    match descriptor with
+    | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED =>
+      if (instruction_access_permissive global descriptor)
+      then None else Some (FFA_INVALID_PARAMETERS)
+    | _ => Some (FFA_INVALID_PARAMETERS)
+    end.
+
+  (** for borower's descriptor - FFA_MEM_DONATE and FFA_MEM_LEND for single borrowers *)
+  (** Return DENIED when it returns false *)
+  Definition instruction_permissions_donate_and_lend_single_borrower_lender_check
+             (global lender: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    if (instruction_access_permissive global lender)
+    then None else Some (FFA_DENIED).
+  
+  (** When it is not satisfied, the spec needs to return DENIED *)
+  (** Return DENIED when it is not possible *)
+  Definition instruction_permissions_donate_and_lend_single_borrower_borrower_descriptor_check
+             (global descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    if (instruction_access_permissive global descriptor)
+    then None else Some (FFA_DENIED).
+
+  (** Return INVALID_PARAMETER when it is not possible *)
+  Definition instruction_permissions_donate_and_lend_single_borrower_resp_check
+             (global descriptor borrower: FFA_INSTRUCTION_ACCESS_TYPE) :=
+    match borrower, descriptor with
+    | FFA_INSTRUCTION_ACCESS_NX,
+      FFA_INSTRUCTION_ACCESS_NX 
+    | FFA_INSTRUCTION_ACCESS_X,
+      FFA_INSTRUCTION_ACCESS_X =>
+      if (instruction_access_permissive global borrower)
+      then None else Some (FFA_INVALID_PARAMETERS)
+    | _, _ => Some (FFA_INVALID_PARAMETERS)
+    end.
   
   (*******************************************************)
   (** *** 5.11.4 Memory region attributes usage          *)
@@ -1115,7 +1204,8 @@ Section FFA_DESCRIPTIONS.
       }.
 
   Definition init_FFA_memory_region_attributes_descriptor_struct :=
-    mkFFA_memory_region_attributes_descriptor_struct FFA_MEMORY_NOT_SPECIFIED_MEM.
+    mkFFA_memory_region_attributes_descriptor_struct
+      FFA_MEMORY_NOT_SPECIFIED_MEM.
   
   (** [JIEUNG: The following things need to be implemented in the transition rules] 
       
@@ -1152,15 +1242,20 @@ Section FFA_DESCRIPTIONS.
           ABI. The Relayer must return the DENIED error code if the validation fails.
    *)
 
-  Definition attributes_share_and_multiple_borrowers_lender
+  (** **** Well formed conditions *)
+  (** Return DENIED when it is not satisfied *)
+  Definition attributes_share_and_multiple_borrowers_lender_check
              (descriptor lender global : FFA_MEMORY_TYPE) :=
-    FFA_MEMORY_TYPE_permissive lender descriptor &&
-    FFA_MEMORY_TYPE_permissive global descriptor &&
-    FFA_MEMORY_TYPE_permissive global lender.
-  
-  Definition attributes_share_and_multiple_borrowers_borrower
+    if (FFA_MEMORY_TYPE_permissive lender descriptor &&
+        FFA_MEMORY_TYPE_permissive global descriptor &&
+        FFA_MEMORY_TYPE_permissive global lender)
+    then None else Some (FFA_DENIED).
+        
+  (** Return DENIED when it is not satisfied *)
+  Definition attributes_share_and_multiple_borrowers_borrower_check
              (descriptor global : FFA_MEMORY_TYPE) :=
-    FFA_MEMORY_TYPE_permissive global descriptor.
+    if (FFA_MEMORY_TYPE_permissive global descriptor)
+    then None else Some (FFA_DENIED).
   
   (**
       - In a transaction to donate memory or lend memory to a single Borrower,
@@ -1200,17 +1295,22 @@ Section FFA_DESCRIPTIONS.
           transaction to lend the memory region. This is done in response to an invocation of the FFA_MEM_RECLAIM ABI.
    *)
 
-  Definition attributes_donate_and_single_borrower_lender
+  (** **** Well formed conditions *)  
+  (** Return INVALID_PARAMETERS when it is not statisfied *)
+  Definition attributes_donate_and_single_borrower_lender_check
              (descriptor lender global : FFA_MEMORY_TYPE) :=
     match descriptor with
-    | FFA_MEMORY_NOT_SPECIFIED_MEM => true
-    | _ => false
-    end && 
-    FFA_MEMORY_TYPE_permissive global lender.
+    | FFA_MEMORY_NOT_SPECIFIED_MEM =>
+      if (FFA_MEMORY_TYPE_permissive global lender)
+      then None else Some (FFA_INVALID_PARAMETERS)
+    | _ => Some (FFA_INVALID_PARAMETERS)
+    end.
   
-  Definition attributes_donate_and_single_borrower_borrower
+  (** Return DENIED when it is not statisfied *)
+  Definition attributes_donate_and_single_borrower_borrower_check
              (descriptor global : FFA_MEMORY_TYPE) :=
-    FFA_MEMORY_TYPE_permissive global descriptor.
+    if (FFA_MEMORY_TYPE_permissive global descriptor)
+    then None else Some (FFA_DENIED).
   
 End FFA_DESCRIPTIONS.
 
@@ -1301,23 +1401,40 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         (** - Bit(31:2): Reserved (MBZ). *)
       }.
 
-
+  (** **** Well formed conditions *)  
+  (** Return INVALID_PARAMETER or DENIED when it is not satisfied *)
   Definition check_FFA_mem_default_flags_struct_for_donate_and_lend
              (default_flag: FFA_mem_default_flags_struct)
-             (data_access : FFA_DATA_ACCESS_TYPE) :=
-    if default_flag.(FFA_mem_default_flags_struct_zero_memory_flag)
-    then match data_access with
-         | FFA_DATA_ACCESS_RW => true
-         | _ => false
-         end
-    else true.
+             (data_access : FFA_DATA_ACCESS_TYPE)
+             (time_slice_enabled : bool) :=
+    let time_slice_check :=
+        if default_flag.(FFA_mem_default_flags_struct_operation_time_slicing_flag)
+        then true
+        else if time_slice_enabled then false else true in
+    if time_slice_check then
+      if default_flag.(FFA_mem_default_flags_struct_zero_memory_flag)
+      then match data_access with
+           | FFA_DATA_ACCESS_RW => None
+           | FFA_DATA_ACCESS_RO => Some (FFA_DENIED)
+           | _ => Some (FFA_INVALID_PARAMETERS)
+           end
+      else None
+    else Some (FFA_INVALID_PARAMETERS).
   
+  (** Return INVALID_PARAMETER when it is not satisfied *)
   Definition check_FFA_mem_default_flags_struct_for_share
-             (default_flag: FFA_mem_default_flags_struct) :=
-    if default_flag.(FFA_mem_default_flags_struct_zero_memory_flag)
-    then false
-    else true.
-
+             (default_flag: FFA_mem_default_flags_struct)
+             (time_slice_enabled : bool) :=
+    let time_slice_check :=
+        if default_flag.(FFA_mem_default_flags_struct_operation_time_slicing_flag)
+        then true
+        else if time_slice_enabled then false else true in
+    if time_slice_check then
+      if default_flag.(FFA_mem_default_flags_struct_zero_memory_flag)
+      then Some (FFA_INVALID_PARAMETERS)
+      else None
+    else Some (FFA_INVALID_PARAMETERS).
+  
   (** FFA_MEM_RETRIEVE_REQ 
       Table 5.21: Flags usage in FFA_MEM_RETRIEVE_REQ ABI *)
   (* 
@@ -1483,25 +1600,97 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         (** - Bit[31:10] - Reserved (MBZ) *)
       }.
 
-  Definition check_FFA_mem_relinquish_req_zero_flag_for_donate_and_lend
-             (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
-             (data_access : FFA_DATA_ACCESS_TYPE) :=
-    if relinquish_flag
-       .(FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag)
-    then match data_access with
-         | FFA_DATA_ACCESS_RW => true
-         | _ => false
-         end
-    else true.
+  Definition init_FFA_mem_relinquish_req_flags_struct :=
+    mkFFA_mem_relinquish_req_flags_struct
+      false false false
+      MEMORY_MANAGEMENT_DEFAULT_TRANSACTION
+      (false, 0).
 
-  Definition check_FFA_mem_relinquish_req_zero_flag_for_share
+  
+  (** **** Well formed conditions *)
+  (** Return INVALID_PARAMETER or DENIED if it is not satisfied *)
+  Definition FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check
+             (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
+             (sender_data_access : FFA_DATA_ACCESS_TYPE)
+             (time_slice_enabled : bool) :=
+    let time_slice_check :=
+        if relinquish_flag
+           .(FFA_mem_relinquish_req_flags_struct_operation_time_slicing_flag)
+        then true
+        else if time_slice_enabled then false else true in
+    if time_slice_check then
+      if relinquish_flag
+         .(FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag)
+      then match sender_data_access with
+           | FFA_DATA_ACCESS_RW => None
+           | FFA_DATA_ACCESS_RO => Some (FFA_DENIED)
+           | _ => Some (FFA_INVALID_PARAMETERS)
+           end
+      else None
+    else Some (FFA_INVALID_PARAMETERS).
+
+  (** Return INVALID_PARAMETER or DENIED if it is not satisfied *)
+  Definition FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check
+             (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
+             (receiver_data_access : FFA_DATA_ACCESS_TYPE) :=
+    if relinquish_flag
+       .(FFA_mem_relinquish_req_flags_struct_zero_memory_after_retrieval_flag)
+    then match receiver_data_access with
+         | FFA_DATA_ACCESS_RW => None
+         | FFA_DATA_ACCESS_RO => Some (FFA_DENIED)
+         | _ => Some (FFA_INVALID_PARAMETERS)
+         end
+    else None.
+  
+  (** Return INVALID_PARAMETER if it is not satisfied *)
+  Definition FFA_mem_relinquish_req_zero_flags_for_share_check
              (relinquish_flag: FFA_mem_relinquish_req_flags_struct) :=
     if relinquish_flag
-       .(FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag)
-    then false
-    else true.
+       .(FFA_mem_relinquish_req_flags_struct_zero_memory_after_retrieval_flag)
+    then Some (FFA_INVALID_PARAMETERS)
+    else None.
 
-  Definition check_FFA_mem_relinquish_req_alignment_hint
+  (** Return INVALID_PARAMETER if it is not satisfied *)
+  Definition FFA_mem_relinquish_req_zero_after_flags_for_share_check 
+             (relinquish_flag: FFA_mem_relinquish_req_flags_struct) :=
+    if relinquish_flag
+       .(FFA_mem_relinquish_req_flags_struct_zero_memory_after_retrieval_flag)
+    then Some (FFA_INVALID_PARAMETERS)
+    else None.
+      
+
+  (** Return INVALID_PARAMETER if it is not satisfied *)
+  Definition FFA_mem_relinquish_req_transaction_type_check 
+             (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
+             (function_type : option FFA_FUNCTION_TYPE) :=
+    match relinquish_flag
+          .(FFA_mem_relinquish_req_flags_struct_memory_management_transaction_type_flag) with
+    | MEMORY_MANAGEMENT_DEFAULT_TRANSACTION =>
+      match function_type with
+      | None => None
+      | _ => Some (FFA_INVALID_PARAMETERS)
+      end
+    | MEMORY_MANAGEMENT_SHARE_TRANSACTION =>
+      match function_type with
+      | Some FFA_MEM_SHARE => None
+      | _ => Some (FFA_INVALID_PARAMETERS)
+      end        
+    | MEMORY_MANAGEMENT_LEND_TRANSACTION =>
+      match function_type with
+      | Some FFA_MEM_LEND => None
+      | _ => Some (FFA_INVALID_PARAMETERS)
+      end        
+    | MEMORY_MANAGEMENT_DONATE_TRANSACTION =>
+      match function_type with
+      | Some FFA_MEM_DONATE => None
+      | _ => Some (FFA_INVALID_PARAMETERS)
+      end        
+    end.
+  
+  (** Return DENIED if it is not satisfied *)
+  (** - Relayer must return INVALID_PARAMETERS if a reserved value is specified by the Receiver.
+        [JIEUNG: This one needs to be dealt in the transition rules] *)
+  Definition FFA_mem_relinquish_req_alignment_hint_check
              (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
              (address : Z) :=
     if fst (relinquish_flag
@@ -1510,14 +1699,8 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
              snd (relinquish_flag
                   .(FFA_mem_relinquish_req_flags_struct_address_range_alignment_hint)) in
          if (decide (0 = Z.modulo address (Z.mul 2 (Z.mul alignment 4096))))
-         then true else false
-    else true.
- 
-  Definition init_FFA_mem_relinquish_req_flags_struct :=
-    mkFFA_mem_relinquish_req_flags_struct
-      false false false
-      MEMORY_MANAGEMENT_DEFAULT_TRANSACTION
-      (false, 0).
+         then None else Some (FFA_DENIED)
+    else Some (FFA_DENIED).
 
   (** FFA_MEM_RETRIEVE_RESP
       Table 5.22: Flags usage in FFA_MEM_RETRIEVE_RESP ABI *)
@@ -1570,23 +1753,57 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         (** - Bit(31:5) - Reserved (MBZ). *)
       }.
 
+  (** **** Well formed conditions *)
+  (** [JIEUNG: The return value is not specified, but I will follow the rule that
+      previous flag checks use *)
+  (** Return INVALID_PARAMETER or DENIED if it is not satisfied *)
   Definition check_FFA_mem_relinquish_resp_flags_for_donate_and_lend
              (relinquish_resp_flag: FFA_mem_relinquish_resp_flags_struct)
-             (data_access : FFA_DATA_ACCESS_TYPE) :=
+             (sender_data_access : FFA_DATA_ACCESS_TYPE) :=
     if relinquish_resp_flag
        .(zero_memory_before_retrieval_flag_in_FFA_mem_relinquish_resp_flags_struct)
-    then match data_access with
-         | FFA_DATA_ACCESS_RW => true
-         | _ => false
+    then match sender_data_access with
+         | FFA_DATA_ACCESS_RW => None
+         | FFA_DATA_ACCESS_RO => Some (FFA_DENIED)
+         | _ => Some (FFA_INVALID_PARAMETERS)
          end
-    else true.
+    else None.
 
+  (** Return INVALID_PARAMETER if it is not satisfied *)
   Definition check_FFA_mem_relinquish_resp_flags_for_share
              (relinquish_resp_flag: FFA_mem_relinquish_resp_flags_struct) :=
-    if  relinquish_resp_flag
-        .(zero_memory_before_retrieval_flag_in_FFA_mem_relinquish_resp_flags_struct)
-    then false
-    else true.
+    if relinquish_resp_flag
+       .(zero_memory_before_retrieval_flag_in_FFA_mem_relinquish_resp_flags_struct)
+    then Some (FFA_INVALID_PARAMETERS)
+    else None.
+
+  (** Return INVALID_PARAMETER if it is not satisfied *)
+  Definition FFA_mem_relinquish_resp_transaction_type_check 
+             (relinquish_resp_flag: FFA_mem_relinquish_resp_flags_struct)
+             (function_type : option FFA_FUNCTION_TYPE) :=
+    match relinquish_resp_flag
+          .(memory_management_transaction_type_flag_in_FFA_mem_relinquish_resp_flags_struct) with
+    | MEMORY_MANAGEMENT_DEFAULT_TRANSACTION =>
+      match function_type with
+      | None => None
+      | _ => Some (FFA_INVALID_PARAMETERS)
+      end
+    | MEMORY_MANAGEMENT_SHARE_TRANSACTION =>
+      match function_type with
+      | Some FFA_MEM_SHARE => None
+      | _ => Some (FFA_INVALID_PARAMETERS)
+      end        
+    | MEMORY_MANAGEMENT_LEND_TRANSACTION =>
+      match function_type with
+      | Some FFA_MEM_LEND => None
+      | _ => Some (FFA_INVALID_PARAMETERS)
+      end        
+    | MEMORY_MANAGEMENT_DONATE_TRANSACTION =>
+      match function_type with
+      | Some FFA_MEM_DONATE => None
+      | _ => Some (FFA_INVALID_PARAMETERS)
+      end        
+    end.  
 
   Definition init_FFA_mem_relinquish_resp_flags_struct :=
     mkFFA_mem_relinquish_resp_flags_struct
@@ -1722,6 +1939,13 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
             - length: FFA_memory_region_struct_receiver_count * 16 bytes / offset: 32 bytes *)
         FFA_memory_region_struct_receivers :
           list FFA_endpoint_memory_access_descriptor_struct;
+
+
+        (** - This one is not actually mentioned in the document, and it is stored in
+              different locations. However, we included this one in the region descriptor 
+              for simplification at this moment *)
+        FFA_memory_region_struct_composite:
+          FFA_composite_memory_region_struct;
       }.
 
   Definition init_FFA_memory_region_struct :=
@@ -1729,23 +1953,74 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
       0 init_FFA_memory_region_attributes_descriptor_struct
       MEMORY_REGION_FLAG_DEFAULT 0 init_ffa_memory_region_tag nil.
 
+  (** **** well formed conditions *)
   Fixpoint well_formed_FFA_memory_region_struct_receivers
            (access_descriptors:
-              list FFA_endpoint_memory_access_descriptor_struct) :=
+              list FFA_endpoint_memory_access_descriptor_struct)
+           (composite_descriptors:
+              FFA_composite_memory_region_struct) :=
     match access_descriptors with
     | nil => true
     | hd::tl =>
-      well_formed_FFA_endpoint_memory_access_descriptor_struct hd &&
-      well_formed_FFA_memory_region_struct_receivers tl
+      well_formed_FFA_endpoint_memory_access_descriptor_struct
+        hd composite_descriptors &&
+      well_formed_FFA_memory_region_struct_receivers
+        tl composite_descriptors
     end.
-  
-  (* TODO: need more constraints in here *)
-  Definition well_formed_FFA_memory_region_struct (sender: ffa_UUID_t)
-             (memory_region : FFA_memory_region_struct) :=
-    if decide (sender = memory_region.(FFA_memory_region_struct_sender)) 
-    then well_formed_FFA_memory_region_struct_receivers
-           (memory_region.(FFA_memory_region_struct_receivers))
+
+  Definition FFA_memory_region_receivers_number_donate_check
+             (ffa_memory_region: FFA_memory_region_struct) :=
+    if decide ((length ffa_memory_region
+                .(FFA_memory_region_struct_receivers) = 1)%nat)
+    then true
     else false.
+
+  Definition FFA_memory_region_receivers_number_lend_and_share_check
+             (ffa_memory_region: FFA_memory_region_struct) :=
+    if decide ((length ffa_memory_region
+                .(FFA_memory_region_struct_receivers) > 0)%nat)
+    then true
+    else false.
+
+
+  (** Return INVALID_PARAMETERS when it is not satisfied *)
+  (** - For Tag, the following thing is not captured in our well-formed conditions 
+        - The Relayer must ensure the Tag value specified by the Receiver is equal to the value that was specified by
+          the Sender. It must return INVALID_PARAMETERS if the validation fails. *)
+  (** - For offset, the following thing is not captured in our well-formed conditions (in terms of Receiver's view)
+        - The value 0 must be specified in the Offset field of the corresponding endpoint memory access descriptor in the
+          array. This implies that the Handle specified in Table 5.19 must be used to identify the memory region (see 5.12.1
+          Handle usage) *)
+  Definition well_formed_FFA_memory_region_struct (sender: ffa_UUID_t)
+             (memory_region : FFA_memory_region_struct)
+             (function_type : FFA_FUNCTION_TYPE) :=
+    let handle_value_check :=
+        if decide (memory_region.(FFA_memory_region_struct_handle) = 0)
+        then true else false in
+    let handle_value_and_receiver_num_check :=
+        match function_type with
+        | FFA_MEM_DONATE =>
+          FFA_memory_region_receivers_number_donate_check
+            memory_region && handle_value_check 
+        | FFA_MEM_LEND
+        | FFA_MEM_SHARE =>
+          FFA_memory_region_receivers_number_lend_and_share_check
+            memory_region &&
+          handle_value_check 
+          (** - [JIEUNG: We can think about adding more constraints in here] *)
+        | _ => true
+        end
+    in
+    if handle_value_check then
+      if decide (sender = memory_region.(FFA_memory_region_struct_sender)) 
+      then if (well_formed_FFA_memory_region_struct_receivers
+                 (memory_region.(FFA_memory_region_struct_receivers))
+                 (memory_region.(FFA_memory_region_struct_composite)))
+           then None else Some (FFA_INVALID_PARAMETERS)
+      else  Some (FFA_INVALID_PARAMETERS)
+    else Some (FFA_INVALID_PARAMETERS).
+
+  
   (*************************************************************************)
   (** **           Handle Usage                                            *)
   (*************************************************************************)
@@ -1769,6 +2044,8 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
       - This field must be used by the Relayer to encode the Handle in an invocation of the FFA_MEM_RETRIEVE_RESP
         ABI.
    *)
+
+  (** [See well_formed_FFA_memory_region_struct] *)
   
   (*************************************************************************)
   (** **           Tag usage                                               *)
@@ -1788,6 +2065,8 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
      - This field must be used by the Relayer to encode the Tag value in an invocation of the FFA_MEM_RETRIEVE_RESP
        ABI. 
    *)
+
+  (** [See well_formed_FFA_memory_region_struct] *)  
     
   (*************************************************************************)
   (** **  Endpoint memory access descriptor array usage                    *)
@@ -1831,18 +2110,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
           the composite memory region descriptor. This implies that all values of the Offset field must be equal.
    *)
 
-  Definition FFA_memory_region_struct_donate_check
-             (ffa_memory_region: FFA_memory_region_struct) :=
-    if decide (Zlength ffa_memory_region.(FFA_memory_region_struct_receivers) = 1)
-    then true
-    else false.
-
-  Definition FFA_memory_region_struct_lend_and_share_check
-             (ffa_memory_region: FFA_memory_region_struct) :=
-    if decide (Zlength ffa_memory_region.(FFA_memory_region_struct_receivers) > 0)
-    then true
-    else false.
-
+  (** [See well_formed_FFA_memory_region_struct] *)
   
   (** *** Receiver usage *)  
   (** A Receiver must use this field to specify the access permissions it should have on the memory region
@@ -1887,14 +2155,23 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
       - The Relayer could support memory management transactions targeted to only a single Receiver endpoint.
         It must return INVALID_PARAMETERS if the Sender or Receiver specifies an Endpoint memory access
         descriptor count != 1.
+        
+        - [JIEUNG: This one is captured in our well formed condition]
+
       - It must ensure that these fields have been populated by the Sender as specified in 5.12.3.1 Sender usage in an
         invocation of any of the following ABIs.
         - FFA_MEM_DONATE.
         - FFA_MEM_LEND.
         - FFA_MEM_SHARE.
         The Relayer must return INVALID_PARAMETERS in case of an error.
+        
+        - [JIEUNG: This one is captured in our well formed condition]
+
       - It must ensure that the Endpoint ID field in each Memory access permissions descriptor specifies a valid
         endpoint. The Relayer must return INVALID_PARAMETERS in case of an error.
+        
+        - [JIEUNG: Additional checks required - it is maybe in the argument checks... not in here]
+
       - In an invocation of the FFA_MEM_RETRIEVE_REQ ABI,
         - It must ensure that these fields have been populated by the Receiver as specified in 5.12.3.2 Receiver
           usage.
@@ -2024,9 +2301,12 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
   Definition init_FFA_mem_relinquish_struct :=
     mkFFA_memory_relinquish_struct 0 MEMORY_REGION_FLAG_DEFAULT nil.
 
-  (* TODO: need more constraints in here *)
-  Definition well_formed_FFA_memory_relinquish_struct
-             (memory_region : FFA_memory_relinquish_struct) := true.
+  (** **** well formed *)
+  (** for FFA_memory_relinquish_struct_flags,
+      we can check flag values using the previous well-formed checks *)
+  (** for FFA_memory_relinquish_struct_endpoints,
+      we need to check whether all endpoints are valid *)
+  
   
 End FFA_MEMORY_REGION_DESCRIPTOR.
 

@@ -78,67 +78,12 @@ Section MEM_AND_PTABLE.
       - who wrote values in the address
       - Note that accesssors will not be nil *)
   | MemWritten (writers: list ffa_UUID_t).
-
-  Inductive MEM_ATTRIBUTES_TYPE :=
-  (** initial value *)
-  | MemAttributes_Undef
-  | MemAttributes_DeviceMem
-      (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_2)
-  | MemAttributes_NormalMem
-      (cacheability_type: FFA_MEMORY_CACHEABILITY_TYPE_1)
-      (shareability_type: FFA_MEMORY_SHAREABILITY).
-
-  Definition MEM_ATTRIBUTES_TYPE_permissive (a b:MEM_ATTRIBUTES_TYPE) :=
-    match a, b with
-    | _, MemAttributes_Undef => true
-    | MemAttributes_DeviceMem cacheability_type_a,
-      MemAttributes_DeviceMem cacheability_type_b =>
-      FFA_MEMORY_CACHEABILITY_TYPE_2_permissive cacheability_type_a
-                                                cacheability_type_b
-    | MemAttributes_NormalMem cacheability_type_a shareability_type_a,
-      MemAttributes_NormalMem cacheability_type_b shareability_type_b =>
-      FFA_MEMORY_CACHEABILITY_TYPE_1_permissive cacheability_type_a
-                                                cacheability_type_b &&
-      FFA_MEMORY_SHAREABILITY_permissive shareability_type_a
-                                         shareability_type_b
-    | _, _ => false
-    end.
                               
   (** This memory properties are key features that we may hope to guarantee in our system -
       There are some redundant information in between them, and we may need to 
       make invariants to guarantee well-formed relations between the following different properties 
-      (and other parts of the abstract state.
-
-     Table 3.2. is related to this field *)
-  (*
-     Table 3.2: Memory regions                                                                                     
-     Information fields        Mandatory  Description                                                              
-     Base address              No         - Absence of this field indicates that a memory region of                
-                                            specified size and attributes                                          
-                                            must be mapped into the partition translation regime.                  
-                                          - If present, this field could specify a PA, VA                          
-                                            (for S-EL0 partitions) or IPA (for S-EL1 and EL1 partitions).          
-                                            - If a PA is specified, then the memory region must be identity        
-                                              mapped with the same IPA or VA as the PA.                            
-                                            - If a VA or IPA is specified, then the memory could be identity       
-                                              or non-identity mapped.                                              
-                                          - If present, the address must be aligned to the Translation             
-                                            granule size.                                                          
-     Page count                Yes        - Size of memory region expressed as a count of 4K pages.                
-                                          - For example, if the memory region size is 16K, value of                
-                                            this field is 4.                                                       
-     Attributes                Yes        - Memory access permissions.                                             
-                                            - Instruction access permission.                                       
-                                            - Data access permission.                                              
-                                          - Memory region attributes.                                              
-                                            - Memory type.                                                         
-                                            - Shareability attributes.                                             
-                                            - Cacheability attributes.                                             
-                                          - Memory Security state.                                                 
-                                            - Non-secure for a NS-Endpoint.                                        
-                                            - Non-secure or Secure for an S-Endpoint.                              
-     Name                      No         - Name of the memory region for example, for debugging purposes    
-     *)
+      (and other parts of the abstract state). 
+   *)
 
   
   Record MemGlobalProperties :=
@@ -152,7 +97,7 @@ Section MEM_AND_PTABLE.
         global_instruction_access_property : FFA_INSTRUCTION_ACCESS_TYPE;
         global_data_access_property: FFA_DATA_ACCESS_TYPE;
         (** memory attributes - e.g., sharable or cacheability *)
-        global_mem_attribute : MEM_ATTRIBUTES_TYPE;
+        global_mem_attribute : FFA_MEMORY_TYPE;
         
         (** - check whether there are written contents in the memory or not *)
         mem_dirty: MEM_DIRTY_TYPE;        
@@ -183,12 +128,12 @@ Section MEM_AND_PTABLE.
         instruction_access_property : FFA_INSTRUCTION_ACCESS_TYPE;
         data_access_property: FFA_DATA_ACCESS_TYPE;
         (** memory attributes - e.g., sharable or cacheability *)
-        mem_attribute : MEM_ATTRIBUTES_TYPE;
+        mem_attribute : FFA_MEMORY_TYPE;
       }.
 
   Definition gen_borrow_mem_local_properties
              (lender : ffa_UUID_t) (iap : FFA_INSTRUCTION_ACCESS_TYPE)
-             (dap : FFA_DATA_ACCESS_TYPE) (attr: MEM_ATTRIBUTES_TYPE) :=
+             (dap : FFA_DATA_ACCESS_TYPE) (attr: FFA_MEMORY_TYPE) :=
     mkMemLocalProperties (LocalBorrowed lender) iap dap attr.
   
   Definition gen_borrow_mem_local_properties_wrapper
@@ -199,7 +144,7 @@ Section MEM_AND_PTABLE.
       (local_props.(mem_attribute)).
   
   Definition own_mem_local_properties (iap : FFA_INSTRUCTION_ACCESS_TYPE)
-             (dap : FFA_DATA_ACCESS_TYPE) (attr: MEM_ATTRIBUTES_TYPE) :=
+             (dap : FFA_DATA_ACCESS_TYPE) (attr: FFA_MEMORY_TYPE) :=
     mkMemLocalProperties LocalOwned iap dap attr.
 
   Definition gen_own_mem_local_properties_wrapper

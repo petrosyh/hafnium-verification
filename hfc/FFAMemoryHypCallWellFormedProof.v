@@ -182,8 +182,8 @@ Section AbstractStateContextProps.
                                (local_properties.(data_access_property)) /\
         instruction_access_permissive (global_properties.(global_instruction_access_property))
                                       (local_properties.(instruction_access_property)) /\
-        MEM_ATTRIBUTES_TYPE_permissive (global_properties.(global_mem_attribute))
-                                       (local_properties.(mem_attribute)).
+        FFA_MEMORY_TYPE_permissive (global_properties.(global_mem_attribute))
+                                   (local_properties.(mem_attribute)).
   
   Definition mem_properties_consistency_no_owner  (st : AbstractState) :=
     forall addr global_properties owner, 
@@ -215,8 +215,8 @@ Section AbstractStateContextProps.
                                     (local_properties.(data_access_property)) /\
              instruction_access_permissive (global_properties.(global_instruction_access_property))
                                            (local_properties.(instruction_access_property)) /\
-             MEM_ATTRIBUTES_TYPE_permissive (global_properties.(global_mem_attribute))
-                                            (local_properties.(mem_attribute)))).
+             FFA_MEMORY_TYPE_permissive (global_properties.(global_mem_attribute))
+                                        (local_properties.(mem_attribute)))).
   
   Record well_formed (state : AbstractState) :=
     {
