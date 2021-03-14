@@ -63,6 +63,8 @@ Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
 Require Export FFAMemoryHypCallCoreTransition.
 Require Export FFAMemoryHypCallTestingInterface.
+Require Export FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.
+Require Export FFAMemoryHypCallAdditionalSteps.
 
 
 Require Import Maps.
@@ -115,7 +117,17 @@ Section AbstractStateContextProps.
       0 <= vm_userspace.(userspace_cur_vcpu_index)
       < vm_userspace.(userspace_vcpu_num);
     (* TODO: add more invariants *)
-  
+
+    (**
+       - Bit(63): Handle allocator.
+         - b0: Allocated by SPM.
+         - b1: Allocated by Hypervisor. *)
+    make_handle_allocator_prop :
+      forall vid value handle,
+        make_handle vid value = Some handle ->
+        Z.land (Z.shiftl 1 63) handle <> 0;      
+    (* TODO: add more invariants *)
+    
     }.
 
   (** ** Invariants for memory *)

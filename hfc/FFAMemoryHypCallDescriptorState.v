@@ -59,8 +59,8 @@ Definition Z_not := fun val => (Z.lxor Z_64MAX val).
 (*************************************************************)
 Section FFA_TYPES_AND_CONSTANT.
 
-  (** Value types that are related to our modeling. Several types are simply Z types, but we 
-   made type aliasing for better readabilitiy. *)
+  (** Value types are mostly type aliasing for the readability of our modeling. 
+      Several types are simply Z or bool types. *)
   Class FFA_TYPES_AND_CONSTANTS :=
     {
     (** - 2.8. Partition identification and discovery 
@@ -141,7 +141,6 @@ Section FFA_DATATYPES.
   | FFA_MEM_RETREIVE_RESP
   | FFA_MEM_RELINQUISH
   | FFA_MEM_RECLAIM.
-
 
   (** The following parts are not defined in Chapter 5, but in Chapter 7.
 
@@ -380,6 +379,7 @@ Section FFA_DESCRIPTIONS.
    *)
 
   (** **** Well formed conditions *)
+  (** Check addresses in multiple constituents to see whether they are disjoint *)
   Fixpoint check_overlap_in_ranges
     (ranges : list (Z * Z)) (range : (Z * Z)) :=
     match ranges with
@@ -415,7 +415,10 @@ Section FFA_DESCRIPTIONS.
     | Some _ => true
     | _ => false
     end.
-    
+
+  (** Check well formed conditions 
+      - Page count needs to be consistent
+      - All addresses can be divided by granuale *)
   Fixpoint well_formed_FFA_composite_memory_region_struct_aux
            (page_counts : Z)
            (constituents : list FFA_memory_region_constituent_struct) :=
@@ -473,6 +476,10 @@ Section FFA_DESCRIPTIONS.
       defined in FFAMemoryHypCallState.v) 
       which contains the information that receivers has to look up. *)
 
+  Class HandleContext `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS} :=
+    {
+    make_handle (vid: ffa_UUID_t) (value: Z) : option Z
+    }.
 
   (**************************************)
   (** ** 5.11 Memory region properties  *)
@@ -760,8 +767,7 @@ Section FFA_DESCRIPTIONS.
   (*******************************************************)
   (** *** 5.11.2 Data access permissions usage           *)
   (*******************************************************)
-  (** [JIEUNG: The following things need to be implemented in the transition rules] 
-  
+  (**
       An endpoint could have either Read-only or Read-write data access permission to a memory region from the
       highest Exception level it runs in.
 
@@ -769,6 +775,9 @@ Section FFA_DESCRIPTIONS.
       - Data access permission is specified by setting Bits(1:0) in Table 5.15 to the appropriate value
 
       This access control is used in memory management transactions as follows.
+
+      [JIEUNG: We do not model the case when endpoints are independent peripheral device or
+      they are in secure regime]
    *)
 
   (**

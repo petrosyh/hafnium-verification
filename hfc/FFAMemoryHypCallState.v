@@ -353,7 +353,10 @@ Section AbstractState.
     mkFFA_memory_share_state_struct {
         memory_region : FFA_memory_region_struct;
         share_func : FFA_FUNCTION_TYPE;
-        retrieved : ZMap.t bool;
+        (** - The first key is ffa_UUID_t, and the second key is address *)
+        retrieved : ZTree.t (ZTree.t bool);
+        relinquished : ZTree.t (ZTree.t bool);
+        retrieve_count : ZTree.t (ZTree.t Z);
       }.
 
   Definition share_state_pool := ZTree.t FFA_memory_share_state_struct.
@@ -441,7 +444,8 @@ Section AbstractStateContext.
              (address_translation := address_translation)}
         `{vm_context :
             !VMContext
-             (ffa_types_and_constants := ffa_types_and_constants)} :=
+             (ffa_types_and_constants := ffa_types_and_constants)}
+        `{handle_context : !HandleContext} :=
     {
     hafnium_id : ffa_UUID_t := 0;
     primary_vm_id: ffa_UUID_t;

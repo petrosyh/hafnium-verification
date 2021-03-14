@@ -60,6 +60,9 @@ Require Export FFAMemoryHypCallIntro.
 Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
 Require Export FFAMemoryHypCallCoreTransition.
+Require Export FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.
+Require Export FFAMemoryHypCallAdditionalSteps.
+
 
 Import LangNotations.
 Local Open Scope expr_scope.
