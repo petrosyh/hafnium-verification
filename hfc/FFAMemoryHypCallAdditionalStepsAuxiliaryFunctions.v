@@ -68,15 +68,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
       [length], [fragement_length], [address], and [page_count] 
       are not actually used. Do we need to define the following definitions even for that case? *)
   Definition ffa_mem_send_check_arguments
-             (total_length fragment_length address page_count: Z)
-    : bool :=
-    if decide (total_length > granuale) && decide (total_length <> 0)
-       || decide (fragment_length <> 0) && decide (total_length > fragment_length)
-       || decide (address <> 0) || decide (page_count <> 0)
+             (total_length fragment_length address page_count: Z) : bool :=
+    if decide (total_length = 0) && decide (fragment_length = 0) &&
+       decide (address  = 0) && decide (page_count = 0)
     then true
     else false. 
 
-  
   (***********************************************************************)
   (** **   Getter and setter functions for RX/TX buffers                 *)
   (***********************************************************************)
@@ -162,6 +159,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
                                                   recv_func state ;;;
         set_send_handle sender hd size handle recv_func new_st
       end.
+
+
+  Definition get_handle_information (handle: ffa_memory_handle_t) (st : AbstractState)      
+    : option FFA_memory_share_state_struct :=
+    let share_state_pool_index := get_value handle in 
+    do share_state <- ZTree.get share_state_pool_index
+                               st.(hypervisor_context).(ffa_share_state) ;;;
+    Some share_state.    
        
   (***********************************************************************)
   (** **   Getter for memory accessibility and attributes                *)
@@ -224,6 +229,31 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
              (global_props: mem_global_properties_pool) :=
     do global_prop <- ZTree.get address global_props ;;;
                                Some global_prop.(global_mem_attribute).
+
+  Definition get_permissions_and_attributes
+             (vid : ffa_UUID_t) (address: Z)
+             (mem_properties: MemProperties) :=
+    do local_inst_access <-
+        get_instruction_access_from_global_local_pool_props
+          vid address mem_properties.(mem_local_properties) ;;;
+    do local_data_access <-
+        get_data_access_from_global_local_pool_props
+          vid address mem_properties.(mem_local_properties) ;;;
+    do local_attributes <-
+        get_attributes_from_global_local_pool_props
+          vid address mem_properties.(mem_local_properties) ;;;
+  
+    do global_inst_access <-
+        get_instruction_access_from_global_props
+          vid address mem_properties.(mem_global_properties) ;;;
+    do global_data_access <-
+        get_data_access_from_global_props
+          vid address mem_properties.(mem_global_properties) ;;;
+    do global_attributes <-
+        get_attributes_from_global_props
+          vid address mem_properties.(mem_global_properties) ;;;
+    Some (local_inst_access, local_data_access, local_attributes,
+          global_inst_access, global_data_access, global_attributes).       
 
   (***********************************************************************)
   (** **   Get addresses                                                 *)
@@ -330,6 +360,25 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
       (region_descriptor.(FFA_memory_region_struct_receivers))
       (region_descriptor.(FFA_memory_region_struct_composite)).
 
+  
+  Fixpoint get_receiver_tuple_aux
+             (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct *
+                                 ffa_UUID_t * list Z))
+             (receiver_id : ffa_UUID_t) :=
+    match info_tuple with
+    | nil => None
+    | (descriptor, id, addrs)::tl =>
+      if decide (receiver_id = id)
+      then Some (descriptor, id, addrs)
+      else get_receiver_tuple_aux tl receiver_id
+    end.
+  
+  Definition get_receiver_tuple (receiver_id : ffa_UUID_t)
+             (region_descriptor: FFA_memory_region_struct) :=
+    do info_tuple <- get_receivers_receiver_ids_and_addresses
+                      (region_descriptor.(FFA_memory_region_struct_receivers))
+                      (region_descriptor.(FFA_memory_region_struct_composite)) ;;;
+    get_receiver_tuple_aux info_tuple receiver_id.
 
   Definition get_receiver_id_addrs_pair
              (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct * ffa_UUID_t * list Z)) :=
@@ -387,20 +436,55 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
   (** **   Setter for memory region descriptor in the hypervisor         *)
   (***********************************************************************)
   (** Set memory region when sender tries to send the message to receivers *)
+
+  Definition update_flags_in_FFA_memory_region_struct
+             (flags : ffa_memory_region_flags_t) (region_descriptor: FFA_memory_region_struct) :=
+    mkFFA_memory_region_struct
+      (region_descriptor.(FFA_memory_region_struct_sender))
+      (region_descriptor.(FFA_memory_region_struct_attributes))
+      flags
+      (region_descriptor.(FFA_memory_region_struct_handle))
+      (region_descriptor.(FFA_memory_region_struct_tag))
+      (region_descriptor.(FFA_memory_region_struct_receivers))
+      (region_descriptor.(FFA_memory_region_struct_composite)).
+
+  Definition update_handle_in_FFA_memory_region_struct
+             (handle : ffa_memory_handle_t) (region_descriptor: FFA_memory_region_struct) :=
+    mkFFA_memory_region_struct
+      (region_descriptor.(FFA_memory_region_struct_sender))
+      (region_descriptor.(FFA_memory_region_struct_attributes))
+      (region_descriptor.(FFA_memory_region_struct_flags))
+      handle
+      (region_descriptor.(FFA_memory_region_struct_tag))
+      (region_descriptor.(FFA_memory_region_struct_receivers))
+      (region_descriptor.(FFA_memory_region_struct_composite)).
+  
   Definition set_memory_region_in_shared_state
+             (caller : ffa_UUID_t)
              (size : Z)
              (func_type: FFA_FUNCTION_TYPE)
              (receivers_and_addresses: list (ffa_UUID_t * (list Z)))
+             (flags_arg : option ffa_memory_region_flags_t)
+             (set_handle: bool) 
              (memory_region: FFA_memory_region_struct)
-             (st : AbstractState) : (AbstractState * Z) := 
+             (st : AbstractState) : option (AbstractState * Z) :=
+    let flags :=
+        match flags_arg with
+        | Some flags' => flags'
+        | _ =>  (memory_region.(FFA_memory_region_struct_flags))
+        end in
+    let new_index :=
+        st.(hypervisor_context).(fresh_index_for_ffa_share_state) in
+    do handle_value <- make_handle caller new_index;;;
+    let handle := if set_handle then handle_value
+                  else (memory_region.(FFA_memory_region_struct_handle)) in
     let new_shared_state :=
         mkFFA_memory_share_state_struct
-          memory_region func_type
+          (update_handle_in_FFA_memory_region_struct handle memory_region)
+          func_type
           (init_retrieve_relinquish_info_maps receivers_and_addresses)
           (init_retrieve_relinquish_info_maps receivers_and_addresses)
           (init_retrieve_relinquish_num_info_maps receivers_and_addresses) in
-    let new_index :=
-        st.(hypervisor_context).(fresh_index_for_ffa_share_state) in
     let next_index := new_index + 1 in
     let new_api_page_pool_size :=
         st.(hypervisor_context).(api_page_pool_size) - size in
@@ -408,9 +492,22 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
         ZTree.set new_index
                   new_shared_state
                   st.(hypervisor_context).(ffa_share_state) in
-    (st { hypervisor_context / api_page_pool_size : new_api_page_pool_size }
-        { hypervisor_context / ffa_share_state : new_shared_state_pool }
-        { hypervisor_context / fresh_index_for_ffa_share_state : next_index },
-     new_index).
-    
+    Some (st { hypervisor_context / api_page_pool_size : new_api_page_pool_size }
+             { hypervisor_context / ffa_share_state : new_shared_state_pool }
+             { hypervisor_context / fresh_index_for_ffa_share_state : next_index },
+          handle).
+
+
+  (***********************************************************************)
+  (** **   Flag value getters         *)
+  (***********************************************************************)
+
+    Definition get_zero_flag_value (region_descriptor: FFA_memory_region_struct) :=
+      match region_descriptor.(FFA_memory_region_struct_flags) with
+      | MEMORY_REGION_FLAG_NORMAL flags =>
+        Some flags.(FFA_mem_default_flags_struct_zero_memory_flag)
+      | _ => None
+      end.        
+
+       
 End FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.

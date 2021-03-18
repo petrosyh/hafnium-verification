@@ -17,6 +17,8 @@
   - This file contains transition rules of FFA memory management interfaces. 
   - Core transition rules in this file change ownership and accessibility information of the memory adress 
     that interfaces want to handle.
+- [FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.v]
+- [FFAMemoryHypCallAdditionalSteps.v]
   - Other transition rules can be treated as wrappers of core transition rules
     by adding several safety checks and/or invariants that the document contains.
   - The relevant parts with this file in the FF-A document are Chapters 5 and 11.

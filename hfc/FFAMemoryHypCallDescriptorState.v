@@ -478,7 +478,9 @@ Section FFA_DESCRIPTIONS.
 
   Class HandleContext `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS} :=
     {
-    make_handle (vid: ffa_UUID_t) (value: Z) : option Z
+    make_handle (vid: ffa_UUID_t) (value: Z) : option Z;
+    get_value (handle: Z) : Z;
+    get_sender (handle: Z) : ffa_UUID_t;
     }.
 
   (**************************************)
@@ -1443,6 +1445,34 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
       then Some (FFA_INVALID_PARAMETERS)
       else None
     else Some (FFA_INVALID_PARAMETERS).
+
+
+  (** **** Well formed conditions for retrieve (when it is not using retrieve flags *)  
+  (** Return INVALID_PARAMETER or DENIED when it is not satisfied *)
+  Definition check_FFA_mem_default_flags_struct_for_donate_and_lend_retrieve
+             (default_flag: FFA_mem_default_flags_struct)
+             (time_slice_enabled : bool) :=
+    let time_slice_check :=
+        if default_flag.(FFA_mem_default_flags_struct_operation_time_slicing_flag)
+        then true
+        else if time_slice_enabled then false else true in
+    if time_slice_check then None      
+    else Some (FFA_INVALID_PARAMETERS).
+  
+  (** Return INVALID_PARAMETER when it is not satisfied *)
+  Definition check_FFA_mem_default_flags_struct_for_share_retrieve
+             (default_flag: FFA_mem_default_flags_struct)
+             (time_slice_enabled : bool) :=
+    let time_slice_check :=
+        if default_flag.(FFA_mem_default_flags_struct_operation_time_slicing_flag)
+        then true
+        else if time_slice_enabled then false else true in
+    if time_slice_check then
+      if default_flag.(FFA_mem_default_flags_struct_zero_memory_flag)
+      then Some (FFA_INVALID_PARAMETERS)
+      else None
+    else Some (FFA_INVALID_PARAMETERS).
+
   
   (** FFA_MEM_RETRIEVE_REQ 
       Table 5.21: Flags usage in FFA_MEM_RETRIEVE_REQ ABI *)
