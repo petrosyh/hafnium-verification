@@ -243,7 +243,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (st: AbstractState)
       : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
       (** - Check the arguments *)
-      if ffa_mem_send_check_arguments total_length fragment_length address count
+      if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         (** - Get the current memory region descriptor *)
         do memory_region_descriptor <-
@@ -445,7 +445,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (st: AbstractState)
       : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
       (** - Check the arguments *)
-      if ffa_mem_send_check_arguments total_length fragment_length address count
+      if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         (** - Get the current memory region descriptor *)
         do memory_region_descriptor <-
@@ -635,7 +635,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (st: AbstractState)
       : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
       (** - Check the arguments *)
-      if ffa_mem_send_check_arguments total_length fragment_length address count
+      if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         (** - Get the current memory region descriptor *)
         do memory_region_descriptor <-
@@ -1257,7 +1257,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (total_length fragment_length address count : Z)
                (st : AbstractState)
     : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
-      if ffa_mem_send_check_arguments total_length fragment_length address count
+      if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         do handle <- get_send_handle_value caller st ;;;
         do share_state <- get_handle_information handle st ;;;
@@ -1336,7 +1336,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (total_length fragment_length : Z)
                (st : AbstractState)
     : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
-      None.
+      if ffa_mem_retrieve_resp_check_arguments total_length fragment_length 
+      then Some (st, FFA_SUCCESS 0)
+      else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS).
     
   End FFA_MEM_RETRIEVE_RESP_ARGUMENT_CHECKS.
 
@@ -1364,12 +1366,147 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           - INVALID_PARAMETERS / DENIED / NO_MEMORY / ABORTED
      *)
 
+    Fixpoint apply_ffa_mem_relinquish_core_transition_spec
+             (index : Z) (lender borrower : ffa_UUID_t) (addresses : list Z) (clean : bool)
+             (st : AbstractState) :=
+      match addresses with
+      | nil => Some (st, true)
+      | hd::tl =>
+        match apply_ffa_mem_relinquish_core_transition_spec
+                index lender borrower tl clean st with
+        | Some st' =>
+          do st'' <- unset_retrieve index borrower hd (fst st') ;;;
+          ffa_mem_relinquish_core_transition_spec
+          lender borrower hd clean st''
+        | None => None
+        end
+      end.
+
+
+    Fixpoint FFA_mem_relinquish_req_alignment_hint_check_iter 
+             (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
+             (addrs : list Z) :=
+      match addrs with
+      | nil => None
+      | hd::tl =>
+        match FFA_mem_relinquish_req_alignment_hint_check_iter relinquish_flag tl with
+        | Some res => Some res
+        | _ => FFA_mem_relinquish_req_alignment_hint_check relinquish_flag hd
+        end
+      end.
+    
+    Fixpoint FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_address
+             (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
+             (mem_properties: MemProperties)
+             (sender : ffa_UUID_t)
+             (addrs: list Z)
+             (time_slice_enabled : bool) :=
+      match addrs with
+      | nil => None
+      | hd::tl => 
+        match FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_address 
+                relinquish_flag mem_properties sender tl time_slice_enabled with
+        | None =>
+          do sender_data_access <- get_data_access_from_global_local_pool_props
+                                    sender hd mem_properties.(mem_local_properties) ;;;
+          FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check
+          relinquish_flag sender_data_access time_slice_enabled
+        | Some res => Some res
+        end
+      end. 
+
+    Fixpoint FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_address
+               (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
+               (mem_properties: MemProperties)
+               (receiver : ffa_UUID_t)
+               (addrs: list Z) :=
+      match addrs with
+      | nil => None
+      | hd::tl => 
+        match FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_address
+                relinquish_flag mem_properties receiver tl with
+        | None =>
+          do receiver_data_access <- get_data_access_from_global_local_pool_props
+                                      receiver hd mem_properties.(mem_local_properties) ;;;
+          FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check
+          relinquish_flag receiver_data_access
+        | Some res => Some res
+        end
+      end. 
+      
     Definition ffa_mem_relinquish_spec
                (caller : ffa_UUID_t)
                (st : AbstractState)
     : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
-      None.
-    
+      do relinquish_descriptor <- get_send_relinquish_descriptor caller st ;;;
+      let handle_value := relinquish_descriptor.(FFA_memory_relinquish_struct_handle) in
+      let flags := relinquish_descriptor.(FFA_memory_relinquish_struct_flags ) in
+      let receivers := relinquish_descriptor.(FFA_memory_relinquish_struct_endpoints) in
+      do share_state <- get_handle_information handle_value st ;;;
+      match share_state, flags with
+      | mkFFA_memory_share_state_struct
+          memory_region share_func retrieved relinquished retrieve_count,
+        MEMORY_REGION_FLAG_RELINQUISH_REQ flags            
+        => match ZTree.get caller retrieved with 
+          (** TODO: need to add retrieve_count and relinquished later - Need to do for reclaim *)
+          | Some is_retrieved =>
+            if is_retrieved
+            then
+              match FFA_mem_relinquish_req_zero_after_flags_for_share_check flags,
+                    FFA_mem_relinquish_req_transaction_type_check flags (Some share_func) with
+              | Some res, _
+              | None, Some res =>  Some (st, FFA_ERROR res)
+              | None, None =>
+                let sender := memory_region.(FFA_memory_region_struct_sender) in
+                do info_tuple <- get_recievers_receiver_ids_and_addresses_tuple memory_region ;;;
+                let receiver_tuple :=
+                    get_receiver_tuple
+                      caller memory_region in
+                let receiver_ids_in_region_des :=
+                    get_receiver_ids info_tuple in
+                match decide (list_eq_dec zeq receiver_ids_in_region_des receivers), receiver_tuple with
+                | left _, Some (receiver, receiver_id, addrs) =>
+                  let check_res :=
+                      match FFA_mem_relinquish_req_alignment_hint_check_iter flags addrs with
+                      | Some res => Some res
+                      | _ => 
+                        match share_func with
+                        | FFA_MEM_DONATE
+                        | FFA_MEM_LEND
+                          => match FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_address
+                                    flags (st.(hypervisor_context).(mem_properties))
+                                    sender addrs (st.(hypervisor_context).(time_slice_enabled)),
+                                  FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_address
+                                    flags (st.(hypervisor_context).(mem_properties)) caller addrs with
+                            | Some res, _
+                            | None, Some res => Some res
+                            | None, None => None
+                            end
+                        | FFA_MEM_SHARE => FFA_mem_relinquish_req_zero_flags_for_share_check flags 
+                        | _ => Some FFA_INVALID_PARAMETERS
+                        end
+                      end in
+                  match check_res with
+                  | Some res => Some (st, FFA_ERROR res)
+                  | None =>
+                    do st' <- apply_ffa_mem_relinquish_core_transition_spec
+                                  (get_value handle_value) sender caller addrs
+                                  (flags.(FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag))
+                                  st ;;;
+                    match st' with
+                    | (st'', true) => Some (st'', FFA_SUCCESS 0)
+                    | (_, false) => Some (st, FFA_ERROR FFA_DENIED)
+                    end
+                  end
+                | _, _ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+                end
+              end                                 
+            else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+          | _ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+          end
+      | _,_ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+      end.
+                      
   End FFA_MEM_RELINQUISH_ARGUMENT_CHECKS.
     
   Section FFA_MEM_RECLAIM_ARGUMENT_CHECKS.
@@ -1415,12 +1552,156 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           - INVALID_PARAMETERS / DENIED / NO_MEMORY / ABORTED
      *)
 
+
+    Fixpoint mem_reclaim_check_per_address (addrs: list Z) (receiver_retrieved_map : ZTree.t bool) :=
+      match addrs with
+      | nil => None
+      | hd::tl =>
+        match mem_reclaim_check_per_address tl receiver_retrieved_map with
+        | None =>  
+          match ZTree.get hd receiver_retrieved_map with
+          | Some false => None
+          | _ => Some (FFA_DENIED)
+          end
+        | Some res => Some res
+        end
+      end.
+
+    Fixpoint mem_reclaim_check
+             (info_tuple: list (FFA_endpoint_memory_access_descriptor_struct *
+                                ffa_UUID_t * list Z))
+             (retrieved_map : ZTree.t (ZTree.t bool)) : option FFA_ERROR_CODE_TYPE :=
+      match info_tuple with
+      | nil => None
+      | (receiver, receiver_id, addrs)::tl =>
+        match mem_reclaim_check tl retrieved_map with
+        | None => 
+          match ZTree.get receiver_id retrieved_map with
+          | Some receiver_retrieved_map =>
+            mem_reclaim_check_per_address addrs receiver_retrieved_map
+          | None => Some (FFA_DENIED)
+          end
+        | Some res => Some res
+        end
+      end.
+
+
+    Definition remove_local_memory_property_per_receiver
+               (receiver : ffa_UUID_t) 
+               (addr : Z) 
+               (st : AbstractState) : AbstractState :=
+      match ZTree.get receiver st.(hypervisor_context).(mem_properties).(mem_local_properties) with
+      | Some local_prop =>
+        match ZTree.get addr local_prop with
+        | Some _ => let new_local_prop := ZTree.remove addr local_prop in
+                   let new_local_global_pool :=
+                       ZTree.set receiver new_local_prop
+                                 st.(hypervisor_context).(mem_properties).(mem_local_properties) in
+                   let new_memory_props :=
+                       mkMemProperties
+                         (st.(hypervisor_context).(mem_properties).(mem_global_properties))
+                         new_local_global_pool in
+                   st {hypervisor_context / mem_properties : new_memory_props}
+        | _ => st
+        end
+      | None => st
+      end.
+
+    Fixpoint remove_local_memory_property_for_receivers
+               (receivers : list ffa_UUID_t) 
+               (addr : Z) 
+               (st : AbstractState) : AbstractState :=
+      match receivers with
+      | nil => st
+      | hd::tl =>
+        let st' := remove_local_memory_property_for_receivers tl addr st in
+        remove_local_memory_property_per_receiver hd addr st
+      end.    
+    
+    Definition ffa_mem_reclaim_core_transition
+               (sender :ffa_UUID_t)
+               (receivers : list ffa_UUID_t) 
+               (addr : Z) 
+               (clean: bool)
+               (st : AbstractState) : option AbstractState :=
+      let new_st := remove_local_memory_property_for_receivers
+                      receivers addr st in
+      do global_property <- ZTree.get addr (hyp_mem_global_props st) ;;; 
+      do sender_properties_pool <- ZTree.get sender (hyp_mem_local_props st) ;;;
+      do sender_property <- ZTree.get addr sender_properties_pool ;;;
+      let new_global_properties :=
+          ZTree.set addr
+                    (global_property
+                       {owned_by: Owned sender}
+                       {accessible_by: ExclusiveAccess sender}
+                       {mem_dirty : if clean then MemClean
+                                    else global_property.(mem_dirty)})
+                    (hyp_mem_global_props st) in
+      let new_sender_properties_pool :=
+          ZTree.set addr
+                    (gen_own_mem_local_properties_wrapper sender_property) 
+                    sender_properties_pool in
+      let new_local_properties_global_pool :=
+          ZTree.set sender
+                    new_sender_properties_pool
+                    (hyp_mem_local_props st) in
+      let new_st :=
+          st {hypervisor_context / mem_properties :
+                mkMemProperties new_global_properties
+                                new_local_properties_global_pool} in
+      Some new_st.
+      
+               
+    Fixpoint apply_ffa_mem_reclaim_core_transition
+               (sender :ffa_UUID_t)
+               (receivers : list ffa_UUID_t) 
+               (addrs : list Z) 
+               (clean: bool)
+               (st : AbstractState) : option AbstractState :=
+      match addrs with
+      | nil => Some st
+      | hd::tl =>
+        match  apply_ffa_mem_reclaim_core_transition
+                 sender receivers tl clean st with
+        | Some st' => ffa_mem_reclaim_core_transition
+                       sender receivers hd clean st'
+        | None => None
+        end
+      end.
+    
+    
     Definition ffa_mem_reclaim_spec
                (caller : ffa_UUID_t)
                (handle_high handle_low flags : Z)
                (st : AbstractState)
     : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
-      None.
+      let handle := (Z.lor (Z.shiftl handle_high 32) handle_low) in
+      let zero_flag := if decide ((Z.land flags 0) <> 0) then true else false in
+      let time_slice_flags := if decide ((Z.land flags 1) <> 0) then true else false in
+      do share_state <- get_handle_information handle st ;;;
+      match share_state with
+      | mkFFA_memory_share_state_struct
+          memory_region share_func retrieved relinquished retrieve_count =>
+        if decide (memory_region.(FFA_memory_region_struct_sender) <> caller)
+        then Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+        else 
+          do info_tuple <- get_recievers_receiver_ids_and_addresses_tuple memory_region ;;;
+          match mem_reclaim_check info_tuple retrieved with
+          | None =>
+            match apply_ffa_mem_reclaim_core_transition
+                    caller (get_receiver_ids info_tuple)
+                    (get_all_addresses memory_region)
+                    zero_flag st with
+            | Some st' =>
+              match remove_share_state (get_value handle) st' with
+              | Some st'' => Some (st'', FFA_SUCCESS 0)
+              | None => Some (st, FFA_ERROR FFA_DENIED)
+              end
+            | None => Some (st, FFA_ERROR FFA_DENIED)
+            end
+          | Some res => Some (st, FFA_ERROR res)
+          end
+      end.
     
   End FFA_MEM_RECLAIM_ARGUMENT_CHECKS.
     

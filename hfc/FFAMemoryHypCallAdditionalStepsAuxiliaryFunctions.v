@@ -67,13 +67,20 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
   (** TODO: when TX/RX buffers are used to trasmit descriptors, 
       [length], [fragement_length], [address], and [page_count] 
       are not actually used. Do we need to define the following definitions even for that case? *)
-  Definition ffa_mem_send_check_arguments
+  Definition ffa_mem_general_check_arguments
              (total_length fragment_length address page_count: Z) : bool :=
     if decide (total_length = 0) && decide (fragment_length = 0) &&
        decide (address  = 0) && decide (page_count = 0)
     then true
     else false. 
 
+  Definition ffa_mem_retrieve_resp_check_arguments
+             (total_length fragment_length: Z) : bool :=
+    if decide (total_length = 0) && decide (fragment_length = 0)
+    then true
+    else false. 
+
+  
   (***********************************************************************)
   (** **   Getter and setter functions for RX/TX buffers                 *)
   (***********************************************************************)
@@ -144,6 +151,30 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
                   state.(hypervisor_context).(vms_contexts) in
     Some state {hypervisor_context / vms_contexts : new_vm_contexts}.
 
+  (** Get a relinquish descriptor for send (donate, lend, share) operations *)
+  Definition get_send_relinquish_descriptor
+             (caller : Z) (state: AbstractState)
+    : option FFA_memory_relinquish_struct := 
+    do vm_context <- ZTree.get caller state.(hypervisor_context).(vms_contexts) ;;;
+    mailbox_send_msg_to_relinqiush_struct vm_context.(mailbox).(send).
+       
+  (** Set a memory region descriptor for receivers (donate, lend, share) *)
+  Definition set_send_relinquish_descriptor
+             (sender receiver : ffa_UUID_t) (size : Z)
+             (relinquish_descriptor: FFA_memory_relinquish_struct)
+             (state: AbstractState)
+    : option AbstractState := 
+    do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
+    do message <- relinqiush_struct_to_mailbox_send_msg relinquish_descriptor ;;; 
+    let new_vm_context := vm_context {vm_mailbox :
+                                        mkMAILBOX_struct 
+                                          (vm_context.(mailbox).(send))
+                                          message sender size FFA_MEM_RELINQUISH } in
+    let new_vm_contexts :=
+        ZTree.set receiver new_vm_context
+                  state.(hypervisor_context).(vms_contexts) in
+    Some state {hypervisor_context / vms_contexts : new_vm_contexts}.
+       
   Fixpoint set_send_handle_for_multiple_receivers
              (receivers: list ffa_UUID_t)
              (sender : ffa_UUID_t) (size : Z)
@@ -159,7 +190,6 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
                                                   recv_func state ;;;
         set_send_handle sender hd size handle recv_func new_st
       end.
-
 
   Definition get_handle_information (handle: ffa_memory_handle_t) (st : AbstractState)      
     : option FFA_memory_share_state_struct :=
@@ -497,7 +527,44 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
              { hypervisor_context / fresh_index_for_ffa_share_state : next_index },
           handle).
 
+  Definition remove_share_state (index : Z) (st : AbstractState) :
+    option AbstractState :=
+    do share_state <- ZTree.get index st.(hypervisor_context).(ffa_share_state) ;;;
+    match share_state with 
+    | mkFFA_memory_share_state_struct 
+        memory_region _ _ _ _ =>
+      let region_size
+          := (FFA_memory_region_struct_size
+                (Zlength
+                   (memory_region
+                    .(FFA_memory_region_struct_composite)
+                    .(FFA_composite_memory_region_struct_constituents)))) in
+      let new_share_state_pool
+          := ZTree.remove index st.(hypervisor_context).(ffa_share_state) in
+      let new_api_page_pool_size :=
+          st.(hypervisor_context).(api_page_pool_size) + region_size in
+      Some (st { hypervisor_context / api_page_pool_size : new_api_page_pool_size }
+               { hypervisor_context / ffa_share_state : new_share_state_pool })
+    end.
 
+  Definition unset_retrieve
+             (index : Z) (addr : Z) (receiver: ffa_UUID_t) (st: AbstractState) :
+    option AbstractState :=
+    do share_state <- ZTree.get index st.(hypervisor_context).(ffa_share_state) ;;;
+    do receiver_retrieve_pool <- ZTree.get receiver share_state.(retrieved);;; 
+    let new_retrieved := ZTree.set receiver  
+                                   (ZTree.set addr false  receiver_retrieve_pool)
+                                   share_state.(retrieved) in
+    let new_shared_state :=
+        mkFFA_memory_share_state_struct
+          (share_state.(memory_region)) (share_state.(share_func)) new_retrieved
+          (share_state.(relinquished)) (share_state.(retrieve_count)) in
+    let new_shared_state_pool :=
+        ZTree.set index
+                  new_shared_state
+                  st.(hypervisor_context).(ffa_share_state) in
+    Some (st { hypervisor_context / ffa_share_state : new_shared_state_pool }).
+    
   (***********************************************************************)
   (** **   Flag value getters         *)
   (***********************************************************************)
