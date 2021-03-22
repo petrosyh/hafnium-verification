@@ -482,9 +482,6 @@ Section AbstractStateContext.
     
     (** We may be able to use some feature of interaction tree for this scheduling? *)
     scheduler : AbstractState -> ffa_UUID_t; 
-    
-    cur_entity_id_prop (state : AbstractState) :
-      In state.(cur_entity_id) entity_list;
 
     FFA_memory_region_struct_size
       (contituents: Z) : Z; (* probably 36 *)

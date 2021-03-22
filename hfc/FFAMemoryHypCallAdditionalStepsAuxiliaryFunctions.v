@@ -167,9 +167,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
     do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
     do message <- relinqiush_struct_to_mailbox_send_msg relinquish_descriptor ;;; 
     let new_vm_context := vm_context {vm_mailbox :
-                                        mkMAILBOX_struct 
-                                          (vm_context.(mailbox).(send))
-                                          message sender size FFA_MEM_RELINQUISH } in
+                                        mkMAILBOX_struct
+                                          message 
+                                          (vm_context.(mailbox).(recv))
+                                          sender size FFA_MEM_RELINQUISH } in
     let new_vm_contexts :=
         ZTree.set receiver new_vm_context
                   state.(hypervisor_context).(vms_contexts) in

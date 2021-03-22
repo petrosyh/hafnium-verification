@@ -127,7 +127,9 @@ Section AbstractStateContextProps.
         make_handle vid value = Some handle ->
         Z.land (Z.shiftl 1 63) handle <> 0;      
     (* TODO: add more invariants *)
-    
+        
+    cur_entity_id_prop (state : AbstractState) :
+      In state.(cur_entity_id) entity_list;
     }.
 
   (** ** Invariants for memory *)

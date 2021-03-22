@@ -86,11 +86,11 @@ Section FFA_TYPES_AND_CONSTANT.
     (** - Type for an implementation defined values that are used in 
         [FFA_MEM_DONATE], [FFA_MEM_SHARE], and [FFA_MEM_LEND]. So, we cannot specify the value by
         defining inductive types. In this sense, we define it as a general Type *)
-    ffa_memory_region_tag_t := Type;
+    ffa_memory_region_tag_t : Type;
     (** - The following two types are for message passings. We use them to record and 
         retrieve descriptor information *)
-    ffa_mailbox_send_msg_t := Type;
-    ffa_mailbox_recv_msg_t := Type;
+    ffa_mailbox_send_msg_t : Type;
+    ffa_mailbox_recv_msg_t : Type;
 
     (** - Granuale value. It is usually a multiplication of 4096 (4KiB) *)
     granuale : ffa_granuale_size_t;
@@ -1990,7 +1990,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
   Definition init_FFA_memory_region_struct :=
     mkFFA_memory_region_struct
       0 init_FFA_memory_region_attributes_descriptor_struct
-      MEMORY_REGION_FLAG_DEFAULT 0 init_ffa_memory_region_tag nil.
+      MEMORY_REGION_FLAG_DEFAULT 0 init_ffa_memory_region_tag nil init_FFA_composite_memory_region_struct.
 
   (** **** well formed conditions *)
   Fixpoint well_formed_FFA_memory_region_struct_receivers

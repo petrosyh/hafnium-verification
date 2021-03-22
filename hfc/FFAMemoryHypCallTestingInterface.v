@@ -200,13 +200,139 @@ Notation " 'check' A ;;; B" :=
  
 Local Open Scope itree_monad_scope.
 
-
 (***********************************************************************)
 (** *                 Context switching related parts                  *)
 (***********************************************************************)
-Section FFAContextSwitching.
+
+Global Instance ffa_types_and_constants : FFA_TYPES_AND_CONSTANTS :=
+  {
+  ffa_memory_region_tag_t := Z;
+  (** - The following two types are for message passings. We use them to record and 
+        retrieve descriptor information *)
+  ffa_mailbox_send_msg_t := Z;
+  ffa_mailbox_recv_msg_t := Z;
+
+  (** - Granuale value. It is usually a multiplication of 4096 (4KiB) *)
+  granuale := 4096;
+  init_ffa_memory_region_tag := 0;
+  init_ffa_mailbox_send_msg  := 0;
+  init_ffa_mailbox_recv_msg  := 0;  
+  }.
+
+Global Instance address_translation
+  : AddressTranslation (ffa_types_and_constants := ffa_types_and_constants) :=
+  {
+  hafnium_address_translation_table := fun x => Some x;
+  vm_address_translation_table := fun vid x => Some x;
+  }.
+
+Global Instance  hafnium_memory_management_context
+  : HafniumMemoryManagementContext (address_translation := address_translation) :=
+  {
+  address_low := 0;
+  address_high := Z.pow 2 16;
+  alignment_value := granuale;
+  }.
+
+Global Instance vm_context
+  : VMContext (ffa_types_and_constants := ffa_types_and_constants) :=
+  {
+  vcpu_max_num := 8
+  }.
   
-  Context `{abstract_state_context: AbstractStateContext}.
+Global Instance  handle_context :
+  HandleContext (ffa_types_and_constants := ffa_types_and_constants) :=
+  {
+  make_handle := fun vid value =>
+                   if decide (0 <= vid < (Z.shiftl 1 16))
+                   then if decide (0 <= value < (Z.shiftl 1 16))
+                        then Some (Z.lor (Z.shiftl vid 16) value)
+                        else None
+                   else None;
+  get_value := fun handle =>
+                 let mask := ((Z.shiftl 1 16) - 1)%Z in
+                 Z.land mask handle;
+  get_sender := fun handle =>
+                  Z.shiftr handle 16;
+  }.
+
+Print ZTree.empty.
+
+Definition init_mem_global_properties_pool
+  : mem_global_properties_pool
+  := ZTree.empty MemGlobalProperties.
+
+Definition init_mem_local_properties_global_pool 
+  : mem_local_properties_global_pool
+  := ZTree.empty
+       (ZTree.t MemLocalProperties).
+
+Definition init_mem_properties :=
+  mkMemProperties
+    init_mem_global_properties_pool
+    init_mem_local_properties_global_pool.
+
+Definition init_hypervisor_struct :=
+  mkHypervisor_struct
+    0 8 (ZTree.empty CPU_struct)
+    false None
+    4096
+    (ZTree.empty FFA_memory_share_state_struct)
+    0
+    init_mem_properties
+    0
+    (ZTree.empty VM_struct).
+
+Definition init_vms_userspaces := ZTree.empty VM_USERSPACE_struct.
+
+Definition init_abstract_state :=
+  mkAbstractState (1, 1) 1 init_hypervisor_struct init_vms_userspaces.
+
+Global Instance abstract_state_context :
+  AbstractStateContext
+    (ffa_types_and_constants := ffa_types_and_constants)
+    (address_translation := address_translation)
+    (hafnium_memory_management_context := hafnium_memory_management_context) 
+    (vm_context := vm_context)
+    (handle_context := handle_context) :=
+  {
+  primary_vm_id := 1;
+  secondary_vm_ids := 2::3::4::5::6::7::nil;
+    
+  mailbox_send_msg_to_region_struct :=
+    fun x => Some init_FFA_memory_region_struct;
+  mailbox_send_msg_to_relinqiush_struct :=
+    fun x => Some init_FFA_mem_relinquish_struct;
+  mailbox_send_msg_to_Z :=
+    fun x => Some 0;
+  region_struct_to_mailbox_send_msg :=
+    fun x => Some 0;    
+  relinqiush_struct_to_mailbox_send_msg :=
+    fun x => Some 0;
+  Z_to_mailbox_send_msg := 
+    fun x => Some 0;
+
+  mailbox_recv_msg_to_region_struct :=
+    fun x => Some init_FFA_memory_region_struct;
+  mailbox_recv_msg_to_relinqiush_struct :=
+    fun x => Some init_FFA_mem_relinquish_struct;
+  mailbox_recv_msg_to_Z :=
+    fun x => Some 0;
+  region_struct_to_mailbox_recv_msg :=
+    fun x => Some 0;
+  relinqiush_struct_to_mailbox_recv_msg :=
+    fun x => Some 0;
+  Z_to_mailbox_recv_msg := 
+    fun x => Some 0;
+
+  scheduler :=
+    fun x => 0;
+
+  FFA_memory_region_struct_size := fun x => 36;
+  initial_state := init_abstract_state   
+  }.
+
+Section FFAContextSwitching.
 
   Inductive updateStateE: Type -> Type :=
   | GetState : updateStateE (AbstractState)
@@ -325,9 +451,7 @@ End FFAContextSwitching.
 (** *                       FFA Dispatch                               *)
 (***********************************************************************)
 Section FFADispatch.
-  
-  Context `{abstract_state_context: AbstractStateContext}.
-  
+   
   Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
 
   Definition function_dispatcher
