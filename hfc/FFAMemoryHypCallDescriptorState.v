@@ -87,16 +87,10 @@ Section FFA_TYPES_AND_CONSTANT.
         [FFA_MEM_DONATE], [FFA_MEM_SHARE], and [FFA_MEM_LEND]. So, we cannot specify the value by
         defining inductive types. In this sense, we define it as a general Type *)
     ffa_memory_region_tag_t : Type;
-    (** - The following two types are for message passings. We use them to record and 
-        retrieve descriptor information *)
-    ffa_mailbox_send_msg_t : Type;
-    ffa_mailbox_recv_msg_t : Type;
 
     (** - Granuale value. It is usually a multiplication of 4096 (4KiB) *)
     granuale : ffa_granuale_size_t;
     init_ffa_memory_region_tag : ffa_memory_region_tag_t;
-    init_ffa_mailbox_send_msg: ffa_mailbox_send_msg_t;
-    init_ffa_mailbox_recv_msg: ffa_mailbox_recv_msg_t;
     }.
 
 End FFA_TYPES_AND_CONSTANT.
@@ -476,12 +470,7 @@ Section FFA_DESCRIPTIONS.
       defined in FFAMemoryHypCallState.v) 
       which contains the information that receivers has to look up. *)
 
-  Class HandleContext `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS} :=
-    {
-    make_handle (vid: ffa_UUID_t) (value: Z) : option Z;
-    get_value (handle: Z) : Z;
-    get_sender (handle: Z) : ffa_UUID_t;
-    }.
+  (* Abstract functions for those things are defined in the below (DescriptorContext *)
 
   (**************************************)
   (** ** 5.11 Memory region properties  *)
@@ -2348,4 +2337,15 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
   
   
 End FFA_MEMORY_REGION_DESCRIPTOR.
+
+Section FFA_MEMORY_REGION_DESCRIPTOR_CONTEXT.
+
+  Class DescriptorContext `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS} :=
+    {
+    make_handle (vid: ffa_UUID_t) (value: Z) : option Z;
+    get_value (handle: Z) : Z;
+    get_sender (handle: Z) : ffa_UUID_t;
+    }.
+  
+End FFA_MEMORY_REGION_DESCRIPTOR_CONTEXT.
 

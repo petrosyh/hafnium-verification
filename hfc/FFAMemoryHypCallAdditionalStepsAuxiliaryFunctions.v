@@ -103,7 +103,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
     let new_vm_context := vm_context {vm_mailbox :
                                         mkMAILBOX_struct 
                                           (vm_context.(mailbox).(send))
-                                          message sender size recv_func } in
+                                          message (Some sender) size (Some recv_func) } in
     let new_vm_contexts :=
         ZTree.set receiver new_vm_context
                   state.(hypervisor_context).(vms_contexts) in
@@ -145,7 +145,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
     let new_vm_context := vm_context {vm_mailbox :
                                         mkMAILBOX_struct 
                                           (vm_context.(mailbox).(send))
-                                          message sender size recv_func } in
+                                          message (Some sender) size (Some recv_func)} in
     let new_vm_contexts :=
         ZTree.set receiver new_vm_context
                   state.(hypervisor_context).(vms_contexts) in
@@ -170,7 +170,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
                                         mkMAILBOX_struct
                                           message 
                                           (vm_context.(mailbox).(recv))
-                                          sender size FFA_MEM_RELINQUISH } in
+                                          (Some sender) size (Some FFA_MEM_RELINQUISH)} in
     let new_vm_contexts :=
         ZTree.set receiver new_vm_context
                   state.(hypervisor_context).(vms_contexts) in

@@ -106,16 +106,16 @@ Section AbstractStateContextProps.
         end;
     (* TODO: add more invariants *)    
     
-    vcpu_num_prop (vm: VM_struct) : 0 < vm.(vcpu_num) <= vcpu_max_num;
-    cur_vcpu_id_prop (vm: VM_struct) : 0 <= vm.(cur_vcpu_index) < vm.(vcpu_num);
+    (* vcpu_num_prop (vm: VM_struct) : 0 < vm.(vcpu_num) <= vcpu_max_num;
+    cur_vcpu_id_prop (vm: VM_struct) : 0 <= vm.(cur_vcpu_index) < vm.(vcpu_num); *)
     (* TODO: add more invariants *)
 
-    
+    (*
     userspace_vcpu_num_prop (vm_userspace: VM_USERSPACE_struct) :
       0 < vm_userspace.(userspace_cur_vcpu_index) <= vcpu_max_num;
     userspace_cur_vcpu_id_prop (vm_userspace: VM_USERSPACE_struct) :
       0 <= vm_userspace.(userspace_cur_vcpu_index)
-      < vm_userspace.(userspace_vcpu_num);
+      < vm_userspace.(userspace_vcpu_num); *)
     (* TODO: add more invariants *)
 
     (**
@@ -142,7 +142,7 @@ Section AbstractStateContextProps.
   (* TODO: we need invariants about fileds, cpu_id and vm_id, in VCPU_struct *)
 
 
-  Context `{abstract_state_context: AbstractStateContext}.
+  Context `{abstract_state_context: !AbstractStateContext}.
   
   Definition mem_properties_prop_low_out_of_bound (st : AbstractState) :=
     forall addr,

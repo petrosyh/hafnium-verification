@@ -31,12 +31,158 @@ Set Implicit Arguments.
 (*************************************************************)
 (** This file provides a state definition for FF-A memory management interfaces. *)
 
+
+(*************************************************************)
+(** **      VM CONTEXT                                       *)
+(*************************************************************)
+(** This one is necessary to model context saving/restoring of FFA ABI.  
+    To model these parts, we refer Hafnium. However, the following model 
+    should be quite general enough to use them in other hypervisor implementations. 
+
+  - When looking at Hafnium, related definitions are in
+    - "/inc/hf/vm.h"
+    - "/inc/hf/.h"
+    - "/src/arch/aarch64/inc/hf/arch/types.h" 
+*)
+Section FFA_VM.
+
+  Class FFA_VM_CONTEXT `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS}  :=
+    {
+    (** - The following two types are for message passings. We use them to record and 
+        retrieve descriptor information *)
+    ffa_mailbox_send_msg_t : Type;
+    ffa_mailbox_recv_msg_t : Type;
+    init_ffa_mailbox_send_msg: ffa_mailbox_send_msg_t;
+    init_ffa_mailbox_recv_msg: ffa_mailbox_recv_msg_t;
+
+    vcpu_max_num : Z;
+
+    (** mailbox to/from descriptors *)
+    mailbox_send_msg_to_region_struct :
+      ffa_mailbox_send_msg_t -> option FFA_memory_region_struct;
+    mailbox_send_msg_to_relinqiush_struct:
+      ffa_mailbox_send_msg_t -> option FFA_memory_relinquish_struct;
+    mailbox_send_msg_to_Z :
+      ffa_mailbox_send_msg_t -> option Z;
+    region_struct_to_mailbox_send_msg :
+      FFA_memory_region_struct -> option ffa_mailbox_send_msg_t;
+    relinqiush_struct_to_mailbox_send_msg :
+      FFA_memory_relinquish_struct -> option ffa_mailbox_send_msg_t;
+    Z_to_mailbox_send_msg :
+      Z -> option ffa_mailbox_send_msg_t;
+
+    mailbox_recv_msg_to_region_struct :
+      ffa_mailbox_recv_msg_t -> option FFA_memory_region_struct;
+    mailbox_recv_msg_to_relinqiush_struct:
+      ffa_mailbox_recv_msg_t -> option FFA_memory_relinquish_struct;
+    mailbox_recv_msg_to_Z:
+      ffa_mailbox_recv_msg_t -> option Z;
+    region_struct_to_mailbox_recv_msg :
+      FFA_memory_region_struct -> option ffa_mailbox_recv_msg_t;
+    relinqiush_struct_to_mailbox_recv_msg :
+      FFA_memory_relinquish_struct -> option ffa_mailbox_recv_msg_t;
+    Z_to_mailbox_recv_msg :
+      Z -> option ffa_mailbox_recv_msg_t;
+
+    hafnium_id : ffa_UUID_t := 0;
+    primary_vm_id: ffa_UUID_t;
+    secondary_vm_ids : list ffa_UUID_t;
+    vm_ids := primary_vm_id::secondary_vm_ids;
+    number_of_vm := Zlength vm_ids;    
+    entity_list : list ffa_UUID_t := hafnium_id::vm_ids;
+    
+    FFA_memory_region_struct_size
+      (contituents: Z) : Z; (* probably 36 *)
+    }.
+
+  Context `{ffa_vm_context: FFA_VM_CONTEXT}.
+  
+  (** In Hafnium: registers in "/src/arch/aarch64/inc/hf/arch/types.h" 
+      
+      Type to represent the register state of a vCPU. 
+      - [uintreg_t r(NUM_GP_REGS);]: General purpose registers.
+      - [uintreg_t pc;]
+      - [uintreg_t spsr;]
+  *)
+
+  (** In Hafnium: VM struct in "/inc/hf/vm.h" 
+
+      - [ffa_vm_id_t id;]
+      - [struct smc_whitelist smc_whitelist;]: See api.c for the partial ordering on locks.        
+      - [struct spinlock lock;]
+      - [ffa_vcpu_count_t vcpu_count;]
+      - [struct vcpu vcpus(MAX_CPUS);]
+      - [struct mm_ptable ptable;]
+      - [struct mailbox mailbox;]
+      - [char log_buffer(LOG_BUFFER_SIZE);]
+      - [uint16_t log_buffer_length;]
+      - [struct wait_entry wait_entries(MAX_VMS);]: Wait entries to be used when waiting on other VM mailboxes. 
+        See comments on `struct wait_entry` for the lock discipline of these.
+      - [atomic_bool aborting;]
+      - [struct arch_vm arch;]: Arch-specific VM information.
+   *)
+
+  (** Simplified vcpu context - we only includes some registers - actually only FFA related values *)
+  Record ArchRegs :=
+    mkArchRegs {
+        regs: FFA_value_type;
+      }.
+  Record VCPU_struct :=
+    mkVCPU_struct{
+        (** the vm that is currently associated with this vcpu - the connect *)
+        cpu_id : option ffa_CPU_ID_t; 
+        vm_id: option ffa_UUID_t;
+        vcpu_regs: ArchRegs;
+      }.
+
+  Record MAILBOX_struct :=
+    mkMAILBOX_struct {
+        send : ffa_mailbox_send_msg_t;
+        recv : ffa_mailbox_recv_msg_t;
+        recv_sender : option ffa_UUID_t;
+        recv_size : Z;
+        recv_func : option FFA_FUNCTION_TYPE;
+      }.
+
+  Record VM_COMMON_struct :=
+    mkVM_COMMON_struct {
+        cur_vcpu_index : option ffa_VCPU_ID_t;
+        (** vcpus that are assigned into this VM *)
+        vcpus: list ffa_VCPU_ID_t;
+        (** vcpu does not need to be allocated into one VM in a consecutive manner. 
+            For example, when vcpu_num is 3 for this VM, and assinged vcpu ids can be 0, 3, and 5. *)
+        vcpus_contexts : ZTree.t VCPU_struct;
+        (** ptable for each VM is defined in AddressTranslation class *)
+      }.
+
+  (** Adding several things in here is possible, but we focus on 
+      FFA-related things in this VM userspace modeling. We are able to add
+      any other things according to our decision *)
+  Record VM_USERSPACE_struct :=
+    mkVM_USERSPACE_struct {
+        vm_userspace_context: VM_COMMON_struct;
+        (** all other parts are ignored at this moment *)
+      }.
+  
+  (** Simplified VM context - we assume VM only has own vcpu *)
+  Record VM_KERNEL_struct :=
+    mkVM_KERNEL_struct {
+        vm_kernelspace_context : VM_COMMON_struct;
+        (** Each VM has its own mailbox. *)
+        (** IN FFA ABI handling, the actual information for the handling is in mailboxes. 
+           In this sense, we includes this informaiton in this state definition *)
+        mailbox : MAILBOX_struct;
+        (** all other parts are ignored at this moment *)        
+      }.
+
+End FFA_VM.
+
 (*************************************************************)
 (** **        memory and ptable                              *)
 (*************************************************************)
 Section MEM_AND_PTABLE.
 
-  Context `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS}.
+  Context `{ffa_vm_context: FFA_VM_CONTEXT}.
   
   (** memory states on memory addresses 
 
@@ -183,9 +329,22 @@ Section MEM_AND_PTABLE_CONTEXT.
   (** In top level, we do not need to specify ptable in detail. 
      In this sense, we try to abstract the definition of ptable. 
      => gets the input address (e.g., va or ipa) and return the address (e.g., ipa or pa) 
-     
-     Filling out details of those definitions are user's obligations *)
-  Class AddressTranslation `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS} :=
+
+     Filling out details of those definitions are user's obligations *)       
+  Class HafniumMemoryManagementBasicContext
+        `{ffa_vm_context: FFA_VM_CONTEXT} :=
+    {
+    (** address low and high *)
+    address_low : ffa_address_t;
+    address_high : ffa_address_t;
+
+    (** usually 4096 *)
+    alignment_value : Z;
+    }.
+  
+  Class HafniumMemoryManagementContext
+        `{hafnium_memory_management_basic_context
+          : HafniumMemoryManagementBasicContext} :=
     {
     (** address translation funciton in ptable. There are two possible cases 
        1. provides the entire address translation from 
@@ -197,138 +356,15 @@ Section MEM_AND_PTABLE_CONTEXT.
     vm_address_translation_table
       (vm_id : ffa_UUID_t) (input_addr: ffa_address_t) : option ffa_address_t;
     }.
-  
-  Class HafniumMemoryManagementContext `{address_translation: AddressTranslation} :=
-    {
-    (** address low and high *)
-    address_low : ffa_address_t;
-    address_high : ffa_address_t;
-
-    (** usually 4096 *)
-    alignment_value : Z;
-    }.
 
 End MEM_AND_PTABLE_CONTEXT.
-
-(*************************************************************)
-(** **      VM CONTEXT                                       *)
-(*************************************************************)
-(** This one is necessary to model context saving/restoring of FFA ABI.  
-    To model these parts, we refer Hafnium. However, the following model 
-    should be quite general enough to use them in other hypervisor implementations. 
-
-  - When looking at Hafnium, related definitions are in
-    - "/inc/hf/vm.h"
-    - "/inc/hf/.h"
-    - "/src/arch/aarch64/inc/hf/arch/types.h" 
-*)
-Section FFA_VM.
-
-  Context `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS}.
-  
-  (** In Hafnium: registers in "/src/arch/aarch64/inc/hf/arch/types.h" 
-      
-      Type to represent the register state of a vCPU. 
-      - [uintreg_t r(NUM_GP_REGS);]: General purpose registers.
-      - [uintreg_t pc;]
-      - [uintreg_t spsr;]
-  *)
-
-  (** In Hafnium: VM struct in "/inc/hf/vm.h" 
-
-      - [ffa_vm_id_t id;]
-      - [struct smc_whitelist smc_whitelist;]: See api.c for the partial ordering on locks.        
-      - [struct spinlock lock;]
-      - [ffa_vcpu_count_t vcpu_count;]
-      - [struct vcpu vcpus(MAX_CPUS);]
-      - [struct mm_ptable ptable;]
-      - [struct mailbox mailbox;]
-      - [char log_buffer(LOG_BUFFER_SIZE);]
-      - [uint16_t log_buffer_length;]
-      - [struct wait_entry wait_entries(MAX_VMS);]: Wait entries to be used when waiting on other VM mailboxes. 
-        See comments on `struct wait_entry` for the lock discipline of these.
-      - [atomic_bool aborting;]
-      - [struct arch_vm arch;]: Arch-specific VM information.
-   *)
-
-  (** Simplified vcpu context - we only includes some registers - actually only FFA related values *)
-  Record ArchRegs :=
-    mkArchRegs {
-        regs: FFA_value_type;
-      }.
-  Record VCPU_struct :=
-    mkVCPU_struct{
-        (** the vm that is currently associated with this vcpu - the connect *)
-        cpu_id : option ffa_CPU_ID_t; 
-        vm_id: option ffa_UUID_t;
-        vcpu_regs: ArchRegs;
-      }.
-
-  Record MAILBOX_struct :=
-    mkMAILBOX_struct {
-        send : ffa_mailbox_send_msg_t;
-        recv : ffa_mailbox_recv_msg_t;
-        recv_sender : ffa_UUID_t;
-        recv_size : Z;
-        recv_func : FFA_FUNCTION_TYPE;
-      }.
-  
-  (** Simplified VM context - we assume VM only has own vcpu *)
-  Record VM_struct :=
-    mkVM_struct {
-        cur_vcpu_index : ffa_VCPU_ID_t;
-        (** number of vcpus that are assigned into this VM *)
-        vcpu_num: Z;
-        vcpus : ZTree.t VCPU_struct;
-        (** ptable for each VM is defined in AddressTranslation class *)
-
-        (** Each VM has its own mailbox. *)
-        (** IN FFA ABI handling, the actual information for the handling is in mailboxes. 
-           In this sense, we includes this informaiton in this state definition *)
-        mailbox : MAILBOX_struct;
-        (** all other parts are ignored at this moment *)        
-      }.
-
-End FFA_VM.
-
-Section FFA_VM_CONTEXT.
-  
-  Class VMContext `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS} := 
-    {
-    vcpu_max_num : Z;
-    }.
-
-End FFA_VM_CONTEXT.
-
-(*************************************************************)
-(** **                  VM user space                        *)
-(*************************************************************)
-(** Adding several things in here is possible, but we focus on 
-    FFA-related things in this VM userspace modeling. We are able to add
-    any other things according to our decision *)
-Section VM_CLIENTS.
-
-  Context `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS}.
-  
-  Record VM_USERSPACE_struct :=
-    mkVM_USERSPACE_struct {
-        userspace_cur_vcpu_index : ffa_VCPU_ID_t;
-        (** number of vcpus that are assigned into this VM *)
-        userspace_vcpu_num: Z;
-        (** vcpu does not need to be allocated into one VM in a consecutive manner. 
-            For example, when vcpu_num is 3 for this VM, and assinged vcpu ids can be 0, 3, and 5. *)
-        userspace_vcpus : ZTree.t VCPU_struct;
-        (** all other parts are ignored at this moment *)
-      }.
-
-End VM_CLIENTS.
 
 (*************************************************************)
 (** **     AbstractState for FFA modeling                    *)
 (*************************************************************)
 Section AbstractState.
 
-  Context `{ffa_types_and_constants: !FFA_TYPES_AND_CONSTANTS}.
+  Context `{ffa_vm_context: FFA_VM_CONTEXT}.
   
   (** It represents CPU object, but it is currently empty. *)
   Record CPU_struct :=
@@ -348,7 +384,7 @@ Section AbstractState.
      memory region descriptor. Any entries beyond the attribute_count will
      always be false.
  *)
-
+  
   Record FFA_memory_share_state_struct :=
     mkFFA_memory_share_state_struct {
         memory_region : FFA_memory_region_struct;
@@ -407,7 +443,7 @@ Section AbstractState.
         vm_count : Z;
         (** - VM contexts saved in hafnium *)
         (** - VM ids are consecutively assigned. *) 
-        vms_contexts :  ZTree.t VM_struct;
+        vms_contexts :  ZTree.t VM_KERNEL_struct;
       }.
   
   Record AbstractState :=
@@ -436,55 +472,23 @@ Section AbstractStateContext.
   Class AbstractStateContext
         `{ffa_types_and_constants:
             !FFA_TYPES_AND_CONSTANTS}
-        `{address_translation:
-            !AddressTranslation
-             (ffa_types_and_constants := ffa_types_and_constants)}
+        `{descriptor_context: !DescriptorContext
+                               (ffa_types_and_constants :=
+                                  ffa_types_and_constants)}
+        `{ffa_vm_context: !FFA_VM_CONTEXT
+                           (ffa_types_and_constants
+                              := ffa_types_and_constants)}
+        `{hafnium_memory_management_basic_context :
+            !HafniumMemoryManagementBasicContext
+             (ffa_vm_context
+                := ffa_vm_context)}
         `{hafnium_memory_management_context :
             !HafniumMemoryManagementContext
-             (address_translation := address_translation)}
-        `{vm_context :
-            !VMContext
-             (ffa_types_and_constants := ffa_types_and_constants)}
-        `{handle_context : !HandleContext} :=
+             (hafnium_memory_management_basic_context
+                := hafnium_memory_management_basic_context)} :=
     {
-    hafnium_id : ffa_UUID_t := 0;
-    primary_vm_id: ffa_UUID_t;
-    secondary_vm_ids : list ffa_UUID_t;
-    vm_ids := primary_vm_id::secondary_vm_ids; 
-    entity_list : list ffa_UUID_t := hafnium_id::vm_ids;
-
-    (** mailbox to/from descriptors *)
-    mailbox_send_msg_to_region_struct :
-      ffa_mailbox_send_msg_t -> option FFA_memory_region_struct;
-    mailbox_send_msg_to_relinqiush_struct:
-      ffa_mailbox_send_msg_t -> option FFA_memory_relinquish_struct;
-    mailbox_send_msg_to_Z :
-      ffa_mailbox_send_msg_t -> option Z;
-    region_struct_to_mailbox_send_msg :
-      FFA_memory_region_struct -> option ffa_mailbox_send_msg_t;
-    relinqiush_struct_to_mailbox_send_msg :
-      FFA_memory_relinquish_struct -> option ffa_mailbox_send_msg_t;
-    Z_to_mailbox_send_msg :
-      Z -> option ffa_mailbox_send_msg_t;
-
-    mailbox_recv_msg_to_region_struct :
-      ffa_mailbox_recv_msg_t -> option FFA_memory_region_struct;
-    mailbox_recv_msg_to_relinqiush_struct:
-      ffa_mailbox_recv_msg_t -> option FFA_memory_relinquish_struct;
-    mailbox_recv_msg_to_Z:
-      ffa_mailbox_recv_msg_t -> option Z;
-    region_struct_to_mailbox_recv_msg :
-      FFA_memory_region_struct -> option ffa_mailbox_recv_msg_t;
-    relinqiush_struct_to_mailbox_recv_msg :
-      FFA_memory_relinquish_struct -> option ffa_mailbox_recv_msg_t;
-    Z_to_mailbox_recv_msg :
-      Z -> option ffa_mailbox_recv_msg_t;
-    
     (** We may be able to use some feature of interaction tree for this scheduling? *)
     scheduler : AbstractState -> ffa_UUID_t; 
-
-    FFA_memory_region_struct_size
-      (contituents: Z) : Z; (* probably 36 *)
     
     initial_state : AbstractState;    
     }.
@@ -502,20 +506,23 @@ End AbstractStateContext.
 
 Section AbstractStateUpdate.  
 
-  Context `{ffa_types_and_constants: !FFA_TYPES_AND_CONSTANTS}.
+  Context `{abstract_state_context: AbstractStateContext}.
   (** update functions for better readability *)
   
   (** update memory global properties *)
   Definition update_owned_by_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties b (a.(accessible_by))
+    mkMemGlobalProperties b
+                          (a.(accessible_by))
                           (a.(global_instruction_access_property))
                           (a.(global_data_access_property))
-                          (a.(global_mem_attribute)) (a.(mem_dirty)).
+                          (a.(global_mem_attribute))
+                          (a.(mem_dirty)).
   
   Definition update_accessible_by_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by)) b
+    mkMemGlobalProperties (a.(owned_by))
+                          b
                           (a.(global_instruction_access_property))
                           (a.(global_data_access_property))
                           (a.(global_mem_attribute))
@@ -523,29 +530,36 @@ Section AbstractStateUpdate.
 
   Definition update_global_instruction_access_property_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by)) (a.(accessible_by)) b
+    mkMemGlobalProperties (a.(owned_by))
+                          (a.(accessible_by))
+                          b
                           (a.(global_data_access_property))
                           (a.(global_mem_attribute))
                           (a.(mem_dirty)).
              
   Definition update_global_data_access_property_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by)) (a.(accessible_by))
+    mkMemGlobalProperties (a.(owned_by))
+                          (a.(accessible_by))
                           (a.(global_instruction_access_property))
-                          b (a.(global_mem_attribute))
+                          b
+                          (a.(global_mem_attribute))
                           (a.(mem_dirty)).
 
   Definition update_global_mem_attribute_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by)) (a.(accessible_by))
+    mkMemGlobalProperties (a.(owned_by))
+                          (a.(accessible_by))
                           (a.(global_instruction_access_property))
-                          (a.(global_data_access_property)) b
+                          (a.(global_data_access_property))
+                          b
                           (a.(mem_dirty)).
 
     
   Definition update_mem_dirty_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by)) (a.(accessible_by))
+    mkMemGlobalProperties (a.(owned_by))
+                          (a.(accessible_by))
                           (a.(global_instruction_access_property))
                           (a.(global_data_access_property))
                           (a.(global_mem_attribute))
@@ -554,47 +568,106 @@ Section AbstractStateUpdate.
   (** update memory local properties *)
   Definition update_mem_local_owned_in_mem_local_properties
              (a: MemLocalProperties) b :=
-    mkMemLocalProperties b (a.(instruction_access_property))
-                         (a.(data_access_property)) (a.(mem_attribute)).
+    mkMemLocalProperties b
+                         (a.(instruction_access_property))
+                         (a.(data_access_property))
+                         (a.(mem_attribute)).
   
   Definition update_instruction_access_property_in_mem_local_properties
              (a : MemLocalProperties) b :=
     mkMemLocalProperties (a.(mem_local_owned))
-                         b (a.(data_access_property)) (a.(mem_attribute)).
+                         b
+                         (a.(data_access_property))
+                         (a.(mem_attribute)).
   
   Definition update_data_access_property_in_mem_local_properties
              (a : MemLocalProperties) b :=
     mkMemLocalProperties (a.(mem_local_owned))
-                         (a.(instruction_access_property)) b (a.(mem_attribute)).
+                         (a.(instruction_access_property))
+                         b
+                         (a.(mem_attribute)).
 
   Definition update_mem_attribute_in_mem_local_properties
              (a : MemLocalProperties) b :=
     mkMemLocalProperties (a.(mem_local_owned))
                          (a.(instruction_access_property))
-                         (a.(data_access_property)) b.
+                         (a.(data_access_property))
+                         b.
 
   (** update memory properties *)
   Definition update_mem_global_properties_in_mem_properties
              (a : MemProperties) b :=
-    mkMemProperties b a.(mem_local_properties). 
+    mkMemProperties b
+                    (a.(mem_local_properties)). 
 
   Definition update_mem_local_properties_in_mem_properties
              (a : MemProperties) b :=
-    mkMemProperties a.(mem_global_properties) b.
+    mkMemProperties (a.(mem_global_properties))
+                    b.
 
-  (* vm_context update *)
-  Definition update_cur_vcpu_index_in_vm_context (a : VM_struct) b :=
-    mkVM_struct b (a.(vcpu_num)) (a.(vcpus)) (a.(mailbox)).
-
-  Definition update_vcpu_num_in_vm_context (a : VM_struct) b :=
-    mkVM_struct (a.(cur_vcpu_index)) b (a.(vcpus)) (a.(mailbox)).
-
-  Definition update_vcpus_in_vm_context (a : VM_struct) b :=
-    mkVM_struct (a.(cur_vcpu_index)) (a.(vcpu_num)) b (a.(mailbox)).
-
-  Definition update_mailbox_in_vm_context (a : VM_struct) b :=
-    mkVM_struct (a.(cur_vcpu_index)) (a.(vcpu_num)) (a.(vcpus)) b.  
+  (* vm_common_context update *)
+  Definition update_cur_vcpu_index_in_vm_common_context
+             (a : VM_COMMON_struct) b :=
+    mkVM_COMMON_struct b
+                       (a.(vcpus))
+                       (a.(vcpus_contexts)).
   
+  Definition update_vcpus_in_vm_common_context
+             (a : VM_COMMON_struct) b :=
+    mkVM_COMMON_struct (a.(cur_vcpu_index))
+                       b
+                       (a.(vcpus_contexts)).
+  
+  Definition update_vcpus_contexts_in_vm_common_context
+             (a : VM_COMMON_struct) b :=
+    mkVM_COMMON_struct (a.(cur_vcpu_index))
+                       (a.(vcpus))
+                       b.
+
+  (* vm_kernel_context update *)
+  Definition update_cur_vcpu_index_in_vm_kernel_context
+             (a : VM_KERNEL_struct) b :=
+    mkVM_KERNEL_struct
+      (update_cur_vcpu_index_in_vm_common_context
+         (a.(vm_kernelspace_context)) b)
+      (a.(mailbox)).
+
+  Definition update_vcpus_in_vm_kernel_context
+             (a : VM_KERNEL_struct) b :=
+    mkVM_KERNEL_struct
+      (update_vcpus_in_vm_common_context
+         (a.(vm_kernelspace_context)) b)
+      (a.(mailbox)).
+
+  Definition update_vcpus_contexts_in_vm_kernel_context
+             (a : VM_KERNEL_struct) b :=
+    mkVM_KERNEL_struct
+      (update_vcpus_contexts_in_vm_common_context
+         (a.(vm_kernelspace_context)) b)
+      (a.(mailbox)).
+
+  Definition update_mailbox_in_vm_kernel_context
+             (a : VM_KERNEL_struct) b :=
+    mkVM_KERNEL_struct (a.(vm_kernelspace_context)) b.
+
+  (* vm_userspace_context update *)
+  Definition update_cur_vcpu_index_in_vm_userspace_context
+             (a : VM_USERSPACE_struct) b :=
+    mkVM_USERSPACE_struct
+      (update_cur_vcpu_index_in_vm_common_context
+         (a.(vm_userspace_context)) b).
+
+  Definition update_vcpus_in_vm_userspace_context
+             (a : VM_USERSPACE_struct) b :=
+    mkVM_USERSPACE_struct
+      (update_vcpus_in_vm_common_context
+         (a.(vm_userspace_context)) b).
+
+  Definition update_vcpus_contexts_in_vm_userspace_context
+             (a : VM_USERSPACE_struct) b :=
+    mkVM_USERSPACE_struct
+      (update_vcpus_contexts_in_vm_common_context
+         (a.(vm_userspace_context)) b).  
   
   (** update hafnium context *)
   Definition update_current_cpu_id_in_hafnium_context
@@ -707,23 +780,6 @@ Section AbstractStateUpdate.
                         (a.(fresh_index_for_ffa_share_state))
                         (a.(mem_properties))
                         (a.(vm_count)) b.
-
-  (** vm_userspace update *)
-  Definition update_cur_vcpu_index_in_vm_userspace
-             (a : VM_USERSPACE_struct) b :=
-    mkVM_USERSPACE_struct b (a.(userspace_vcpu_num))
-                          (a.(userspace_vcpus)).
-
-  Definition update_vcpu_num_in_vm_userspace
-             (a : VM_USERSPACE_struct) b :=
-    mkVM_USERSPACE_struct (a.(userspace_cur_vcpu_index)) b
-                          (a.(userspace_vcpus)).
-
-  Definition update_vcpus_in_vm_userspace
-             (a : VM_USERSPACE_struct) b :=
-    mkVM_USERSPACE_struct (a.(userspace_cur_vcpu_index))
-                          (a.(userspace_vcpu_num)) b.
-
   (** update *)
   Definition update_FFA_version_number (a: AbstractState) b := 
     mkAbstractState
@@ -836,13 +892,13 @@ Notation "a '{' 'mem_local_properties' : b '}'" :=
 
 (** update vm context *)
 Notation "a '{' 'vm_cur_vcpu_index' : b '}'"
-  := (update_cur_vcpu_index_in_vm_context a b) (at level 1).
-Notation "a '{' 'vm_vcpu_num' : b '}'"
-  := (update_vcpu_num_in_vm_context a b) (at level 1).
+  := (update_cur_vcpu_index_in_vm_kernel_context a b) (at level 1).
 Notation "a '{' 'vm_vcpus' : b '}'"
-  := (update_vcpus_in_vm_context a b) (at level 1).
+  := (update_vcpus_in_vm_kernel_context a b) (at level 1).
+Notation "a '{' 'vm_vcpus_contexts' : b '}'"
+  := (update_vcpus_contexts_in_vm_kernel_context a b) (at level 1).
 Notation "a '{' 'vm_mailbox' : b '}'"
-  := (update_mailbox_in_vm_context a b) (at level 1).
+  := (update_mailbox_in_vm_kernel_context a b) (at level 1).
 
 (** update hafnium context *)
 Notation "a '{' 'hypervisor_context' '/' 'current_cpu_id' : b '}'"
@@ -867,12 +923,12 @@ Notation "a '{' 'hypervisor_context' '/' 'vms_contexts' : b '}'"
   := (update_hypervisor_vms_contexts a b) (at level 1).
 
 (** update vm userspace context *)
-Notation "a '{' 'userspace_cur_vcpu_index' : b '}'"
-  := (update_cur_vcpu_index_in_vm_userspace a b) (at level 1).
-Notation "a '{' 'userspace_vcpu_num' : b '}'"
-  := (update_vcpu_num_in_vm_userspace a b) (at level 1).
-Notation "a '{' 'userspace_vcpus' : b '}'"
-  := (update_vcpus_in_vm_userspace a b) (at level 1).
+Notation "a '{' 'client_cur_vcpu_index' : b '}'"
+  := (update_cur_vcpu_index_in_vm_userspace_context a b) (at level 1).
+Notation "a '{' 'client_vcpus' : b '}'"
+  := (update_vcpus_in_vm_userspace_context a b) (at level 1).
+Notation "a '{' 'client_vcpus_contexts' : b '}'"
+  := (update_vcpus_contexts_in_vm_userspace_context a b) (at level 1).
 
 (** update abstract state *)
 Notation "a '{' 'FFA_version_number' : b '}'" :=
