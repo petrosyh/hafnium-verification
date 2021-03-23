@@ -445,7 +445,39 @@ Section AbstractState.
         (** - VM ids are consecutively assigned. *) 
         vms_contexts :  ZTree.t VM_KERNEL_struct;
       }.
-  
+
+
+  (** Log file to easily print out system's change history. 
+      We can easily make the following definition as abstract ones *)
+  Inductive log_type :=
+    (** - Scheduling *)
+  | ChangeCurEntityID (from_id to_id : ffa_UUID_t) (* by scheduler *)
+    (** - Context switching *)
+  | UserToKernel (vid: ffa_UUID_t)
+                 (vcpu_id : ffa_VCPU_ID_t)
+                 (reg_values: ArchRegs)
+  | KernelToUser (vid: ffa_UUID_t)
+                 (vcpu_id : ffa_VCPU_ID_t)
+                 (reg_values: ArchRegs)
+    (** - Dispatch Information *)                 
+  | DispathFFAInterface (reg_values: ArchRegs)      
+    (** - Mem property change *)
+  | SetOwner (entity_id : ffa_UUID_t) (address : ffa_address_t)
+             (owner: OWNERSHIP_STATE_TYPE)
+  | SetAccessible (vm_id : ffa_UUID_t) (address: ffa_address_t)
+                  (access: FFA_INSTRUCTION_ACCESS_TYPE)
+  | SetInstructionAccess (vm_id : ffa_UUID_t) (address: ffa_address_t)
+                         (access: ACCESS_STATE_TYPE)
+  | SetDataAccess (vm_id : ffa_UUID_t) (address: ffa_address_t)
+                  (access: FFA_DATA_ACCESS_TYPE)
+  | SetDirty (vm_id: ffa_UUID_t) (address: ffa_address_t)
+             (dirty: MEM_DIRTY_TYPE)
+    (** - Send and receiver Msg *)
+  | SendMsg (sender receiver: ffa_UUID_t)
+            (msg : MAILBOX_struct)
+  | RecvMsg (sender receiver: ffa_UUID_t)
+            (msg : MAILBOX_struct).
+
   Record AbstractState :=
     mkAbstractState{
         (** - The number to memorize the version of FFA - See 8.1 FFA_VERSION of the document and 
@@ -456,7 +488,10 @@ Section AbstractState.
         (** - hafnium global stage *)
         hypervisor_context: hypervisor_struct;
         (** - VM clinets *) 
-        vms_userspaces : ZTree.t VM_USERSPACE_struct; 
+        vms_userspaces : ZTree.t VM_USERSPACE_struct;
+
+        (** - a log field to memorize operation histories *)
+        system_log: list log_type;        
       }.
 
 End AbstractState.
@@ -783,18 +818,21 @@ Section AbstractStateUpdate.
   (** update *)
   Definition update_FFA_version_number (a: AbstractState) b := 
     mkAbstractState
-      b a.(cur_entity_id)
-            a.(hypervisor_context) a.(vms_userspaces).
+      b (a.(cur_entity_id))
+      (a.(hypervisor_context)) (a.(vms_userspaces))
+      (a.(system_log)).
   
   Definition update_cur_entity_id (a : AbstractState) b :=
     mkAbstractState
-      a.(FFA_version_number)
-          b a.(hypervisor_context) a.(vms_userspaces).
+      (a.(FFA_version_number)) b
+      (a.(hypervisor_context)) (a.(vms_userspaces))
+      (a.(system_log)).
 
   Definition update_hypervisor_context (a : AbstractState) b :=
     mkAbstractState
-      a.(FFA_version_number)
-          a.(cur_entity_id) b a.(vms_userspaces).
+      (a.(FFA_version_number)) (a.(cur_entity_id))
+      b (a.(vms_userspaces))
+      (a.(system_log)).
 
   Definition update_hypervisor_current_cpu_id
              (a: AbstractState) b :=
@@ -855,8 +893,16 @@ Section AbstractStateUpdate.
   Definition update_vms_userspaces
              (a : AbstractState) b :=
     mkAbstractState
-      a.(FFA_version_number)
-          a.(cur_entity_id) a.(hypervisor_context) b.
+      (a.(FFA_version_number))
+      (a.(cur_entity_id)) (a.(hypervisor_context)) b
+      (a.(system_log)).
+
+  Definition update_system_log
+             (a : AbstractState) b :=
+    mkAbstractState
+      (a.(FFA_version_number))
+      (a.(cur_entity_id)) (a.(hypervisor_context))
+      (a.(vms_userspaces)) b.  
   
 End AbstractStateUpdate.
 
@@ -939,5 +985,7 @@ Notation "a '{' 'hypervisor_context' : b '}'" :=
   (update_hypervisor_context a b) (at level 1).
 Notation "a '{' 'vms_userspaces' : b '}'" :=
   (update_vms_userspaces a b) (at level 1).
+Notation "a '{' 'system_log' : b '}'" :=
+  (update_system_log a b) (at level 1).
  
 (* end hide *)

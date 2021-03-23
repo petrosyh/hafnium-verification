@@ -505,7 +505,9 @@ Definition init_abstract_state :=
     (1, 1) (* dummy version number *)
     1 (*  cur_entity_id - primary VM *)
     init_hypervisor_struct
-    init_VM_USERSPACE_contexts.
+    init_VM_USERSPACE_contexts
+    nil (* system_log *)
+.    
 
 Fixpoint find_next_entity (vm_ids : list ffa_UUID_t)
          (current_entity_id : ffa_UUID_t) :=
@@ -539,12 +541,23 @@ Global Instance abstract_state_context :
   }.
 
 
+Definition system_log_entity_showable (log_entity : log_type) :=
+  
+  " \n".
 
-Instance abstract_state_Showable: Showable AbstractState :=
-  {
-  show :=
-    fun x => " "
-  }.
+Fixpoint system_log_showable (system_log: list log_type) :=
+  match system_log with
+  | nil => " "
+  | hd::tl =>
+    append (system_log_entity_showable hd)
+           (system_log_showable tl)
+  end.
+
+Definition abstract_state_showable (st : AbstractState) : string :=
+  system_log_showable st.(system_log).
+
+Instance abstract_state_Showable:
+  Showable AbstractState := { show := abstract_state_showable }.
 
 (***********************************************************************)
 (** *                 Context switching related parts                  *)
