@@ -83,8 +83,7 @@ Local Open Scope ffa_monad_scope.
 (*************************************************************)
 Section VALID_COMBINATIONS.
 
-  Context `{ffa_types_and_constants : FFA_TYPES_AND_CONSTANTS}.
-  Context `{ffa_vm_context: FFA_VM_CONTEXT}.
+  Context `{abstract_state_context : AbstractStateContext}. 
   
   (** This part is one of the most important parts that describe ownership and accessibility options. 
        It is similar to "valid" check in the abstract model by Jade 

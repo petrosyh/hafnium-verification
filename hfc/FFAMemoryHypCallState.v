@@ -445,10 +445,9 @@ Section AbstractState.
         (** - VM ids are consecutively assigned. *) 
         vms_contexts :  ZTree.t VM_KERNEL_struct;
       }.
-
-
+  
   (** Log file to easily print out system's change history. 
-      We can easily make the following definition as abstract ones *)
+      This definition can be abstracted if it is preferred *)
   Inductive log_type :=
     (** - Scheduling *)
   | ChangeCurEntityID (from_id to_id : ffa_UUID_t) (* by scheduler *)
@@ -465,19 +464,26 @@ Section AbstractState.
   | SetOwner (entity_id : ffa_UUID_t) (address : ffa_address_t)
              (owner: OWNERSHIP_STATE_TYPE)
   | SetAccessible (vm_id : ffa_UUID_t) (address: ffa_address_t)
-                  (access: FFA_INSTRUCTION_ACCESS_TYPE)
+                  (access:  ACCESS_STATE_TYPE)
+  | SetDirty (vm_id: ffa_UUID_t) (address: ffa_address_t)
+             (dirty: MEM_DIRTY_TYPE)                  
   | SetInstructionAccess (vm_id : ffa_UUID_t) (address: ffa_address_t)
-                         (access: ACCESS_STATE_TYPE)
+                         (access: FFA_INSTRUCTION_ACCESS_TYPE)
   | SetDataAccess (vm_id : ffa_UUID_t) (address: ffa_address_t)
                   (access: FFA_DATA_ACCESS_TYPE)
-  | SetDirty (vm_id: ffa_UUID_t) (address: ffa_address_t)
-             (dirty: MEM_DIRTY_TYPE)
+  | SetAttributes (vm_id : ffa_UUID_t) (address: ffa_address_t)
+                  (attributes: FFA_MEMORY_TYPE)
     (** - Send and receiver Msg *)
   | SendMsg (sender receiver: ffa_UUID_t)
             (msg : MAILBOX_struct)
   | RecvMsg (sender receiver: ffa_UUID_t)
-            (msg : MAILBOX_struct).
+            (msg : MAILBOX_struct)
+  | SendMsgWithDescriptor (sender receiver: ffa_UUID_t)
+                          (msg : MAILBOX_struct)
+  | RecvMsgWithDescriptor (sender receiver: ffa_UUID_t)
+                          (msg : MAILBOX_struct).
 
+  
   Record AbstractState :=
     mkAbstractState{
         (** - The number to memorize the version of FFA - See 8.1 FFA_VERSION of the document and 

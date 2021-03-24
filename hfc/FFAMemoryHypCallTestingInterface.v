@@ -47,6 +47,8 @@ Local Open Scope monad_scope.
 Local Open Scope string_scope.
 Require Import Coqlib sflib.
 
+Require Import HexString.
+
 (* From HafniumCore *)
 Require Import Any.
 Require Import Lang.
@@ -200,8 +202,6 @@ Notation " 'check' A ;;; B" :=
   : itree_monad_scope.
  
 Local Open Scope itree_monad_scope.
-
-
 
 (***********************************************************************)
 (** *                 Instantiations for contexts                      *)
@@ -540,11 +540,235 @@ Global Instance abstract_state_context :
       initial_state := init_abstract_state;
   }.
 
+(***********************************************************************)
+(** *                 Showable function for the log                    *)
+(***********************************************************************)
+  
+Fixpoint append_all (cls: list string) :=
+  match cls with
+  | nil => ""
+  | hd::tl =>
+    let res := append_all tl in
+    append hd res
+  end.
+
+Fixpoint list_z_to_string (vals : list Z) :=
+  match vals with
+  | nil => ""
+  | hd::nil =>
+    HexString.of_Z hd
+  | hd::tl =>
+    append_all [HexString.of_Z hd; ", "; list_z_to_string tl]
+  end.
+
+Fixpoint print_vals (position : nat) (vals :ZMap.t Z) :=
+  let print_val_fun :=
+      fun (x : nat) =>
+        append_all ["["; HexString.of_Z (Z.of_nat position); ": ";
+                   HexString.of_Z (ZMap.get (Z.of_nat position) vals); "]"] in
+  match position with
+  | O => print_val_fun position
+  | S position' =>
+    let res := print_vals position' vals in
+    append (print_val_fun position) res
+  end.
+
+Definition print_ffa_vals (vals :ZMap.t Z) :=
+  print_vals 7 vals.
+
+Definition FFA_value_type_to_string (ffa_value: FFA_value_type) :=
+  match ffa_value with
+  | mkFFA_value_type ffa_type vals =>
+    let ffa_value_string :=
+        match ffa_type with
+        | FFA_IDENTIFIER_DEFAULT => "FFA Identifier Default"
+        | FFA_FUNCTION_IDENTIFIER function_name =>
+          let function_name_string :=
+              match function_name with
+              | FFA_MEM_DONATE => " FFA_MEM_DONATE "
+              | FFA_MEM_LEND => " FFA_MEM_LEND "
+              | FFA_MEM_SHARE => " FFA_MEM_SHARE "
+              | FFA_MEM_RETREIVE_REQ => " FFA_MEM_RETRIEVE_REQ "
+              | FFA_MEM_RETREIVE_RESP => " FFA_MEM_RETRIEVE_RESP "
+              | FFA_MEM_RELINQUISH => " FFA_MEM_RELINQUISH "
+              | FFA_MEM_RECLAIM => " FFA_MEM_RECLAIM "
+              end in
+          (append "FFA_FUNCTION_IDENTIFIER " function_name_string)
+        | FFA_RESULT_CODE_IDENTIFIER result_name =>
+          match result_name with
+          | FFA_ERROR error_type =>
+            match error_type with
+            | FFA_NOT_SUPPORTED => " FFA_NOT_SUPPROTED"
+            | FFA_INVALID_PARAMETERS => " FFA_INVALID_PARAMETERS " 
+            | FFA_NO_MEMORY => " FFA_NO_MEMORY "
+            | FFA_BUSY => " FFA_BUSY "
+            | FFA_INTERRUPTED => " FFA_INTERRUPTED " 
+            | FFA_DENIED => " FFA_DENIED "
+            | FFA_RETRY => " FFA_RETRY "
+            | FFA_ABORTED => " FFA_ABORTED " 
+            end
+          | FFA_SUCCESS value =>
+            (append_all [" FFA_SUCCESS (" ; HexString.of_Z value; ") "])
+          end
+        end in
+    append ffa_value_string (print_ffa_vals vals)
+  end.
+
+Definition onwership_state_type_to_string
+           (ownership_state_type : OWNERSHIP_STATE_TYPE) :=
+  match ownership_state_type with
+  | Owned id => append_all ["(Owned by "; HexString.of_Z id; ")"]
+  | NotOwned => "(Not Owned)"
+  end.
+
+Definition access_state_type_to_string 
+           (access_state_type : ACCESS_STATE_TYPE) :=
+  match access_state_type with
+  | NoAccess => "(NoAccess)"
+  | ExclusiveAccess accessor
+    => append_all ["(ExclusiveAccess "; HexString.of_Z accessor; ")"]
+  | SharedAccess accessors
+    => append_all ["(ExclusiveAccess "; list_z_to_string accessors; ")"]
+  end.
+
+Definition mem_dirty_type_to_string 
+           (mem_dirty_type :  MEM_DIRTY_TYPE) :=
+  match mem_dirty_type with
+  | MemClean => "(MemClean)"
+  | MemWritten writers
+    => append_all ["(MemWritten "; list_z_to_string writers; ")"]
+  end.
+
+Definition ffa_instruction_access_type_to_string
+           (ffa_instruction_access_type : FFA_INSTRUCTION_ACCESS_TYPE) :=
+  match ffa_instruction_access_type with
+  | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => "ACCESS_NOT_SPECIFIED" 
+  | FFA_INSTRUCTION_ACCESS_NX => "ACCESS_NX"
+  | FFA_INSTRUCTION_ACCESS_X => "ACCESS_X"
+  | FFA_INSTRUCTION_ACCESS_RESERVED => "ACCESS_RESERVED"
+  end.
+
+Definition ffa_data_access_type_to_string 
+           (ffa_data_access_type: FFA_DATA_ACCESS_TYPE) :=
+  match ffa_data_access_type with 
+  | FFA_DATA_ACCESS_NOT_SPECIFIED => "ACCESS_NOT_SPECIFIED"
+  | FFA_DATA_ACCESS_RO => "ACCESS_RO"
+  | FFA_DATA_ACCESS_RW => "ACCESS_RW"
+  | FFA_DATA_ACCESS_RESERVED => "ACCESS_RESERVED"
+  end.
+
+Definition ffa_memory_type_to_string
+           (ffa_memory_type: FFA_MEMORY_TYPE) :=
+  match ffa_memory_type with
+  | FFA_MEMORY_NOT_SPECIFIED_MEM => "NOT_SPECIFIED_MEM"
+  | FFA_MEMORY_DEVICE_MEM cacheability_type
+    => let ctype_string := match cacheability_type with
+                   | FFA_MEMORY_DEV_NGNRNE => "nGnRnE"
+                   | FFA_MEMORY_DEV_NGNRE => "nGnRE"
+                   | FFA_MEMORY_DEV_NGRE => "nGRE"
+                   | FFA_MEMORY_DEV_GRE => "GRE"
+                   end in
+      append_all  ["DEVICE_MEM"; " "; ctype_string]
+  | FFA_MEMORY_NORMAL_MEM cacheability_type shareability_type
+    => let ctype_string := match cacheability_type with
+                          | FFA_MEMORY_CACHE_RESERVED => "RESERVED"
+                          | FFA_MEMORY_CACHE_NON_CACHEABLE => "CACHEABLE"
+                          | FFA_MEMORY_CACHE_RESERVED_1 => "RESERVED_ONE" 
+                          | FFA_MEMORY_CACHE_WRITE_BACK => "WRITE_BACK"
+                          end  in
+      let stype_string := match shareability_type with
+                          | FFA_MEMORY_SHARE_NON_SHAREABLE => "SHAREABLE"
+                          | FFA_MEMORY_SHARE_RESERVED => "RESERVED"
+                          | FFA_MEMORY_OUTER_SHAREABLE => "OUTER_SHAREABLE"
+                          | FFA_MEMORY_INNER_SHAREABLE => "INNER_SHAREABLE"
+                          end in
+      append_all  ["NORMAL_MEM"; " "; ctype_string; " "; stype_string]
+  | FFA_MEMORY_MEM_RESERVED => "RESERVED"
+  end.
+
+Definition print_mailbox_msg (mailbox : MAILBOX_struct) :=
+  "omitted at this moment".
 
 Definition system_log_entity_showable (log_entity : log_type) :=
-  
-  " \n".
+  match log_entity with
+  | ChangeCurEntityID from_id to_id
+    => append_all ["(change from "; HexString.of_Z from_id; " ";
+                 HexString.of_Z to_id; ")\n"]
+  | UserToKernel vid vcpu_id reg_vals
+    => append_all ["(From User to Kernel:\n";
+                 "    vm id: "; HexString.of_Z vid; "\n";
+                 "    vcpu id: "; HexString.of_Z vcpu_id; "\n";
+                 "    reg_vals: "; FFA_value_type_to_string reg_vals.(regs); ")\n"]
+  | KernelToUser vid vcpu_id reg_vals
+    => append_all ["(From Kernel to User:\n";
+                 "    vm id: "; HexString.of_Z vid; "\n";
+                 "    vcpu id: "; HexString.of_Z vcpu_id; "\n";
+                 "    reg_vals: "; FFA_value_type_to_string reg_vals.(regs); ")\n"]
+  | DispathFFAInterface reg_vals
+    => append_all ["(Dispatch hyp call:\n";
+                 "    reg_vals: "; FFA_value_type_to_string reg_vals.(regs); ")\n"]
+  | SetOwner entity_id address owner 
+    => append_all ["(SetOwner:\n";
+                 "    vm_id: "; HexString.of_Z entity_id; "\n";
+                 "    address: "; HexString.of_Z address; "\n";
+                 "    onwership: "; onwership_state_type_to_string owner; ")\n"]
+                 
+  | SetAccessible vm_id address access
+    => append_all ["(SetAccessibility:\n";
+                 "    vm_id: "; HexString.of_Z vm_id; "\n";
+                 "    address: "; HexString.of_Z address; "\n";
+                 "    access: "; access_state_type_to_string access; ")\n"]
 
+  | SetInstructionAccess vm_id address access
+    => append_all ["(SetInstructionAccess:\n";
+                 "    vm_id: "; HexString.of_Z vm_id; "\n";
+                 "    address: "; HexString.of_Z address; "\n";
+                 "    access: "; ffa_instruction_access_type_to_string access; ")\n"]
+
+  | SetDataAccess vm_id address access
+    => append_all ["(SetDataAccess:\n";
+                 "    vm_id: "; HexString.of_Z vm_id; "\n";
+                 "    address: "; HexString.of_Z address; "\n";
+                 "    access: "; ffa_data_access_type_to_string access; ")\n"]
+
+  | SetDirty vm_id address dirty
+    => append_all ["(SetDirty:\n";
+                 "    vm_id: "; HexString.of_Z vm_id; "\n";
+                 "    address: "; HexString.of_Z address; "\n";
+                 "    dirty: "; mem_dirty_type_to_string dirty; ")\n"]
+
+  | SetAttributes vm_id address attributes
+    => append_all ["(SetAttributes:\n";
+                 "    vm_id: "; HexString.of_Z vm_id; "\n";
+                 "    address: "; HexString.of_Z address; "\n";
+                 "    attributes: "; ffa_memory_type_to_string attributes; ")\n"]
+
+  | SendMsg sender receiver msg
+    => append_all ["(SendMsg:\n";
+                 "    sender: "; HexString.of_Z sender; "\n";
+                 "    receiver: "; HexString.of_Z receiver; "\n";
+                 "    msg: omitted)\n"]
+
+  | RecvMsg sender receiver msg 
+    => append_all ["(RecvMsg:\n";
+                 "    sender: "; HexString.of_Z sender; "\n";
+                 "    receiver: "; HexString.of_Z receiver; "\n";
+                 "    msg: omitted)\n"]
+
+  | SendMsgWithDescriptor sender receiver msg
+    => append_all ["(SendMsg:\n";
+                 "    sender: "; HexString.of_Z sender; "\n";
+                 "    receiver: "; HexString.of_Z receiver; "\n";
+                 "    msg: "; print_mailbox_msg msg ; "omitted)\n"]
+
+  | RecvMsgWithDescriptor sender receiver msg
+    => append_all ["(RecvMsg:\n";
+                 "    sender: "; HexString.of_Z sender; "\n";
+                 "    receiver: "; HexString.of_Z receiver; "\n";
+                 "    msg:"; print_mailbox_msg msg;  ")\n"]
+
+  end.
+                  
 Fixpoint system_log_showable (system_log: list log_type) :=
   match system_log with
   | nil => " "
@@ -788,4 +1012,3 @@ Section FFADispatch.
     end.
       
 End FFADispatch.  
-
