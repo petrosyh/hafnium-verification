@@ -543,7 +543,6 @@ Global Instance abstract_state_context :
 (***********************************************************************)
 (** *                 Showable function for the log                    *)
 (***********************************************************************)
-  
 Fixpoint append_all (cls: list string) :=
   match cls with
   | nil => ""
@@ -686,6 +685,7 @@ Definition ffa_memory_type_to_string
   | FFA_MEMORY_MEM_RESERVED => "RESERVED"
   end.
 
+(* TODO: need to add more things *)
 Definition print_mailbox_msg (mailbox : MAILBOX_struct) :=
   "omitted at this moment".
 
@@ -784,25 +784,32 @@ Instance abstract_state_Showable:
   Showable AbstractState := { show := abstract_state_showable }.
 
 (***********************************************************************)
-(** *                 Context switching related parts                  *)
+(** *      Additional  Specifications for testing                      *)
+(***********************************************************************)
+(***********************************************************************)
+(** **           Event and Update functions                            *)
 (***********************************************************************)
 
+Inductive updateStateE: Type -> Type :=
+| GetState : updateStateE (AbstractState)
+| SetState (st1: AbstractState): updateStateE unit.
+
+Definition updateState_handler {E: Type -> Type}
+  : updateStateE ~> stateT (AbstractState) (itree E) :=
+  fun _ e st =>
+    match e with
+    | GetState => Ret (st, st)
+    | SetState st' => Ret (st', tt)
+    end.
+
+
+Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
+
+(***********************************************************************)
+(** **                Context switching                                *)
+(***********************************************************************)
 Section FFAContextSwitching.
 
-  Inductive updateStateE: Type -> Type :=
-  | GetState : updateStateE (AbstractState)
-  | SetState (st1: AbstractState): updateStateE unit.
-
-  Definition updateState_handler {E: Type -> Type}
-    : updateStateE ~> stateT (AbstractState) (itree E) :=
-    fun _ e st =>
-      match e with
-      | GetState => Ret (st, st)
-      | SetState st' => Ret (st', tt)
-      end.
-
-  
-  Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
   (**
      [JIEUNG:We referred context switchigns in Hafnium, but we believe it could be similar when 
      we provide abstract models for different implementations]
@@ -860,9 +867,11 @@ Section FFAContextSwitching.
       else triggerUB "save_resg_to_vcpu_spec: inconsistency in total vcpu number"
     else triggerUB "save_resg_to_vcpu_spec: wrong cur entity id".
   
-  Definition save_regs_to_vcpu_call (args : list Lang.val) :=
+  Definition save_regs_to_vcpu_call (args : list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val)  :=
     match args with
-    | nil => save_regs_to_vcpu_spec
+    | nil => save_regs_to_vcpu_spec;;
+            Ret (Vnull, args)
     | _ => triggerUB "save_regs_to_vcpu_call: wrong arguments"
     end.
   
@@ -908,16 +917,18 @@ Section FFAContextSwitching.
          else triggerUB "vcpu_restore_and_run__spec: inconsistency in vcpu number"
     else triggerUB "vcpu_restore_and_run__spec: wrong cur entity id".
   
-  Definition vcpu_restore_and_run_call (args : list Lang.val) :=
+  Definition vcpu_restore_and_run_call (args : list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val)  :=             
     match args with
-    | nil => vcpu_restore_and_run_spec
+    | nil => vcpu_restore_and_run_spec;;
+            Ret (Vnull, args)
     | _ => triggerUB "vcpu_restore_and_run_call: wrong arguments"
     end.
   
 End FFAContextSwitching.
 
 (***********************************************************************)
-(** *                       FFA Dispatch                               *)
+(** **                       FFA Dispatch                              *)
 (***********************************************************************)
 Section FFADispatch.
    
@@ -1005,10 +1016,73 @@ Section FFADispatch.
     | None => triggerUB "ffa_dispatch_spec: impossible case happens" 
     end.
                         
-  Definition ffa_dispatch_call (args : list Lang.val) :=
+  Definition ffa_dispatch_call (args : list Lang.val) 
+    : itree HypervisorEE (Lang.val * list Lang.val)  :=             
     match args with
-    | nil => ffa_dispatch_spec
+    | nil => ffa_dispatch_spec;;
+            Ret (Vnull, args)
     | _ => triggerUB "ffa_dispatch_call: wrong arguments"
     end.
       
 End FFADispatch.  
+
+(***********************************************************************)
+(** **                  Hypervisor Call                                *)
+(***********************************************************************)
+Section HypervisorCall.
+  
+  Definition hypervisor_call_function :=
+    (Call "HVCTopLevel.save_regs_to_vcpu" []) #;
+    (Call "HVCTopLevel.function_dispatcher" []) #;
+    (Call "HVCTopLevel.vcpu_restore_and_run_spec" []).
+
+  Definition hypervisor_call : function.
+    mk_function_tac hypervisor_call_function ([]: list var) ([]: list var).
+  Defined.  
+  
+End HypervisorCall.
+
+(***********************************************************************)
+(** **          Client Setter and Getter                               *)
+(***********************************************************************)
+Section ClientSetterAndGetter.
+
+End ClientSetterAndGetter.
+
+(***********************************************************************)
+(** **    FFA Memory Management Interface Module                       *)
+(***********************************************************************)
+Section FFAMemoryManagementInterfaceModule.
+
+  Definition funcs :=
+    [
+      ("HVCTopLevel.save_regs_to_vcpu_call", save_regs_to_vcpu_call) ;
+    ("HVCTopLevel.vcpu_restore_and_run_call", vcpu_restore_and_run_call) ;
+    ("HVCTopLevel.ffa_dispatch_call", ffa_dispatch_call)
+      (* TODO: add more getter/setter functions for clients *)
+    ].
+
+  Definition top_level_modsem : ModSem :=
+    mk_ModSem
+      (fun s => existsb (string_dec s) (List.map fst funcs))
+      _
+      (initial_state)
+      updateStateE
+      updateState_handler
+      (fun T (c: CallExternalE T) =>
+         let '(CallExternal func_name args) := c in
+         let fix find_func l :=
+             match l with
+             | (f, body)::tl =>
+               if (string_dec func_name f)
+               then body args
+               else find_func tl
+             | nil => triggerNB "Not mpool func"
+             end
+         in
+         find_func funcs
+      )
+  .
+  
+End FFAMemoryManagementInterfaceModule.
+

@@ -72,9 +72,8 @@ Require Import Maps.
 Set Implicit Arguments.
 
 
-Module FFAMEMORYHYPCALLTESTING1.
+Module FFAMEMORYHYPCALLTESTING.
 
-  (* TODO: Need to instantiate context variables to define testing *)
+  
 
-
-End FFAMEMORYHYPCALLTESTING1.
+End FFAMEMORYHYPCALLTESTING.
