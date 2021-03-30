@@ -331,7 +331,7 @@ Section MEM_AND_PTABLE_CONTEXT.
      => gets the input address (e.g., va or ipa) and return the address (e.g., ipa or pa) 
 
      Filling out details of those definitions are user's obligations *)       
-  Class HafniumMemoryManagementBasicContext
+  Class MemoryManagementBasicContext
         `{ffa_vm_context: FFA_VM_CONTEXT} :=
     {
     (** address low and high *)
@@ -342,18 +342,20 @@ Section MEM_AND_PTABLE_CONTEXT.
     alignment_value : Z;
     }.
   
-  Class HafniumMemoryManagementContext
-        `{hafnium_memory_management_basic_context
-          : HafniumMemoryManagementBasicContext} :=
+  Class MemoryManagementContext
+        `{memory_management_basic_context
+          : MemoryManagementBasicContext} :=
     {
     (** address translation funciton in ptable. There are two possible cases 
-       1. provides the entire address translation from 
-          the root level to the bottom level 
-       2. provides the only one level address translation. 
-          Among them, our high-level model assumes the following ptable uses the second approach *)
-    hafnium_address_translation_table
+        1. provides the entire address translation from 
+           the root level to the bottom level 
+        2. provides the only one level address translation. 
+           Among them, our high-level model assumes the following ptable uses the second approach *)
+    stage2_address_translation_table
       (input_addr:  ffa_address_t) : option ffa_address_t;
-    vm_address_translation_table
+    (** This address translation won't be used in the current setting.
+        We may be able to use this one depending on the definition *)
+    stage1_address_translation_table
       (vm_id : ffa_UUID_t) (input_addr: ffa_address_t) : option ffa_address_t;
     }.
 
@@ -476,21 +478,24 @@ Section AbstractState.
     (** - Send and receiver Msg *)
   | SendMsg (sender receiver: ffa_UUID_t)
             (msg : MAILBOX_struct)
-  | RecvMsg (sender receiver: ffa_UUID_t)
-            (msg : MAILBOX_struct)
-  | SendMsgWithDescriptor (sender receiver: ffa_UUID_t)
-                          (msg : MAILBOX_struct)
-  | RecvMsgWithDescriptor (sender receiver: ffa_UUID_t)
-                          (msg : MAILBOX_struct).
+  | RecvMsg (receiver: ffa_UUID_t)
+            (msg : MAILBOX_struct).
 
   
   Record AbstractState :=
     mkAbstractState{
         (** - The number to memorize the version of FFA - See 8.1 FFA_VERSION of the document and 
             - FFAMemoryHypCallIntro.v file for more details *)
-        FFA_version_number: ffa_version_number_t; 
-        (** - the entity that is currently running. *)
-        cur_entity_id: ffa_UUID_t;
+        FFA_version_number: ffa_version_number_t;
+        (** - If it is true, hypervisor owns the control. If it is not, 
+              one entity in the user space owns the control *)
+        is_hvc_mode: bool;
+        (** - It indicates whether we use stage 1 address translation or not. *)
+        use_stage1_table: bool;
+        (** - the entity that is currently running user vm ID
+              - When is_hvc_mode is true, the following value implies the last VM that gives 
+                up its evaluation control to the kernel *)
+        cur_user_entity_id: ffa_UUID_t;
         (** - hafnium global stage *)
         hypervisor_context: hypervisor_struct;
         (** - VM clinets *) 
@@ -519,14 +524,14 @@ Section AbstractStateContext.
         `{ffa_vm_context: !FFA_VM_CONTEXT
                            (ffa_types_and_constants
                               := ffa_types_and_constants)}
-        `{hafnium_memory_management_basic_context :
-            !HafniumMemoryManagementBasicContext
+        `{memory_management_basic_context :
+            !MemoryManagementBasicContext
              (ffa_vm_context
                 := ffa_vm_context)}
-        `{hafnium_memory_management_context :
-            !HafniumMemoryManagementContext
-             (hafnium_memory_management_basic_context
-                := hafnium_memory_management_basic_context)} :=
+        `{memory_management_context :
+            !MemoryManagementContext
+             (memory_management_basic_context
+                := memory_management_basic_context)} :=
     {
     (** We may be able to use some feature of interaction tree for this scheduling? *)
     scheduler : AbstractState -> ffa_UUID_t; 
@@ -824,19 +829,43 @@ Section AbstractStateUpdate.
   (** update *)
   Definition update_FFA_version_number (a: AbstractState) b := 
     mkAbstractState
-      b (a.(cur_entity_id))
+      b (a.(is_hvc_mode))
+      (a.(use_stage1_table))
+      (a.(cur_user_entity_id))
+      (a.(hypervisor_context)) (a.(vms_userspaces))
+      (a.(system_log)).
+
+  Definition update_is_hvc_mode (a: AbstractState) b := 
+    mkAbstractState
+      (a.(FFA_version_number)) b
+      (a.(use_stage1_table))
+      (a.(cur_user_entity_id)) 
+      (a.(hypervisor_context)) (a.(vms_userspaces))
+      (a.(system_log)).
+
+  Definition update_use_stage1_table (a: AbstractState) b := 
+    mkAbstractState
+      (a.(FFA_version_number))
+      (a.(is_hvc_mode))
+      b
+      (a.(cur_user_entity_id)) 
       (a.(hypervisor_context)) (a.(vms_userspaces))
       (a.(system_log)).
   
-  Definition update_cur_entity_id (a : AbstractState) b :=
+  Definition update_cur_user_entity_id (a : AbstractState) b :=
     mkAbstractState
-      (a.(FFA_version_number)) b
+      (a.(FFA_version_number)) (a.(is_hvc_mode))
+      (a.(use_stage1_table))
+      b
       (a.(hypervisor_context)) (a.(vms_userspaces))
       (a.(system_log)).
 
   Definition update_hypervisor_context (a : AbstractState) b :=
     mkAbstractState
-      (a.(FFA_version_number)) (a.(cur_entity_id))
+      (a.(FFA_version_number))
+      (a.(use_stage1_table))
+      (a.(is_hvc_mode))
+      (a.(cur_user_entity_id))
       b (a.(vms_userspaces))
       (a.(system_log)).
 
@@ -899,15 +928,19 @@ Section AbstractStateUpdate.
   Definition update_vms_userspaces
              (a : AbstractState) b :=
     mkAbstractState
-      (a.(FFA_version_number))
-      (a.(cur_entity_id)) (a.(hypervisor_context)) b
+      (a.(FFA_version_number)) (a.(is_hvc_mode))
+      (a.(use_stage1_table))
+      (a.(cur_user_entity_id))      
+      (a.(hypervisor_context)) b
       (a.(system_log)).
 
   Definition update_system_log
              (a : AbstractState) b :=
     mkAbstractState
-      (a.(FFA_version_number))
-      (a.(cur_entity_id)) (a.(hypervisor_context))
+      (a.(FFA_version_number)) (a.(is_hvc_mode))
+      (a.(use_stage1_table))
+      (a.(cur_user_entity_id))
+      (a.(hypervisor_context))
       (a.(vms_userspaces)) b.  
   
 End AbstractStateUpdate.
@@ -985,8 +1018,12 @@ Notation "a '{' 'client_vcpus_contexts' : b '}'"
 (** update abstract state *)
 Notation "a '{' 'FFA_version_number' : b '}'" :=
   (update_FFA_version_number a b) (at level 1).
-Notation "a '{' 'cur_entity_id' : b '}'" :=
-  (update_cur_entity_id a b) (at level 1).
+Notation "a '{' 'is_hvc_mode' : b '}'" :=
+  (update_is_hvc_mode a b) (at level 1).
+Notation "a '{' 'use_stage1_table' : b '}'" :=
+  (update_use_stage1_table a b) (at level 1).
+Notation "a '{' 'cur_user_entity_id' : b '}'" :=
+  (update_cur_user_entity_id a b) (at level 1).
 Notation "a '{' 'hypervisor_context' : b '}'" :=
   (update_hypervisor_context a b) (at level 1).
 Notation "a '{' 'vms_userspaces' : b '}'" :=

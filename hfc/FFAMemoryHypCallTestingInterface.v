@@ -88,97 +88,6 @@ Definition Z_not := fun val => (Z.lxor Z_64MAX val).
     inductive type values in other files. 
 *)
 
-(*************************************************************)
-(** *                 FFA Interface Values                   *) 
-(*************************************************************)
-(** This section defines Z type interface values for FFA calls *)
-
-Section FFA_DATATYPES.
-
-  Context `{abstract_state_context: AbstractStateContext}.
-  
-  (** The following types are defined in Chapter 11 (Memory management interfaces document) 
-      They are ignored in our modeling. 
-   - [FFA_MEM_DONATE]: 0x84000071
-   - [FFA_MEM_LEND]: 0x84000072
-   - [FFA_MEM_SHARE]: 0x84000073
-   - [FFA_MEM_RETRIEVE_REQ]: 0x84000074
-   - [FFA_MEM_RETRIEVE_RESP]: 0x84000075
-   - [FFA_MEM_RELINQUISH]: 0x84000076
-   - [FFA_MEM_RECLAIM]: 0x84000077
-   *)
-      
-  Definition FFA_MEM_DONATE_32 : Z := 2214592625.
-  Definition FFA_MEM_LEND_32 : Z := 2214592626.
-  Definition FFA_MEM_SHARE_32 : Z := 2214592627.
-  Definition FFA_MEM_RETRIEVE_REQ_32 : Z := 2214592628.
-  Definition FFA_MEM_RETRIEVE_RESP_32 : Z := 2214592629.
-  Definition FFA_MEM_RELINGQUISH_32 : Z := 2214592630.
-  Definition FFA_MEM_RECLAIM_32 : Z := 2214592631.
-
-  (** The followings are for return values of FFA interface calls. *)
-  (** The following numbers are defined in Chapter 7, especially in Table 7.2: Error status codes
-   - [FFA_NOT_SUPPORTED]: -1
-   - [FFA_INVALID_PARAMETERS]: -2
-   - [FFA_NO_MEMORY]: -3
-   - [FFA_BUSY]: -4
-   - [FFA_INTERRUPTED]: -5
-   - [FFA_DENIED]: -6
-   - [FFA_RETRY]: -7
-   - [FFA_ABORTED]: -8
-  *)
-
-  Definition FFA_NOT_SUPPORTED_32 : Z := -1.
-  Definition FFA_INVALID_PARAMETERS_32 : Z := -2.
-  Definition FFA_NO_MEMORY_32 : Z := -3.
-  Definition FFA_BUSY_32 : Z := -4.
-  Definition FFA_INTERRUPTED_32 : Z := -5.
-  Definition FFA_DENIED_32 : Z := -6.
-  Definition FFA_RETRY_32 : Z := -7.
-  Definition FFA_ABORTED_32 : Z := -8.
-
-  (** The following numbers are also defined in Chapter 7
-      - [FFA_ERROR]: 0x84000060
-      - [FFA_SUCCESS]: 0x84000061
-   *)
-  Definition FFA_ERROR_32 : Z := 2214592608.
-  Definition FFA_SUCCESS_32 : Z := 2214592609.
-
-  (** In Hafnium: Defined in "inc/hf/ffa_internal.h" *)
-  Definition ffa_error (ffa_error_code: FFA_ERROR_CODE_TYPE) : FFA_value_type :=
-    let error_z_value := 
-        match ffa_error_code with
-        | FFA_NOT_SUPPORTED => -1
-        | FFA_INVALID_PARAMETERS => -2 
-        | FFA_NO_MEMORY => -3
-        | FFA_BUSY => -4
-        | FFA_INTERRUPTED => -5
-        | FFA_DENIED => -6
-        | FFA_RETRY => -7
-        | FFA_ABORTED => -8
-        end in
-    (mkFFA_value_type (FFA_RESULT_CODE_IDENTIFIER (FFA_ERROR ffa_error_code))
-                      (ZMap.set 1 error_z_value (ZMap.init 0))). 
-
-  (** In Hafnium: Defined in "inc/vmapi/hf/ffa.h" *)
-  Definition ffa_success (handle: Z) :=
-    (mkFFA_value_type (FFA_RESULT_CODE_IDENTIFIER (FFA_SUCCESS handle))
-                      (ZMap.set 2 (Z.land handle ((Z.shiftl 1 32) - 1)%Z)
-                                (ZMap.set 3 (Z.shiftr handle 32) (ZMap.init 0)))).
-
-  Definition ffa_value_gen (ffa_result_value : FFA_RESULT_CODE_TYPE) :=
-    match ffa_result_value with
-    | FFA_ERROR ffa_error_code => ffa_error ffa_error_code
-    | FFA_SUCCESS handle => ffa_success handle
-    end.
-  
-  (** In Hafnium: Hafnium specific values *)
-
-  Definition MAX_MEM_SHARE_RECIPIENTS_Z := 1.
-  Definition MAX_MEM_SHARE_Z := 100.
-
-End FFA_DATATYPES.
-
 Notation "'do' X <- A ;;; B" :=
   (match A with Some X => B |
            None => triggerUB "None" end)
@@ -336,8 +245,8 @@ Global Instance ffa_vm_context :
 Definition address_low_shift := 30.
 Definition address_high_shift := 32.
 
-Global Instance hafnium_memory_management_basic_context
-  : HafniumMemoryManagementBasicContext
+Global Instance memory_management_basic_context
+  : MemoryManagementBasicContext
       (ffa_vm_context := ffa_vm_context) :=
   {
   address_low := (Z.shiftl 1 address_low_shift)%Z;
@@ -345,12 +254,12 @@ Global Instance hafnium_memory_management_basic_context
   alignment_value := granuale; (* 4096 *)
   }.
 
-Definition hafnium_address_translation_table :=
+Definition stage2_address_translation_table :=
   fun (x : ffa_address_t) =>
     if decide (address_low <= x)%Z && decide (x < address_high)%Z
     then Some x else None.
 
-Definition vm_address_translation_table :=
+Definition stage1_address_translation_table :=
   fun (vid : ffa_UUID_t) (x : ffa_address_t) =>
     if decide (0 <= vid)%Z && decide (vid < number_of_vm)%Z
     then if decide (address_low <= x)%Z && decide (x < address_high)%Z
@@ -358,15 +267,15 @@ Definition vm_address_translation_table :=
          else None
     else None.  
 
-Global Instance hafnium_memory_management_context
-  : HafniumMemoryManagementContext
-      (hafnium_memory_management_basic_context
-         := hafnium_memory_management_basic_context) :=
+Global Instance memory_management_context
+  : MemoryManagementContext
+      (memory_management_basic_context
+         := memory_management_basic_context) :=
   {
-  hafnium_address_translation_table :=
-    hafnium_address_translation_table;
-  vm_address_translation_table :=
-    vm_address_translation_table;
+  stage2_address_translation_table :=
+    stage2_address_translation_table;
+  stage1_address_translation_table :=
+    stage1_address_translation_table;
   }.
 
 (***********************************************************************)
@@ -503,6 +412,8 @@ Definition version_number := (1, 1).
 Definition init_abstract_state :=
   mkAbstractState
     (1, 1) (* dummy version number *)
+    false (* is_hvc_mode *)
+    false (* use_stage1_table *)
     1 (*  cur_entity_id - primary VM *)
     init_hypervisor_struct
     init_VM_USERSPACE_contexts
@@ -523,7 +434,7 @@ Fixpoint find_next_entity (vm_ids : list ffa_UUID_t)
   end.
 
 Definition scheduler (st: AbstractState) : ffa_UUID_t :=
-  let cur_entity_id := st.(cur_entity_id) in
+  let cur_entity_id := st.(cur_user_entity_id) in
   find_next_entity vm_ids cur_entity_id.  
 
 Global Instance abstract_state_context :
@@ -531,10 +442,10 @@ Global Instance abstract_state_context :
     (ffa_types_and_constants := ffa_types_and_constants)
     (descriptor_context := descriptor_context)
     (ffa_vm_context := ffa_vm_context)
-    (hafnium_memory_management_basic_context
-       := hafnium_memory_management_basic_context)
-    (hafnium_memory_management_context
-       := hafnium_memory_management_context) :=
+    (memory_management_basic_context
+       := memory_management_basic_context)
+    (memory_management_context
+       := memory_management_context) :=
   {
       scheduler := scheduler;
       initial_state := init_abstract_state;
@@ -747,26 +658,12 @@ Definition system_log_entity_showable (log_entity : log_type) :=
     => append_all ["(SendMsg:\n";
                  "    sender: "; HexString.of_Z sender; "\n";
                  "    receiver: "; HexString.of_Z receiver; "\n";
-                 "    msg: omitted)\n"]
+                 "    msg: "; print_mailbox_msg msg; ")\n"]
 
-  | RecvMsg sender receiver msg 
+  | RecvMsg receiver msg 
     => append_all ["(RecvMsg:\n";
-                 "    sender: "; HexString.of_Z sender; "\n";
                  "    receiver: "; HexString.of_Z receiver; "\n";
-                 "    msg: omitted)\n"]
-
-  | SendMsgWithDescriptor sender receiver msg
-    => append_all ["(SendMsg:\n";
-                 "    sender: "; HexString.of_Z sender; "\n";
-                 "    receiver: "; HexString.of_Z receiver; "\n";
-                 "    msg: "; print_mailbox_msg msg ; "omitted)\n"]
-
-  | RecvMsgWithDescriptor sender receiver msg
-    => append_all ["(RecvMsg:\n";
-                 "    sender: "; HexString.of_Z sender; "\n";
-                 "    receiver: "; HexString.of_Z receiver; "\n";
-                 "    msg:"; print_mailbox_msg msg;  ")\n"]
-
+                 "    msg: "; print_mailbox_msg msg; ")\n"]
   end.
                   
 Fixpoint system_log_showable (system_log: list log_type) :=
@@ -837,36 +734,41 @@ Section FFAContextSwitching.
     itree HypervisorEE (unit) := 
     st <- trigger GetState;;
     (* check whether the current running entity is one of VMs *)
-    if decide (st.(cur_entity_id) <> hafnium_id) &&
-       in_dec zeq st.(cur_entity_id) vm_ids
+    if decide (st.(is_hvc_mode) = true) &&
+       in_dec zeq st.(cur_user_entity_id) vm_ids
     then (* get contexts for the currently running entity ID *)
-      do vm_userspace <- ZTree.get st.(cur_entity_id) st.(vms_userspaces) ;;;
+      do vm_userspace <- ZTree.get st.(cur_user_entity_id) st.(vms_userspaces) ;;;
       do cur_vcpu_index <- (vm_userspace.(vm_userspace_context).(cur_vcpu_index)) ;;;
-      do vcpu_regs <- ZTree.get cur_vcpu_index 
-                       (vm_userspace.(vm_userspace_context).(vcpus_contexts)) ;;;
+      do cur_vcpu_regs <- ZTree.get cur_vcpu_index 
+                                   (vm_userspace.(vm_userspace_context).(vcpus_contexts)) ;;;
                                                                          
       (* get vm contexts in Hanfium to save the userspace information in it *)              
-      do vm_context <- ZTree.get st.(cur_entity_id) st.(hypervisor_context).(vms_contexts) ;;;
+      do vm_context <- ZTree.get st.(cur_user_entity_id) st.(hypervisor_context).(vms_contexts) ;;;
       if decide (list_eq_dec zeq (vm_context.(vm_kernelspace_context).(vcpus)) 
                              (vm_userspace.(vm_userspace_context).(vcpus))) &&
-         decide (vcpu_regs.(vm_id) = Some st.(cur_entity_id))
+         decide (cur_vcpu_regs.(vm_id) = Some st.(cur_user_entity_id))
       then
         let new_vm_context :=
             vm_context {vm_cur_vcpu_index: Some cur_vcpu_index}
                        {vm_vcpus_contexts:
-                          ZTree.set cur_vcpu_index vcpu_regs
+                          ZTree.set cur_vcpu_index cur_vcpu_regs
                                     vm_context.(vm_kernelspace_context).(vcpus_contexts)} in
         let new_vms_contexts :=
-            ZTree.set st.(cur_entity_id)
+            ZTree.set st.(cur_user_entity_id)
                            new_vm_context
                            st.(hypervisor_context).(vms_contexts) in
-        let new_st := st {cur_entity_id: hafnium_id}
-                         {hypervisor_context/tpidr_el2: Some vcpu_regs}
-                         {hypervisor_context/vms_contexts: new_vms_contexts} in 
+        let new_st := st {is_hvc_mode: true}
+                         {hypervisor_context/tpidr_el2: Some cur_vcpu_regs}
+                         {hypervisor_context/vms_contexts: new_vms_contexts}
+                         {system_log : st.(system_log)
+                                            ++(UserToKernel (st.(cur_user_entity_id))
+                                                            cur_vcpu_index
+                                                            cur_vcpu_regs.(vcpu_regs)::nil)} in
+                                                                     
         trigger (SetState new_st)
       else triggerUB "save_resg_to_vcpu_spec: inconsistency in total vcpu number"
     else triggerUB "save_resg_to_vcpu_spec: wrong cur entity id".
-  
+
   Definition save_regs_to_vcpu_call (args : list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val)  :=
     match args with
@@ -885,7 +787,7 @@ Section FFAContextSwitching.
     (** - Since we do not have any scheduler implementations, we introduced abstract scheduler *)
     let next_vm_id := scheduler st in
     (** check whether the current running entity is Hafnium *)
-    if decide (st.(cur_entity_id) = hafnium_id) && in_dec zeq next_vm_id vm_ids
+    if decide (st.(is_hvc_mode) = true) && in_dec zeq next_vm_id vm_ids
     then
       (** get the userspace information *)
       do vm_userspace <- ZTree.get next_vm_id st.(vms_userspaces) ;;;
@@ -894,29 +796,37 @@ Section FFAContextSwitching.
       (** get vcpu register information *)
       do cur_kernel_vcpu_index <- (vm_context.(vm_kernelspace_context).(cur_vcpu_index)) ;;;
       do cur_user_vcpu_index <- (vm_userspace.(vm_userspace_context).(cur_vcpu_index)) ;;;
-      do vcpu_regs <- ZTree.get cur_kernel_vcpu_index
+      do cur_vcpu_regs <- ZTree.get cur_kernel_vcpu_index
                                (vm_context.(vm_kernelspace_context).(vcpus_contexts)) ;;;
          if decide (list_eq_dec zeq (vm_context.(vm_kernelspace_context).(vcpus))
                                 vm_userspace.(vm_userspace_context).(vcpus)) &&
             decide (cur_kernel_vcpu_index = cur_user_vcpu_index) &&
-            decide (vcpu_regs.(vm_id) = Some next_vm_id)
+            decide (cur_vcpu_regs.(vm_id) = Some next_vm_id)
             (* TODO: add cpu connection check with vcpu_regs later *)
          then
            let new_vm_userspace := 
                vm_userspace
                  {client_vcpus_contexts :
                     (ZTree.set cur_kernel_vcpu_index
-                               vcpu_regs
+                               cur_vcpu_regs
                                (vm_userspace.(vm_userspace_context).(vcpus_contexts)))} in
            let new_vms_userspaces :=
                ZTree.set next_vm_id new_vm_userspace st.(vms_userspaces) in
-           let new_st := st {cur_entity_id: next_vm_id}
+           let new_st := st {is_hvc_mode: false}
+                            {cur_user_entity_id: next_vm_id}
                             {hypervisor_context/tpidr_el2: None}
-                            {vms_userspaces: new_vms_userspaces} in 
+                            {vms_userspaces: new_vms_userspaces}
+                            {system_log : st.(system_log)
+                                               ++(ChangeCurEntityID
+                                                    st.(cur_user_entity_id)
+                                                         next_vm_id)
+                                               ::(KernelToUser next_vm_id
+                                                               cur_user_vcpu_index
+                                                               cur_vcpu_regs.(vcpu_regs))::nil} in
            trigger (SetState new_st)
          else triggerUB "vcpu_restore_and_run__spec: inconsistency in vcpu number"
     else triggerUB "vcpu_restore_and_run__spec: wrong cur entity id".
-  
+
   Definition vcpu_restore_and_run_call (args : list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val)  :=             
     match args with
@@ -930,7 +840,7 @@ End FFAContextSwitching.
 (***********************************************************************)
 (** **                       FFA Dispatch                              *)
 (***********************************************************************)
-Section FFADispatch.
+Section FFADispatch.  
    
   Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
 
@@ -960,6 +870,34 @@ Section FFADispatch.
       => ffa_mem_reclaim_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
                              (ZMap.get 3 vals) st
     end.
+
+  (** In Hafnium: Defined in "inc/hf/ffa_internal.h" *)
+  Definition ffa_error (ffa_error_code: FFA_ERROR_CODE_TYPE) : FFA_value_type :=
+    let error_z_value := 
+        match ffa_error_code with
+        | FFA_NOT_SUPPORTED => -1
+        | FFA_INVALID_PARAMETERS => -2 
+        | FFA_NO_MEMORY => -3
+        | FFA_BUSY => -4
+        | FFA_INTERRUPTED => -5
+        | FFA_DENIED => -6
+        | FFA_RETRY => -7
+        | FFA_ABORTED => -8
+        end in
+    (mkFFA_value_type (FFA_RESULT_CODE_IDENTIFIER (FFA_ERROR ffa_error_code))
+                      (ZMap.set 1 error_z_value (ZMap.init 0))). 
+
+  (** In Hafnium: Defined in "inc/vmapi/hf/ffa.h" *)
+  Definition ffa_success (handle: Z) :=
+    (mkFFA_value_type (FFA_RESULT_CODE_IDENTIFIER (FFA_SUCCESS handle))
+                      (ZMap.set 2 (Z.land handle ((Z.shiftl 1 32) - 1)%Z)
+                                (ZMap.set 3 (Z.shiftr handle 32) (ZMap.init 0)))).
+  
+  Definition ffa_value_gen (ffa_result_value : FFA_RESULT_CODE_TYPE) :=
+    match ffa_result_value with
+    | FFA_ERROR ffa_error_code => ffa_error ffa_error_code
+    | FFA_SUCCESS handle => ffa_success handle
+    end.
   
   Definition ffa_dispatch_spec :  itree HypervisorEE (unit) := 
     (** - Extract the curretnt vcpu *)
@@ -975,8 +913,11 @@ Section FFADispatch.
           match func_type with
           | FFA_FUNCTION_IDENTIFIER ffa_function_type =>
             (** - Find out the result of the FFA ABI calls by using the proper handling functions *)
+
+            let new_st := st {system_log: st.(system_log)
+                                               ++(DispathFFAInterface arch_regs)::nil} in     
             do result <- function_dispatcher ffa_function_type
-                                            vid vals st ;;;
+                                            vid vals new_st ;;;
              match result with                                
             | (updated_st, ffa_result) =>
               (** - Set the result inside the updated state *)
@@ -1045,9 +986,200 @@ End HypervisorCall.
 (***********************************************************************)
 (** **          Client Setter and Getter                               *)
 (***********************************************************************)
-Section ClientSetterAndGetter.
+(*************************************************************)
+(** ***               FFA Interface Values                   *) 
+(*************************************************************)
+(** This section defines Z type interface values for FFA calls *)
 
-End ClientSetterAndGetter.
+Section FFA_DATATYPES.
+
+  Context `{abstract_state_context: AbstractStateContext}.
+  
+  (** The following types are defined in Chapter 11 (Memory management interfaces document) 
+      They are ignored in our modeling. 
+   - [FFA_MEM_DONATE]: 0x84000071
+   - [FFA_MEM_LEND]: 0x84000072
+   - [FFA_MEM_SHARE]: 0x84000073
+   - [FFA_MEM_RETRIEVE_REQ]: 0x84000074
+   - [FFA_MEM_RETRIEVE_RESP]: 0x84000075
+   - [FFA_MEM_RELINQUISH]: 0x84000076
+   - [FFA_MEM_RECLAIM]: 0x84000077
+   *)
+      
+  Definition FFA_MEM_DONATE_32 : Z := 2214592625.
+  Definition FFA_MEM_LEND_32 : Z := 2214592626.
+  Definition FFA_MEM_SHARE_32 : Z := 2214592627.
+  Definition FFA_MEM_RETRIEVE_REQ_32 : Z := 2214592628.
+  Definition FFA_MEM_RETRIEVE_RESP_32 : Z := 2214592629.
+  Definition FFA_MEM_RELINGQUISH_32 : Z := 2214592630.
+  Definition FFA_MEM_RECLAIM_32 : Z := 2214592631.
+
+  (** The followings are for return values of FFA interface calls. *)
+  (** The following numbers are defined in Chapter 7, especially in Table 7.2: Error status codes
+   - [FFA_NOT_SUPPORTED]: -1
+   - [FFA_INVALID_PARAMETERS]: -2
+   - [FFA_NO_MEMORY]: -3
+   - [FFA_BUSY]: -4
+   - [FFA_INTERRUPTED]: -5
+   - [FFA_DENIED]: -6
+   - [FFA_RETRY]: -7
+   - [FFA_ABORTED]: -8
+  *)
+
+  Definition FFA_NOT_SUPPORTED_32 : Z := -1.
+  Definition FFA_INVALID_PARAMETERS_32 : Z := -2.
+  Definition FFA_NO_MEMORY_32 : Z := -3.
+  Definition FFA_BUSY_32 : Z := -4.
+  Definition FFA_INTERRUPTED_32 : Z := -5.
+  Definition FFA_DENIED_32 : Z := -6.
+  Definition FFA_RETRY_32 : Z := -7.
+  Definition FFA_ABORTED_32 : Z := -8.
+
+  (** The following numbers are also defined in Chapter 7
+      - [FFA_ERROR]: 0x84000060
+      - [FFA_SUCCESS]: 0x84000061
+   *)
+  Definition FFA_ERROR_32 : Z := 2214592608.
+  Definition FFA_SUCCESS_32 : Z := 2214592609.
+
+  Definition Z_to_FFA_Function_Type (value : Z) :=
+    if decide (value = FFA_MEM_DONATE_32)
+    then Some FFA_MEM_DONATE
+    else if decide (value = FFA_MEM_LEND_32)
+         then Some FFA_MEM_LEND
+         else if decide (value = FFA_MEM_SHARE_32)
+              then Some FFA_MEM_SHARE
+              else if decide (value = FFA_MEM_RETRIEVE_REQ_32)
+                   then Some FFA_MEM_RETREIVE_REQ
+                   else if decide (value = FFA_MEM_RETRIEVE_RESP_32)
+                        then Some FFA_MEM_RETREIVE_RESP
+                        else if decide (value = FFA_MEM_RELINGQUISH_32)
+                             then Some FFA_MEM_RELINQUISH
+                             else if decide (value = FFA_MEM_RECLAIM_32)
+                                  then Some FFA_MEM_RECLAIM
+                                  else None.
+
+
+  Definition FFA_Result_Type_to_Z (res : FFA_RESULT_CODE_TYPE) :=
+    match res with
+    | FFA_SUCCESS _ => FFA_SUCCESS_32
+    | FFA_ERROR _ => FFA_ERROR_32
+    end.
+  
+End FFA_DATATYPES.
+
+(***********************************************************************)
+(** **      Client modeling                                            *)
+(***********************************************************************)
+Section MemoryLoadStore.
+
+  (** Arbitrarily assign the block number for users *)
+  Definition flat_mem_block := (Vcomp (Vlong (Int64.repr 4))).
+  
+  (** Memory load and store operations *)
+  Definition get_physical_address_spec (addr : ffa_address_t)
+    : itree HypervisorEE (ffa_UUID_t) := 
+    st <- trigger GetState;;
+    if st.(is_hvc_mode)
+    then Ret (addr)
+    else if st.(use_stage1_table)
+         then
+           match stage1_address_translation_table st.(cur_user_entity_id) addr with
+           | Some res => Ret (res)
+           | None => triggerNB "error"
+           end
+         else
+           match stage2_address_translation_table addr with
+           | Some res => Ret (res)
+           | None => triggerNB "error"
+           end.        
+  
+  Definition get_physical_address_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong addr))]  =>
+      res <- get_physical_address_spec (Int64.unsigned addr) ;;
+      Ret (Vcomp (Vlong (Int64.repr res)), args)
+    | _ => triggerNB "get_current_entity_id_call: wrong arguments"
+    end.
+
+  Definition set_use_stage1_table_spec
+    : itree HypervisorEE (unit) := 
+    st <- trigger GetState;;
+    if st.(use_stage1_table)
+    then triggerNB "error"
+    else trigger (SetState (st {use_stage1_table : true})).
+
+  Definition set_use_stage2_table_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | []  => set_use_stage1_table_spec;;
+            Ret (Vnull, args)
+    | _ => triggerNB "set_use_stage2_table_call: wrong arguments"
+    end.
+  
+  Definition unset_use_stage1_table_spec
+    : itree HypervisorEE (unit) := 
+    st <- trigger GetState;;
+    if st.(use_stage1_table)
+    then trigger (SetState (st {use_stage1_table : false}))
+    else triggerNB "error".
+
+  Definition unset_use_stage2_table_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | []  => unset_use_stage1_table_spec;;
+            Ret (Vnull, args)
+    | _ => triggerNB "unset_use_stage2_table_call: wrong arguments"
+    end.
+  
+  Definition send_msg_spec
+             (receiver size: ffa_UUID_t)
+             (msg : ffa_mailbox_send_msg_t)
+             (recv_func : FFA_FUNCTION_TYPE) 
+    : itree HypervisorEE (unit) := 
+    state <- trigger GetState;;
+    let sender := state.(cur_user_entity_id) in
+    do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
+    let mailbox_contents := mkMAILBOX_struct 
+                              (vm_context.(mailbox).(send))
+                              msg (Some sender) size (Some recv_func) in
+    let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
+    let new_vm_contexts :=
+        ZTree.set receiver new_vm_context
+                  state.(hypervisor_context).(vms_contexts) in
+    trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts})).
+    
+  Definition send_msg_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong receiver)); (Vcomp (Vlong size)); (Vabs mailbox_msg); (Vabs recv_func)] =>
+        match downcast mailbox_msg ffa_mailbox_send_msg_t, downcast recv_func FFA_FUNCTION_TYPE with
+        | Some msg, Some func_type =>
+          res <- send_msg_spec (Int64.unsigned receiver) (Int64.unsigned size) msg func_type ;;
+          Ret (Vnull, args)
+        | _, _ => triggerNB "send_msg_call: impossible conversion"
+        end
+    | _ => triggerNB "send_msg_call: wrong arguments"
+    end.
+
+  Definition recv_msg_spec
+    : itree HypervisorEE (ffa_mailbox_send_msg_t) :=
+    st <- trigger GetState;;
+    let current_vm_id := st.(cur_user_entity_id) in
+    do vm_context <- ZTree.get current_vm_id st.(hypervisor_context).(vms_contexts) ;;;
+    Ret (vm_context.(mailbox).(send)).
+  
+  Definition recv_msg_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [] =>
+      res <- recv_msg_spec;;  
+      Ret (Vabs (upcast res), args)
+    | _ => triggerNB "send_msg_call: wrong arguments"
+    end.
+  
+End MemoryLoadStore.
 
 (***********************************************************************)
 (** **    FFA Memory Management Interface Module                       *)
@@ -1058,7 +1190,15 @@ Section FFAMemoryManagementInterfaceModule.
     [
       ("HVCTopLevel.save_regs_to_vcpu_call", save_regs_to_vcpu_call) ;
     ("HVCTopLevel.vcpu_restore_and_run_call", vcpu_restore_and_run_call) ;
-    ("HVCTopLevel.ffa_dispatch_call", ffa_dispatch_call)
+    ("HVCTopLevel.ffa_dispatch_call", ffa_dispatch_call) ;
+    ("HVCTopLevel.get_physical_address", get_physical_address_call);
+    ("HVCTopLevel.get_physical_address", get_physical_address_call);
+    ("HVCTopLevel.set_use_stage2_table", set_use_stage2_table_call);
+    ("HVCTopLevel.unset_use_stage2_table", unset_use_stage2_table_call);
+    ("HVCTopLevel.set_use_stage2_table", set_use_stage2_table_call);
+    ("HVCTopLevel.unset_use_stage2_table", unset_use_stage2_table_call);
+    ("HVCTopLevel.send_msg", send_msg_call);
+    ("HVCTopLevel.recv_msg", recv_msg_call)
       (* TODO: add more getter/setter functions for clients *)
     ].
 
@@ -1085,4 +1225,49 @@ Section FFAMemoryManagementInterfaceModule.
   .
   
 End FFAMemoryManagementInterfaceModule.
+
+
+Require Import Lang.
+Require Import Values.
+Require Import Integers.
+Require Import Constant.
+Import LangNotations.
+Local Open Scope expr_scope.
+
+Import Int64.
+
+(***********************************************************************)
+(** **    FFA Memory Management Interface Module With Mem Accessor     *)
+(***********************************************************************)
+Section FFAMemoryManagementInterfaceWithMemAccessorModule.
+
+  Definition mem_store_spec (addr value : var) : stmt :=
+    flat_mem_block
+      @ (Call "HVCTopLevel.get_physical_address"
+              [CBV addr])
+      #:= value.
+  
+  Definition mem_load_spec (addr : var) : stmt :=
+    Return (flat_mem_block
+              #@ (Call
+                    "HVCTopLevel.get_physical_address"
+                    [CBV addr])).
+
+  Definition mem_store_specF: function.
+    mk_function_tac mem_store_spec ["addr"; "value"] ([] :list var).
+  Defined.
+
+  Definition mem_load_specF: function.
+    mk_function_tac mem_load_spec ["addr"] ([] :list var).
+  Defined.
+
+  Definition mem_funcs :=
+    [
+      ("HVCTopLevel.mem_store", mem_store_specF) ;
+    ("HVCTopLevel.mem_load", mem_load_specF)
+    ].
+  
+  Definition top_level_with_accessor_modsem : list ModSem := [top_level_modsem; program_to_ModSem mem_funcs].
+
+End FFAMemoryManagementInterfaceWithMemAccessorModule.
 

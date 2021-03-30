@@ -296,7 +296,9 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                           (hyp_mem_global_props st) in
             let new_st :=
                 st {hypervisor_context / mem_properties :
-                      mkMemProperties new_global_props (hyp_mem_local_props st)} in
+                      mkMemProperties new_global_props (hyp_mem_local_props st)}
+                   {system_log: st.(system_log)
+                                     ++(SetAccessible lender address NoAccess)::nil} in
             Some (new_st, true)
           else Some (st, false)
         | _, _, _, _ => Some (st, false)
@@ -419,7 +421,9 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                      (hyp_mem_global_props st) in
                let new_st :=
                    st {hypervisor_context / mem_properties :
-                         mkMemProperties new_global_props (hyp_mem_local_props st)} in
+                         mkMemProperties new_global_props (hyp_mem_local_props st)}
+                      {system_log: st.(system_log)
+                                        ++(SetAccessible lender address NoAccess)::nil} in                      
                Some (new_st, true)
           else Some (st, false)
         | _, _, _ => Some (st, false)
@@ -497,7 +501,9 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                           (hyp_mem_global_props st) in
             let new_st :=
                 st {hypervisor_context / mem_properties :
-                      mkMemProperties new_global_props (hyp_mem_local_props st)} in
+                      mkMemProperties new_global_props (hyp_mem_local_props st)}
+                   {system_log: st.(system_log)
+                                     ++(SetAccessible lender address NoAccess)::nil} in                      
             Some (new_st, true)
           else Some (st, false)
         | _, _, _ => Some (st, false)
@@ -597,7 +603,12 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                let new_st :=
                    st {hypervisor_context / mem_properties :
                          mkMemProperties new_global_properties
-                                         new_local_properties_global_pool} in
+                                         new_local_properties_global_pool}
+                      {system_log: st.(system_log)
+                                        ++((SetOwner lender address (Owned borrower))
+                                             ::(SetAccessible lender address
+                                                             (ExclusiveAccess borrower))
+                                             ::(SetDirty lender address new_dirty)::nil)} in
                Some (new_st, true)
           else Some (st, false)
         | _, _, _, _ => Some (st, false)
@@ -672,7 +683,12 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                let new_st :=
                    st {hypervisor_context / mem_properties :
                          mkMemProperties new_global_properties
-                                         new_local_properties_global_pool} in
+                                         new_local_properties_global_pool}
+                      {system_log: st.(system_log)
+                                        ++((SetOwner lender address (Owned borrower))
+                                             ::(SetAccessible lender address
+                                                             (ExclusiveAccess borrower))
+                                             ::(SetDirty lender address new_dirty)::nil)} in
                Some (new_st, true)
           else Some (st, false)
         | _, _, _, _ => Some (st, false)
@@ -730,7 +746,12 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                let new_st :=
                    st {hypervisor_context / mem_properties :
                          mkMemProperties new_global_properties
-                                         new_local_properties_global_pool} in
+                                         new_local_properties_global_pool}
+                      {system_log: st.(system_log)
+                                        ++((SetOwner lender address (Owned borrower))
+                                             ::(SetAccessible lender address
+                                                             (SharedAccess (borrower::accessors)))
+                                             ::(SetDirty lender address new_dirty)::nil)} in
                Some (new_st, true)
           else Some (st, false)
         | _, _, _, _ => Some (st, false)
@@ -858,7 +879,12 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                let new_st :=
                    st {hypervisor_context / mem_properties :
                          mkMemProperties new_global_properties
-                                         new_local_properties_global_pool} in
+                                         new_local_properties_global_pool}
+                      {system_log: st.(system_log)
+                                        ++((SetOwner lender address (Owned borrower))
+                                             ::(SetAccessible lender address new_accessibility)
+                                             ::(SetDirty lender address new_dirty)::nil)} in
+                      
                Some (new_st, true)
           else Some (st, false)
         | _, _, _, _ => Some (st, false)
@@ -873,4 +899,3 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
      is the mssage to trigger FFA_MEM_RELINQUISH. *)
   
 End FFA_MEMORY_INTERFACE_CORE_STEPS.
-

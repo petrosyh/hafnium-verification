@@ -100,7 +100,7 @@ Section AbstractStateContextProps.
     (** all results of  the address translation needs to be in betweeen low and high *)
     address_translation_table_prop :
       forall addr,
-        match hafnium_address_translation_table addr with
+        match stage2_address_translation_table addr with
         | Some addr' => (address_low <= addr' <= address_high)
         | _ => True
         end;
@@ -129,7 +129,7 @@ Section AbstractStateContextProps.
     (* TODO: add more invariants *)
         
     cur_entity_id_prop (state : AbstractState) :
-      In state.(cur_entity_id) entity_list;
+      In state.(cur_user_entity_id) vm_ids;
     }.
 
   (** ** Invariants for memory *)

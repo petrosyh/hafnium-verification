@@ -246,12 +246,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         (** - Get the current memory region descriptor *)
-        do memory_region_descriptor <-
+        do state_and_memory_region_descriptor <-
            get_send_memory_region_descriptor caller st ;;;
-        do receivers_info <-
+        let (state, memory_region_descriptor) := state_and_memory_region_descriptor in
+        do ipa_info_tuple <-
            get_recievers_receiver_ids_and_addresses_tuple
              memory_region_descriptor ;;;
-           (** - Check the well_formed conditions of the memory region descriptor *)
+        do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+          (** - Check the well_formed conditions of the memory region descriptor *)
           if decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
           then
             let region_size
@@ -260,20 +262,20 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                          (memory_region_descriptor
                           .(FFA_memory_region_struct_composite)
                           .(FFA_composite_memory_region_struct_constituents)))) in
-            if decide ((st.(hypervisor_context).(api_page_pool_size)
+            if decide ((state.(hypervisor_context).(api_page_pool_size)
                         < region_size)%Z)
             then
-              match receivers_info with
+              match info_tuple with
               | (receiver, receiver_id, cur_addresses)::nil =>
                 (* TODO: add cases to handle multiple address transfer *)
                 match (donate_check
                          caller
-                         (st.(hypervisor_context).(time_slice_enabled))
-                         (st.(hypervisor_context).(mem_properties))
-                         memory_region_descriptor receivers_info) with 
+                         (state.(hypervisor_context).(time_slice_enabled))
+                         (state.(hypervisor_context).(mem_properties))
+                         memory_region_descriptor info_tuple) with 
                 | None =>
                   do res <- apply_ffa_mem_donate_core_transition_spec
-                             caller receiver_id cur_addresses st ;;;
+                             caller receiver_id cur_addresses state ;;;
                   match res with  
                   (* TODO: need to creage handle! - 0 is the wrong value  *)
                   (* TODO: need to reduce mpool size *) 
@@ -448,11 +450,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         (** - Get the current memory region descriptor *)
-        do memory_region_descriptor <-
+        do state_and_memory_region_descriptor <-
            get_send_memory_region_descriptor caller st ;;;
-        do receivers_info <-
+        let (state, memory_region_descriptor) := state_and_memory_region_descriptor in
+        do ipa_info_tuple <-
            get_recievers_receiver_ids_and_addresses_tuple
              memory_region_descriptor ;;;
+        do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
            (** - Check the well_formed conditions of the memory region descriptor *)
           if decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
           then
@@ -462,20 +466,20 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                          (memory_region_descriptor
                           .(FFA_memory_region_struct_composite)
                           .(FFA_composite_memory_region_struct_constituents)))) in
-            if decide ((st.(hypervisor_context).(api_page_pool_size)
+            if decide ((state.(hypervisor_context).(api_page_pool_size)
                         < region_size)%Z)
             then
               match (lend_check
                        caller
-                       (st.(hypervisor_context).(time_slice_enabled))
-                       (st.(hypervisor_context).(mem_properties))
-                       memory_region_descriptor receivers_info) with 
+                       (state.(hypervisor_context).(time_slice_enabled))
+                       (state.(hypervisor_context).(mem_properties))
+                       memory_region_descriptor info_tuple) with 
               | None =>
                 (* TODO: add cases to handle multiple address transfer *)
                 do res <- apply_ffa_mem_lend_core_transition_spec
-                           caller (get_receiver_ids receivers_info)
+                           caller (get_receiver_ids info_tuple)
                            (get_all_addresses memory_region_descriptor)
-                           st ;;;
+                           state ;;;
                 match res with  
                 (* TODO: need to creage handle! - 0 is the wrong value  *)
                 (* TODO: need to reduce mpool size *) 
@@ -483,12 +487,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                   match set_memory_region_in_shared_state
                           caller
                           region_size FFA_MEM_LEND
-                          (get_receiver_id_addrs_pair receivers_info)
+                          (get_receiver_id_addrs_pair info_tuple)
                           None false
                           memory_region_descriptor st' with
                   | Some (st'', handle_value) =>
                     do res_st <- set_send_handle_for_multiple_receivers
-                                  (get_receiver_ids receivers_info)
+                                  (get_receiver_ids info_tuple)
                                   caller
                                   region_size handle_value FFA_MEM_LEND
                                   st'' ;;;
@@ -638,11 +642,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         (** - Get the current memory region descriptor *)
-        do memory_region_descriptor <-
+        do state_and_memory_region_descriptor <-
            get_send_memory_region_descriptor caller st ;;;
-        do receivers_info <-
+        let '(state, memory_region_descriptor) := state_and_memory_region_descriptor in
+        do ipa_info_tuple <-
            get_recievers_receiver_ids_and_addresses_tuple
              memory_region_descriptor ;;;
+        do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
            (** - Check the well_formed conditions of the memory region descriptor *)
           if decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
           then
@@ -652,20 +658,20 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                          (memory_region_descriptor
                           .(FFA_memory_region_struct_composite)
                           .(FFA_composite_memory_region_struct_constituents)))) in
-            if decide ((st.(hypervisor_context).(api_page_pool_size)
+            if decide ((state.(hypervisor_context).(api_page_pool_size)
                         < region_size)%Z)
             then
               match (share_check
                        caller
-                       (st.(hypervisor_context).(time_slice_enabled))
-                       (st.(hypervisor_context).(mem_properties))
-                       memory_region_descriptor receivers_info) with 
+                       (state.(hypervisor_context).(time_slice_enabled))
+                       (state.(hypervisor_context).(mem_properties))
+                       memory_region_descriptor info_tuple) with 
               | None =>
                 (* TODO: add cases to handle multiple address transfer *)
                 do res <- apply_ffa_mem_share_core_transition_spec
-                           caller (get_receiver_ids receivers_info)
+                           caller (get_receiver_ids info_tuple)
                            (get_all_addresses memory_region_descriptor)
-                           st ;;;
+                           state ;;;
                 match res with  
                 (* TODO: need to creage handle! - 0 is the wrong value  *)
                 (* TODO: need to reduce mpool size *) 
@@ -673,12 +679,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                   match set_memory_region_in_shared_state
                           caller
                           region_size FFA_MEM_SHARE
-                          (get_receiver_id_addrs_pair receivers_info)
+                          (get_receiver_id_addrs_pair info_tuple)
                           None false
                           memory_region_descriptor st' with
                   | Some (st'', handle_value) =>
                     do res_st <- set_send_handle_for_multiple_receivers
-                                  (get_receiver_ids receivers_info)
+                                  (get_receiver_ids info_tuple)
                                   caller
                                   region_size handle_value FFA_MEM_SHARE
                                   st'' ;;;
@@ -851,12 +857,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (st : AbstractState)
       : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
         (** - Get the current memory region descriptor *)
-      do receivers_info <-
-         get_recievers_receiver_ids_and_addresses_tuple region_descriptor ;;;
+      do ipa_info_tuple <-
+         get_recievers_receiver_ids_and_addresses_tuple
+           region_descriptor ;;;
+      do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
      (** - Check the well_formed conditions of the memory region descriptor *)
      if decide ((length (get_receivers region_descriptor) = 1)%nat)
      then
-       match receivers_info with
+       match info_tuple with
        | (receiver, receiver_id, cur_addresses)::nil =>
          (* TODO: add cases to handle multiple address transfer *)
          match (donate_retrieve_req_check
@@ -864,7 +872,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                   (st.(hypervisor_context).(time_slice_enabled))
                   (st.(hypervisor_context).(mem_properties))
                   region_descriptor
-                  (get_receiver_ids receivers_info)
+                  (get_receiver_ids info_tuple)
                   (receiver, receiver_id, cur_addresses)
                   (Zlength (get_receivers region_descriptor))) with 
          | None =>
@@ -1035,8 +1043,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (st : AbstractState)
     : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
         (** - Get the current memory region descriptor *)
-      do receivers_info <-
-         get_recievers_receiver_ids_and_addresses_tuple region_descriptor ;;;
+      do ipa_info_tuple <-
+         get_recievers_receiver_ids_and_addresses_tuple
+           region_descriptor ;;;
+      do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
       do receiver_info <-
          get_receiver_tuple caller region_descriptor ;;;
      (** - Check the well_formed conditions of the memory region descriptor *)
@@ -1048,7 +1058,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                 (st.(hypervisor_context).(time_slice_enabled))
                 (st.(hypervisor_context).(mem_properties))
                 region_descriptor
-                (get_receiver_ids receivers_info)
+                (get_receiver_ids info_tuple)
                 (receiver, receiver_id, cur_addresses)
                 (Zlength (get_receivers region_descriptor))) with 
        | None =>
@@ -1199,8 +1209,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (st : AbstractState)
       : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
         (** - Get the current memory region descriptor *)
-      do receivers_info <-
-         get_recievers_receiver_ids_and_addresses_tuple region_descriptor ;;;
+      do ipa_info_tuple <-
+         get_recievers_receiver_ids_and_addresses_tuple
+           region_descriptor ;;;
+      do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
       do receiver_info <-
          get_receiver_tuple caller region_descriptor ;;;
      (** - Check the well_formed conditions of the memory region descriptor *)
@@ -1212,7 +1224,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                 (st.(hypervisor_context).(time_slice_enabled))
                 (st.(hypervisor_context).(mem_properties))
                 region_descriptor
-                (get_receiver_ids receivers_info)
+                (get_receiver_ids info_tuple)
                 (receiver, receiver_id, cur_addresses)
                 (Zlength (get_receivers region_descriptor))) with 
        | None =>
@@ -1259,8 +1271,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
       if ffa_mem_general_check_arguments total_length fragment_length address count
       then
-        do handle <- get_send_handle_value caller st ;;;
-        do share_state <- get_handle_information handle st ;;;
+        do state_and_handle <- get_send_handle_value caller st ;;;
+        let '(state, handle) := state_and_handle in
+        do share_state <- get_handle_information handle state ;;;
         match share_state with 
         | mkFFA_memory_share_state_struct
             memory_region share_func retrieved relinquished retrieve_count
@@ -1438,11 +1451,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (caller : ffa_UUID_t)
                (st : AbstractState)
     : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
-      do relinquish_descriptor <- get_send_relinquish_descriptor caller st ;;;
+      do state_and_relinquish_descriptor <- get_send_relinquish_descriptor caller st ;;;
+      let '(state, relinquish_descriptor) := state_and_relinquish_descriptor in
       let handle_value := relinquish_descriptor.(FFA_memory_relinquish_struct_handle) in
       let flags := relinquish_descriptor.(FFA_memory_relinquish_struct_flags ) in
       let receivers := relinquish_descriptor.(FFA_memory_relinquish_struct_endpoints) in
-      do share_state <- get_handle_information handle_value st ;;;
+      do share_state <- get_handle_information handle_value state ;;;
       match share_state, flags with
       | mkFFA_memory_share_state_struct
           memory_region share_func retrieved relinquished retrieve_count,
@@ -1458,7 +1472,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               | None, Some res =>  Some (st, FFA_ERROR res)
               | None, None =>
                 let sender := memory_region.(FFA_memory_region_struct_sender) in
-                do info_tuple <- get_recievers_receiver_ids_and_addresses_tuple memory_region ;;;
+                do ipa_info_tuple <- get_recievers_receiver_ids_and_addresses_tuple memory_region ;;;
+                do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
                 let receiver_tuple :=
                     get_receiver_tuple
                       caller memory_region in
@@ -1684,8 +1699,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           memory_region share_func retrieved relinquished retrieve_count =>
         if decide (memory_region.(FFA_memory_region_struct_sender) <> caller)
         then Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
-        else 
-          do info_tuple <- get_recievers_receiver_ids_and_addresses_tuple memory_region ;;;
+        else
+          do ipa_info_tuple <- get_recievers_receiver_ids_and_addresses_tuple memory_region ;;;
+          do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;          
           match mem_reclaim_check info_tuple retrieved with
           | None =>
             match apply_ffa_mem_reclaim_core_transition
