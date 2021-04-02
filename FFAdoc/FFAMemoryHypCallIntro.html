@@ -1,0 +1,1016 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>FFAMemoryHypCallIntro</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library FFAMemoryHypCallIntro</h1>
+
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">FFAMemoryHypCall</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab93"></a><h1 class="section">Introduction</h1>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+   This file introduces several relavant concepts that are necessary in the FF-A memory 
+   management interface formalization. Those things include "FFA version number", "FF-A instances", 
+   "Memory types", "Memory granularity and alignment", "Partition identification and discovery", "execution context",
+   "System resource management", "Partition setup", and "FFA memory management interface introduction". 
+
+<div class="paragraph"> </div>
+
+   With the given descriptions, we formalize our target with the following four files. 
+
+<div class="paragraph"> </div>
+
+   The following explanations are mostly copied from the FF-A document. If there are something that we hope to mention, 
+   we add <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:...</span> to distinguish them with the original texts.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <span class="id" title="var">BasicConcepts</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This section provides several basic concepts that are necessary to model FFA memory management interfaces 
+<div class="paragraph"> </div>
+
+<a name="lab94"></a><h2 class="section">FFA Version number - Parts of Section 8.1</h2>
+
+
+<div class="paragraph"> </div>
+
+    The version number of a Firmware Framework implementation is a 31-bit unsigned integer, 
+    with the upper 15 bits denoting the major revision, and the lower 16 bits denoting the minor revision.
+
+<div class="paragraph"> </div>
+
+    With the given version number, the following two rules has to be satisfied.
+<ul class="doclist">
+<li> All the functions that are described in this specification must be implemented, 
+      unless it is explicitly stated that a function is optional.
+
+</li>
+<li> A partition manager could implement an optional interface and make it available to a subset of 
+      endpoints it manages.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+    The following rules apply to the version numbering.
+<ul class="doclist">
+<li> Different major revision values indicate possibly incompatible functions.
+
+</li>
+<li> For two revisions, A and B, for which the major revision values are identical, 
+      if the minor revision value of revision B is greater than the minor revision value of revision A, 
+      then every function in revision A must work in a compatible way with revision B. 
+      However, it is possible for revision B to have a higher function count than revision A.
+      In an invocation of this function, the compatibility of the version number (x.y) of the caller with the 
+      version number (a.b) of the callee can also be as follows.
+      1. If x != a, then the versions are incompatible.
+<ul class="doclist">
+<li> The caller cannot inter-operate with the callee.
+
+</li>
+</ul>
+      2. If x == a and y &gt; b, then the versions are incompatible.
+<ul class="doclist">
+<li> The caller can inter-operate with the callee only if it downgrades its minor revision such that y &lt;= b.
+
+</li>
+</ul>
+      3. If x == a and y &lt;= b, then the versions are compatible. A version number (x.y) is less than a version 
+         number (a.b) if one of the following conditions is true.
+<ul class="doclist">
+<li> x &lt; a.
+
+</li>
+<li> y &lt; b if x == a.
+
+</li>
+</ul>
+
+</li>
+</ul>
+   
+<div class="paragraph"> </div>
+
+<a name="lab95"></a><h2 class="section">FF-A instances - Parts of Section 2.3</h2>
+
+
+<div class="paragraph"> </div>
+
+     An FF-A instance is a valid combination of two FF-A components at an Exception level boundary. These instances
+     are used to describe the interfaces specified by the Firmware Framework.
+
+<div class="paragraph"> </div>
+
+     An instance is physical if:
+     – Each component can independently manage its translation regime.
+     – The translation regimes of each component map virtual addresses to physical addresses.
+<ul class="doclist">
+<li> An instance is virtual if it is not physical.
+
+</li>
+<li> The instance between the SPMC and SPMD is called the Secure physical FF-A instance.
+
+</li>
+<li> The instance between the SPMC and an SP is called the Secure virtual FF-A instance.
+
+</li>
+<li> In the Normal world, the instance between:
+
+</li>
+</ul>
+     – The Hypervisor and a VM is called the Non-secure virtual FF-A instance.
+     – The Hypervisor and SPMD is called the Non-secure physical FF-A instance.
+     – The OS kernel and SPMD, in the absence of a Hypervisor is called the Non-secure physical FF-A instance.
+   
+<div class="paragraph"> </div>
+
+<a name="lab96"></a><h2 class="section">Memory types - Parts of Section 2.6</h2>
+
+
+<div class="paragraph"> </div>
+
+     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">Based</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">descriptions</span>,</span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">NS</span></span> <span class="inlinecode"><span class="id" title="var">attribute</span></span> <span class="inlinecode"><span class="id" title="var">bit</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">each</span></span> <span class="inlinecode"><span class="id" title="var">page</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">required</span></span> 
+     <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="tactic">abstract</span></span> <span class="inlinecode"><span class="id" title="var">definition</span>.</span>
+
+<div class="paragraph"> </div>
+
+     Each memory region is assigned to either the Secure or Non-secure physical address space at system 
+     reset or during system boot. Normal world can only access memory regions in the Non-secure physical 
+     address space. Secure world can access memory regions in both address spaces. 
+
+<div class="paragraph"> </div>
+
+     The Non-secure (NS) attribute bit in the translation table descriptor determines whether an access 
+     is to Secure or Non-secure memory. In this version of the Framework:
+<ul class="doclist">
+<li> Memory that is accessed with the NS bit set in the translation regime of any component 
+       is called Normal memory.
+
+</li>
+<li> Memory that is accessed with the NS bit cleared in the component translation regime is called Secure memory.
+
+</li>
+</ul>
+   
+<div class="paragraph"> </div>
+
+<a name="lab97"></a><h2 class="section">Memory granularity and alignment - Parts of Section 2.7</h2>
+
+
+<div class="paragraph"> </div>
+
+     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">Similar</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">description</span>.</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">can</span></span> <span class="inlinecode"><span class="id" title="var">introduce</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="keyword">context</span></span> <span class="inlinecode"><span class="id" title="var">variable</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="var">represents</span></span>
+     <span class="inlinecode"><span class="id" title="var">arbitrary</span></span> <span class="inlinecode"><span class="id" title="var">number</span>.</span> <span class="inlinecode"><span class="id" title="var">And</span></span> <span class="inlinecode"><span class="id" title="var">based</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">that</span>,</span> <span class="inlinecode"><span class="id" title="var">expressing</span></span> <span class="inlinecode"><span class="id" title="var">several</span></span> <span class="inlinecode"><span class="id" title="var">invariants</span></span> <span class="inlinecode"><span class="id" title="var">are</span></span> <span class="inlinecode"><span class="id" title="var">also</span></span> <span class="inlinecode"><span class="id" title="var">possible</span>.</span>
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> If X is the larger translation granule size used by the two translation regimes, 
+      then the size of the memory region must be a multiple of X.
+
+</li>
+<li> The base address of the memory region must be aligned to X.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+    An endpoint could specify its translation granule size in its partition manifest as described
+    in 3.2 Partition manifest at virtual FF-A instance. 
+   
+<div class="paragraph"> </div>
+
+<a name="lab98"></a><h2 class="section">Partition identification and discovery - Parts of Section 2.8</h2>
+
+
+<div class="paragraph"> </div>
+
+     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="var">describes</span></span> <span class="inlinecode"><span class="id" title="var">identifiers</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">each</span></span> <span class="inlinecode"><span class="id" title="var">entity</span>.</span> <span class="inlinecode"><span class="id" title="var">Entities</span></span> <span class="inlinecode"><span class="id" title="var">can</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">divided</span></span> <span class="inlinecode"><span class="id" title="var">into</span></span> <span class="inlinecode"><span class="id" title="var">sub</span></span> <span class="inlinecode"><span class="id" title="var">types</span>,</span>
+     <span class="inlinecode"><span class="id" title="var">such</span></span> <span class="inlinecode"><span class="id" title="keyword">as</span></span> <span class="inlinecode"><span class="id" title="var">SEPID</span>,</span> <span class="inlinecode"><span class="id" title="var">VM</span></span> <span class="inlinecode"><span class="id" title="var">ID</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">so</span></span> <span class="inlinecode"><span class="id" title="var">on</span>.</span>
+
+<div class="paragraph"> </div>
+
+     Partitions are identified by a 16-bit ID and a UUID (Unique Universal Identifier) (see <span class="inlinecode">6</span>). This helps partitions
+     discover the presence of other partitions and their properties. A unique ID must be assigned to
+     each partition in the system. The ID value 0 is reserved for the Hypervisor as described in. 
+     The ID value assigned to the SPM is IMPLEMENTATION DEFINED.
+   
+<div class="paragraph"> </div>
+
+<a name="lab99"></a><h2 class="section">Execution Context - Parts of Section 2.9</h2>
+
+
+<div class="paragraph"> </div>
+
+     Each endpoint has one or more execution contexts depending on its implementation. An execution context
+     comprises of general-purpose, system, and any memory mapped register state that must be maintained by a
+     partition manager.
+     A partition manager is responsible for allocating, initializing, and running the execution
+     context of an endpoint on a physical or virtual PE in the system. An execution context is identified 
+     by using a 16-bit ID. This ID is referred to as the vCPU or execution context ID.
+
+<div class="paragraph"> </div>
+
+     An endpoint must be one of the following types:
+<ul class="doclist">
+<li> Implements a single execution context and is not capable of Symmetric multi-processing. It runs only on a
+       single PE in the system at any point of time. This type of endpoint is called a UP endpoint.
+
+</li>
+<li> Implements multiple execution contexts and is capable of Symmetric multi-processing. These contexts run
+       concurrently on separate PEs in the system. These endpoints are called MP endpoints.
+       An execution context of an endpoint could be capable of migrating. Migration capability means that the partition
+       manager could save the execution context of an endpoint on one PE. It could then restore the saved execution
+       context on another PE and resume endpoint execution. The endpoint must not make any assumptions about the PE
+       it runs on.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">requirements</span></span> <span class="inlinecode"><span class="id" title="var">need</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">reflected</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">specifications</span>,</span> <span class="inlinecode"><span class="id" title="var">but</span></span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">currently</span></span> <span class="inlinecode"><span class="id" title="var">don't</span></span> <span class="inlinecode"><span class="id" title="var">need</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> 
+      <span class="inlinecode"><span class="id" title="var">deal</span></span> <span class="inlinecode"><span class="id" title="keyword">with</span></span> <span class="inlinecode"><span class="id" title="var">them</span></span>
+
+<div class="paragraph"> </div>
+
+     This version of the Framework requires the following:
+<ul class="doclist">
+<li> UP endpoints must be capable of migrating.
+
+</li>
+<li> Execution contexts of MP endpoints could be capable of migrating between PEs or could be fixed to a
+       particular PE. The latter are called pinned contexts.
+
+</li>
+<li> The migration capability must be specified in the endpoint manifest (see 3.2 Partition manifest at virtual
+       FF-A instance).
+
+</li>
+<li> S-EL0 partitions must be UP.
+       The number of execution contexts an endpoint implements can differ from the number of PEs in the system. This
+       must be specified in the manifest of the endpoint (see 2.10 System resource management). For example, a VM in
+       the Normal world must use the manifest to inform the Hypervisor how many vCPUs it implements. The Hypervisor
+       must maintain an execution context for each vCPU. 
+
+</li>
+</ul>
+   
+<div class="paragraph"> </div>
+
+<a name="lab100"></a><h2 class="section">System resource management - Parts of Section 2.10</h2>
+
+
+<div class="paragraph"> </div>
+
+      <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">Among</span></span> <span class="inlinecode"><span class="id" title="var">them</span>,</span> <span class="inlinecode">&quot;<span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">regions</span>&quot;</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode">&quot;<span class="id" title="var">devices</span>&quot;</span> <span class="inlinecode"><span class="id" title="var">are</span></span> <span class="inlinecode"><span class="id" title="var">closely</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">draft</span>.</span> 
+      <span class="inlinecode"><span class="id" title="var">But</span>,</span> <span class="inlinecode"><span class="id" title="var">among</span></span> <span class="inlinecode"><span class="id" title="var">two</span></span> <span class="inlinecode"><span class="id" title="var">things</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">only</span></span> <span class="inlinecode"><span class="id" title="var">focus</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode">&quot;<span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">regions</span>&quot;</span> <span class="inlinecode"><span class="id" title="var">parts</span>.</span> <span class="inlinecode"><span class="id" title="var">Our</span></span> <span class="inlinecode"><span class="id" title="var">draft</span></span> <span class="inlinecode"><span class="id" title="var">excludes</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">management</span></span>
+      <span class="inlinecode"><span class="id" title="var">interface</span></span> <span class="inlinecode"><span class="id" title="var">transitions</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">device</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">parts</span></span> <span class="inlinecode">(<span class="id" title="var">SMMU</span>,</span> <span class="inlinecode"><span class="id" title="var">MMIO</span>,</span> <span class="inlinecode"><span class="id" title="var">independent</span></span> <span class="inlinecode"><span class="id" title="var">peripheral</span></span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="tactic">dependent</span></span> <span class="inlinecode"><span class="id" title="var">peripheral</span>).</span>
+      <span class="inlinecode"><span class="id" title="var">Even</span></span> <span class="inlinecode"><span class="id" title="var">though</span></span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">ignore</span></span> <span class="inlinecode"><span class="id" title="var">them</span>,</span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">attributes</span></span> <span class="inlinecode"><span class="id" title="var">divides</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">into</span></span> <span class="inlinecode"><span class="id" title="var">normal</span></span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">device</span></span>
+      <span class="inlinecode"><span class="id" title="var">memories</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">future</span></span> <span class="inlinecode"><span class="id" title="var">extension</span></span>
+
+<div class="paragraph"> </div>
+
+     Components in the Firmware Framework require access to the following system resources.
+<ul class="doclist">
+<li> Memory regions.
+
+</li>
+<li> Devices.
+
+</li>
+<li> CPU cycles.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+     The Framework associates the attributes of ownership and access with these resources. The Owner governs the
+     following capabilities of non-Owners for each resource.
+<ul class="doclist">
+<li> The level of access a non-Owner has for using the resource. This could be exclusive, shared or no-access.
+
+</li>
+<li> The ability to grant access to the resource to other non-Owners. This is called access forwarding.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+     Also, the Owner could relinquish ownership to another component.
+     The Framework also specifies the transitions that result in a change of ownership and access attributes associated
+     with a resource. A combination of these attributes and transitions determines how a resource is managed among
+     components.
+
+<div class="paragraph"> </div>
+
+     Rules associated with ownership and access of memory regions are described in Chapter 5 Memory Management.
+     Rules associated with ownership and access of CPU cycles are described in 2.11 Primary scheduler.
+     For a device that is upstream of an SMMU, its access to the physical address space is managed using the rules
+     associated with management of memory regions (also see 5.2 Direct memory access).
+     For all devices, ownership and access attributes are associated with its MMIO region. A partition could request
+     access and/or ownership of a device through its manifest (see Table 3.3). This is done through one of the following
+     ways.
+<ul class="doclist">
+<li> A partition requests ownership and exclusive access to the MMIO region of a device during boot time
+       (see Chapter 3 Partition setup). The corresponding partition manager assigns the MMIO region with these
+       attributes to the partition.
+
+</li>
+<li> One or more partitions request access to the MMIO region of a device during boot time. The corresponding
+       partition manager is the Owner of the MMIO region and grants access to all the partitions.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">requirements</span></span> <span class="inlinecode"><span class="id" title="var">need</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">reflected</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">specifications</span>,</span> <span class="inlinecode"><span class="id" title="var">but</span></span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">currently</span></span> <span class="inlinecode"><span class="id" title="var">don't</span></span> <span class="inlinecode"><span class="id" title="var">need</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> 
+      <span class="inlinecode"><span class="id" title="var">deal</span></span> <span class="inlinecode"><span class="id" title="keyword">with</span></span> <span class="inlinecode"><span class="id" title="var">them</span></span>   
+
+<div class="paragraph"> </div>
+
+     This version of the Framework does not permit:
+<ul class="doclist">
+<li> Ownership of a device MMIO region to be transferred to another partition during run-time.
+
+</li>
+<li> Access to a device MMIO region to be granted to another partition during run-time.
+
+</li>
+<li> Access to a device MMIO region to be revoked from a partition during run-time.
+
+</li>
+</ul>
+   
+<div class="paragraph"> </div>
+
+<a name="lab101"></a><h2 class="section">Partition setup - Parts of Section 3.</h2>
+
+
+<div class="paragraph"> </div>
+
+     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="keyword">Section</span></span> <span class="inlinecode">3</span> <span class="inlinecode"><span class="id" title="var">provides</span></span> <span class="inlinecode"><span class="id" title="var">multiple</span></span> <span class="inlinecode"><span class="id" title="var">details</span></span> <span class="inlinecode"><span class="id" title="var">about</span></span> <span class="inlinecode"><span class="id" title="var">how</span></span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">can</span></span> <span class="inlinecode"><span class="id" title="tactic">set</span></span> <span class="inlinecode"><span class="id" title="var">up</span></span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">which</span></span> <span class="inlinecode"><span class="id" title="var">information</span></span> <span class="inlinecode"><span class="id" title="var">has</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span>
+     <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">stored</span></span> <span class="inlinecode">(<span class="id" title="var">or</span></span> <span class="inlinecode"><span class="id" title="var">required</span>)</span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">each</span></span> <span class="inlinecode"><span class="id" title="var">partition</span>.</span> <span class="inlinecode"><span class="id" title="var">We</span></span> <span class="inlinecode"><span class="id" title="tactic">try</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">include</span></span> <span class="inlinecode"><span class="id" title="tactic">simple</span></span> <span class="inlinecode"><span class="id" title="var">details</span></span> <span class="inlinecode"><span class="id" title="var">about</span></span> <span class="inlinecode"><span class="id" title="var">them</span></span> <span class="inlinecode"><span class="id" title="var">here</span></span>
+
+<div class="paragraph"> </div>
+
+     The following information must be specified in the manifest of a partition.
+<ul class="doclist">
+<li> Partition properties as described in Table 3.1.
+
+</li>
+<li> Memory regions as described in Table 3.2.
+
+</li>
+<li> Devices as described in Table 3.3.
+
+</li>
+<li> Partition boot protocol as described in Table 3.10.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">Among</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">entire</span></span> <span class="inlinecode"><span class="id" title="var">things</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">focus</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">Table</span></span> <span class="inlinecode">3.2.</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">Table</span></span> <span class="inlinecode">3.3.</span> 
+     <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">parts</span></span> <span class="inlinecode"><span class="id" title="var">need</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">reflected</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">state</span></span> <span class="inlinecode"><span class="id" title="var">definition</span>,</span> <span class="inlinecode"><span class="id" title="var">but</span></span> <span class="inlinecode"><span class="id" title="keyword">with</span></span> <span class="inlinecode"><span class="id" title="var">some</span></span> <span class="inlinecode"><span class="id" title="var">modifications</span>.</span>
+     <span class="inlinecode"><span class="id" title="var">For</span></span> <span class="inlinecode"><span class="id" title="var">example</span>.</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">model</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="var">each</span></span> <span class="inlinecode"><span class="id" title="var">page</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">entire</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">has</span></span> <span class="inlinecode"><span class="id" title="var">its</span></span> <span class="inlinecode"><span class="id" title="var">own</span></span> <span class="inlinecode"><span class="id" title="var">ownership</span>,</span> <span class="inlinecode"><span class="id" title="var">accessibility</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">attributes</span>.</span> 
+     <span class="inlinecode"><span class="id" title="var">If</span></span> <span class="inlinecode"><span class="id" title="var">they</span></span> <span class="inlinecode"><span class="id" title="var">are</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">same</span></span> <span class="inlinecode"><span class="id" title="var">region</span>,</span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">spec</span></span> <span class="inlinecode"><span class="id" title="var">requires</span></span> <span class="inlinecode"><span class="id" title="var">sonsistency</span></span> <span class="inlinecode"><span class="id" title="var">check</span>.</span> <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="var">check</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">basically</span></span> <span class="inlinecode"><span class="id" title="var">figure</span></span> <span class="inlinecode"><span class="id" title="var">out</span></span> <span class="inlinecode"><span class="id" title="var">whether</span></span>
+     <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">entire</span></span> <span class="inlinecode"><span class="id" title="var">pages</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">region</span></span> <span class="inlinecode"><span class="id" title="var">have</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">same</span></span> <span class="inlinecode"><span class="id" title="var">attributes</span></span> <span class="inlinecode"><span class="id" title="var">or</span></span> <span class="inlinecode"><span class="id" title="var">not</span>.</span> 
+
+<div class="paragraph"> </div>
+
+     Coq source file contains Table 3.2. and Table 3.3., but they are omitted in the generated file due to 
+     format issues 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">BasicConcepts</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab102"></a><h1 class="section">Memory Management - Chapter 5.</h1>
+ <span class="inlinecode"><span class="id" title="var">JIEUNG</span></span> For Chapter 5, I copied and pasted all comments 
+    even though they are not totally related to our implementation. This is due to 
+    I hope to make the following specs as self-contained ones as much as possible.]
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Section</span> <span class="id" title="var">MemoryManagementIntro</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">Overview</span>.<br/>
+</div>
+
+<div class="doc">
+<a name="lab103"></a><h2 class="section">Overview - Section 5.1.</h2>
+
+
+<div class="paragraph"> </div>
+
+    FF-A components to manage access and ownership of memory regions in the physical address space 
+     to fulfill use cases such as:
+<ul class="doclist">
+<li> DRM protected video path.
+
+</li>
+<li> Communication with a VM with pre-configured machine learning frameworks,
+
+</li>
+<li> Biometric authentication and Secure payments.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+     There are several possible scenarios:
+<ul class="doclist">
+<li> The Owner of a memory region can transfer its ownership to another FF-A component.
+
+</li>
+<li> The Owner of a memory region can relinquish access to it and grant access to one 
+
+</li>
+</ul>
+     or more FF-A components.
+<ul class="doclist">
+<li> The Owner of a memory region can share access to it with one or more FF-A components.
+
+</li>
+<li> The Owner of a memory region can reclaim access to it by requesting FF-A components 
+
+</li>
+</ul>
+     to relinquish access to the memory region.
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">Overview</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">DirectMemoryAccess</span>.<br/>
+</div>
+
+<div class="doc">
+<a name="lab104"></a><h2 class="section">Direct memory access - Section 5.2.</h2>
+
+
+<div class="paragraph"> </div>
+
+       <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">At</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">moment</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">ignore</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">parts</span></span>
+       
+       <span class="inlinecode">-</span> <span class="inlinecode"><span class="id" title="var">In</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">section</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">folloiwng</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">parts</span>,</span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">document</span></span> <span class="inlinecode"><span class="id" title="var">describes</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">managements</span></span>
+       <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">device</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">regions</span>.</span> <span class="inlinecode"><span class="id" title="var">However</span>,</span> <span class="inlinecode"><span class="id" title="var">most</span></span> <span class="inlinecode"><span class="id" title="keyword">of</span></span> <span class="inlinecode"><span class="id" title="var">them</span></span> <span class="inlinecode"><span class="id" title="var">will</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">ignored</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">draft</span>.</span> <span class="inlinecode"><span class="id" title="var">We</span></span> <span class="inlinecode"><span class="id" title="tactic">do</span></span> <span class="inlinecode"><span class="id" title="var">not</span></span> 
+       <span class="inlinecode"><span class="id" title="var">include</span></span> <span class="inlinecode"><span class="id" title="var">Stream</span></span> <span class="inlinecode"><span class="id" title="var">ID</span>,</span> <span class="inlinecode"><span class="id" title="var">SEPID</span>,</span> <span class="inlinecode"><span class="id" title="var">ownership</span></span> <span class="inlinecode"><span class="id" title="var">transfers</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">access</span></span> <span class="inlinecode"><span class="id" title="var">controls</span></span> <span class="inlinecode"><span class="id" title="var">when</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">page</span></span> <span class="inlinecode"><span class="id" title="var">region</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> 
+       <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">direct</span></span> <span class="inlinecode"><span class="id" title="var">access</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">devices</span>.</span> 
+       
+       <span class="inlinecode">-</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">implies</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="tactic">try</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">focus</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">communications</span></span> <span class="inlinecode"><span class="id" title="var">between</span></span> <span class="inlinecode"><span class="id" title="var">two</span></span> <span class="inlinecode"><span class="id" title="var">PEs</span>.</span> <span class="inlinecode"><span class="id" title="var">In</span></span> <span class="inlinecode"><span class="id" title="var">addition</span></span> <span class="inlinecode"><span class="id" title="var">that</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="tactic">try</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span>
+       <span class="inlinecode"><span class="id" title="var">ignore</span></span> <span class="inlinecode"><span class="id" title="var">other</span></span> <span class="inlinecode"><span class="id" title="var">FFA</span></span> <span class="inlinecode"><span class="id" title="var">interfaces</span>.</span> <span class="inlinecode"><span class="id" title="var">For</span></span> <span class="inlinecode"><span class="id" title="var">example</span>,</span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">modeling</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">getting</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">ID</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">each</span></span> <span class="inlinecode"><span class="id" title="var">PE</span></span> <span class="inlinecode"><span class="id" title="tactic">by</span></span>
+       <span class="inlinecode"><span class="id" title="keyword">using</span></span> <span class="inlinecode">&quot;<span class="id" title="var">FFA_ID_GET</span>&quot;.</span> <span class="inlinecode"><span class="id" title="var">However</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">will</span></span> <span class="inlinecode"><span class="id" title="var">ignore</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">current</span></span> <span class="inlinecode"><span class="id" title="var">version</span></span>
+     
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+       The Framework enables FF-A components to manage access to the physical address space from a device that
+       is upstream of an SMMU using the memory management transactions described in 5.5 Memory management
+       transactions.
+
+<div class="paragraph"> </div>
+
+       As per the Arm SMMU architecture, each transaction generated by a device is associated with a Stream ID. 
+       This Stream ID could be one of many that a the device is configured to use. A Stream ID is used to 
+       determine the stage 1 and stage 2 address translations that must be used for the transaction. It is also 
+       possible that one or both stages of translation could be bypassed for a Stream ID in the SMMU.
+
+<div class="paragraph"> </div>
+
+       If enabled, the stage 2 translations corresponding to a Stream ID control access to the physical 
+       address space that the device has. A set of stage 2 translation tables could map to one or more 
+       Stream IDs. The Framework manages stage 2 translations in the SMMU as described in 5.3 Address 
+       translation regimes.
+
+<div class="paragraph"> </div>
+
+       The Hypervisor programs the SMMU to create and manage the association between 
+       a Non-secure Stream ID and the stage 2 translations its transactions must use.
+
+<div class="paragraph"> </div>
+
+       The SPM programs the SMMU to create and manage the association between a Secure Stream ID and the stage 2
+       translations its transactions must use.
+
+<div class="paragraph"> </div>
+
+       The Framework does not manage the stage 1 translations and their association with Stream IDs in the SMMU on
+       behalf of the device. This should be done by an endpoint through an IMPLEMENTATION DEFINED mechanism.
+     
+<div class="paragraph"> </div>
+
+<a name="lab105"></a><h3 class="section">Stream endpoint - Section 5.2.1</h3>
+
+
+<div class="paragraph"> </div>
+
+        A set of SMMU stage 2 translations maintained by a partition manager is called a Stream endpoint. 
+        Each Stream endpoint is assigned a 16-bit ID called the Stream endpoint ID or SEPID.
+
+<div class="paragraph"> </div>
+
+        Stream endpoints associated with a Secure Stream ID are called Secure SEPIDs
+
+<div class="paragraph"> </div>
+
+        Stream endpoints associated with a Non-secure Stream ID are called Non-secure SEPIDs
+
+<div class="paragraph"> </div>
+
+        Endpoints that run on a PE are referred to as PE endpoints to differentiate them from Stream endpoints. 
+        The term endpoint is used when it is not required to distinguish between these types of endpoints.
+
+<div class="paragraph"> </div>
+
+        There is a 1:N (N &gt;= 1) mapping between a SEPID and Stream IDs assigned to different devices that is, 
+        the stage 2 translations corresponding to the SEPID could be shared by one or more Stream IDs.
+
+<div class="paragraph"> </div>
+
+        SEPIDs are used in memory management transactions to:
+<ul class="doclist">
+<li> Grant and revoke access to a physical memory region to a device.
+
+</li>
+<li> Transfer ownership of a physical memory region from or to a device
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+        SEPID values must be distinct from those assigned to PE endpoints. 
+        A SEPID is not discoverable through the FFA_ID_GET interface (also see 8.7 FFA_ID_GET).
+
+<div class="paragraph"> </div>
+
+        This version of the Framework considers two types of devices.
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Devices that can act as initiators and recipients of memory management transactions. 
+          These devices are called independent peripheral devices. 
+          Each device must specify the following information in its partition manifest 
+          (see 3.4 Independent peripheral device manifest).
+<ul class="doclist">
+<li> A SEPID assigned to the device at boot time.
+
+</li>
+<li> The SMMU ID that the device is upstream of.
+
+</li>
+<li> Each Stream ID the device can generate.
+
+</li>
+<li> Regions in the physical address space that must be mapped in the translation tables 
+            corresponding to the SEPID at boot time.
+
+<div class="paragraph"> </div>
+
+
+</li>
+</ul>
+          This information enables the partition manager to create an association between a device and a 
+          SEPID at boot time. A partition manager or PE endpoint and an independent device must use an 
+          IMPLEMENTATION DEFINED mechanism to notify each other about a memory management transaction 
+          targeted to a SEPID used by the device (see 5.5.2 Transaction life cycle).
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li>  Devices that cannot act as initiators and recipients of memory management transactions. 
+           These devices are called dependent peripheral devices. They rely on a PE endpoint to initiate and 
+           receive memory management transactions on their behalf. The PE endpoint is called a proxy endpoint.
+
+<div class="paragraph"> </div>
+
+           A dependent device could be assigned to a PE endpoint. This implies,
+<ul class="doclist">
+<li> Access to its MMIO regions is assigned to the endpoint during boot (see 2.10 System resource
+             management &amp; Table 3.3).
+
+</li>
+<li> The endpoint manages the association between Stream IDs generated by the device and stage 1
+             translations in the SMMU that the device is upstream of (see Table 3.3).
+
+</li>
+</ul>
+           The device could be either assigned to its proxy endpoint or a different PE endpoint.
+
+<div class="paragraph"> </div>
+
+           When assigned to its proxy endpoint, this version of the Framework assumes that all the 
+           Stream IDs generated by the device have the same visibility of the physical address space 
+           as the endpoint. The stage 2 translations in the SMMU for these Stream IDs are the same as 
+           those maintained by the partition manager on behalf of the endpoint. They are not assigned a SEPID. 
+           The partition ID of the proxy endpoint is used instead. All memory management transactions with 
+           this partition ID effect both sets of translations. When assigned to a different endpoint, 
+           the partition manifest of the proxy endpoint (see 3.2 Partition manifest at virtual FF-A instance) 
+           must specify the following information to enable the partition manager to create an
+           association between a device and a SEPID at boot time.
+<ul class="doclist">
+<li> The SMMU ID that the device is upstream of.
+
+</li>
+<li> Each Stream ID the device can generate.
+
+</li>
+<li> The SEPID corresponding to each Stream ID.
+
+<div class="paragraph"> </div>
+
+
+</li>
+</ul>
+           The partition ID of the proxy endpoint must be distinct from the SEPID allocated to manage the 
+           preceding association. The SEPID must be specified in the partition manifest of the proxy 
+           endpoint (see Table 3.1). 
+
+<div class="paragraph"> </div>
+
+           The stage 2 translations corresponding to the SEPID are configured at boot time with no access 
+           to the physical address space.
+
+<div class="paragraph"> </div>
+
+           A memory management transaction targeted to the SEPID must be allowed to complete only if it is either
+           initiated or authorized by the proxy endpoint for the device (see 5.5.2 Transaction life cycle).
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+        The SEPIDs used by an independent device must be distinct from the SEPIDs used by a dependent device.
+        This constraint avoids the scenario where a memory management transaction is allowed to change the stage 2
+        translations before the proxy endpoint has authorized it.
+     
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">DirectMemoryAccess</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">AddressTranslationRegimes</span>.<br/>
+</div>
+
+<div class="doc">
+<a name="lab106"></a><h2 class="section">Address translation regimes - Section 5.3.</h2>
+
+
+<div class="paragraph"> </div>
+
+        <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">part</span></span> <span class="inlinecode"><span class="id" title="var">mentions</span></span> <span class="inlinecode"><span class="id" title="var">about</span></span> <span class="inlinecode"><span class="id" title="var">address</span></span> <span class="inlinecode"><span class="id" title="var">translation</span>.</span> <span class="inlinecode"><span class="id" title="var">It</span></span> <span class="inlinecode"><span class="id" title="var">will</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">hidden</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">address</span></span> <span class="inlinecode"><span class="id" title="var">translation</span></span> <span class="inlinecode"><span class="id" title="tactic">abstract</span></span> <span class="inlinecode"><span class="id" title="var">definition</span>.</span>
+        <span class="inlinecode"><span class="id" title="var">However</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">can</span></span> <span class="inlinecode"><span class="id" title="var">make</span></span> <span class="inlinecode"><span class="id" title="var">some</span></span> <span class="inlinecode"><span class="id" title="var">high</span>-<span class="id" title="keyword">level</span></span> <span class="inlinecode"><span class="id" title="var">invariants</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">address</span></span> <span class="inlinecode"><span class="id" title="var">translations</span></span>
+
+<div class="paragraph"> </div>
+
+       Memory management relies on the two fundamental operations of mapping and un-mapping a memory region
+       from the stage of a translation regime managed by a partition manager on behalf of a partition. The translation
+       regime and the stage depends on the type of partition. The types of partitions are as follows.
+
+<div class="paragraph"> </div>
+
+       1. Hypervisor, stage 2 translations on behalf of a EL1 PE endpoint, 
+          in the Non-secure EL1&amp;0 translation regime, when EL2 is enabled
+       2. Hypervisor, stage 2 translations for a Non-secure Stream ID assigned to an
+          independent or dependent peripheral device, in the Non-secure EL1&amp;0 translation regime in the SMMU. 
+          A SEPID is used to identify the stage 2 translation tables
+       3. SPMC, stage 2 translations on behalf of a S-EL1 PE endpoint in the Secure EL1&amp;0 translation regime, 
+          when S-EL2 is enabled.
+       4. SPMC, stage 1 translations on behalf of a S-EL0 PE endpoint in the Secure EL1&amp;0 translation regime, 
+          when S-EL2 is disabled.
+       5. SPMC, stage 2 translations for a Secure Stream ID assigned to an independent or dependent peripheral device in 
+          the Secure EL1&amp;0 translation regime in the SMMU. A SEPID is used to identify the stage 2 translation tables. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">AddressTranslationRegimes</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">OwnershipAndAccessAttributes</span>.<br/>
+</div>
+
+<div class="doc">
+<a name="lab107"></a><h2 class="section">Ownership and access attributes - Section 5.4.</h2>
+
+
+<div class="paragraph"> </div>
+
+     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">one</span></span> <span class="inlinecode"><span class="id" title="keyword">of</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">most</span></span> <span class="inlinecode"><span class="id" title="var">important</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">provides</span></span> <span class="inlinecode"><span class="id" title="tactic">abstract</span></span> <span class="inlinecode"><span class="id" title="var">view</span></span> <span class="inlinecode"><span class="id" title="keyword">of</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">ownership</span></span> <span class="inlinecode"><span class="id" title="var">and</span></span> 
+     <span class="inlinecode"><span class="id" title="var">attributes</span>.</span> <span class="inlinecode"><span class="id" title="var">And</span>,</span> <span class="inlinecode"><span class="id" title="var">descriptions</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="var">has</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">reflected</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">formalized</span></span> <span class="inlinecode"><span class="id" title="var">version</span>.</span> <span class="inlinecode"><span class="id" title="var">Please</span></span> <span class="inlinecode"><span class="id" title="var">look</span></span> <span class="inlinecode"><span class="id" title="tactic">at</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">MemProperties</span></span> 
+     <span class="inlinecode"><span class="id" title="var">definition</span></span> <span class="inlinecode">(<span class="id" title="var">MemProperties</span>)</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">valid_combination</span></span> <span class="inlinecode"><span class="id" title="var">definitions</span></span> <span class="inlinecode">(<span class="id" title="var">mem_states_valid_combination</span>)</span>
+
+<div class="paragraph"> </div>
+
+    The Hypervisor, SPM, and all endpoints have access and ownership attributes associated with every memory 
+    region in the physical address space.
+
+<div class="paragraph"> </div>
+
+    Access determines the data and instruction access permissions to the memory region. 
+    A component can have the following access permissions to a memory region.
+<ul class="doclist">
+<li> No access.
+
+</li>
+<li> Read-only, Execute-never.
+
+</li>
+<li> Read-only, Executable.
+
+</li>
+<li> Read/write, Execute-never.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+    Access control must be enforced through an IMPLEMENTATION DEFINED mechanism and/or by encoding these
+    permissions in the translation regime of an endpoint managed by the partition manager (see 5.3 
+    Address translation regimes).
+
+<div class="paragraph"> </div>
+
+    Ownership is a software attribute that determines if a component can grant access to a memory region to another
+    component. A component that has access to a memory region without ownership is called the Borrower. A
+    component that lends access to a memory region it owns is called the Lender.
+
+<div class="paragraph"> </div>
+
+    Ownership of a memory region is initially assigned to the component that it is allocated to. At boot time all
+    memory regions are owned by Secure firmware. A memory region could be configured as Secure or normal
+    memory either statically at reset, or by Secure firmware during boot. Secure firmware transfers ownership of
+    normal memory to Normal world software. It sub-divides Secure memory such that:
+<ul class="doclist">
+<li> It owns and has exclusive access to some memory regions.
+
+</li>
+<li> It owns but grants access to some memory regions to SPs.
+
+</li>
+<li> It transfers ownership of some memory regions to SPs.
+
+</li>
+</ul>
+    If virtualization is enabled in the Normal world, the Hypervisor divides a subset of normal memory among VMs
+    and transfers ownership to them. In the absence of virtualization, all normal memory donated by the Secure world
+    is owned by the OS kernel.
+
+<div class="paragraph"> </div>
+
+    An endpoint requests access to and/or ownership of a memory region through its partition manifest 
+    (also see Table 3.2).
+   
+<div class="paragraph"> </div>
+
+<a name="lab108"></a><h3 class="section">Ownership and access rules - Section 5.4.1</h3>
+
+
+<div class="paragraph"> </div>
+
+        The SPM and Hypervisor must enforce the following general ownership and access rules to memory regions.
+<ul class="doclist">
+<li> The size of a memory region to which ownership and access rules apply must be a multiple of the smallest
+          translation granule size supported on the system.
+<ul class="doclist">
+<li> It is 4K in the AArch32 Execution state.
+
+</li>
+<li> A EL1 or S-EL1 partition must discover this by reading the ID_AA64MMFR0_EL1 System register in
+            the AArch64 Execution state.
+
+</li>
+<li> A S-EL0 SP must determine this through an IMPLEMENTATION DEFINED discovery mechanism for
+            example, DT or ACPI tables.
+
+</li>
+</ul>
+
+</li>
+<li> A normal memory region must be mapped with the Non-secure security attribute in any component that is
+          granted access to it.
+
+</li>
+<li> A Secure memory region must be mapped with the Secure security attribute in any component that is granted
+          access to it.
+
+</li>
+<li> Each memory region in the physical address space must have a single Owner.
+
+</li>
+<li> A FF-A component must have access to a memory region it owns unless it has granted exclusive access to
+          the region to another FF-A component.
+
+</li>
+<li> Only the Owner of a memory region can grant access to it to one or more Borrowers in the system.
+
+</li>
+<li> Only the Owner of a memory region can transfer its ownership to another endpoint in the system.
+
+</li>
+<li> If an SP is terminated ’cause of a fatal error condition, access to the memory regions of the SP is
+          transferred to the SPM.
+
+</li>
+<li> If a VM is terminated ’cause of a fatal error condition, access to the memory regions of the VM
+          and their ownership are transferred to the Hypervisor.
+
+</li>
+<li> If the Hypervisor or OS kernel are terminated ’cause of a fatal error condition, access to the 
+          their memory regions and ownership are transferred to the SPM.
+
+</li>
+<li> The number of distinct components to whom an Owner can grant access to a memory region is 
+          IMPLEMENTATION DEFINED.
+
+</li>
+<li> The Owner of a memory region must not be able to change its ownership or access attributes until all
+          Borrowers have relinquished access to it.
+
+</li>
+</ul>
+     
+<div class="paragraph"> </div>
+
+<a name="lab109"></a><h3 class="section">Ownership and access states - Section 5.4.2</h3>
+
+
+<div class="paragraph"> </div>
+
+        Table 5.1 describes the ownership states applicable to an FF-A component for a memory region.
+     
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Table 5.2 describes the access states applicable to an FF-A component for a memory region. 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Table 5.3 describes the valid combination of access and ownership states applicable to an FF-A 
+        component for a memory region. 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+For two FF-A components A and B and a memory region, valid combinations of states defined in 
+        Table 5.3 are described in Table 5.4. Other combinations of states are considered invalid. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">things</span></span> <span class="inlinecode"><span class="id" title="var">has</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">captured</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">property</span></span>
+    Implementation Note
+
+<div class="paragraph"> </div>
+
+    To fulfill the use cases and enforce the rules listed earlier, FF-A components should track the state of a memory
+    region. This could be done as follows,
+<ul class="doclist">
+<li> An Owner tracks the level of access it has to a memory region.
+
+</li>
+<li> An Owner tracks the level of access that Borrowers have to a memory region along with the identity of the
+      Borrowers.
+
+</li>
+<li> A Borrower tracks the level of access the Owner has to a memory region along with the identity of the Owner.
+
+</li>
+<li> A Borrower tracks the level of access it has to a memory region.
+
+</li>
+<li> A Borrower tracks the level of access that other Borrowers have to a memory region along with the identity
+      of the Borrowers.
+
+</li>
+<li> For each memory region, the SPM and Hypervisor track the following.
+      – The identity of each Borrower.
+      – The identity of the Owner.
+      – The level of access of each Borrower.
+      – The level of access of the Owner.
+     
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">OwnershipAndAccessAttributes</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">RemainingParts</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab110"></a><h2 class="section">Remaining parts</h2>
+
+<div class="paragraph"> </div>
+
+
+<div class="paragraph"> </div>
+
+        From 5.5 to the end of Section 5., and for the details in Section 11, 
+        we write comments on our mechanized versions.
+     
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">RemainingParts</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">MemoryManagementIntro</span>.<br/>
+
+<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="index.html">Index</a><hr/>This page has been generated by <a href="http://coq.inria.fr/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

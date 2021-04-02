@@ -1,0 +1,1540 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>FFAMemoryHypCallCoreTransition</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library FFAMemoryHypCallCoreTransition</h1>
+
+<div class="code">
+<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Arith.PeanoNat</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Lists.List</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Strings.String</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Morphisms</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Setoid</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelationClasses</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">ExtLib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelDec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.String</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Monad</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Traversable</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.List</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Option</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Monads.OptionMonad</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Coqlib</span> <span class="id" title="var">sflib</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Decision</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Maps</span>.<br/>
+<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">FFAMemoryHypCall</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">FFAMemoryHypCallIntro</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallDescriptorState</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallState</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab19"></a><h1 class="section">Core Step Rules</h1>
+ This file defines the core step rules of FFA memory management 
+    interfaces 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Notation</span> &quot;'do' X &lt;- A ;;; B" :=<br/>
+&nbsp;&nbsp;(<span class="id" title="keyword">match</span> <span class="id" title="var">A</span> <span class="id" title="keyword">with</span> <span class="id" title="var">Some</span> <span class="id" title="var">X</span> =&gt; <span class="id" title="var">B</span> |<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">None</span> =&gt; <span class="id" title="var">None</span><br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">X</span> <span class="id" title="var">ident</span>, <span class="id" title="var">A</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 100, <span class="id" title="var">B</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200) : <span class="id" title="var">ffa_monad_scope</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Notation</span> &quot; 'check' A ;;; B" :=<br/>
+&nbsp;&nbsp;(<span class="id" title="keyword">if</span> <span class="id" title="var">A</span> <span class="id" title="keyword">then</span> <span class="id" title="var">B</span> <span class="id" title="keyword">else</span> <span class="id" title="var">None</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">A</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 100, <span class="id" title="var">B</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200) : <span class="id" title="var">ffa_monad_scope</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">ffa_monad_scope</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Three roles in the FFA_XXX communications, and endpoints in the communications 
+
+<div class="paragraph"> </div>
+
+   In all transactions, an endpoint must be a Sender or Receiver. 
+   This depends on the type of transaction as follows.
+
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> In a transaction to donate ownership of a memory region, 
+     the Sender is the current Owner and the Receiver is the new Owner.
+
+</li>
+<li> In a transaction to lend or share access to a memory region, 
+     the Sender is the Lender and the Receiver is the Borrower.
+
+</li>
+<li> In a transaction to relinquish access to a memory region, 
+     the Sender is the Borrower and the Receiver is the Lender.
+
+</li>
+</ul>
+
+<div class="paragraph"> </div>
+
+ 5.4.1 Ownership and access rules
+<ul class="doclist">
+<li> There are invariants that we have to enforce 
+
+</li>
+</ul>
+   
+<div class="paragraph"> </div>
+
+<a name="lab20"></a><h2 class="section">Valid Combinations</h2>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Section</span> <span class="id" title="var">VALID_COMBINATIONS</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Context</span> `{<span class="id" title="var">abstract_state_context</span> : <span class="id" title="var">AbstractStateContext</span>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This part is one of the most important parts that describe ownership and accessibility options. 
+       It is similar to "valid" check in the abstract model by Jade 
+
+<div class="paragraph"> </div>
+
+      Related parts: 
+<ul class="doclist">
+<li> Table 5.3: Valid combinations of ownership and access states     
+
+</li>
+<li> Table 5.4: Valid combinations of ownership and access states between two components
+
+<div class="paragraph"> </div>
+
+
+</li>
+<li> Component A state / Component B state / Descriptions
+
+</li>
+<li> Owner-EA / !Owner-NA / Component A has exclusive access and ownership of 
+       a memory region that is inaccessible from component B.
+
+</li>
+<li> Owner-NA / !Owner-NA / Component A has granted exclusive access to a memory region it owns to another component. 
+       It is inaccessible from component B.
+
+</li>
+<li> Owner-NA / !Owner-EA / Component A has granted exclusive access to a memory region it owns to component B.
+
+</li>
+<li> Owner-NA / !Owner-SA / Component A has relinquished access to a memory 
+       region it owns. Access to the memory region is shared between component B and at least one other component
+
+</li>
+<li> Owner-SA / !Owner-NA / Component A shares access to a region of memory it owns 
+       with another component. Component B cannot access the memory region.
+
+</li>
+<li> Owner-SA / !Owner-SA / Component A shares access to a region of memory it
+       owns with component B and possibly other components.
+
+</li>
+</ul>
+   
+<div class="paragraph"> </div>
+
+ There are valid combinations of ownership and access states for each endpoint and 
+       between two components. 
+
+<div class="paragraph"> </div>
+
+       To directly translate them, our state definition needs to contain ownership and access 
+       states for each endpoint. However, our MemProperties is a global data structure that are 
+       shared by all endpoints. Therefore, we re-interpret table 5.3. and 5.4. to represent them 
+       with our MemProperties. For the local behaviours of each endpoint, we may be able to make a 
+       project function from the global MemProperties (when we have a valid address range) or 
+       we can add local MemProperties pool and always check consistency between that local pools
+       with the global MemProperties later 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mem_states_valid_combination</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">a</span> <span class="id" title="var">b</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">ownership</span>: <span class="id" title="var">OWNERSHIP_STATE_TYPE</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">access</span>: <span class="id" title="var">ACCESS_STATE_TYPE</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> &lt;&gt; <span class="id" title="var">b</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">match</span> <span class="id" title="var">ownership</span>, <span class="id" title="var">access</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">id</span>, <span class="id" title="var">NoAccess</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id</span>) || <span class="id" title="var">decide</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">true</span> <span class="id" title="keyword">else</span> <span class="id" title="var">false</span>                                  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">id</span>, <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">id'</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id</span>) || <span class="id" title="var">decide</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id'</span>) || <span class="id" title="var">decide</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id'</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">true</span> <span class="id" title="keyword">else</span> <span class="id" title="var">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">id</span>, <span class="id" title="var">SharedAccess</span> <span class="id" title="var">ids</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id</span>) || <span class="id" title="var">decide</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">if</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">a</span> <span class="id" title="var">ids</span>) || (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">b</span> <span class="id" title="var">ids</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">true</span> <span class="id" title="keyword">else</span> <span class="id" title="var">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">false</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">hyp_mem_global_props</span> (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>).(<span class="id" title="var">mem_global_properties</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">hyp_mem_local_props</span> (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>).(<span class="id" title="var">mem_local_properties</span>).<br/>
+
+<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">VALID_COMBINATIONS</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab21"></a><h1 class="section">step rules</h1>
+ Multiple sections in the FF-A document are related to step rules in here. 
+
+<div class="paragraph"> </div>
+
+    From section 5.1 to section 5.5, they provide introductions.
+    Parts of them are described in "FFAMemoryhypcallintro.v" file, while 
+    some of them are also described at the beginning of this file as well. 
+
+<div class="paragraph"> </div>
+
+    Among them, contents in Section 5.5 needs to be captured in the transition rules. 
+
+<div class="paragraph"> </div>
+
+    From section 5.6 to section 5.9, they define state changes and lifecycles of 
+    each FFA memory management call, but they are defined in a coarse-grained manner.
+    In this sense, only referring those sections are not sufficient for us to define 
+    top-level transition rules in the below. 
+
+<div class="paragraph"> </div>
+
+    Instead of that, we looked at chapter 11 (memory management interfaces) together to 
+    find out the proper fine-grained transition rules. Chapter 11 provides syntax, sanity checks,
+    and desired behaviors of each FFA interface. 
+
+<div class="paragraph"> </div>
+
+    From section 5.10 to 5.12, they provide data structures that FFA memory management interfaces
+    have to use. They are defined in the "FFAMemoryHypCallDescriptorState.v" file. Among them,
+    several sections, "5.11.2 Data access permissions usage", "5.11.3 Instruction access permissions usage",
+    "5.11.4 Memory region attributes usage", and so on, describe invariants and proper usages of 
+    descriptors. They also need to be reflected in our transition rules.
+
+<div class="paragraph"> </div>
+
+    Instead of writing all of them in a single definition per each FFA interface, 
+    we divide the entire specs as multiple things as follows. 
+<ul class="doclist">
+<li> Core memory changes including ownership, access state, dirty bit in memory global properties and 
+      local ownership flag in memory local properties. 
+<ul class="doclist">
+<li> It only handles memory ownership, access, and dirty bit changes during transitions 
+
+</li>
+<li> Instead of interpreting all descriptor values, it will pass the flag value as an argument to indicate 
+        whether the memory region needs to be cleaned.
+
+</li>
+</ul>
+
+</li>
+<li> Additional memory attributes and properties change and check validity by using descriptors and arguments
+<ul class="doclist">
+<li> And, it checks validity of descriptors and the current memory properties 
+
+</li>
+<li> seciton 5.10, 5.11, 5.12 provide multiple constraints about descriptor information.
+
+</li>
+<li> There are multiple constraints that section 11.x mentions for each interface. 
+
+</li>
+</ul>
+
+</li>
+</ul>
+ 
+<div class="paragraph"> </div>
+
+ For the top-level modeling, we also provide specifications for dispatching. It reads the value from the current
+    registers (abstract registers specified for FFA memory management specifications), and call proper specifications
+    to trigger transitions. 
+
+<div class="paragraph"> </div>
+
+    To do that, we referred Hafinum's dispatch code (but we did not strictly follow the code).
+
+<div class="paragraph"> </div>
+
+<a name="lab22"></a><h2 class="section">1. Core memory ownership and access state change</h2>
+ This file contains a core transition rules of each FFA interface related to memory managements. 
+   This does not include any safety check on arguments, attributes, and descriptors or consider 
+   transitions on multiple pages. It only consider memory ownership and accessibility. 
+<div class="paragraph"> </div>
+
+ Transition rules in this file are similar to those in Jade's abstract machine definition. 
+<ul class="doclist">
+<li> https://github.com/project-oak/hafnium-verification/tree/hfo2/coq-verification/src
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Section</span> <span class="id" title="var">FFA_MEMORY_INTERFACE_CORE_STEPS</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+From section 5.7 to section 5.9, they provide valid before/after tables for the memory ownership and access states 
+      according to FFA types. They are, however, focus on the end-to-end transitions bewteen two endpoints. Therefore, 
+      they need to be divided into fine-grained steps. In this sense, we did not include all tables presented in
+      section 5.7 to section 5.9 as comments in here. 
+      However, our core transition rules try to faithfully reflect them. 
+
+<div class="paragraph"> </div>
+
+      In here, we discuss transaction lifecycles for each operations based on "5.6.2 Donate memory transaction lifecycle",
+      "5.7.2 Lend memory transaction lifecycle", "5.8.2 Share memory transaction lifecycle", 
+      and "5.9.2 Relinquish memory transaction lifecycle". 
+   
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Context</span> `{<span class="id" title="var">abstract_state_context</span>: <span class="id" title="var">AbstractStateContext</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">FFA_MEM_DONATE_CORE_STEPS</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+TODO:
+        Note that the following parts are for the case when the borrower is a PE endpoint. 
+        When the borrower is a SEPID associated with an independent peripheral device, there are more freedoms for
+        developers to implement those memory management interfaces. We need to consider how to capture 
+        them in our specs without missing generality 
+<div class="paragraph"> </div>
+
+<a name="lab23"></a><h3 class="section">FFA_MEM_DONATE</h3>
+
+<div class="paragraph"> </div>
+
+ Related parts
+<ul class="doclist">
+<li> 11.1.1.2 Relayer responsibilities
+       There are two cases, but we only consider the case mentioned in 12.1.1, 
+       the case when a Borrower is a PE endpoint.
+<ul class="doclist">
+<li> Owner-NA for the Owner.
+
+</li>
+<li> !Owner-NA for the Receiver.
+
+</li>
+</ul>
+
+</li>
+<li> Note that it differs from the well-defined transition in
+       Table 5.9: Donate memory transaction state machine.
+       This is due to the fact that the transition defined in "Table 5.9" is actually 
+       divided into two parts, FFA_MEM_DONATE and FFA_MEM_RETRIEVE_REQ
+
+<div class="paragraph"> </div>
+
+       But, the possible initial state of two endpoints are defined in Table 5.10:
+       Owner-EA !Owner-NA
+
+<div class="paragraph"> </div>
+
+       In here, we describe simple lifcycles mentioned in "5.6.2 Donate memory transaction lifecycle". 
+       We discuss rules defined in section 11.1 in the below (the next section in this file).
+
+<div class="paragraph"> </div>
+
+       This transaction takes place as follows (also see 5.5.2 Transaction life cycle).
+<ul class="doclist">
+<li> The Owner uses the FFA_MEM_DONATE interface to describe the memory region and convey the
+          identity of the Receiver to the Relayer as specified in Table 5.19. This interface is described in 11.1
+          FFA_MEM_DONATE.
+
+</li>
+<li> If the Receiver is a PE endpoint or a SEPID associated with a dependent peripheral device,
+<ul class="doclist">
+<li> The Owner uses a Partition message to request the Receiver to retrieve the donated memory region. This
+             message contains a description of the memory region relevant to the Receiver.
+
+</li>
+<li> The Receiver uses the FFA_MEM_RETRIEVE_REQ and FFA_MEM_RETRIEVE_RESP interfaces to
+            map the memory region in its translation regime and complete the transaction. These interfaces are
+            described in 11.4 FFA_MEM_RETRIEVE_REQ &amp; 11.5 FFA_MEM_RETRIEVE_RESP respectively.
+
+</li>
+</ul>
+         In case of an error, the Sender can abort the transaction before the Receiver retrieves the memory region
+         by calling the FFA_MEM_RECLAIM ABI (see 11.7 FFA_MEM_RECLAIM).
+
+</li>
+<li> If the Receiver is a SEPID associated with an independent peripheral device, an IMPLEMENTATION DEFINED
+         mechanism is used by the Sender and Relayer to map and describe the memory region to the Receiver (see
+         11.1.1 Component responsibilities for FFA_MEM_DONATE).
+
+</li>
+</ul>
+
+</li>
+</ul>
+     
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">ffa_mem_donate_core_transition_spec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">st</span>: <span class="id" title="var">AbstractState</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">bool</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Find out memory properties 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">global_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) ;;; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">lender</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">borrower_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">borrower</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">lender_properties_pool</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> check memory properties :
+<ul class="doclist">
+<li> lender has to have onwership
+
+</li>
+<li> lender has to have exclusive access to the address
+
+</li>
+<li> borrower does not have the memory in its memory property pool 
+
+</li>
+</ul>
+       
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">borrower_properties_pool</span>  <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">None</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check the valid onwership and accessibility combination for lender and borrower 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">mem_states_valid_combination</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owned</span>, <span class="id" title="var">accessible</span>, <span class="id" title="var">local_owned</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">true</span>, <span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>, <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">ex_accessor</span>, <span class="id" title="var">LocalOwned</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">owner</span> = <span class="id" title="var">lender</span>) &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">ex_accessor</span> = <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Only change accessibility option of the lender. The remaining operations will
+                be performed in the retrieve 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_props</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">address</span> (<span class="id" title="var">global_property</span> {<span class="id" title="var">accessible_by</span>: <span class="id" title="var">NoAccess</span>})<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">mem_properties</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span> <span class="id" title="var">new_global_props</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>)}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">SetAccessible</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> <span class="id" title="var">NoAccess</span>)::<span class="id" title="var">nil</span>} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">new_st</span>, <span class="id" title="var">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">FFA_MEM_DONATE_CORE_STEPS</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab24"></a><h3 class="section">Auxiliary functions for lend and share</h3>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">FFA_MEM_LEND_AND_SHARE_AUX_FUNCTIONS</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">check_mem_states_valid_combination</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">borrower</span> : <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">global_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">lender</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">borrower_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">borrower</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">lender_properties_pool</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">borrower_properties_pool</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">None</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check the valid onwership and accessibility combination for lender and borrower 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">mem_states_valid_combination</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">check_mem_states_valid_combination_for_borrowers</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">borrowers</span> : <span class="id" title="var">list</span> <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">borrowers</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">nil</span> =&gt; <span class="id" title="var">Some</span> <span class="id" title="var">true</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">hd</span>::<span class="id" title="var">tl</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">res</span> &lt;- <span class="id" title="var">check_mem_states_valid_combination_for_borrowers</span> <span class="id" title="var">lender</span> <span class="id" title="var">tl</span> <span class="id" title="var">address</span> <span class="id" title="var">st</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check_mem_states_valid_combination</span> <span class="id" title="var">lender</span> <span class="id" title="var">hd</span> <span class="id" title="var">address</span> <span class="id" title="var">st</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">check_mem_states_valid_combination_for_borrowers_unwrapper</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">borrowers</span> : <span class="id" title="var">list</span> <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">length</span> <span class="id" title="var">borrowers</span> &gt;= 1)%<span class="id" title="var">nat</span>) &amp;&amp; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">check_mem_states_valid_combination_for_borrowers</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrowers</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address</span> <span class="id" title="var">st</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">res</span> =&gt; <span class="id" title="var">res</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Non</span> =&gt; <span class="id" title="var">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">FFA_MEM_LEND_AND_SHARE_AUX_FUNCTIONS</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">FFA_MEM_LEND_CORE_STEPS</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab25"></a><h3 class="section">FFA_MEM_LEND</h3>
+
+<div class="paragraph"> </div>
+
+ Related parts
+<ul class="doclist">
+<li> 11.2.1.2 Relayer responsibilities
+       There are two cases, but we only consider the case mentioned in 12.1.1, 
+       the case when a Borrower is a PE endpoint.
+<ul class="doclist">
+<li> Owner-NA for the Owner.
+
+</li>
+<li> !Owner-NA for the Receiver.
+
+</li>
+</ul>
+
+</li>
+<li> Note that it differs from the well-defined transition in
+       Table 5.10: Lend memory transaction state machine.
+       This is due to the fact that the transition defined in "Table 5.10" is actually 
+       divided into two parts, FFA_MEM_LEND and FFA_MEM_RETRIEVE_REQ
+
+<div class="paragraph"> </div>
+
+       But, the possible initial state of two endpoints are defined in Table 5.10:
+       Owner-EA !Owner-NA
+
+<div class="paragraph"> </div>
+
+       In here, we describe simple lifcycles mentioned in "5.7.2 Lend memory transaction lifecycle". 
+       We discuss rules defined in section 11.2 in the below (the next section in this file).
+
+<div class="paragraph"> </div>
+
+       This transaction takes place as follows (also see 5.5.2 Transaction life cycle).
+<ul class="doclist">
+<li> The Lender uses the FFA_MEM_LEND interface to describe the memory region and convey the identities of
+         the Borrowers to the Relayer as specified in Table 5.19. This interface is described in 11.2 FFA_MEM_LEND.
+
+</li>
+<li> If a Borrower is a PE endpoint or a SEPID associated with a dependent peripheral device,
+<ul class="doclist">
+<li> The Lender uses a Partition message to request each Borrower to retrieve the lent memory region. This
+            message contains a description of the memory region relevant to the Borrower.
+
+</li>
+<li> Each Borrower uses the FFA_MEM_RETRIEVE_REQ and FFA_MEM_RETRIEVE_RESP interfaces
+            to map the memory region in its translation regime and complete the transaction. These interfaces are
+            described in 11.4 FFA_MEM_RETRIEVE_REQ &amp; 11.5 FFA_MEM_RETRIEVE_RESP respectively.
+
+</li>
+</ul>
+
+</li>
+<li> If the Borrower is a SEPID associated with an independent peripheral device, an IMPLEMENTATION DEFINED
+         mechanism is used by the Lender and Relayer to map and describe the memory region to the Borrower (see
+         11.2.1 Component responsibilities for FFA_MEM_LEND).
+
+</li>
+<li> In case of an error, the Lender can abort the transaction before the Borrower retrieves the memory region by
+         calling the FFA_MEM_RECLAIM ABI (see 11.7 FFA_MEM_RECLAIM).
+
+</li>
+</ul>
+
+</li>
+</ul>
+     
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">ffa_mem_lend_core_transition_spec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">borrowers</span> : <span class="id" title="var">list</span> <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">bool</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Find out memory properties 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">global_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">lender</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">lender_properties_pool</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> check memory properties :
+<ul class="doclist">
+<li> lender has to have onwership
+
+</li>
+<li> lender has to have exclusive access to the address
+
+</li>
+<li> borrower does not have the memory in its memory property pool 
+
+</li>
+</ul>
+       
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check_mem_states_valid_combination_for_borrowers_unwrapper</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">lender</span> <span class="id" title="var">borrowers</span> <span class="id" title="var">address</span> <span class="id" title="var">st</span>  <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">true</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check the valid onwership and accessibility combination for lender and borrower 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">owned</span>, <span class="id" title="var">accessible</span>, <span class="id" title="var">local_owned</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>, <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">ex_accessor</span>, <span class="id" title="var">LocalOwned</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">owner</span> = <span class="id" title="var">lender</span>) &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">ex_accessor</span> = <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> </div>
+
+<div class="doc">
+Only change accessibility option of the lender. The remaining operations will
+                   be performed in the retrieve 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_props</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address</span> (<span class="id" title="var">global_property</span> {<span class="id" title="var">accessible_by</span>: <span class="id" title="var">NoAccess</span>})<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">mem_properties</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span> <span class="id" title="var">new_global_props</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>)}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">SetAccessible</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> <span class="id" title="var">NoAccess</span>)::<span class="id" title="var">nil</span>} <span class="id" title="tactic">in</span>                      <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">new_st</span>, <span class="id" title="var">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">FFA_MEM_LEND_CORE_STEPS</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">FFA_MEM_SHARE_CORE_STEPS</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab26"></a><h3 class="section">FFA_MEM_SHARE</h3>
+
+<div class="paragraph"> </div>
+
+ Related parts
+<ul class="doclist">
+<li> 11.3.1.2 Relayer responsibilities
+       There are two cases, but we only consider the case mentioned in 12.1.1, 
+       the case when a Borrower is a PE endpoint.
+<ul class="doclist">
+<li> Owner-SA for the Owner.
+
+</li>
+<li> !Owner-NA for the Receiver.
+
+</li>
+</ul>
+
+</li>
+<li> Note that it differs from the well-defined transition in
+       Table 5.11: Share memory transaction state machine.
+       This is due to the fact that the transition defined in "Table 5.11" is actually 
+       divided into two parts, FFA_MEM_SHARE and FFA_MEM_RETRIEVE_REQ 
+
+<div class="paragraph"> </div>
+
+       But, the possible initial state of two endpoints are defined in Table 5.10:
+       Owner-EA !Owner-NA
+
+<div class="paragraph"> </div>
+
+       In here, we describe simple lifcycles mentioned in "5.8.2 Share memory transaction lifecycle". 
+       We discuss rules defined in section 11.3 in the below (the next section in this file).
+
+<div class="paragraph"> </div>
+
+       This transaction takes place as follows (also see 5.5.2 Transaction life cycle).
+<ul class="doclist">
+<li> The Lender uses the FFA_MEM_SHARE interface to describe the memory region and convey the identities of
+         the Borrowers to the Relayer as specified in Table 5.19. This interface is described in 11.2 FFA_MEM_LEND.
+
+</li>
+<li> If a Borrower is a PE endpoint or a SEPID associated with a dependent peripheral device,
+<ul class="doclist">
+<li> The Lender uses a Partition message to request each Borrower to retrieve the shared memory region.
+           This message contains a description of the memory region relevant to the Borrower.
+
+</li>
+<li> Each Borrower uses the FFA_MEM_RETRIEVE_REQ and FFA_MEM_RETRIEVE_RESP interfaces
+           to map the memory region in its translation regime and complete the transaction. These interfaces are
+           described in 11.4 FFA_MEM_RETRIEVE_REQ &amp; 11.5 FFA_MEM_RETRIEVE_RESP respectively.
+
+</li>
+</ul>
+
+</li>
+<li> If the Borrower is a SEPID associated with an independent peripheral device, an IMPLEMENTATION DEFINED
+         mechanism is used by the Lender and Relayer to map and describe the memory region to the Borrower (see
+         11.3.1 Component responsibilities for FFA_MEM_SHARE).
+
+</li>
+<li> In case of an error, the Lender can abort the transaction before the Borrower retrieves the memory region by
+         calling the FFA_MEM_RECLAIM ABI (see 11.7 FFA_MEM_RECLAIM).
+
+</li>
+</ul>
+
+</li>
+</ul>
+     
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">ffa_mem_share_core_transition_spec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">borrowers</span> : <span class="id" title="var">list</span> <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">bool</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Find out memory properties 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">global_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">lender</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">lender_properties_pool</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> check memory properties :
+<ul class="doclist">
+<li> lender has to have onwership
+
+</li>
+<li> lender has to have exclusive access to the address
+
+</li>
+<li> borrower does not have the memory in its memory property pool 
+
+</li>
+</ul>
+       
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check_mem_states_valid_combination_for_borrowers_unwrapper</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">lender</span> <span class="id" title="var">borrowers</span> <span class="id" title="var">address</span> <span class="id" title="var">st</span>  <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">true</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+Check the valid onwership and accessibility combination for lender and borrower 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">owned</span>, <span class="id" title="var">accessible</span>, <span class="id" title="var">local_owned</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>, <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">ex_accessor</span>, <span class="id" title="var">LocalOwned</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">owner</span> = <span class="id" title="var">lender</span>) &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">ex_accessor</span> = <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> </div>
+
+<div class="doc">
+Only change accessibility option of the lender. The remaining operations will
+                   be performed in the retrieve 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_props</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">global_property</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">accessible_by</span>: <span class="id" title="var">SharedAccess</span> (<span class="id" title="var">lender</span>::<span class="id" title="var">nil</span>)})<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">mem_properties</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span> <span class="id" title="var">new_global_props</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>)}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">SetAccessible</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> <span class="id" title="var">NoAccess</span>)::<span class="id" title="var">nil</span>} <span class="id" title="tactic">in</span>                      <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">new_st</span>, <span class="id" title="var">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">FFA_MEM_SHARE_CORE_STEPS</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">FFA_MEM_RETRIEVE_REQ_CORE_STEP</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab27"></a><h3 class="section">FFA_MEM_RETRIEVE_REQ</h3>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab28"></a><h4 class="section">FFA_MEM_DONATE_RETRIEVE_REQ</h4>
+
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">ffa_mem_donate_retrieve_req_core_transition_spec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">clean</span>: <span class="id" title="var">bool</span>) (<span class="id" title="var">st</span>: <span class="id" title="var">AbstractState</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">bool</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Find out memory properties 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">global_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) ;;; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">lender</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">borrower_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">borrower</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">lender_properties_pool</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> check memory properties :
+<ul class="doclist">
+<li> lender has to have onwership
+
+</li>
+<li> lender has to have exclusive access to the address
+
+</li>
+<li> borrower does not have the memory in its memory property pool 
+
+</li>
+</ul>
+       
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">borrower_properties_pool</span>  <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">None</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check the valid onwership and accessibility combination for lender and borrower 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">mem_states_valid_combination</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owned</span>, <span class="id" title="var">accessible</span>, <span class="id" title="var">local_owned</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">true</span>, <span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>, <span class="id" title="var">NoAccess</span>, <span class="id" title="var">LocalOwned</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">owner</span> = <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">let</span> <span class="id" title="var">new_dirty</span> := <span class="id" title="keyword">if</span> <span class="id" title="var">clean</span> <span class="id" title="keyword">then</span> <span class="id" title="var">MemClean</span> <span class="id" title="keyword">else</span> <span class="id" title="var">dirty</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Only change accessibility option of the lender. The remaining operations will
+                     be performed in the retrieve 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_properties</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">global_property</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">owned_by</span>: <span class="id" title="var">Owned</span> <span class="id" title="var">borrower</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">accessible_by</span>: <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">borrower</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mem_dirty</span> : <span class="id" title="var">new_dirty</span>}) (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Remove the corresponding map in the lender memory local properties pool 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_lender_properties_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.remove</span> <span class="id" title="var">address</span> <span class="id" title="var">lender_properties_pool</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Create the new  memory local properties pool for the borrower.
+                     Instead of making a new ini  tial state, we copied the previous local properties that lender had. 
+                     Next opeartions can adjust th     e properties if it is necessary 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_borrower_properties_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">gen_own_mem_local_properties_wrapper</span> <span class="id" title="var">lender_property</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">borrower_properties_pool</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_local_properties_global_pool'</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">lender</span> <span class="id" title="var">new_lender_properties_pool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_local_properties_global_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">borrower</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_borrower_properties_pool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_local_properties_global_pool'</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">mem_properties</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span> <span class="id" title="var">new_global_properties</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_local_properties_global_pool</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++((<span class="id" title="var">SetOwner</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> (<span class="id" title="var">Owned</span> <span class="id" title="var">borrower</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">SetAccessible</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">borrower</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">SetDirty</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> <span class="id" title="var">new_dirty</span>)::<span class="id" title="var">nil</span>)} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">new_st</span>, <span class="id" title="var">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab29"></a><h4 class="section">FFA_MEM_LEND_RETRIEVE_REQ</h4>
+
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">add_accessor</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">borrower</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">borrower_num</span> : <span class="id" title="var">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">access_state</span> : <span class="id" title="var">ACCESS_STATE_TYPE</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">access_state</span>, <span class="id" title="var">decide</span> (<span class="id" title="var">borrower_num</span> &gt; 1) <span class="id" title="keyword">with</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">NoAccess</span>, <span class="id" title="tactic">left</span> <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">SharedAccess</span> (<span class="id" title="var">borrower</span>::<span class="id" title="var">nil</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">NoAccess</span>, <span class="id" title="tactic">right</span> <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">borrower</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">SharedAccess</span> <span class="id" title="var">borrowers</span>, <span class="id" title="tactic">left</span> <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">SharedAccess</span> (<span class="id" title="var">borrower</span>::<span class="id" title="var">borrowers</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">ffa_mem_lend_retrieve_req_core_transition_spec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">borrower_num</span> : <span class="id" title="var">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">clean</span>: <span class="id" title="var">bool</span>) (<span class="id" title="var">st</span>: <span class="id" title="var">AbstractState</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">bool</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Find out memory properties 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">global_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">lender</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">borrower_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">borrower</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">lender_properties_pool</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> check memory properties :
+<ul class="doclist">
+<li> lender has to have onwership
+
+</li>
+<li> lender has to have exclusive access to the address
+
+</li>
+<li> borrower does not have the memory in its memory property pool 
+
+</li>
+</ul>
+       
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">borrower_properties_pool</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">decide</span> (<span class="id" title="var">borrower_num</span> &gt;= 1)  <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">None</span>, <span class="id" title="tactic">left</span> <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check the valid onwership and accessibility combination for lender and borrower 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">mem_states_valid_combination</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owned</span>, <span class="id" title="var">add_accessor</span> <span class="id" title="var">borrower</span> <span class="id" title="var">borrower_num</span> <span class="id" title="var">accessible</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">local_owned</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">true</span>, <span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>, <span class="id" title="var">Some</span> <span class="id" title="var">new_accessibility</span>, <span class="id" title="var">LocalOwned</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">owner</span> = <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">let</span> <span class="id" title="var">new_dirty</span> := <span class="id" title="keyword">if</span> <span class="id" title="var">clean</span> <span class="id" title="keyword">then</span> <span class="id" title="var">MemClean</span> <span class="id" title="keyword">else</span> <span class="id" title="var">dirty</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Only change accessibility option of the lender. The remaining operations will
+                     be performed in the retrieve 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_properties</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">global_property</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">owned_by</span>: <span class="id" title="var">Owned</span> <span class="id" title="var">borrower</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">accessible_by</span>: <span class="id" title="var">new_accessibility</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mem_dirty</span> : <span class="id" title="var">new_dirty</span>}) (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Create the new memory local properties pool for the borrower.
+                     Instead of making a new initial state, we copied the previous local properties that lender had. 
+                     Next opeartions can adjust the properties if it is necessary 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_borrower_properties_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">gen_borrow_mem_local_properties_wrapper</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">lender</span> <span class="id" title="var">lender_property</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">borrower_properties_pool</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_local_properties_global_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">borrower</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_borrower_properties_pool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">mem_properties</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span> <span class="id" title="var">new_global_properties</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_local_properties_global_pool</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++((<span class="id" title="var">SetOwner</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> (<span class="id" title="var">Owned</span> <span class="id" title="var">borrower</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">SetAccessible</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">borrower</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">SetDirty</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> <span class="id" title="var">new_dirty</span>)::<span class="id" title="var">nil</span>)} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">new_st</span>, <span class="id" title="var">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab30"></a><h4 class="section">FFA_MEM_SHARE_RETRIEVE_REQ</h4>
+
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">ffa_mem_share_retrieve_req_core_transition_spec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">clean</span>: <span class="id" title="var">bool</span>) (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">bool</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Find out memory properties 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">global_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">lender</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">borrower_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">borrower</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">lender_properties_pool</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> check memory properties :
+<ul class="doclist">
+<li> lender has to have onwership
+
+</li>
+<li> lender has to have exclusive access to the address
+
+</li>
+<li> borrower does not have the memory in its memory property pool 
+
+</li>
+</ul>
+       
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">borrower_properties_pool</span>  <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">None</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check the valid onwership and accessibility combination for lender and borrower 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">mem_states_valid_combination</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owned</span>, <span class="id" title="var">accessible</span>, <span class="id" title="var">local_owned</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">true</span>, <span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>, <span class="id" title="var">SharedAccess</span> <span class="id" title="var">accessors</span>, <span class="id" title="var">LocalOwned</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">owner</span> = <span class="id" title="var">lender</span>) &amp;&amp; (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">lender</span> <span class="id" title="var">accessors</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">let</span> <span class="id" title="var">new_dirty</span> := <span class="id" title="keyword">if</span> <span class="id" title="var">clean</span> <span class="id" title="keyword">then</span> <span class="id" title="var">MemClean</span> <span class="id" title="keyword">else</span> <span class="id" title="var">dirty</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Only change accessibility option of the lender. The remaining operations will
+                     be performed in the retrieve 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_properties</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">global_property</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">owned_by</span>: <span class="id" title="var">Owned</span> <span class="id" title="var">borrower</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">accessible_by</span>: <span class="id" title="var">SharedAccess</span> (<span class="id" title="var">borrower</span>::<span class="id" title="var">accessors</span>)}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mem_dirty</span> : <span class="id" title="var">new_dirty</span>}) (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Create the new  memory local properties pool for the borrower.
+                     Instead of making a new initial state, we copied the previous local properties that lender had. 
+                     Next opeartions can adjust the properties if it is necessary 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_borrower_properties_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">gen_borrow_mem_local_properties_wrapper</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">lender</span> <span class="id" title="var">lender_property</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">borrower_properties_pool</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_local_properties_global_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">borrower</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_borrower_properties_pool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">mem_properties</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span> <span class="id" title="var">new_global_properties</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_local_properties_global_pool</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++((<span class="id" title="var">SetOwner</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> (<span class="id" title="var">Owned</span> <span class="id" title="var">borrower</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">SetAccessible</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">SharedAccess</span> (<span class="id" title="var">borrower</span>::<span class="id" title="var">accessors</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">SetDirty</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> <span class="id" title="var">new_dirty</span>)::<span class="id" title="var">nil</span>)} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">new_st</span>, <span class="id" title="var">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">FFA_MEM_RETRIEVE_REQ_CORE_STEP</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Section</span> <span class="id" title="var">FFA_MEM_RELINQUISH_CORE_STEPS</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab31"></a><h3 class="section">FFA_MEM_SHARE_RETRIEVE</h3>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">remove_accessor</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> : <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">access_state</span> : <span class="id" title="var">ACCESS_STATE_TYPE</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">access_state</span> <span class="id" title="keyword">with</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">borrower'</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">borrower</span> = <span class="id" title="var">borrower'</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Some</span> (<span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">SharedAccess</span> (<span class="id" title="var">shared_vms</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">shared_vms</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">nil</span> =&gt; <span class="id" title="var">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">borrower'</span>::<span class="id" title="var">nil</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">borrower</span> = <span class="id" title="var">borrower'</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Some</span> (<span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">lender</span>) <span class="id" title="keyword">else</span> <span class="id" title="var">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">fst</span>::<span class="id" title="var">snd</span>::<span class="id" title="var">nil</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> This is the case for Share. Lend opeartion excludes lender's access, so this thing cannot happen.
+                The order is specified in the previous lend operation. So there is no chance for fst to be a lender 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> (<span class="id" title="var">decide</span> (<span class="id" title="var">snd</span> = <span class="id" title="var">lender</span>) &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">fst</span> = <span class="id" title="var">borrower</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Some</span> (<span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> This is the case for Lend. Lend opeartion excludes lender's access, so we check it
+<ul class="doclist">
+<li> we can ignore them. I believe ignoring them is safe 
+</li>
+</ul>
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> (<span class="id" title="var">List.In_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">borrower</span> <span class="id" title="var">shared_vms</span>) <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="tactic">left</span> <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">SharedAccess</span> (<span class="id" title="var">List.remove</span> <span class="id" title="var">zeq</span> <span class="id" title="var">borrower</span> <span class="id" title="var">shared_vms</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> This is the case for Lend. Lend opeartion excludes lender's access, so we check it
+<ul class="doclist">
+<li> we can ignore them. I believe ignoring them is safe 
+</li>
+</ul>
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="keyword">match</span> (<span class="id" title="var">List.In_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">borrower</span> <span class="id" title="var">shared_vms</span>) <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="tactic">left</span> <span class="id" title="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">SharedAccess</span> (<span class="id" title="var">List.remove</span> <span class="id" title="var">zeq</span> <span class="id" title="var">borrower</span> <span class="id" title="var">shared_vms</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">ffa_mem_relinquish_core_transition_spec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">address</span>: <span class="id" title="var">Z</span>) (<span class="id" title="var">clean</span>: <span class="id" title="var">bool</span>) (<span class="id" title="var">st</span>: <span class="id" title="var">AbstractState</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">bool</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Find out memory properties 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">global_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">lender</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">borrower_properties_pool</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">borrower</span> (<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">lender_property</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">lender_properties_pool</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> check memory properties :
+<ul class="doclist">
+<li> lender has to have onwership
+
+</li>
+<li> lender has to have exclusive access to the address
+
+</li>
+<li> borrower does not have the memory in its memory property pool 
+
+</li>
+</ul>
+       
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">address</span> <span class="id" title="var">borrower_properties_pool</span>  <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">None</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check the valid onwership and accessibility combination for lender and borrower 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">mem_states_valid_combination</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owned</span>, <span class="id" title="var">remove_accessor</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">accessible</span>, <span class="id" title="var">local_owned</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">true</span>, <span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>, <span class="id" title="var">Some</span> <span class="id" title="var">new_accessibility</span>, <span class="id" title="var">LocalOwned</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">owner</span> = <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">let</span> <span class="id" title="var">new_dirty</span> := <span class="id" title="keyword">if</span> <span class="id" title="var">clean</span> <span class="id" title="keyword">then</span> <span class="id" title="var">MemClean</span> <span class="id" title="keyword">else</span> <span class="id" title="var">dirty</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Only change accessibility option of the lender. The remaining operations will
+                     be performed in the retrieve 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_properties</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">address</span> (<span class="id" title="var">global_property</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">owned_by</span>: <span class="id" title="var">Owned</span> <span class="id" title="var">lender</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">accessible_by</span>: <span class="id" title="var">new_accessibility</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mem_dirty</span> : <span class="id" title="var">new_dirty</span>}) (<span class="id" title="var">hyp_mem_global_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Create the new  memory local properties pool for the borrower.
+                     Instead of making a new initial state, we copied the previous local properties that lender had. 
+                     Next opeartions can adjust the properties if it is necessary 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_borrower_properties_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.remove</span> <span class="id" title="var">address</span> <span class="id" title="var">borrower_properties_pool</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_local_properties_global_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">borrower</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_borrower_properties_pool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">hyp_mem_local_props</span> <span class="id" title="var">st</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">mem_properties</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span> <span class="id" title="var">new_global_properties</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_local_properties_global_pool</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++((<span class="id" title="var">SetOwner</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> (<span class="id" title="var">Owned</span> <span class="id" title="var">borrower</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">SetAccessible</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> <span class="id" title="var">new_accessibility</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">SetDirty</span> <span class="id" title="var">lender</span> <span class="id" title="var">address</span> <span class="id" title="var">new_dirty</span>)::<span class="id" title="var">nil</span>)} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">new_st</span>, <span class="id" title="var">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">FFA_MEM_RELINQUISH_CORE_STEPS</span>.<br/>
+
+<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">FFA_MEMORY_INTERFACE_CORE_STEPS</span>.<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="index.html">Index</a><hr/>This page has been generated by <a href="http://coq.inria.fr/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>
