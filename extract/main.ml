@@ -333,6 +333,9 @@ let main =
   run (ArchMMTest.ArchMMTEST.ARCHMMPARTIALTEST.isem2) ;
   print_endline "------------------   ArchMM TEST Passed  ---------------------" ;
   *)
+
+  print_endline "----------------------Top-level testing-----------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST1.isem) ;
   ()
 
 let main t =

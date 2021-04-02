@@ -236,7 +236,7 @@ Section FFA_STRUCTURES.
     mkFFA_value_type FFA_IDENTIFIER_DEFAULT (ZMap.init 0).
 
 End FFA_STRUCTURES.
-  
+
 (*************************************************************)
 (** *                       Descriptors                      *) 
 (*************************************************************)

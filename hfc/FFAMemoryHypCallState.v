@@ -238,7 +238,7 @@ Section MEM_AND_PTABLE.
         owned_by : OWNERSHIP_STATE_TYPE;
         (** - access information *)
         accessible_by : ACCESS_STATE_TYPE;
-
+        
         (** They specifies executable / non-executalbe and read / writer permissions *)
         global_instruction_access_property : FFA_INSTRUCTION_ACCESS_TYPE;
         global_data_access_property: FFA_DATA_ACCESS_TYPE;

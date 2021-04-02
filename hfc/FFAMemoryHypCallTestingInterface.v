@@ -122,7 +122,15 @@ Local Open Scope itree_monad_scope.
 (** **            FFA_TYPES_AND_CONSTANTS instance                     *)
 (***********************************************************************)
 Definition ffa_memory_region_tag_t := Z.
+
+(** This is the valule that we have to use. 
+    However, due to the stack overflow in the recursion, 
+    we reduce the number as 4. *)
+(*
 Definition granuale_shift := 12.
+*)
+
+Definition granuale_shift := 1.
 
 Global Instance ffa_types_and_constants : FFA_TYPES_AND_CONSTANTS :=
   {
@@ -141,6 +149,9 @@ Global Instance ffa_types_and_constants : FFA_TYPES_AND_CONSTANTS :=
 Global Instance descriptor_context :
   DescriptorContext (ffa_types_and_constants := ffa_types_and_constants) :=
   {
+  (** Commented out the more realistic version and provided
+      simplified (with the small number) version to avoid buffer
+      overflow 
   make_handle := fun vid value =>
                    if decide (0 <= vid < (Z.shiftl 1 16))
                    then if decide (0 <= value < (Z.shiftl 1 16))
@@ -152,6 +163,18 @@ Global Instance descriptor_context :
                  Z.land mask handle;
   get_sender := fun handle =>
                   Z.shiftr handle 16;
+   *)
+  make_handle := fun vid value =>
+                   if decide (0 <= vid < (Z.shiftl 1 4))
+                   then if decide (0 <= value < (Z.shiftl 1 4))
+                        then Some (Z.lor (Z.shiftl vid 4) value)
+                        else None
+                   else None;
+  get_value := fun handle =>
+                 let mask := ((Z.shiftl 1 4) - 1)%Z in
+                 Z.land mask handle;
+  get_sender := fun handle =>
+                  Z.shiftr handle 4;  
   }.
 
 
@@ -165,7 +188,7 @@ Inductive ffa_mailbox_msg_t : Type :=
 | mailbox_z (value : Z).
 
 Definition init_ffa_mailbox_msg := mailbox_memory_init_value.
-Definition vcpu_max_num := 4.
+Definition vcpu_max_num := 2.
 
 Definition mailbox_msg_to_region_struct :=
   fun x =>
@@ -228,10 +251,10 @@ Global Instance ffa_vm_context :
     Z_to_mailbox_recv_msg := z_to_mailbox_msg;
 
     primary_vm_id := 1;
-    secondary_vm_ids := 2::3::4::nil;
+    secondary_vm_ids := 2::nil;
 
     (* TODO: Need to fix *)
-    FFA_memory_region_struct_size := fun x => 36;
+    FFA_memory_region_struct_size := fun x => 1;
     }.
     
 (** TODO: The following values are dummy representations. We have to provide 
@@ -242,8 +265,14 @@ Global Instance ffa_vm_context :
 (** **       HafniumMemoryManagementContext instance                   *)
 (***********************************************************************)
 
+(** Commented out the realistic version and provide the simplified (with small numbers)
+    version 
 Definition address_low_shift := 30.
 Definition address_high_shift := 32.
+*)
+Definition address_low_shift := 0.
+Definition address_high_shift := 4.
+
 
 Global Instance memory_management_basic_context
   : MemoryManagementBasicContext
@@ -251,7 +280,7 @@ Global Instance memory_management_basic_context
   {
   address_low := (Z.shiftl 1 address_low_shift)%Z;
   address_high := (Z.shiftl 1 address_high_shift - 1)%Z;
-  alignment_value := granuale; (* 4096 *)
+  alignment_value := granuale;
   }.
 
 Definition stage2_address_translation_table :=
@@ -298,7 +327,7 @@ Fixpoint cal_init_cpus (cpu_nums : nat) :=
 
 Definition init_cpus := cal_init_cpus (Z.to_nat num_of_cpus).
 
-Definition init_api_page_pool_size_shift := 14.
+Definition init_api_page_pool_size_shift := 4.
 
 Definition init_mem_global_properties :=
   mkMemGlobalProperties
@@ -968,22 +997,6 @@ Section FFADispatch.
 End FFADispatch.  
 
 (***********************************************************************)
-(** **                  Hypervisor Call                                *)
-(***********************************************************************)
-Section HypervisorCall.
-  
-  Definition hypervisor_call_function :=
-    (Call "HVCTopLevel.save_regs_to_vcpu" []) #;
-    (Call "HVCTopLevel.function_dispatcher" []) #;
-    (Call "HVCTopLevel.vcpu_restore_and_run_spec" []).
-
-  Definition hypervisor_call : function.
-    mk_function_tac hypervisor_call_function ([]: list var) ([]: list var).
-  Defined.  
-  
-End HypervisorCall.
-
-(***********************************************************************)
 (** **          Client Setter and Getter                               *)
 (***********************************************************************)
 (*************************************************************)
@@ -1071,12 +1084,38 @@ End FFA_DATATYPES.
 (***********************************************************************)
 (** **      Client modeling                                            *)
 (***********************************************************************)
-Section MemoryLoadStore.
-
-  (** Arbitrarily assign the block number for users *)
-  Definition flat_mem_block := (Vcomp (Vlong (Int64.repr 4))).
+Section InterfaceFunctions.
   
   (** Memory load and store operations *)
+  Definition stage2_get_physical_address_spec (st: AbstractState) (addr : ffa_address_t)
+  : itree HypervisorEE (ffa_UUID_t) := 
+    match stage2_address_translation_table addr with
+    | Some res =>
+      match
+        ZTree.get res st.(hypervisor_context).(mem_properties).(mem_global_properties) with
+      | Some property =>
+        match
+          ZTree.get res st.(hypervisor_context).(mem_properties).(mem_global_properties) with
+        | Some property =>
+          match property.(accessible_by) with
+          | ExclusiveAccess accessor
+            => if (decide (st.(cur_user_entity_id) = accessor))
+              then Ret (res)
+              else triggerNB "stage2_address_translation_table error"
+          | SharedAccess accessors
+            => if (in_dec zeq (st.(cur_user_entity_id)) accessors)
+              then Ret (res)
+              else triggerNB "stage2_address_translation_table error"
+          | _ => triggerNB "stage2_address_translation_table error"
+          end
+        | _ => triggerNB "stage2_address_translation_table error"
+        end
+      | _ => triggerNB "stage2_address_translation_table error"
+      end
+    | _ => triggerNB "stage2_address_translation_table error"
+    end.
+
+    
   Definition get_physical_address_spec (addr : ffa_address_t)
     : itree HypervisorEE (ffa_UUID_t) := 
     st <- trigger GetState;;
@@ -1085,14 +1124,10 @@ Section MemoryLoadStore.
     else if st.(use_stage1_table)
          then
            match stage1_address_translation_table st.(cur_user_entity_id) addr with
-           | Some res => Ret (res)
-           | None => triggerNB "error"
+           | Some res' => stage2_get_physical_address_spec st res'
+           | None => triggerNB "stage1_address_translation_table error"
            end
-         else
-           match stage2_address_translation_table addr with
-           | Some res => Ret (res)
-           | None => triggerNB "error"
-           end.        
+         else stage2_get_physical_address_spec st addr.
   
   Definition get_physical_address_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
@@ -1103,6 +1138,36 @@ Section MemoryLoadStore.
     | _ => triggerNB "get_current_entity_id_call: wrong arguments"
     end.
 
+  Definition set_is_hvc_mode_spec
+    : itree HypervisorEE (unit) := 
+    st <- trigger GetState;;
+    if st.(is_hvc_mode)
+    then triggerNB "error"
+    else trigger (SetState (st {is_hvc_mode : true})).
+
+  Definition set_is_hvc_mode_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | []  => set_is_hvc_mode_spec;;
+            Ret (Vnull, args)
+    | _ => triggerNB "set_use_stage2_table_call: wrong arguments"
+    end.
+  
+  Definition unset_is_hvc_mode_spec
+    : itree HypervisorEE (unit) := 
+    st <- trigger GetState;;
+    if st.(is_hvc_mode)
+    then trigger (SetState (st {is_hvc_mode : false}))
+    else triggerNB "error".
+
+  Definition unset_is_hvc_mode_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | []  => unset_is_hvc_mode_spec;;
+            Ret (Vnull, args)
+    | _ => triggerNB "unset_use_stage2_table_call: wrong arguments"
+    end.
+
   Definition set_use_stage1_table_spec
     : itree HypervisorEE (unit) := 
     st <- trigger GetState;;
@@ -1110,7 +1175,7 @@ Section MemoryLoadStore.
     then triggerNB "error"
     else trigger (SetState (st {use_stage1_table : true})).
 
-  Definition set_use_stage2_table_call (args: list Lang.val)
+  Definition set_use_stage1_table_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | []  => set_use_stage1_table_spec;;
@@ -1125,7 +1190,7 @@ Section MemoryLoadStore.
     then trigger (SetState (st {use_stage1_table : false}))
     else triggerNB "error".
 
-  Definition unset_use_stage2_table_call (args: list Lang.val)
+  Definition unset_use_stage1_table_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | []  => unset_use_stage1_table_spec;;
@@ -1179,7 +1244,130 @@ Section MemoryLoadStore.
     | _ => triggerNB "send_msg_call: wrong arguments"
     end.
   
-End MemoryLoadStore.
+End InterfaceFunctions.
+
+(***********************************************************************)
+(** **    FFA Memory Management Interface Module                       *)
+(***********************************************************************)
+Section MemSetterGetter.
+  
+  Definition global_properties_getter_spec
+             (addr: ffa_address_t)
+  : itree HypervisorEE (MemGlobalProperties) :=
+    st <- trigger GetState;;
+    match ZTree.get
+            addr 
+            st.(hypervisor_context).(mem_properties)
+          .(mem_global_properties) with
+    | Some v => Ret(v)
+    | _ => triggerNB "error"
+    end.
+
+  Definition global_properties_getter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong addr))] =>
+      res <- global_properties_getter_spec (Int64.unsigned addr) ;;
+      Ret (Vabs (upcast res), args)
+    | _ => triggerNB "send_msg_call: wrong arguments"
+    end.
+  
+  Definition global_properties_setter_spec
+             (addr: ffa_address_t)
+             (global_properties: MemGlobalProperties) 
+    : itree HypervisorEE (unit) :=
+    st <- trigger GetState;;
+    let mem_props := st.(hypervisor_context).(mem_properties) in
+    let new_mem_global_props_pool
+        := ZTree.set addr global_properties
+                     mem_props.(mem_global_properties) in
+    let new_mem_props :=
+        mkMemProperties 
+          new_mem_global_props_pool
+          mem_props.(mem_local_properties) in
+    trigger (SetState (st {hypervisor_context
+                             / mem_properties: new_mem_props})).
+
+  Definition global_properties_setter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong addr)); (Vabs global_properties)] =>
+      match downcast global_properties MemGlobalProperties with
+      | Some global_props =>
+        global_properties_setter_spec (Int64.unsigned addr) global_props;;
+        Ret (Vnull, args)
+      | _ => triggerNB "send_msg_call: impossible conversion"
+      end
+    | _ => triggerNB "send_msg_call: wrong arguments"
+    end.
+  
+  Definition local_properties_getter_spec
+             (owner : ffa_UUID_t) (addr: ffa_address_t)
+    : itree HypervisorEE (MemLocalProperties) :=
+    st <- trigger GetState;;
+    match ZTree.get
+            owner
+            st.(hypervisor_context).(mem_properties)
+          .(mem_local_properties) with
+    | Some local_props_pool =>
+      match ZTree.get addr local_props_pool with
+      | Some v => Ret(v)
+      | _ => triggerNB "error"
+      end
+    | _ => triggerNB "error"
+    end.
+
+  Definition local_properties_getter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong owner)); (Vcomp (Vlong addr))] =>
+      res <-  local_properties_getter_spec (Int64.unsigned owner) (Int64.unsigned addr) ;;
+      Ret (Vnull, args)
+    | _ => triggerNB "send_msg_call: wrong arguments"
+    end.
+
+  Definition local_properties_setter_spec
+             (owner : ffa_UUID_t) (addr: ffa_address_t)
+             (local_properties: MemLocalProperties)
+    : itree HypervisorEE (unit) :=
+    st <- trigger GetState;;
+    match ZTree.get
+            owner
+            st.(hypervisor_context).(mem_properties)
+          .(mem_local_properties) with
+    | Some local_props_local_pool =>
+      let new_local_props :=
+          ZTree.set addr local_properties 
+                    local_props_local_pool in
+      let new_local_props_pool :=
+          ZTree.set owner new_local_props
+                    st.(hypervisor_context).(mem_properties)
+          .(mem_local_properties) in
+      let new_mem_props :=
+          mkMemProperties
+            st.(hypervisor_context).(mem_properties)
+          .(mem_global_properties)
+             new_local_props_pool in
+      trigger (SetState (st {hypervisor_context
+                               / mem_properties: new_mem_props}))
+    | _ => triggerNB "error"
+    end.
+
+  Definition local_properties_setter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong owner));(Vcomp (Vlong addr)); (Vabs local_properties)] =>
+      match downcast local_properties MemLocalProperties with
+      | Some local_props =>
+        local_properties_setter_spec (Int64.unsigned owner)
+                                 (Int64.unsigned addr) local_props;;
+        Ret (Vnull, args)
+      | _ => triggerNB "send_msg_call: impossible conversion"
+      end
+    | _ => triggerNB "send_msg_call: wrong arguments"
+    end.
+   
+End MemSetterGetter.
 
 (***********************************************************************)
 (** **    FFA Memory Management Interface Module                       *)
@@ -1193,12 +1381,16 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.ffa_dispatch_call", ffa_dispatch_call) ;
     ("HVCTopLevel.get_physical_address", get_physical_address_call);
     ("HVCTopLevel.get_physical_address", get_physical_address_call);
-    ("HVCTopLevel.set_use_stage2_table", set_use_stage2_table_call);
-    ("HVCTopLevel.unset_use_stage2_table", unset_use_stage2_table_call);
-    ("HVCTopLevel.set_use_stage2_table", set_use_stage2_table_call);
-    ("HVCTopLevel.unset_use_stage2_table", unset_use_stage2_table_call);
+    ("HVCTopLevel.set_is_hvc_mode", set_is_hvc_mode_call);
+    ("HVCTopLevel.unset_is_hvc_mode", unset_is_hvc_mode_call);
+    ("HVCTopLevel.set_use_stage1_table", set_use_stage1_table_call);
+    ("HVCTopLevel.unset_use_stage1_table", unset_use_stage1_table_call);
     ("HVCTopLevel.send_msg", send_msg_call);
-    ("HVCTopLevel.recv_msg", recv_msg_call)
+    ("HVCTopLevel.recv_msg", recv_msg_call);
+    ("HVCTopLevel.global_properties_getter", global_properties_getter_call);
+    ("HVCTopLevel.global_properties_setter", global_properties_setter_call);
+    ("HVCTopLevel.local_properties_getter", local_properties_getter_call);
+    ("HVCTopLevel.local_properties_setter", local_properties_setter_call)
       (* TODO: add more getter/setter functions for clients *)
     ].
 
@@ -1237,18 +1429,36 @@ Local Open Scope expr_scope.
 Import Int64.
 
 (***********************************************************************)
+(** **                  Hypervisor Call                                *)
+(***********************************************************************)
+Section HypervisorCall.
+  
+  Definition hypervisor_call :=
+    (Call "HVCTopLevel.save_regs_to_vcpu" []) #;
+    (Call "HVCTopLevel.function_dispatcher" []) #;
+    (Call "HVCTopLevel.vcpu_restore_and_run_spec" []).
+
+  Definition hypervisor_callF : function.
+    mk_function_tac hypervisor_call ([]: list var) ([]: list var).
+  Defined.  
+  
+End HypervisorCall.
+
+(***********************************************************************)
 (** **    FFA Memory Management Interface Module With Mem Accessor     *)
 (***********************************************************************)
 Section FFAMemoryManagementInterfaceWithMemAccessorModule.
 
+  (** Arbitrarily assign the block number for users *)
+  Definition flat_mem_block_ptr := (Vptr 2%positive (Ptrofs.repr 0)).
+
   Definition mem_store_spec (addr value : var) : stmt :=
-    flat_mem_block
-      @ (Call "HVCTopLevel.get_physical_address"
-              [CBV addr])
-      #:= value.
-  
+    (flat_mem_block_ptr @ (Call "HVCTopLevel.get_physical_address"
+                                [CBV addr])
+      #:= value).
+                                          
   Definition mem_load_spec (addr : var) : stmt :=
-    Return (flat_mem_block
+    Return (flat_mem_block_ptr 
               #@ (Call
                     "HVCTopLevel.get_physical_address"
                     [CBV addr])).
@@ -1264,10 +1474,11 @@ Section FFAMemoryManagementInterfaceWithMemAccessorModule.
   Definition mem_funcs :=
     [
       ("HVCTopLevel.mem_store", mem_store_specF) ;
-    ("HVCTopLevel.mem_load", mem_load_specF)
+    ("HVCTopLevel.mem_load", mem_load_specF);
+    ("HVCTopLevel.hypervisor_call", hypervisor_callF)
     ].
   
-  Definition top_level_with_accessor_modsem : list ModSem := [top_level_modsem; program_to_ModSem mem_funcs].
-
+  Definition top_level_accessor_modsem : ModSem := program_to_ModSem mem_funcs.
+  
 End FFAMemoryManagementInterfaceWithMemAccessorModule.
 

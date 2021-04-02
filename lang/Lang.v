@@ -397,8 +397,6 @@ Inductive expr : Type :=
 
 Definition DebugShow := Syscall "show".
 
-
-
 (* JIEUNG: It is really using expression or variable name. Do we need to distinguish them? And the definition of our 
    expression also contains Var. Why do we need CBR then? *)
 Definition CBV: expr -> var + expr := inr.
