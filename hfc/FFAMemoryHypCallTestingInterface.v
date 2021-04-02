@@ -1366,7 +1366,105 @@ Section MemSetterGetter.
       end
     | _ => triggerNB "send_msg_call: wrong arguments"
     end.
-   
+
+  Definition set_mem_dirty_spec (writer: ffa_UUID_t) (addr: ffa_address_t)
+    : itree HypervisorEE (unit) :=
+    st <- trigger GetState;;
+    match ZTree.get
+            addr
+            st.(hypervisor_context).(mem_properties)
+          .(mem_global_properties) with
+    | Some (mkMemGlobalProperties owner access inst_access
+                                  data_access mem_attr mem_dirty)
+      => let new_mem_dirty := match mem_dirty with
+                             | MemClean => MemWritten (writer::nil)
+                             | MemWritten writers =>
+                               if decide (in_dec zeq writer writers)
+                               then MemWritten writers
+                               else MemWritten (writer::writers)
+                             end in
+        let new_global_prop :=
+            mkMemGlobalProperties owner access inst_access
+                                  data_access mem_attr
+                                  new_mem_dirty in
+        let new_global_props :=
+            ZTree.set
+              addr new_global_prop 
+              st.(hypervisor_context).(mem_properties)
+            .(mem_global_properties) in
+        let new_mem_props :=
+            mkMemProperties 
+              new_global_props
+              st.(hypervisor_context).(mem_properties)
+            .(mem_local_properties) in
+        trigger (SetState (st {hypervisor_context
+                                 / mem_properties: new_mem_props}))
+    | _ => triggerNB "error"
+    end.
+
+  Definition set_mem_dirty_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong writer)); (Vcomp (Vlong addr))] =>
+      set_mem_dirty_spec (Int64.unsigned writer) (Int64.unsigned addr) ;;
+      Ret (Vnull, args)
+    | _ => triggerNB "set_mem_dirty_call: wrong arguments"
+    end.
+
+  Definition clean_mem_dirty_spec (writer: ffa_UUID_t) (addr: ffa_address_t)
+    : itree HypervisorEE (unit) :=
+    st <- trigger GetState;;
+    match ZTree.get
+            addr
+            st.(hypervisor_context).(mem_properties)
+          .(mem_global_properties) with
+    | Some (mkMemGlobalProperties owner access inst_access
+                                  data_access mem_attr mem_dirty)
+      => let new_global_prop :=
+            mkMemGlobalProperties owner access inst_access
+                                  data_access mem_attr
+                                  MemClean in
+        let new_global_props :=
+            ZTree.set
+              addr new_global_prop 
+              st.(hypervisor_context).(mem_properties)
+            .(mem_global_properties) in
+        let new_mem_props :=
+            mkMemProperties 
+              new_global_props
+              st.(hypervisor_context).(mem_properties)
+            .(mem_local_properties) in
+        trigger (SetState (st {hypervisor_context
+                                 / mem_properties: new_mem_props}))
+    | _ => triggerNB "error"
+    end.
+
+  Definition clean_mem_dirty_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong writer)); (Vcomp (Vlong addr))] =>
+      clean_mem_dirty_spec (Int64.unsigned writer) (Int64.unsigned addr) ;;
+      Ret (Vnull, args)
+    | _ => triggerNB "set_mem_dirty_call: wrong arguments"
+    end.
+
+
+  Definition get_current_entity_id_spec
+    : itree HypervisorEE (ffa_UUID_t) :=
+    st <- trigger GetState;;
+    if (st.(is_hvc_mode)) then Ret (hafnium_id)
+    else Ret (st.(cur_user_entity_id)).
+
+  Definition get_current_entity_id_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [] =>
+      entity_id <- get_current_entity_id_spec;;
+      Ret (Vcomp (Vlong (Int64.repr entity_id)), args)
+    | _ => triggerNB "get_current_entity_id_call: wrong arguments"
+    end.
+      
+  
 End MemSetterGetter.
 
 (***********************************************************************)
@@ -1390,7 +1488,10 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.global_properties_getter", global_properties_getter_call);
     ("HVCTopLevel.global_properties_setter", global_properties_setter_call);
     ("HVCTopLevel.local_properties_getter", local_properties_getter_call);
-    ("HVCTopLevel.local_properties_setter", local_properties_setter_call)
+    ("HVCTopLevel.local_properties_setter", local_properties_setter_call);
+    ("HVCTopLevel.set_mem_dirty", set_mem_dirty_call);
+    ("HVCTopLevel.clean_mem_dirty", clean_mem_dirty_call);
+    ("HVCToplevel.get_current_entity_id", get_current_entity_id_call)
       (* TODO: add more getter/setter functions for clients *)
     ].
 
@@ -1452,23 +1553,22 @@ Section FFAMemoryManagementInterfaceWithMemAccessorModule.
   (** Arbitrarily assign the block number for users *)
   Definition flat_mem_block_ptr := (Vptr 2%positive (Ptrofs.repr 0)).
 
-  Definition mem_store_spec (addr value : var) : stmt :=
-    (flat_mem_block_ptr @ (Call "HVCTopLevel.get_physical_address"
-                                [CBV addr])
-      #:= value).
+  Definition mem_store_spec (addr value : var) (entity_id paddr : var) : stmt :=
+    entity_id #= (Call "HVCToplevel.get_current_entity_id" []) #;
+              paddr #= (Call "HVCTopLevel.get_physical_address" [CBV addr]) #;
+              (Call "HVCTopLevel.set_mem_dirty" [CBV entity_id; CBV addr]) #;
+              (flat_mem_block_ptr @ paddr #:= value).
                                           
-  Definition mem_load_spec (addr : var) : stmt :=
-    Return (flat_mem_block_ptr 
-              #@ (Call
-                    "HVCTopLevel.get_physical_address"
-                    [CBV addr])).
+  Definition mem_load_spec (addr : var) (paddr: var): stmt :=
+    paddr #= (Call "HVCTopLevel.get_physical_address" [CBV addr]) #;    
+    Return (flat_mem_block_ptr  #@ paddr).
 
   Definition mem_store_specF: function.
-    mk_function_tac mem_store_spec ["addr"; "value"] ([] :list var).
+    mk_function_tac mem_store_spec ["addr"; "value"] ["entity_id "; "paddr"].
   Defined.
 
   Definition mem_load_specF: function.
-    mk_function_tac mem_load_spec ["addr"] ([] :list var).
+    mk_function_tac mem_load_spec ["addr"] ["paddr"].
   Defined.
 
   Definition mem_funcs :=

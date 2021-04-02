@@ -82,7 +82,7 @@ Section FFAMemoryHypCallInitialization.
 
   (** address low differs from address low in the memory context. 
       I am trying to use subset of  *)
-  Definition InitialGlobalAttributesForOne :=
+  Definition InitialGlobalAttributesForVMOne :=
     mkMemGlobalProperties (Owned primary_vm_id)
                           (ExclusiveAccess primary_vm_id)
                           (FFA_INSTRUCTION_ACCESS_NX)
@@ -90,9 +90,9 @@ Section FFAMemoryHypCallInitialization.
                           (FFA_MEMORY_NORMAL_MEM
                              FFA_MEMORY_CACHE_NON_CACHEABLE
                              FFA_MEMORY_OUTER_SHAREABLE)
-                          MemClean.
-
-  Definition InitialGlobalAttributesForTwo :=
+                          MemClean.               
+  
+  Definition InitialGlobalAttributesForVMTwo :=
     mkMemGlobalProperties (Owned 2)
                           (ExclusiveAccess 2)
                           (FFA_INSTRUCTION_ACCESS_NX)
@@ -101,21 +101,34 @@ Section FFAMemoryHypCallInitialization.
                              FFA_MEMORY_CACHE_NON_CACHEABLE
                              FFA_MEMORY_OUTER_SHAREABLE)
                           MemClean.
-  
-  Definition initialize_owners (cur_address initial_value : var): stmt :=
+
+  Definition InitialLocalAttributes :=
+    mkMemLocalProperties (LocalOwned)
+                         (FFA_INSTRUCTION_ACCESS_NX)
+                         (FFA_DATA_ACCESS_RW)
+                          (FFA_MEMORY_NORMAL_MEM
+                             FFA_MEMORY_CACHE_NON_CACHEABLE
+                             FFA_MEMORY_OUTER_SHAREABLE).
+
+  Definition initialize_owners (cur_address initial_global_value initial_local_value : var): stmt :=
     Put "start initializaiton" (Vnull) #;
         cur_address #= address_low_int #;
+        (initial_local_value #= (Vabs (upcast InitialLocalAttributes))) #;
         #while (cur_address < address_mid_int)
         do (
-            (initial_value #=  (Vabs (upcast InitialGlobalAttributesForOne)))
+            (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMOne)))
               #; (Call "HVCTopLevel.global_properties_setter"
-                       [CBV cur_address; CBV initial_value])
+                       [CBV cur_address; CBV initial_global_value])
+              #; (Call "HVCTopLevel.local_properties_setter"
+                       [CBV (Int64.repr primary_vm_id); CBV cur_address; CBV initial_local_value])              
               #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
         #while (cur_address <= address_high_int)
         do (
-            (initial_value #=  (Vabs (upcast InitialGlobalAttributesForTwo)))
+            (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMTwo)))
               #; (Call "HVCTopLevel.global_properties_setter"
-                       [CBV cur_address; CBV initial_value])
+                       [CBV cur_address; CBV initial_global_value])
+              #; (Call "HVCTopLevel.local_properties_setter"
+                       [CBV (Int64.repr 2); CBV cur_address; CBV initial_local_value])              
               #; cur_address #= cur_address + (Int64.repr alignment_value)).
 
 End  FFAMemoryHypCallInitialization.
@@ -124,13 +137,13 @@ Module FFAMEMORYHYPCALLTESTING.
 
   Module DUMMYTEST1.
     
-    Definition main (cur_address initial_value: var): stmt :=
-      (initialize_owners cur_address initial_value)
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
         #; (Call "HVCTopLevel.mem_store" [CBV (address_low_int + (Int64.repr 4)); CBV (Int64.repr 16)])
         #; Put "read value" (Call "HVCTopLevel.mem_load" [CBV (address_low_int + (Int64.repr 4))]).
 
     Definition mainF: function.
-      mk_function_tac main ([]: list var) (["cur_address"; "initial_value"]: list var).
+      mk_function_tac main ([]: list var) (["cur_address"; "initial_global_value"; "initial_local_value"]: list var).
     Defined.
     
     Definition main_program: program :=

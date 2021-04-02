@@ -102,7 +102,7 @@ address low differs from address low in the memory context.
       I am trying to use subset of  
 </div>
 <div class="code">
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalAttributesForOne</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalAttributesForVMOne</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> (<span class="id" title="var">Owned</span> <span class="id" title="var">primary_vm_id</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">primary_vm_id</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_INSTRUCTION_ACCESS_NX</span>)<br/>
@@ -113,7 +113,7 @@ address low differs from address low in the memory context.
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">MemClean</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalAttributesForTwo</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalAttributesForVMTwo</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> (<span class="id" title="var">Owned</span> 2)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ExclusiveAccess</span> 2)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_INSTRUCTION_ACCESS_NX</span>)<br/>
@@ -124,20 +124,34 @@ address low differs from address low in the memory context.
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">MemClean</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">initialize_owners</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_value</span> : <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialLocalAttributes</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> (<span class="id" title="var">LocalOwned</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_INSTRUCTION_ACCESS_NX</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_DATA_ACCESS_RW</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_MEMORY_NORMAL_MEM</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_CACHE_NON_CACHEABLE</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_OUTER_SHAREABLE</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">initialize_owners</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span> : <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Put</span> "start initializaiton" (<span class="id" title="var">Vnull</span>) #;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_address</span> #= <span class="id" title="var">address_low_int</span> #;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initial_local_value</span> #= (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialLocalAttributes</span>))) #;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">cur_address</span> &lt; <span class="id" title="var">address_mid_int</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> (<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initial_value</span> #=  (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialGlobalAttributesForOne</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initial_global_value</span> #=  (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialGlobalAttributesForVMOne</span>)))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.global_properties_setter"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> <span class="id" title="var">cur_address</span>; <span class="id" title="var">CBV</span> <span class="id" title="var">initial_value</span>])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> <span class="id" title="var">cur_address</span>; <span class="id" title="var">CBV</span> <span class="id" title="var">initial_global_value</span>])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.local_properties_setter"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>); <span class="id" title="var">CBV</span> <span class="id" title="var">cur_address</span>; <span class="id" title="var">CBV</span> <span class="id" title="var">initial_local_value</span>])              <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">cur_address</span> #= <span class="id" title="var">cur_address</span> + (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">alignment_value</span>)) #;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">cur_address</span> &lt;= <span class="id" title="var">address_high_int</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> (<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initial_value</span> #=  (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialGlobalAttributesForTwo</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initial_global_value</span> #=  (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialGlobalAttributesForVMTwo</span>)))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.global_properties_setter"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> <span class="id" title="var">cur_address</span>; <span class="id" title="var">CBV</span> <span class="id" title="var">initial_value</span>])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> <span class="id" title="var">cur_address</span>; <span class="id" title="var">CBV</span> <span class="id" title="var">initial_global_value</span>])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.local_properties_setter"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 2); <span class="id" title="var">CBV</span> <span class="id" title="var">cur_address</span>; <span class="id" title="var">CBV</span> <span class="id" title="var">initial_local_value</span>])              <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">cur_address</span> #= <span class="id" title="var">cur_address</span> + (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">alignment_value</span>)).<br/>
 
 <br/>
@@ -150,14 +164,14 @@ address low differs from address low in the memory context.
 &nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">DUMMYTEST1</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.mem_store" [<span class="id" title="var">CBV</span> (<span class="id" title="var">address_low_int</span> + (<span class="id" title="var">Int64.repr</span> 4)); <span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 16)])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">Put</span> "read value" (<span class="id" title="var">Call</span> "HVCTopLevel.mem_load" [<span class="id" title="var">CBV</span> (<span class="id" title="var">address_low_int</span> + (<span class="id" title="var">Int64.repr</span> 4))]).<br/>
 
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mainF</span>: <span class="id" title="var">function</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mk_function_tac</span> <span class="id" title="var">main</span> ([]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>) (["cur_address"; "initial_value"]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mk_function_tac</span> <span class="id" title="var">main</span> ([]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>) (["cur_address"; "initial_global_value"; "initial_local_value"]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>).<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Defined</span>.<br/>
 
 <br/>
