@@ -158,6 +158,63 @@ address low differs from address low in the memory context.
 <span class="id" title="keyword">End</span>  <span class="id" title="var">FFAMemoryHypCallInitialization</span>.<br/>
 
 <br/>
+<span class="id" title="keyword">Section</span> <span class="id" title="var">DescriptorGenerator</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">MemoryRegionConstituentGeneratorForDonate</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span> : <span class="id" title="var">ffa_address_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">page</span>: <span class="id" title="var">Z</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkFFA_memory_region_constituent_struct</span> <span class="id" title="var">address</span> <span class="id" title="var">page</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">MemoryRegionCompositeGeneratorForDonate</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span> : <span class="id" title="var">ffa_address_t</span>) (<span class="id" title="var">page</span> : <span class="id" title="var">Z</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkFFA_composite_memory_region_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">page</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="id" title="var">MemoryRegionConstituentGeneratorForDonate</span> <span class="id" title="var">address</span> <span class="id" title="var">page</span>)::<span class="id" title="var">nil</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">AccessPermissionsDescriptorGeneratorForDonate</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">receiver</span> : <span class="id" title="var">ffa_UUID_t</span>) := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkFFA_memory_access_permissions_descriptor_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">receiver</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_INSTRUCTION_ACCESS_NX</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_DATA_ACCESS_RW</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">false</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">EndpointMemoryAccessDescriptorGeneratorForDonate</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">receiver</span> : <span class="id" title="var">ffa_UUID_t</span>) := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkFFA_endpoint_memory_access_descriptor_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">AccessPermissionsDescriptorGeneratorForDonate</span> <span class="id" title="var">receiver</span>) 0.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">DonateDescriptorGenerator</span> (<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span> :<span class="id" title="var">ffa_address_t</span>) (<span class="id" title="var">page</span>: <span class="id" title="var">Z</span>):=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkFFA_memory_region_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">sender</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">mkFFA_memory_region_attributes_descriptor_struct</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_MEMORY_NORMAL_MEM</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_CACHE_NON_CACHEABLE</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_OUTER_SHAREABLE</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">MEMORY_REGION_FLAG_NORMAL</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">mkFFA_mem_default_flags_struct</span> <span class="id" title="var">false</span> <span class="id" title="var">false</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="id" title="var">EndpointMemoryAccessDescriptorGeneratorForDonate</span> <span class="id" title="var">receiver</span>)::<span class="id" title="var">nil</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">MemoryRegionCompositeGeneratorForDonate</span> <span class="id" title="var">address</span> <span class="id" title="var">page</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mailbox_msg</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span> :<span class="id" title="var">ffa_address_t</span>) (<span class="id" title="var">page</span>: <span class="id" title="var">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;:= <span class="id" title="var">mailbox_memory_region</span> (<span class="id" title="var">DonateDescriptorGenerator</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">address</span> <span class="id" title="var">page</span>).<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">DescriptorGenerator</span>.<br/>
+
+<br/>
 <span class="id" title="keyword">Module</span> <span class="id" title="var">FFAMEMORYHYPCALLTESTING</span>.<br/>
 
 <br/>
@@ -188,9 +245,39 @@ address low differs from address low in the memory context.
 &nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">DUMMYTEST1</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">End</span> <span class="id" title="var">FFAMEMORYHYPCALLTESTING</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">DONATETEST1</span>.<br/>
 
 <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.send_msg" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">mailbox_msg</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> <span class="id" title="var">primary_vm_id</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address_low</span> 1)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">FFA_MEM_DONATE</span>))]) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.hypervisor_call" []).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mainF</span>: <span class="id" title="var">function</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mk_function_tac</span> <span class="id" title="var">main</span> ([]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>) (["cur_address"; "initial_global_value"; "initial_local_value"]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Defined</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main_program</span>: <span class="id" title="var">program</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("main", <span class="id" title="var">mainF</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;].<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">isem</span>: <span class="id" title="var">itree</span> <span class="id" title="var">Event</span> <span class="id" title="var">unit</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">eval_multimodule</span> [<span class="id" title="var">program_to_ModSem</span> <span class="id" title="var">main_program</span> ; <span class="id" title="var">top_level_accessor_modsem</span> ; <span class="id" title="var">top_level_modsem</span>].<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">End</span> <span class="id" title="var">DONATETEST1</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">FFAMEMORYHYPCALLTESTING</span>.<br/>
 </div>
 </div>
 

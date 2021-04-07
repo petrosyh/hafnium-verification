@@ -35,8 +35,13 @@
 <ul class="doclist">
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallIntro.v</span></span>
 <ul class="doclist">
-<li> This file introduces several relavant concepts that are necessary in the FF-A
-    memory management interface formalization (e.g., FFA version number, identifiers in FFA) 
+<li> This file introduces several concepts that are closely related to the FF-A
+    memory management interface. 
+    Other files that contain formal definitions rely on concepts that this file describes. 
+    Therefore, looking at this file may help readers understand our formal definitions. 
+
+<div class="paragraph"> </div>
+
 
 </li>
 </ul>
@@ -44,8 +49,13 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallDescriptorState.v</span></span>
 <ul class="doclist">
-<li> This file introduces formal definitions of descriptor data structures. They are 
-    related to Sections 5.10, 5.11, and 5.12 in the document.
+<li> This file contains formal definitions of descriptor data structures defined in
+    Sections 5.10, 5.11, and 5.12 of the FF-A document. 
+    Those descriptors contain several information that 
+    memory management hypervisor calls have to look at during its evaluations.
+
+<div class="paragraph"> </div>
+
 
 </li>
 </ul>
@@ -53,7 +63,11 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallState.v</span></span>
 <ul class="doclist">
-<li> This file introduces abstract states of our formalizations.
+<li> This file introduces the abstract state definition, the mathematical view of 
+    the entire system with hiding unnecessary details. 
+
+<div class="paragraph"> </div>
+
 
 </li>
 </ul>
@@ -61,26 +75,41 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallCoreTransition.v</span></span>
 <ul class="doclist">
-<li> This file contains transition rules of FFA memory management interfaces. 
+<li> This file contains core transition rules of FFA memory management interfaces. 
 
 </li>
-<li> Core transition rules in this file change ownership and accessibility information of the memory adress 
-    that interfaces want to handle.
+<li> Core transition rules in this file change ownership and accessibility information 
+    of the memory adress that interfaces want to handle.
+
+<div class="paragraph"> </div>
+
 
 </li>
 </ul>
 
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.v</span></span>
+<ul class="doclist">
+<li> Auxiliary functions that makes the entire specifications more readable 
+    and structured.
+
+<div class="paragraph"> </div>
+
+
+</li>
+</ul>
 
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallAdditionalSteps.v</span></span>
 <ul class="doclist">
-<li> Other transition rules can be treated as wrappers of core transition rules
+<li> Transition rules in this file can be treated as wrappers of core transition rules
     by adding several safety checks and/or invariants that the document contains.
 
 </li>
-<li> The relevant parts with this file in the FF-A document are Chapters 5 and 11.
+<li> The relevant parts in the FF-A document are Chapters 5 and 11.
+
+<div class="paragraph"> </div>
+
 
 </li>
 </ul>
@@ -90,6 +119,9 @@
 <ul class="doclist">
 <li> This file provides testing interfaces (e.g., context switchings, dispatch, and so on).
 
+<div class="paragraph"> </div>
+
+
 </li>
 </ul>
 
@@ -97,6 +129,9 @@
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallTesting.v</span></span>
 <ul class="doclist">
 <li> This file provides test cases.
+
+<div class="paragraph"> </div>
+
 
 </li>
 </ul>

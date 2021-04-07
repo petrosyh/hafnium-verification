@@ -45,6 +45,8 @@ Require Export FFAMemoryHypCallState.
 Require Export FFAMemoryHypCallCoreTransition.
 Require Export FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.
 
+(* begin hide *)
+
 Notation "'do' X <- A ;;; B" :=
   (match A with Some X => B |
            None => None
@@ -57,6 +59,8 @@ Notation " 'check' A ;;; B" :=
 
 Local Open Scope ffa_monad_scope.
 
+(* end hide *)
+
 (***********************************************************************)
 (** *  Additional Step Rules for Memory Management                     *)
 (***********************************************************************)
@@ -64,18 +68,17 @@ Local Open Scope ffa_monad_scope.
 Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
 
   Context `{abstract_state_context: AbstractStateContext}.
+
+  (***********************************************************************)
+  (** **  FFA_MEM_DONATE, FFA_MEM_LEND, and FFA_MEM_SHARE                *)
+  (***********************************************************************)
+  (** This section is related to three sections in the FF-A document, 
+      11.1 FFA_MEM_DONATE, 11.2 FFA_MEM_LEND, and 11.3 FFA_MEM_SHARE    
+  *)
   
-  (***********************************************************************)
-  (** **   11.1 FFA_MEM_DONATE                                           *)
-  (***********************************************************************)
-  (***********************************************************************)
-  (** **   11.2 FFA_MEM_LEND                                             *)
-  (***********************************************************************)
-  (***********************************************************************)
-  (** **   11.3 FFA_MEM_SHARE                                            *)
-  (***********************************************************************)
-  
-  (** 
+  (**  The followings describe how those three hypervisor calls use 
+       registers 
+
       - Structure
         - paramemter
           - stored register
@@ -130,28 +133,31 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
 
   Section FFA_MEM_DONATE_ADDITIONAL_STEPS.
 
-    (** - Check each address in constituents to see whether 
-          descriptor values are proper for donate operation *)
-    Fixpoint donate_checks_per_address
+    (** - Check each page in constituents to see whether 
+          all values in the descriptor are valid for the donate operation,
+          and return a proper error message when it cannot proceed evaluations.
+     *)
+    Fixpoint donate_checks_per_page
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
              (mem_properties: MemProperties)
              (memory_region_descriptor: FFA_memory_region_struct)
-             (addrs: list Z)
+             (pages: list Z)
              (descriptor_inst_access: FFA_INSTRUCTION_ACCESS_TYPE)
              (descriptor_data_access: FFA_DATA_ACCESS_TYPE)
              (descriptor_attributes: FFA_MEMORY_TYPE)
-      : option (FFA_ERROR_CODE_TYPE) :=
-      match addrs with
+    : option (FFA_ERROR_CODE_TYPE) :=
+      (** - Check for all pages *)
+      match pages with
       | nil => None
       | hd::tl =>
-        (** - Exctract memory properties and accessibilities *)
+        (** - Exctract properties and accessibilities for the page *)
         match get_permissions_and_attributes vid hd mem_properties,
               memory_region_descriptor.(FFA_memory_region_struct_flags)with
         | Some (local_inst_access, local_data_access, local_attributes,
                 global_inst_access, global_data_access,  global_attributes),
           MEMORY_REGION_FLAG_NORMAL flags =>
-          (** - Check descriptor's values are valid with memory properties and accessibilities *)
+          (** - Check descriptor's values are valid with page properties and accessibilities *)
           match data_permissions_check_donate_lender_check
                   descriptor_data_access global_data_access local_data_access,
                 instruction_permissions_donate_and_lend_single_borrower_lender_descriptor_check
@@ -165,8 +171,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           | None, None, Some res, _
           | None, None, None, Some res => Some res
           | None, None, None, None =>
-            (** - If there are all valid, check the next address *)
-            donate_checks_per_address
+            (** - If there are all valid, check the next page in the descriptor *)
+            donate_checks_per_page
               vid time_slice_enabled mem_properties
               memory_region_descriptor tl
               descriptor_inst_access
@@ -176,9 +182,11 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         | _, _ => Some (FFA_INVALID_PARAMETERS)
         end
       end.
-    
-    (** There are some redundancies, but we do not car  e it *)
-    (** check additional properties *)
+
+    (** Check memory region descriptor, attributes, and accessibilities to see
+        whether all values are valid for the donate operation.
+        - Check well-formedness of the memory region descriptor 
+        - Check values for each page by calling donate_checks_per_page *)
     Definition donate_check
                (vid : ffa_UUID_t)
                (time_slice_enabled: bool)
@@ -190,7 +198,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
             memory_region_descriptor.(FFA_memory_region_struct_flags),
             info_tuple with
       (** - Donate operation allows only one receiver *)
-      | left _, MEMORY_REGION_FLAG_NORMAL flags,  (receiver, receiver_id, addrs)::nil =>
+      | left _, MEMORY_REGION_FLAG_NORMAL flags,  (receiver, receiver_id, pages)::nil =>
         (** - Check well formed of memory region descriptor *)
         let descriptor_inst_access :=
             get_instruction_access_information_from_descriptor receiver in
@@ -198,12 +206,11 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
             get_data_access_information_from_descriptor receiver in
         let descriptor_attributes :=
             get_attributes_information_from_descriptor memory_region_descriptor in
-        
         match well_formed_FFA_memory_region_struct
                 vid memory_region_descriptor FFA_MEM_DONATE,
-              donate_checks_per_address
+              donate_checks_per_page
                 vid time_slice_enabled
-                mem_properties memory_region_descriptor addrs
+                mem_properties memory_region_descriptor pages
                 descriptor_inst_access descriptor_data_access
                 descriptor_attributes with
         | Some res, _
@@ -220,12 +227,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       | _, _, _ => Some (FFA_INVALID_PARAMETERS)
       end.
     
-    (** - Change memory ownership and accessibilities for all addresses. 
+    (** - Change memory ownership and accessibilities for all pages. 
           If it encouter errors, it will revert the change and return the original state *)
     Fixpoint apply_ffa_mem_donate_core_transition_spec
-             (caller receiver_id : ffa_UUID_t) (addresses : list Z)
+             (caller receiver_id : ffa_UUID_t) (page_numbers : list Z)
              (st : AbstractState) :=
-      match addresses with
+      match page_numbers with
       | nil => Some (st, true)
       | hd::tl =>
         match apply_ffa_mem_donate_core_transition_spec
@@ -236,7 +243,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         | None => None
         end
       end.
-                   
+
     Definition ffa_mem_donate_spec
                (caller : ffa_UUID_t)
                (total_length fragment_length address count : Z)
@@ -249,10 +256,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         do state_and_memory_region_descriptor <-
            get_send_memory_region_descriptor caller st ;;;
         let (state, memory_region_descriptor) := state_and_memory_region_descriptor in
+        (** - Extract information from the descriptor  *) 
         do ipa_info_tuple <-
            get_recievers_receiver_ids_and_addresses_tuple
              memory_region_descriptor ;;;
-        do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+        do pa_info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+        let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
+                            pa_info_tuple in
           (** - Check the well_formed conditions of the memory region descriptor *)
           if decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
           then
@@ -307,20 +317,25 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
 
   Section FFA_MEM_LEND_ADDITIONAL_STEPS.
 
-    Fixpoint lend_checks_per_address 
+    (** - Check each page in constituents to see whether 
+          all values in the descriptor are valid for the lend operation,
+          and return a proper error message when it cannot proceed evaluations.
+     *)    
+    Fixpoint lend_checks_per_page
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
              (mem_properties: MemProperties)
              (memory_region_descriptor: FFA_memory_region_struct)
-             (addrs: list Z)
+             (pages: list Z)
              (descriptor_inst_access: FFA_INSTRUCTION_ACCESS_TYPE)
              (descriptor_data_access: FFA_DATA_ACCESS_TYPE)
              (descriptor_attributes: FFA_MEMORY_TYPE)
              (receiver_number : Z)             
       : option (FFA_ERROR_CODE_TYPE) :=
-      match addrs with
-      | nil => None                
+      match pages with
+      | nil => None
       | hd::tl =>
+        (** - Check properties that are not relevant to the number of receivers *)
         match get_permissions_and_attributes vid hd mem_properties,
               memory_region_descriptor.(FFA_memory_region_struct_flags) with        
         | Some (local_inst_access, local_data_access, local_attributes,
@@ -333,8 +348,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           | Some res, _ 
           | None, Some res => Some res
           | None, None =>
+            (** - Check number of receivers *)            
             if (decide (receiver_number = 1))
             then 
+              (** - Check for the lend operation with the single receiver *)
               match instruction_permissions_donate_and_lend_single_borrower_lender_descriptor_check
                       descriptor_inst_access global_inst_access,
                     attributes_donate_and_single_borrower_lender_check
@@ -342,12 +359,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               | Some res, _
               | None, Some res => Some res
               | None, None =>
-                lend_checks_per_address
+                (** - If there are all valid, check the next page in the descriptor *)
+                lend_checks_per_page
                   vid time_slice_enabled mem_properties memory_region_descriptor
                   tl descriptor_inst_access descriptor_data_access descriptor_attributes
                   receiver_number
               end
             else
+              (** - Check for the lend operation with multiple receivers *)
               match instruction_permissions_share_and_lend_multiple_borrower_lender_check
                       descriptor_inst_access global_inst_access,
                     attributes_share_and_multiple_borrowers_borrower_check
@@ -355,7 +374,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               | Some res, _
               | None, Some res => Some res
               | None, None =>
-                lend_checks_per_address
+                (** - If there are all valid, check the next page in the descriptor *)                
+                lend_checks_per_page
                   vid time_slice_enabled mem_properties memory_region_descriptor
                   tl descriptor_inst_access descriptor_data_access descriptor_attributes
                   receiver_number
@@ -365,9 +385,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         end
       end.
 
-
-    (** There are some redundancies, but we do not care it *)
-    (** check additional properties *)
+    (** Check memory region descriptor, attributes, and accessibilities to see
+        whether all values are valid for the lend operation.
+        - Check well-formedness of the memory region descriptor 
+        - Check values for each page by calling lend_checks_per_page *)
     Fixpoint lend_check_iterations 
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
@@ -378,8 +399,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       : option (FFA_ERROR_CODE_TYPE) := 
       match info_tuple with
       | nil => None
-      | (receiver, receiver_id, addrs)::tl => 
-        (** - Extract descriptor's access and attribute values *)
+      | (receiver, receiver_id, pages)::tl =>
+        (** - Check well formed of memory region descriptor *)
         let descriptor_inst_access :=
             get_instruction_access_information_from_descriptor receiver in
         let descriptor_data_access :=
@@ -388,13 +409,15 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
             get_attributes_information_from_descriptor memory_region_descriptor in
         match lend_check_iterations vid time_slice_enabled mem_properties
                                     memory_region_descriptor tl receiver_number,
-              lend_checks_per_address vid time_slice_enabled
-                                      mem_properties memory_region_descriptor addrs
-                                      descriptor_inst_access descriptor_data_access
-                                      descriptor_attributes receiver_number with
+              lend_checks_per_page vid time_slice_enabled
+                                   mem_properties memory_region_descriptor pages
+                                   descriptor_inst_access descriptor_data_access
+                                   descriptor_attributes receiver_number with
         | Some res, _
         | None, Some res => Some res
         | None, None =>
+          (** - Check access and attributes *)
+          (** - Extract descriptor's access and attribute values *)          
           (FFA_memory_access_permissions_descriptor_struct_flags_check
              FFA_MEM_LEND
              (receiver
@@ -415,7 +438,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       then
         (** - Check well formed of memory region descriptor *)
         match well_formed_FFA_memory_region_struct
-                vid memory_region_descriptor FFA_MEM_DONATE with
+                vid memory_region_descriptor FFA_MEM_LEND with
         | None =>
           lend_check_iterations vid time_slice_enabled
                                 mem_properties memory_region_descriptor
@@ -427,9 +450,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     (** - Change memory ownership and accessibilities for all addresses. 
           If it encouter errors, it will revert the change and return the original state *)
     Fixpoint apply_ffa_mem_lend_core_transition_spec
-             (caller : ffa_UUID_t) (receivers: list ffa_UUID_t) (addresses : list Z)
+             (caller : ffa_UUID_t) (receivers: list ffa_UUID_t) (pages : list Z)
              (st : AbstractState) :=
-      match addresses with
+      match pages with
       | nil => Some (st, true)
       | hd::tl =>
         match apply_ffa_mem_lend_core_transition_spec
@@ -456,7 +479,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         do ipa_info_tuple <-
            get_recievers_receiver_ids_and_addresses_tuple
              memory_region_descriptor ;;;
-        do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+        do pa_info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+        let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
+                            pa_info_tuple in
            (** - Check the well_formed conditions of the memory region descriptor *)
           if decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
           then
@@ -511,18 +536,18 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
   
   Section FFA_MEM_SHARE_ADDITIONAL_STEPS.
     
-    Fixpoint share_checks_per_address 
+    Fixpoint share_checks_per_page
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
              (mem_properties: MemProperties)
              (memory_region_descriptor: FFA_memory_region_struct)
-             (addrs: list Z)
+             (pages: list Z)
              (descriptor_inst_access: FFA_INSTRUCTION_ACCESS_TYPE)
              (descriptor_data_access: FFA_DATA_ACCESS_TYPE)
              (descriptor_attributes: FFA_MEMORY_TYPE)
              (receiver_number : Z)             
       : option (FFA_ERROR_CODE_TYPE) :=
-      match addrs with
+      match pages with
       | nil => None
       | hd::tl =>
         match get_permissions_and_attributes vid hd mem_properties,
@@ -542,7 +567,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           | None, None, Some res, _
           | None, None, None, Some res => Some res
           | None, None, None, None =>
-            lend_checks_per_address
+            share_checks_per_page
               vid time_slice_enabled mem_properties memory_region_descriptor
               tl descriptor_inst_access descriptor_data_access descriptor_attributes
               receiver_number
@@ -561,10 +586,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
              (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct * ffa_UUID_t * list Z))
              (receiver_number : Z)             
       : option (FFA_ERROR_CODE_TYPE) := 
-
       match info_tuple with
       | nil => None
-      | (receiver, receiver_id, addrs)::tl =>
+      | (receiver, receiver_id, pages)::tl =>
         (** - Extract descriptor's access and attribute values *)
         let descriptor_inst_access :=
             get_instruction_access_information_from_descriptor receiver in
@@ -574,10 +598,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
             get_attributes_information_from_descriptor memory_region_descriptor in
         match share_check_iterations vid time_slice_enabled mem_properties memory_region_descriptor
                                      tl receiver_number,
-              share_checks_per_address vid time_slice_enabled
-                                       mem_properties memory_region_descriptor addrs
-                                       descriptor_inst_access descriptor_data_access
-                                       descriptor_attributes receiver_number with 
+              share_checks_per_page vid time_slice_enabled
+                                    mem_properties memory_region_descriptor pages
+                                    descriptor_inst_access descriptor_data_access
+                                    descriptor_attributes receiver_number with 
         | Some res, _
         | None, Some res => Some res
         | None, None => 
@@ -619,9 +643,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     (** - Change memory ownership and accessibilities for all addresses. 
           If it encouter errors, it will revert the change and return the original state *)
     Fixpoint apply_ffa_mem_share_core_transition_spec
-             (caller : ffa_UUID_t) (receivers: list ffa_UUID_t) (addresses : list Z)
+             (caller : ffa_UUID_t) (receivers: list ffa_UUID_t) (pages : list Z)
              (st : AbstractState) :=
-      match addresses with
+      match pages with
       | nil => Some (st, true)
       | hd::tl =>
         match apply_ffa_mem_share_core_transition_spec
@@ -648,7 +672,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         do ipa_info_tuple <-
            get_recievers_receiver_ids_and_addresses_tuple
              memory_region_descriptor ;;;
-        do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+        do pa_info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+        let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
+                            pa_info_tuple in
            (** - Check the well_formed conditions of the memory region descriptor *)
           if decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
           then
@@ -746,17 +772,17 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           - INVALID_PARAMETERS / DENIED / NO_MEMORY / BUSY / ABORTED
      *)
 
-    Fixpoint donate_retrieve_req_checks_per_address
+    Fixpoint donate_retrieve_req_checks_per_page
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
              (mem_properties: MemProperties)
              (memory_region_descriptor: FFA_memory_region_struct)
-             (addrs: list Z)
+             (pages: list Z)
              (descriptor_inst_access: FFA_INSTRUCTION_ACCESS_TYPE)
              (descriptor_data_access: FFA_DATA_ACCESS_TYPE)
              (descriptor_attributes: FFA_MEMORY_TYPE)
       : option (FFA_ERROR_CODE_TYPE) :=
-      match addrs with
+      match pages with
       | nil => None
       | hd::tl =>
         (** - Exctract memory properties and accessibilities *)
@@ -780,7 +806,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           | None, None, None, Some res => Some res
           | None, None, None, None =>
             (** - If there are all valid, check the next address *)
-            donate_retrieve_req_checks_per_address
+            donate_retrieve_req_checks_per_page
               vid time_slice_enabled mem_properties
               memory_region_descriptor tl
               descriptor_inst_access
@@ -806,7 +832,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
             memory_region_descriptor.(FFA_memory_region_struct_flags),
             receiver_tuple with
       (** - Donate operation allows only one receiver *)
-      | left _, MEMORY_REGION_FLAG_NORMAL flags,  (receiver, receiver_id, addrs) =>
+      | left _, MEMORY_REGION_FLAG_NORMAL flags,  (receiver, receiver_id, pages) =>
         (** - Check well formed of memory region descriptor *)
         let descriptor_inst_access :=
             get_instruction_access_information_from_descriptor receiver in
@@ -815,9 +841,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         let descriptor_attributes :=
             get_attributes_information_from_descriptor memory_region_descriptor in
         
-        match donate_retrieve_req_checks_per_address
+        match donate_retrieve_req_checks_per_page
                 vid time_slice_enabled
-                mem_properties memory_region_descriptor addrs
+                mem_properties memory_region_descriptor pages
                 descriptor_inst_access descriptor_data_access
                 descriptor_attributes with
         | Some res => Some res
@@ -836,9 +862,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     (** - Change memory ownership and accessibilities for all addresses. 
           If it encouter errors, it will revert the change and return the original state *)
     Fixpoint apply_ffa_mem_donate_retrieve_req_core_transition_spec
-             (lender borrower : ffa_UUID_t) (addresses : list Z) (clean : bool)
+             (lender borrower : ffa_UUID_t) (pages : list Z) (clean : bool)
              (st : AbstractState) :=
-      match addresses with
+      match pages with
       | nil => Some (st, true)
       | hd::tl =>
         match apply_ffa_mem_donate_retrieve_req_core_transition_spec
@@ -860,7 +886,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       do ipa_info_tuple <-
          get_recievers_receiver_ids_and_addresses_tuple
            region_descriptor ;;;
-      do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+      do pa_info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+      let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
+                          pa_info_tuple in
      (** - Check the well_formed conditions of the memory region descriptor *)
      if decide ((length (get_receivers region_descriptor) = 1)%nat)
      then
@@ -911,18 +939,18 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
      else Some (st, FFA_ERROR FFA_DENIED).
 
 
-    Fixpoint lend_retrieve_req_checks_per_address
+    Fixpoint lend_retrieve_req_checks_per_page
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
              (mem_properties: MemProperties)
              (memory_region_descriptor: FFA_memory_region_struct)
-             (addrs: list Z)
+             (pages: list Z)
              (descriptor_inst_access: FFA_INSTRUCTION_ACCESS_TYPE)
              (descriptor_data_access: FFA_DATA_ACCESS_TYPE)
              (descriptor_attributes: FFA_MEMORY_TYPE)
              (borrower_number : Z)
       : option (FFA_ERROR_CODE_TYPE) :=
-      match addrs with
+      match pages with
       | nil => None
       | hd::tl =>
         (** - Exctract memory properties and accessibilities *)
@@ -949,7 +977,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               | None, Some res => Some res
               | None, None =>
                 (** - If there are all valid, check the next address *)
-                lend_retrieve_req_checks_per_address
+                lend_retrieve_req_checks_per_page
                   vid time_slice_enabled mem_properties
                   memory_region_descriptor tl
                   descriptor_inst_access
@@ -966,7 +994,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               | None, Some res => Some res
               | None, None =>
                 (** - If there are all valid, check the next address *)
-                lend_retrieve_req_checks_per_address
+                lend_retrieve_req_checks_per_page
                   vid time_slice_enabled mem_properties
                   memory_region_descriptor tl
                   descriptor_inst_access
@@ -994,7 +1022,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
             memory_region_descriptor.(FFA_memory_region_struct_flags),
             receiver_tuple with
       (** - Donate operation allows only one receiver *)
-      | left _, MEMORY_REGION_FLAG_NORMAL flags,  (receiver, receiver_id, addrs) =>
+      | left _, MEMORY_REGION_FLAG_NORMAL flags,  (receiver, receiver_id, pages) =>
         (** - Check well formed of memory region descriptor *)
         let descriptor_inst_access :=
             get_instruction_access_information_from_descriptor receiver in
@@ -1003,9 +1031,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         let descriptor_attributes :=
             get_attributes_information_from_descriptor memory_region_descriptor in
         
-        match lend_retrieve_req_checks_per_address
+        match lend_retrieve_req_checks_per_page
                 vid time_slice_enabled
-                mem_properties memory_region_descriptor addrs
+                mem_properties memory_region_descriptor pages
                 descriptor_inst_access descriptor_data_access
                 descriptor_attributes receiver_num with
         | Some res => Some res
@@ -1022,9 +1050,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       end.
          
     Fixpoint apply_ffa_mem_lend_retrieve_req_core_transition_spec
-             (lender borrower : ffa_UUID_t) (borrower_num : Z) (addresses : list Z) (clean : bool)
+             (lender borrower : ffa_UUID_t) (borrower_num : Z) (pages : list Z) (clean : bool)
              (st : AbstractState) :=
-      match addresses with
+      match pages  with
       | nil => Some (st, true)
       | hd::tl =>
         match apply_ffa_mem_lend_retrieve_req_core_transition_spec
@@ -1047,6 +1075,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
          get_recievers_receiver_ids_and_addresses_tuple
            region_descriptor ;;;
       do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+      do pa_info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+      let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
+                          pa_info_tuple in
       do receiver_info <-
          get_receiver_tuple caller region_descriptor ;;;
      (** - Check the well_formed conditions of the memory region descriptor *)
@@ -1100,17 +1131,17 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
      end. 
 
 
-    Fixpoint share_retrieve_req_checks_per_address
+    Fixpoint share_retrieve_req_checks_per_page
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
              (mem_properties: MemProperties)
              (memory_region_descriptor: FFA_memory_region_struct)
-             (addrs: list Z)
+             (pages: list Z)
              (descriptor_inst_access: FFA_INSTRUCTION_ACCESS_TYPE)
              (descriptor_data_access: FFA_DATA_ACCESS_TYPE)
              (descriptor_attributes: FFA_MEMORY_TYPE)
       : option (FFA_ERROR_CODE_TYPE) :=
-      match addrs with
+      match pages with
       | nil => None
       | hd::tl =>
         (** - Exctract memory properties and accessibilities *)
@@ -1134,7 +1165,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           | None, None, None, Some res => Some res
           | None, None, None, None =>
             (** - If there are all valid, check the next address *)
-            share_retrieve_req_checks_per_address
+            share_retrieve_req_checks_per_page
               vid time_slice_enabled mem_properties
               memory_region_descriptor tl
               descriptor_inst_access
@@ -1160,7 +1191,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
             memory_region_descriptor.(FFA_memory_region_struct_flags),
             receiver_tuple with
       (** - Donate operation allows only one receiver *)
-      | left _, MEMORY_REGION_FLAG_NORMAL flags,  (receiver, receiver_id, addrs) =>
+      | left _, MEMORY_REGION_FLAG_NORMAL flags,  (receiver, receiver_id, pages) =>
         (** - Check well formed of memory region descriptor *)
         let descriptor_inst_access :=
             get_instruction_access_information_from_descriptor receiver in
@@ -1169,9 +1200,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         let descriptor_attributes :=
             get_attributes_information_from_descriptor memory_region_descriptor in
         
-        match share_retrieve_req_checks_per_address
+        match share_retrieve_req_checks_per_page
                 vid time_slice_enabled
-                mem_properties memory_region_descriptor addrs
+                mem_properties memory_region_descriptor pages
                 descriptor_inst_access descriptor_data_access
                 descriptor_attributes with
         | Some res => Some res
@@ -1188,9 +1219,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       end.
                 
     Fixpoint apply_ffa_mem_share_retrieve_req_core_transition_spec
-             (lender borrower : ffa_UUID_t) (addresses : list Z) (clean : bool)
+             (lender borrower : ffa_UUID_t) (pages : list Z) (clean : bool)
              (st : AbstractState) :=
-      match addresses with
+      match pages with
       | nil => Some (st, true)
       | hd::tl =>
         match apply_ffa_mem_share_retrieve_req_core_transition_spec
@@ -1213,6 +1244,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
          get_recievers_receiver_ids_and_addresses_tuple
            region_descriptor ;;;
       do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+      do pa_info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+      let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
+                          pa_info_tuple in
       do receiver_info <-
          get_receiver_tuple caller region_descriptor ;;;
      (** - Check the well_formed conditions of the memory region descriptor *)
@@ -1380,9 +1414,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
      *)
 
     Fixpoint apply_ffa_mem_relinquish_core_transition_spec
-             (index : Z) (lender borrower : ffa_UUID_t) (addresses : list Z) (clean : bool)
+             (index : Z) (lender borrower : ffa_UUID_t)
+             (pages : list Z) (clean : bool)
              (st : AbstractState) :=
-      match addresses with
+      match pages  with
       | nil => Some (st, true)
       | hd::tl =>
         match apply_ffa_mem_relinquish_core_transition_spec
@@ -1398,26 +1433,28 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
 
     Fixpoint FFA_mem_relinquish_req_alignment_hint_check_iter 
              (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
-             (addrs : list Z) :=
+             (addrs  : list Z) :=
       match addrs with
       | nil => None
       | hd::tl =>
-        match FFA_mem_relinquish_req_alignment_hint_check_iter relinquish_flag tl with
+        match FFA_mem_relinquish_req_alignment_hint_check_iter
+                relinquish_flag tl with
         | Some res => Some res
-        | _ => FFA_mem_relinquish_req_alignment_hint_check relinquish_flag hd
+        | _ => FFA_mem_relinquish_req_alignment_hint_check
+                relinquish_flag hd
         end
       end.
     
-    Fixpoint FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_address
+    Fixpoint FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_page
              (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
              (mem_properties: MemProperties)
              (sender : ffa_UUID_t)
-             (addrs: list Z)
+             (pages: list Z)
              (time_slice_enabled : bool) :=
-      match addrs with
+      match pages with
       | nil => None
       | hd::tl => 
-        match FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_address 
+        match FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_page
                 relinquish_flag mem_properties sender tl time_slice_enabled with
         | None =>
           do sender_data_access <- get_data_access_from_global_local_pool_props
@@ -1428,15 +1465,15 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         end
       end. 
 
-    Fixpoint FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_address
+    Fixpoint FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_page
                (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
                (mem_properties: MemProperties)
                (receiver : ffa_UUID_t)
-               (addrs: list Z) :=
-      match addrs with
+               (pages: list Z) :=
+      match pages with
       | nil => None
       | hd::tl => 
-        match FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_address
+        match FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_page
                 relinquish_flag mem_properties receiver tl with
         | None =>
           do receiver_data_access <- get_data_access_from_global_local_pool_props
@@ -1488,11 +1525,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                         match share_func with
                         | FFA_MEM_DONATE
                         | FFA_MEM_LEND
-                          => match FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_address
+                          => match FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_page
                                     flags (st.(hypervisor_context).(mem_properties))
                                     sender addrs (st.(hypervisor_context).(time_slice_enabled)),
-                                  FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_address
-                                    flags (st.(hypervisor_context).(mem_properties)) caller addrs with
+                                  FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_page
+                                    flags (st.(hypervisor_context).(mem_properties)) caller
+                                    (convert_addresses_to_page_numbers addrs) with
                             | Some res, _
                             | None, Some res => Some res
                             | None, None => None
@@ -1505,9 +1543,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                   | Some res => Some (st, FFA_ERROR res)
                   | None =>
                     do st' <- apply_ffa_mem_relinquish_core_transition_spec
-                                  (get_value handle_value) sender caller addrs
-                                  (flags.(FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag))
-                                  st ;;;
+                               (get_value handle_value) sender caller
+                               (convert_addresses_to_page_numbers addrs)
+                               (flags.(FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag))
+                               st ;;;
                     match st' with
                     | (st'', true) => Some (st'', FFA_SUCCESS 0)
                     | (_, false) => Some (st, FFA_ERROR FFA_DENIED)
@@ -1568,11 +1607,11 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
      *)
 
 
-    Fixpoint mem_reclaim_check_per_address (addrs: list Z) (receiver_retrieved_map : ZTree.t bool) :=
-      match addrs with
+    Fixpoint mem_reclaim_check_per_page (pages: list Z) (receiver_retrieved_map : ZTree.t bool) :=
+      match pages with
       | nil => None
       | hd::tl =>
-        match mem_reclaim_check_per_address tl receiver_retrieved_map with
+        match mem_reclaim_check_per_page tl receiver_retrieved_map with
         | None =>  
           match ZTree.get hd receiver_retrieved_map with
           | Some false => None
@@ -1588,12 +1627,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
              (retrieved_map : ZTree.t (ZTree.t bool)) : option FFA_ERROR_CODE_TYPE :=
       match info_tuple with
       | nil => None
-      | (receiver, receiver_id, addrs)::tl =>
+      | (receiver, receiver_id, pages)::tl =>
         match mem_reclaim_check tl retrieved_map with
         | None => 
           match ZTree.get receiver_id retrieved_map with
           | Some receiver_retrieved_map =>
-            mem_reclaim_check_per_address addrs receiver_retrieved_map
+            mem_reclaim_check_per_page pages receiver_retrieved_map
           | None => Some (FFA_DENIED)
           end
         | Some res => Some res
@@ -1624,28 +1663,28 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
 
     Fixpoint remove_local_memory_property_for_receivers
                (receivers : list ffa_UUID_t) 
-               (addr : Z) 
+               (page : Z) 
                (st : AbstractState) : AbstractState :=
       match receivers with
       | nil => st
       | hd::tl =>
-        let st' := remove_local_memory_property_for_receivers tl addr st in
-        remove_local_memory_property_per_receiver hd addr st
+        let st' := remove_local_memory_property_for_receivers tl page st in
+        remove_local_memory_property_per_receiver hd page st
       end.    
     
     Definition ffa_mem_reclaim_core_transition
                (sender :ffa_UUID_t)
                (receivers : list ffa_UUID_t) 
-               (addr : Z) 
+               (page : Z) 
                (clean: bool)
                (st : AbstractState) : option AbstractState :=
       let new_st := remove_local_memory_property_for_receivers
-                      receivers addr st in
-      do global_property <- ZTree.get addr (hyp_mem_global_props st) ;;; 
+                      receivers page st in
+      do global_property <- ZTree.get page (hyp_mem_global_props st) ;;; 
       do sender_properties_pool <- ZTree.get sender (hyp_mem_local_props st) ;;;
-      do sender_property <- ZTree.get addr sender_properties_pool ;;;
+      do sender_property <- ZTree.get page sender_properties_pool ;;;
       let new_global_properties :=
-          ZTree.set addr
+          ZTree.set page
                     (global_property
                        {owned_by: Owned sender}
                        {accessible_by: ExclusiveAccess sender}
@@ -1653,7 +1692,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                     else global_property.(mem_dirty)})
                     (hyp_mem_global_props st) in
       let new_sender_properties_pool :=
-          ZTree.set addr
+          ZTree.set page
                     (gen_own_mem_local_properties_wrapper sender_property) 
                     sender_properties_pool in
       let new_local_properties_global_pool :=
@@ -1670,10 +1709,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     Fixpoint apply_ffa_mem_reclaim_core_transition
                (sender :ffa_UUID_t)
                (receivers : list ffa_UUID_t) 
-               (addrs : list Z) 
+               (pages : list Z) 
                (clean: bool)
                (st : AbstractState) : option AbstractState :=
-      match addrs with
+      match pages with
       | nil => Some st
       | hd::tl =>
         match  apply_ffa_mem_reclaim_core_transition
@@ -1701,7 +1740,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         then Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
         else
           do ipa_info_tuple <- get_recievers_receiver_ids_and_addresses_tuple memory_region ;;;
-          do info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;          
+          do pa_info_tuple <- SubstIPAsIntoPAs ipa_info_tuple ;;;
+          let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
+                              pa_info_tuple in
           match mem_reclaim_check info_tuple retrieved with
           | None =>
             match apply_ffa_mem_reclaim_core_transition

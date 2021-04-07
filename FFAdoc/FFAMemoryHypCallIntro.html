@@ -41,12 +41,13 @@
 
 <div class="paragraph"> </div>
 
-   With the given descriptions, we formalize our target with the following four files. 
+   Other files that contain formal definitions rely on concepts that this file describes. Therefore, 
+   looking at this file may help readers understand our formal definitions. 
 
 <div class="paragraph"> </div>
 
-   The following explanations are mostly copied from the FF-A document. If there are something that we hope to mention, 
-   we add <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:...</span> to distinguish them with the original texts.
+   Explanations in this file are mostly copied from the FF-A document. If there are something that we hope 
+   to mention except the original ones, we add <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:...</span> to distinguish them with the original texts.
 
 </div>
 <div class="code">
@@ -135,8 +136,11 @@ This section provides several basic concepts that are necessary to model FFA mem
 <div class="paragraph"> </div>
 
      An instance is physical if:
-     – Each component can independently manage its translation regime.
-     – The translation regimes of each component map virtual addresses to physical addresses.
+<ul class="doclist">
+<li> Each component can independently manage its translation regime.
+
+</li>
+<li> The translation regimes of each component map virtual addresses to physical addresses.
 <ul class="doclist">
 <li> An instance is virtual if it is not physical.
 
@@ -151,19 +155,23 @@ This section provides several basic concepts that are necessary to model FFA mem
 
 </li>
 </ul>
-     – The Hypervisor and a VM is called the Non-secure virtual FF-A instance.
-     – The Hypervisor and SPMD is called the Non-secure physical FF-A instance.
-     – The OS kernel and SPMD, in the absence of a Hypervisor is called the Non-secure physical FF-A instance.
+
+</li>
+<li> The Hypervisor and a VM is called the Non-secure virtual FF-A instance.
+
+</li>
+<li> The Hypervisor and SPMD is called the Non-secure physical FF-A instance.
+
+</li>
+<li> The OS kernel and SPMD, in the absence of a Hypervisor is called the Non-secure physical FF-A instance.
+
+</li>
+</ul>
    
 <div class="paragraph"> </div>
 
 <a name="lab96"></a><h2 class="section">Memory types - Parts of Section 2.6</h2>
 
-
-<div class="paragraph"> </div>
-
-     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">Based</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">descriptions</span>,</span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">NS</span></span> <span class="inlinecode"><span class="id" title="var">attribute</span></span> <span class="inlinecode"><span class="id" title="var">bit</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">each</span></span> <span class="inlinecode"><span class="id" title="var">page</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">required</span></span> 
-     <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="tactic">abstract</span></span> <span class="inlinecode"><span class="id" title="var">definition</span>.</span>
 
 <div class="paragraph"> </div>
 
@@ -192,11 +200,6 @@ This section provides several basic concepts that are necessary to model FFA mem
 
 <div class="paragraph"> </div>
 
-     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">Similar</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">description</span>.</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">can</span></span> <span class="inlinecode"><span class="id" title="var">introduce</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="keyword">context</span></span> <span class="inlinecode"><span class="id" title="var">variable</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="var">represents</span></span>
-     <span class="inlinecode"><span class="id" title="var">arbitrary</span></span> <span class="inlinecode"><span class="id" title="var">number</span>.</span> <span class="inlinecode"><span class="id" title="var">And</span></span> <span class="inlinecode"><span class="id" title="var">based</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">that</span>,</span> <span class="inlinecode"><span class="id" title="var">expressing</span></span> <span class="inlinecode"><span class="id" title="var">several</span></span> <span class="inlinecode"><span class="id" title="var">invariants</span></span> <span class="inlinecode"><span class="id" title="var">are</span></span> <span class="inlinecode"><span class="id" title="var">also</span></span> <span class="inlinecode"><span class="id" title="var">possible</span>.</span>
-
-<div class="paragraph"> </div>
-
 <ul class="doclist">
 <li> If X is the larger translation granule size used by the two translation regimes, 
       then the size of the memory region must be a multiple of X.
@@ -216,11 +219,6 @@ This section provides several basic concepts that are necessary to model FFA mem
 
 <a name="lab98"></a><h2 class="section">Partition identification and discovery - Parts of Section 2.8</h2>
 
-
-<div class="paragraph"> </div>
-
-     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="var">describes</span></span> <span class="inlinecode"><span class="id" title="var">identifiers</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">each</span></span> <span class="inlinecode"><span class="id" title="var">entity</span>.</span> <span class="inlinecode"><span class="id" title="var">Entities</span></span> <span class="inlinecode"><span class="id" title="var">can</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">divided</span></span> <span class="inlinecode"><span class="id" title="var">into</span></span> <span class="inlinecode"><span class="id" title="var">sub</span></span> <span class="inlinecode"><span class="id" title="var">types</span>,</span>
-     <span class="inlinecode"><span class="id" title="var">such</span></span> <span class="inlinecode"><span class="id" title="keyword">as</span></span> <span class="inlinecode"><span class="id" title="var">SEPID</span>,</span> <span class="inlinecode"><span class="id" title="var">VM</span></span> <span class="inlinecode"><span class="id" title="var">ID</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">so</span></span> <span class="inlinecode"><span class="id" title="var">on</span>.</span>
 
 <div class="paragraph"> </div>
 
@@ -730,17 +728,29 @@ This section provides several basic concepts that are necessary to model FFA mem
 
 <div class="paragraph"> </div>
 
-       1. Hypervisor, stage 2 translations on behalf of a EL1 PE endpoint, 
-          in the Non-secure EL1&amp;0 translation regime, when EL2 is enabled
-       2. Hypervisor, stage 2 translations for a Non-secure Stream ID assigned to an
-          independent or dependent peripheral device, in the Non-secure EL1&amp;0 translation regime in the SMMU. 
-          A SEPID is used to identify the stage 2 translation tables
-       3. SPMC, stage 2 translations on behalf of a S-EL1 PE endpoint in the Secure EL1&amp;0 translation regime, 
-          when S-EL2 is enabled.
-       4. SPMC, stage 1 translations on behalf of a S-EL0 PE endpoint in the Secure EL1&amp;0 translation regime, 
-          when S-EL2 is disabled.
-       5. SPMC, stage 2 translations for a Secure Stream ID assigned to an independent or dependent peripheral device in 
-          the Secure EL1&amp;0 translation regime in the SMMU. A SEPID is used to identify the stage 2 translation tables. 
+<ul class="doclist">
+<li> Hypervisor, stage 2 translations on behalf of a EL1 PE endpoint, 
+         in the Non-secure EL1&amp;0 translation regime, when EL2 is enabled
+
+</li>
+<li> Hypervisor, stage 2 translations for a Non-secure Stream ID assigned to an
+         independent or dependent peripheral device, in the Non-secure EL1&amp;0 translation regime in the SMMU. 
+         A SEPID is used to identify the stage 2 translation tables
+
+</li>
+<li> SPMC, stage 2 translations on behalf of a S-EL1 PE endpoint in the Secure EL1&amp;0 translation regime, 
+         when S-EL2 is enabled.
+
+</li>
+<li> SPMC, stage 1 translations on behalf of a S-EL0 PE endpoint in the Secure EL1&amp;0 translation regime, 
+         when S-EL2 is disabled.
+
+</li>
+<li> SPMC, stage 2 translations for a Secure Stream ID assigned to an independent or dependent peripheral device in 
+         the Secure EL1&amp;0 translation regime in the SMMU. A SEPID is used to identify the stage 2 translation tables. 
+</li>
+</ul>
+
 </div>
 <div class="code">
 
@@ -962,10 +972,20 @@ For two FF-A components A and B and a memory region, valid combinations of state
 
 </li>
 <li> For each memory region, the SPM and Hypervisor track the following.
-      – The identity of each Borrower.
-      – The identity of the Owner.
-      – The level of access of each Borrower.
-      – The level of access of the Owner.
+<ul class="doclist">
+<li> The identity of each Borrower.
+
+</li>
+<li> The identity of the Owner.
+
+</li>
+<li> The level of access of each Borrower.
+
+</li>
+<li> The level of access of the Owner.
+
+</li>
+</ul>
      
 </li>
 </ul>

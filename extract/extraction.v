@@ -114,6 +114,7 @@ Separate Extraction
          MemoryManagementTest.MMTEST.INITFINI.isem2
 
          FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST1.isem
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST1.isem
 
          (* MMStageOne.MMTEST1.isem *)
          (* MMStageOne.MMTESTAUX.isem *)

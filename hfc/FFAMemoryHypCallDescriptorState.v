@@ -52,15 +52,13 @@ Definition Z_not := fun val => (Z.lxor Z_64MAX val).
     this file is from Section 5.10 to Section 5.12 in the document.
 *)
 
-(** **** *)
-
 (*************************************************************)
 (** *      Types and Constant values that are used in FF     *) 
 (*************************************************************)
 Section FFA_TYPES_AND_CONSTANT.
 
-  (** Value types are mostly type aliasing for the readability of our modeling. 
-      Several types are simply Z or bool types. *)
+  (** Type definitions in the below are mostly type aliasing for the readability. 
+      Most types are simply Z or bool types. *)
   Class FFA_TYPES_AND_CONSTANTS :=
     {
     (** - 2.8. Partition identification and discovery 
@@ -88,17 +86,22 @@ Section FFA_TYPES_AND_CONSTANT.
         defining inductive types. In this sense, we define it as a general Type *)
     ffa_memory_region_tag_t : Type;
 
-    (** - Granuale value. It is usually a multiplication of 4096 (4KiB) *)
+    (** - Granuale value. The actual granuale size is multiplication of granuale and 4096 (4KiB).
+          - For example, if the granuale is 2, then the actual granuale size of the system is 8192 (2 * 4096)
+          - This is due to reducing the overhead of several recursive functions that we need to 
+            introduce with the memory addresses. If we use the current approach, we can represent bigger granuale
+            numbers and memory address ranges without facing stack overflow *)
     granuale : ffa_granuale_size_t;
     init_ffa_memory_region_tag : ffa_memory_region_tag_t;
     }.
-
+ 
 End FFA_TYPES_AND_CONSTANT.
 
 (*************************************************************)
 (** *                         FFA  keyword                   *) 
 (*************************************************************)
 Section FFA_DATATYPES.
+  
   (** This section defines several keywords that are necessary to model 
       FFA memory management interfaces *)
   
@@ -814,7 +817,6 @@ Section FFA_DESCRIPTIONS.
           It must ensure that the permissions for other Borrowers are the same as those specified by the Lender
           and validated by the Relayer. The Relayer must return the DENIED error code if the validation fails.
    *)
-
 
   (**
      Restrictions in dontate memory: 
@@ -2327,19 +2329,17 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
       }.
 
   Definition init_FFA_mem_relinquish_struct :=
-    mkFFA_memory_relinquish_struct 0 MEMORY_REGION_FLAG_DEFAULT nil.
-
-  (** **** well formed *)
-  (** for FFA_memory_relinquish_struct_flags,
-      we can check flag values using the previous well-formed checks *)
-  (** for FFA_memory_relinquish_struct_endpoints,
-      we need to check whether all endpoints are valid *)
-  
+    mkFFA_memory_relinquish_struct 0 MEMORY_REGION_FLAG_DEFAULT nil.  
   
 End FFA_MEMORY_REGION_DESCRIPTOR.
 
+(*************************************************************)
+(** *           Descriptor Context                           *) 
+(*************************************************************)
+(** This context defines the abstract view of 
+    the handle and relative auxiliary functions with the handle. *)
 Section FFA_MEMORY_REGION_DESCRIPTOR_CONTEXT.
-
+  
   Class DescriptorContext `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS} :=
     {
     make_handle (vid: ffa_UUID_t) (value: Z) : option Z;

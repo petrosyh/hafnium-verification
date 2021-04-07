@@ -72,18 +72,19 @@ Import Int64.
 Require Import Maps.
 Set Implicit Arguments.
 
-Definition address_low_int := Int64.repr address_low.
-Definition address_mid_int :=
-  ((Int64.repr address_high -  Int64.repr address_low) / (Int64.repr 2))
-  + Int64.repr address_low.
-Definition address_high_int := Int64.repr address_high.
+Definition page_low_int := Int64.repr page_low.
+Definition page_mid_int :=
+  ((Int64.repr page_high -  Int64.repr page_low) / (Int64.repr 2))
+  + Int64.repr page_low.
+Definition page_high_int := Int64.repr page_high.
 
 Section FFAMemoryHypCallInitialization.
 
   (** address low differs from address low in the memory context. 
       I am trying to use subset of  *)
   Definition InitialGlobalAttributesForVMOne :=
-    mkMemGlobalProperties (Owned primary_vm_id)
+    mkMemGlobalProperties false
+                          (Owned primary_vm_id)
                           (ExclusiveAccess primary_vm_id)
                           (FFA_INSTRUCTION_ACCESS_NX)
                           (FFA_DATA_ACCESS_RW)
@@ -93,7 +94,8 @@ Section FFAMemoryHypCallInitialization.
                           MemClean.               
   
   Definition InitialGlobalAttributesForVMTwo :=
-    mkMemGlobalProperties (Owned 2)
+    mkMemGlobalProperties false
+                          (Owned 2)
                           (ExclusiveAccess 2)
                           (FFA_INSTRUCTION_ACCESS_NX)
                           (FFA_DATA_ACCESS_RW)
@@ -112,9 +114,9 @@ Section FFAMemoryHypCallInitialization.
 
   Definition initialize_owners (cur_address initial_global_value initial_local_value : var): stmt :=
     Put "start initializaiton" (Vnull) #;
-        cur_address #= address_low_int #;
+        cur_address #= page_low_int #;
         (initial_local_value #= (Vabs (upcast InitialLocalAttributes))) #;
-        #while (cur_address < address_mid_int)
+        #while (cur_address < page_mid_int)
         do (
             (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMOne)))
               #; (Call "HVCTopLevel.global_properties_setter"
@@ -122,7 +124,7 @@ Section FFAMemoryHypCallInitialization.
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr primary_vm_id); CBV cur_address; CBV initial_local_value])              
               #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
-        #while (cur_address <= address_high_int)
+        #while (cur_address <= page_high_int)
         do (
             (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMTwo)))
               #; (Call "HVCTopLevel.global_properties_setter"
@@ -133,17 +135,68 @@ Section FFAMemoryHypCallInitialization.
 
 End  FFAMemoryHypCallInitialization.
 
+Section DescriptorGenerator.
+
+  Definition MemoryRegionConstituentGeneratorForDonate
+             (address : ffa_address_t)
+             (page: Z) :=
+    mkFFA_memory_region_constituent_struct address page.
+
+  Definition MemoryRegionCompositeGeneratorForDonate
+             (address : ffa_address_t) (page : Z) :=
+    mkFFA_composite_memory_region_struct
+      page
+      ((MemoryRegionConstituentGeneratorForDonate address page)::nil).
+  
+  Definition AccessPermissionsDescriptorGeneratorForDonate
+             (receiver : ffa_UUID_t) := 
+    mkFFA_memory_access_permissions_descriptor_struct
+      receiver
+       FFA_INSTRUCTION_ACCESS_NX
+       FFA_DATA_ACCESS_RW
+       false.
+
+  Definition EndpointMemoryAccessDescriptorGeneratorForDonate
+             (receiver : ffa_UUID_t) := 
+    mkFFA_endpoint_memory_access_descriptor_struct
+      (AccessPermissionsDescriptorGeneratorForDonate receiver) 0.  
+    
+  Definition DonateDescriptorGenerator (sender receiver: ffa_UUID_t)
+             (address :ffa_address_t) (page: Z):=
+    mkFFA_memory_region_struct
+      (* sender *)
+      sender 
+      (mkFFA_memory_region_attributes_descriptor_struct 
+         (FFA_MEMORY_NORMAL_MEM
+            FFA_MEMORY_CACHE_NON_CACHEABLE
+            FFA_MEMORY_OUTER_SHAREABLE))
+      (MEMORY_REGION_FLAG_NORMAL
+         (mkFFA_mem_default_flags_struct false false))
+      0
+      0
+      ((EndpointMemoryAccessDescriptorGeneratorForDonate receiver)::nil)
+      (MemoryRegionCompositeGeneratorForDonate address page).
+
+  Definition mailbox_msg
+             (sender receiver: ffa_UUID_t)
+             (address :ffa_address_t) (page: Z)
+    := mailbox_memory_region (DonateDescriptorGenerator sender receiver address page).
+  
+End DescriptorGenerator.
+
 Module FFAMEMORYHYPCALLTESTING.
 
   Module DUMMYTEST1.
     
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
       (initialize_owners cur_address initial_global_value initial_local_value)
-        #; (Call "HVCTopLevel.mem_store" [CBV (address_low_int + (Int64.repr 4)); CBV (Int64.repr 16)])
-        #; Put "read value" (Call "HVCTopLevel.mem_load" [CBV (address_low_int + (Int64.repr 4))]).
+        #; (Call "HVCTopLevel.mem_store" [CBV (page_low_int + (Int64.repr 4)); CBV (Int64.repr 16)])
+        #; Put "read value" (Call "HVCTopLevel.mem_load" [CBV (page_low_int + (Int64.repr 4))]).
 
     Definition mainF: function.
-      mk_function_tac main ([]: list var) (["cur_address"; "initial_global_value"; "initial_local_value"]: list var).
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
     Defined.
     
     Definition main_program: program :=
@@ -152,9 +205,42 @@ Module FFAMEMORYHYPCALLTESTING.
       ].
 
     Definition isem: itree Event unit :=
-      eval_multimodule [program_to_ModSem main_program ; top_level_accessor_modsem ; top_level_modsem].        
-        
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].        
+    
   End DUMMYTEST1.
+
+  Module DONATETEST1.
+    
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCTopLevel.send_msg" [CBV (Int64.repr primary_vm_id);
+                                        CBV (Int64.repr 36);
+                                        CBV (Vabs (upcast (mailbox_msg
+                                                             primary_vm_id primary_vm_id
+                                                             page_low 1)));
+                                        CBV (Vabs (upcast FFA_MEM_DONATE))]) 
+        #; (Call "HVCTopLevel.hypervisor_call" []).
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].        
+    
+  End DONATETEST1.
   
 End FFAMEMORYHYPCALLTESTING.
+
 

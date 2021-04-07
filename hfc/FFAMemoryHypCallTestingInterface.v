@@ -30,7 +30,6 @@ From ExtLib Require Import
      Data.Option
      Data.Monads.OptionMonad.
 
-
 From ITree Require Import
      ITree
      ITreeFacts
@@ -270,28 +269,28 @@ Global Instance ffa_vm_context :
 Definition address_low_shift := 30.
 Definition address_high_shift := 32.
 *)
-Definition address_low_shift := 0.
-Definition address_high_shift := 4.
-
+Definition page_low_shift := 0.
+Definition page_high_shift := 4.
 
 Global Instance memory_management_basic_context
   : MemoryManagementBasicContext
       (ffa_vm_context := ffa_vm_context) :=
   {
-  address_low := (Z.shiftl 1 address_low_shift)%Z;
-  address_high := (Z.shiftl 1 address_high_shift - 1)%Z;
+  page_low := (Z.shiftl 1 page_low_shift)%Z;
+  page_high := (Z.shiftl 1 page_high_shift)%Z;
   alignment_value := granuale;
   }.
-
+ 
 Definition stage2_address_translation_table :=
   fun (x : ffa_address_t) =>
-    if decide (address_low <= x)%Z && decide (x < address_high)%Z
+    if decide ((page_low * granuale) <= x)%Z && decide (x < (page_high * granuale))%Z
     then Some x else None.
 
 Definition stage1_address_translation_table :=
   fun (vid : ffa_UUID_t) (x : ffa_address_t) =>
     if decide (0 <= vid)%Z && decide (vid < number_of_vm)%Z
-    then if decide (address_low <= x)%Z && decide (x < address_high)%Z
+    then if decide ((page_low * granuale) <= x)%Z &&
+            decide (x < (page_high * granuale))%Z
          then Some x
          else None
     else None.  
@@ -312,7 +311,7 @@ Global Instance memory_management_context
 (***********************************************************************)
 
 Definition init_cpu_id := 0.
-Definition num_of_cpus := 8.
+Definition num_of_cpus := 4.
 
 Definition init_CPU_struct := mkCPU_struct.
 
@@ -331,7 +330,9 @@ Definition init_api_page_pool_size_shift := 4.
 
 Definition init_mem_global_properties :=
   mkMemGlobalProperties
-    NotOwned NoAccess 
+    false
+    NotOwned
+    NoAccess 
     FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED
     FFA_DATA_ACCESS_NOT_SPECIFIED
     FFA_MEMORY_NOT_SPECIFIED_MEM
@@ -340,14 +341,14 @@ Definition init_mem_global_properties :=
 Fixpoint cal_init_global_properties_pool
          (address : nat)  :=
   match address with 
-  | O => if decide (0 >= address_low)
+  | O => if decide (0 >= page_low)
         then ZTree.set (Z.shiftl 0 granuale_shift)  
                        init_mem_global_properties
                        (ZTree.empty MemGlobalProperties)
         else (ZTree.empty MemGlobalProperties)
   | S n' =>
     let converted_addr := Z.shiftl (Z.of_nat address) granuale_shift in
-    if decide (converted_addr >= address_low)
+    if decide (converted_addr >= page_low)
     then let res := cal_init_global_properties_pool n' in
          ZTree.set converted_addr  
                    init_mem_global_properties
@@ -358,7 +359,7 @@ Fixpoint cal_init_global_properties_pool
 Definition init_mem_global_properties_pool
   : mem_global_properties_pool
   := cal_init_global_properties_pool
-       (Z.to_nat (Z.shiftr address_high granuale_shift)).
+       (Z.to_nat page_high).
 
 Fixpoint cal_init_local_properties_pool
          (vms : list Z) :=
@@ -1374,7 +1375,7 @@ Section MemSetterGetter.
             addr
             st.(hypervisor_context).(mem_properties)
           .(mem_global_properties) with
-    | Some (mkMemGlobalProperties owner access inst_access
+    | Some (mkMemGlobalProperties is_ns owner access inst_access
                                   data_access mem_attr mem_dirty)
       => let new_mem_dirty := match mem_dirty with
                              | MemClean => MemWritten (writer::nil)
@@ -1384,7 +1385,7 @@ Section MemSetterGetter.
                                else MemWritten (writer::writers)
                              end in
         let new_global_prop :=
-            mkMemGlobalProperties owner access inst_access
+            mkMemGlobalProperties is_ns owner access inst_access
                                   data_access mem_attr
                                   new_mem_dirty in
         let new_global_props :=
@@ -1418,10 +1419,10 @@ Section MemSetterGetter.
             addr
             st.(hypervisor_context).(mem_properties)
           .(mem_global_properties) with
-    | Some (mkMemGlobalProperties owner access inst_access
+    | Some (mkMemGlobalProperties is_ns owner access inst_access
                                   data_access mem_attr mem_dirty)
       => let new_global_prop :=
-            mkMemGlobalProperties owner access inst_access
+            mkMemGlobalProperties is_ns owner access inst_access
                                   data_access mem_attr
                                   MemClean in
         let new_global_props :=
@@ -1448,11 +1449,10 @@ Section MemSetterGetter.
     | _ => triggerNB "set_mem_dirty_call: wrong arguments"
     end.
 
-
   Definition get_current_entity_id_spec
     : itree HypervisorEE (ffa_UUID_t) :=
     st <- trigger GetState;;
-    if (st.(is_hvc_mode)) then Ret (hafnium_id)
+    if (st.(is_hvc_mode)) then Ret (hypervisor_id)
     else Ret (st.(cur_user_entity_id)).
 
   Definition get_current_entity_id_call (args: list Lang.val)
@@ -1463,7 +1463,6 @@ Section MemSetterGetter.
       Ret (Vcomp (Vlong (Int64.repr entity_id)), args)
     | _ => triggerNB "get_current_entity_id_call: wrong arguments"
     end.
-      
   
 End MemSetterGetter.
 
@@ -1477,12 +1476,15 @@ Section FFAMemoryManagementInterfaceModule.
       ("HVCTopLevel.save_regs_to_vcpu_call", save_regs_to_vcpu_call) ;
     ("HVCTopLevel.vcpu_restore_and_run_call", vcpu_restore_and_run_call) ;
     ("HVCTopLevel.ffa_dispatch_call", ffa_dispatch_call) ;
-    ("HVCTopLevel.get_physical_address", get_physical_address_call);
+    
     ("HVCTopLevel.get_physical_address", get_physical_address_call);
     ("HVCTopLevel.set_is_hvc_mode", set_is_hvc_mode_call);
     ("HVCTopLevel.unset_is_hvc_mode", unset_is_hvc_mode_call);
     ("HVCTopLevel.set_use_stage1_table", set_use_stage1_table_call);
     ("HVCTopLevel.unset_use_stage1_table", unset_use_stage1_table_call);
+
+    ("HVCToplevel.get_current_entity_id", get_current_entity_id_call);
+    
     ("HVCTopLevel.send_msg", send_msg_call);
     ("HVCTopLevel.recv_msg", recv_msg_call);
     ("HVCTopLevel.global_properties_getter", global_properties_getter_call);
@@ -1490,8 +1492,7 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.local_properties_getter", local_properties_getter_call);
     ("HVCTopLevel.local_properties_setter", local_properties_setter_call);
     ("HVCTopLevel.set_mem_dirty", set_mem_dirty_call);
-    ("HVCTopLevel.clean_mem_dirty", clean_mem_dirty_call);
-    ("HVCToplevel.get_current_entity_id", get_current_entity_id_call)
+    ("HVCTopLevel.clean_mem_dirty", clean_mem_dirty_call)
       (* TODO: add more getter/setter functions for clients *)
     ].
 
@@ -1518,7 +1519,6 @@ Section FFAMemoryManagementInterfaceModule.
   .
   
 End FFAMemoryManagementInterfaceModule.
-
 
 Require Import Lang.
 Require Import Values.

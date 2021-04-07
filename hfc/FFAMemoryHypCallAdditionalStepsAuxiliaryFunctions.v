@@ -44,6 +44,8 @@ Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
 Require Export FFAMemoryHypCallCoreTransition.
 
+(* begin hide *)
+
 Notation "'do' X <- A ;;; B" :=
   (match A with Some X => B |
            None => None
@@ -56,6 +58,7 @@ Notation " 'check' A ;;; B" :=
 
 Local Open Scope ffa_monad_scope.
 
+(* end hide *)
 
 (***********************************************************************)
 (** *    Auxiliary Functions for additional transition Rules           *)
@@ -64,7 +67,16 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
 
   Context `{abstract_state_context: AbstractStateContext}.
 
-  (** TODO: when TX/RX buffers are used to trasmit descriptors, 
+  (***********************************************************************)
+  (** **   Check functions for arguments                                 *)
+  (***********************************************************************)
+  (** The following two functions check the validity of argument values transferred by registers. 
+      In the current implementation, all of them should be 0. This is because 
+      the current version only considers the interface that uses TX/RX buffers. 
+      We do not allow the case that directly uses registers to pass the information of the 
+      hypervisor call.
+
+      TODO: when TX/RX buffers are used to trasmit descriptors, 
       [length], [fragement_length], [address], and [page_count] 
       are not actually used. Do we need to define the following definitions even for that case? *)
   Definition ffa_mem_general_check_arguments
@@ -73,7 +85,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
        decide (address  = 0) && decide (page_count = 0)
     then true
     else false. 
-
+  
   Definition ffa_mem_retrieve_resp_check_arguments
              (total_length fragment_length: Z) : bool :=
     if decide (total_length = 0) && decide (fragment_length = 0)
@@ -83,24 +95,31 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
   (***********************************************************************)
   (** **   Getter and setter functions for RX/TX buffers                 *)
   (***********************************************************************)
-  (** Get a memory region descriptor for send (donate, lend, share) operations *)
+  (** Auxiliary functions to send and receive messages in the RX/TX buffers. *)
+
+  (** Getter and setters for memory region descriptors in the RX/TX buffers *)
   Definition get_send_memory_region_descriptor
              (caller : Z) (state: AbstractState)
     : option (AbstractState * FFA_memory_region_struct) := 
-    do vm_context <- ZTree.get caller state.(hypervisor_context).(vms_contexts) ;;;
-    do memory_region <- mailbox_send_msg_to_region_struct vm_context.(mailbox).(send) ;;;
-    Some (state {system_log: state.(system_log)
-                                     ++(RecvMsg caller vm_context.(mailbox))::nil},
+    do vm_context <-
+       ZTree.get caller
+                 state.(hypervisor_context).(vms_contexts) ;;;
+    do memory_region <-
+       mailbox_send_msg_to_region_struct
+         vm_context.(mailbox).(send) ;;;
+    Some (state
+            {system_log: state.(system_log)
+                                 ++(RecvMsg caller vm_context.(mailbox))::nil},
           memory_region).
                                      
-  (** Set a memory region descriptor for receivers (donate, lend, share) *)
   Definition set_send_memory_region_descriptor
              (sender receiver : ffa_UUID_t) (size : Z)
              (region_descriptor: FFA_memory_region_struct)
              (recv_func : FFA_FUNCTION_TYPE)
              (state: AbstractState)
     : option AbstractState := 
-    do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
+    do vm_context <- ZTree.get
+                      receiver state.(hypervisor_context).(vms_contexts) ;;;
     do message <- region_struct_to_mailbox_recv_msg region_descriptor ;;; 
     let mailbox_contents := mkMAILBOX_struct 
                               (vm_context.(mailbox).(send))
@@ -113,7 +132,6 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
          {system_log: state.(system_log)
                               ++(SendMsg sender receiver mailbox_contents)::nil}.
        
-  (** Set a memory region descriptor for receivers (donate, lend, share) *)
     Fixpoint set_send_memory_region_descriptors_for_multiple_receivers
              (receivers: list ffa_UUID_t)
              (sender: ffa_UUID_t) (size : Z)
@@ -125,12 +143,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
       | nil => Some state
       | hd::tl =>
         do new_st <- 
-           set_send_memory_region_descriptors_for_multiple_receivers tl sender size region_descriptor
-                                                                     recv_func state ;;;
-        set_send_memory_region_descriptor sender hd size  region_descriptor recv_func new_st
+           set_send_memory_region_descriptors_for_multiple_receivers
+             tl sender size region_descriptor
+             recv_func state ;;;
+        set_send_memory_region_descriptor sender hd size
+        region_descriptor recv_func new_st
       end.
 
-  (** Get a memory region descriptor for send (donate, lend, share) operations *)
+  (** Getter and setters for the handle value in the RX/TX buffers *)           
   Definition get_send_handle_value
              (caller : Z) (state: AbstractState)
     : option (AbstractState * Z) := 
@@ -140,7 +160,6 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
                                      ++(RecvMsg caller vm_context.(mailbox))::nil},
           handle).
                                                           
-  (** Set a memory region descriptor for receivers (donate, lend, share) *)
   Definition set_send_handle
              (sender receiver : ffa_UUID_t) (size : Z)
              (handle: Z)
@@ -152,37 +171,6 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
     let mailbox_contents := mkMAILBOX_struct 
                               (vm_context.(mailbox).(send))
                               message (Some sender) size (Some recv_func) in
-    let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
-    let new_vm_contexts :=
-        ZTree.set receiver new_vm_context
-                  state.(hypervisor_context).(vms_contexts) in
-    Some state {hypervisor_context / vms_contexts : new_vm_contexts}
-         {system_log: state.(system_log)
-                              ++(SendMsg sender receiver mailbox_contents)::nil}.
-
-  (** Get a relinquish descriptor for send (donate, lend, share) operations *)
-  Definition get_send_relinquish_descriptor
-             (caller : Z) (state: AbstractState)
-    : option (AbstractState * FFA_memory_relinquish_struct) := 
-    do vm_context <- ZTree.get caller state.(hypervisor_context).(vms_contexts) ;;;
-    do relinquish_descriptor <- mailbox_send_msg_to_relinqiush_struct vm_context.(mailbox).(send) ;;;
-    Some (state {system_log: state.(system_log)
-                                     ++(RecvMsg caller vm_context.(mailbox))::nil},
-           relinquish_descriptor).
-    
-                                                                                                 
-  (** Set a memory region descriptor for receivers (donate, lend, share) *)
-  Definition set_send_relinquish_descriptor
-             (sender receiver : ffa_UUID_t) (size : Z)
-             (relinquish_descriptor: FFA_memory_relinquish_struct)
-             (state: AbstractState)
-    : option AbstractState := 
-    do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
-    do message <- relinqiush_struct_to_mailbox_send_msg relinquish_descriptor ;;; 
-    let mailbox_contents := mkMAILBOX_struct
-                              message 
-                              (vm_context.(mailbox).(recv))
-                              (Some sender) size (Some FFA_MEM_RELINQUISH) in
     let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
     let new_vm_contexts :=
         ZTree.set receiver new_vm_context
@@ -207,12 +195,42 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
         set_send_handle sender hd size handle recv_func new_st
       end.
 
+  (** The unwrapper to retrieve the actual information from the handle value *)           
   Definition get_handle_information (handle: ffa_memory_handle_t) (st : AbstractState)      
     : option FFA_memory_share_state_struct :=
     let share_state_pool_index := get_value handle in 
     do share_state <- ZTree.get share_state_pool_index
                                st.(hypervisor_context).(ffa_share_state) ;;;
     Some share_state.    
+       
+  (** Getter and setters for the relinquish descriptor in the RX/TX buffers *)           
+  Definition get_send_relinquish_descriptor
+             (caller : Z) (state: AbstractState)
+    : option (AbstractState * FFA_memory_relinquish_struct) := 
+    do vm_context <- ZTree.get caller state.(hypervisor_context).(vms_contexts) ;;;
+    do relinquish_descriptor <- mailbox_send_msg_to_relinqiush_struct vm_context.(mailbox).(send) ;;;
+    Some (state {system_log: state.(system_log)
+                                     ++(RecvMsg caller vm_context.(mailbox))::nil},
+           relinquish_descriptor).
+       
+  Definition set_send_relinquish_descriptor
+             (sender receiver : ffa_UUID_t) (size : Z)
+             (relinquish_descriptor: FFA_memory_relinquish_struct)
+             (state: AbstractState)
+    : option AbstractState := 
+    do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
+    do message <- relinqiush_struct_to_mailbox_send_msg relinquish_descriptor ;;; 
+    let mailbox_contents := mkMAILBOX_struct
+                              message 
+                              (vm_context.(mailbox).(recv))
+                              (Some sender) size (Some FFA_MEM_RELINQUISH) in
+    let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
+    let new_vm_contexts :=
+        ZTree.set receiver new_vm_context
+                  state.(hypervisor_context).(vms_contexts) in
+    Some state {hypervisor_context / vms_contexts : new_vm_contexts}
+         {system_log: state.(system_log)
+                              ++(SendMsg sender receiver mailbox_contents)::nil}.
        
   (***********************************************************************)
   (** **   Getter for memory accessibility and attributes                *)
@@ -302,7 +320,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
           global_inst_access, global_data_access, global_attributes).       
 
   (***********************************************************************)
-  (** **   Get addresses                                                 *)
+  (** **   Get addresses from the descriptor                             *)
   (***********************************************************************)
   Fixpoint get_addresses (base_address :Z) (page_count : nat) :=
     match page_count with
@@ -458,14 +476,26 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
     get_receiver_tuple_aux info_tuple receiver_id.
 
   Definition get_receiver_id_addrs_pair
-             (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct * ffa_UUID_t * list Z)) :=
+             (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct
+                                 * ffa_UUID_t * list Z)) :=
     map (fun '(receiver, id, addrs) => (id, addrs)) info_tuple.
 
   Definition get_receiver_ids
-             (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct * ffa_UUID_t * list Z)) :=
+             (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct
+                                 * ffa_UUID_t * list Z)) :=
     map (fun '(receiver, id, addrs) => id) info_tuple.
   
+  Definition convert_addresses_to_page_numbers
+             (addresses: list Z) :=
+    map (fun addr => Z.div addr granuale) addresses.
 
+
+  Definition convert_addresses_in_info_tuple_to_page_numbers
+             (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct
+                                 * ffa_UUID_t * list Z)) :=
+    map (fun '(receiver, id, addrs) =>
+           (receiver, id, convert_addresses_to_page_numbers addrs)) info_tuple.
+  
   (***********************************************************************)
   (** **   Auxiliary functions to construct retrieve information         *)
   (***********************************************************************)  

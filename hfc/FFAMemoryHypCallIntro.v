@@ -25,10 +25,11 @@ Require Import FFAMemoryHypCall.
    "Memory types", "Memory granularity and alignment", "Partition identification and discovery", "execution context",
    "System resource management", "Partition setup", and "FFA memory management interface introduction". 
    
-   With the given descriptions, we formalize our target with the following four files. 
+   Other files that contain formal definitions rely on concepts that this file describes. Therefore, 
+   looking at this file may help readers understand our formal definitions. 
 
-   The following explanations are mostly copied from the FF-A document. If there are something that we hope to mention, 
-   we add [JIEUNG:...] to distinguish them with the original texts.
+   Explanations in this file are mostly copied from the FF-A document. If there are something that we hope 
+   to mention except the original ones, we add [JIEUNG:...] to distinguish them with the original texts.
 *)
 
 Section BasicConcepts.
@@ -39,7 +40,7 @@ Section BasicConcepts.
 
     The version number of a Firmware Framework implementation is a 31-bit unsigned integer, 
     with the upper 15 bits denoting the major revision, and the lower 16 bits denoting the minor revision.
-
+    
     With the given version number, the following two rules has to be satisfied.
     - All the functions that are described in this specification must be implemented, 
       unless it is explicitly stated that a function is optional.
@@ -70,21 +71,18 @@ Section BasicConcepts.
      are used to describe the interfaces specified by the Firmware Framework.
 
      An instance is physical if:
-     – Each component can independently manage its translation regime.
-     – The translation regimes of each component map virtual addresses to physical addresses.
+     - Each component can independently manage its translation regime.
+     - The translation regimes of each component map virtual addresses to physical addresses.
        - An instance is virtual if it is not physical.
        - The instance between the SPMC and SPMD is called the Secure physical FF-A instance.
        - The instance between the SPMC and an SP is called the Secure virtual FF-A instance.
        - In the Normal world, the instance between:
-     – The Hypervisor and a VM is called the Non-secure virtual FF-A instance.
-     – The Hypervisor and SPMD is called the Non-secure physical FF-A instance.
-     – The OS kernel and SPMD, in the absence of a Hypervisor is called the Non-secure physical FF-A instance.
+     - The Hypervisor and a VM is called the Non-secure virtual FF-A instance.
+     - The Hypervisor and SPMD is called the Non-secure physical FF-A instance.
+     - The OS kernel and SPMD, in the absence of a Hypervisor is called the Non-secure physical FF-A instance.
    *)
   
   (** ** Memory types - Parts of Section 2.6
-
-     [JIEUNG: Based on the following descriptions, a NS attribute bit for each page is required 
-     in our abstract definition.]
     
      Each memory region is assigned to either the Secure or Non-secure physical address space at system 
      reset or during system boot. Normal world can only access memory regions in the Non-secure physical 
@@ -99,9 +97,6 @@ Section BasicConcepts.
 
   (** ** Memory granularity and alignment - Parts of Section 2.7
 
-     [JIEUNG: Similar to the following description. we can introduce a context variable that represents
-     arbitrary number. And based on that, expressing several invariants are also possible.]
-
     - If X is the larger translation granule size used by the two translation regimes, 
       then the size of the memory region must be a multiple of X.
     - The base address of the memory region must be aligned to X.
@@ -112,9 +107,6 @@ Section BasicConcepts.
 
   (** ** Partition identification and discovery - Parts of Section 2.8
  
-     [JIEUNG: This section describes identifiers for each entity. Entities can be divided into sub types,
-     such as SEPID, VM ID, and so on.]
-
      Partitions are identified by a 16-bit ID and a UUID (Unique Universal Identifier) (see [6]). This helps partitions
      discover the presence of other partitions and their properties. A unique ID must be assigned to
      each partition in the system. The ID value 0 is reserved for the Hypervisor as described in. 
@@ -454,17 +446,17 @@ Section MemoryManagementIntro.
        from the stage of a translation regime managed by a partition manager on behalf of a partition. The translation
        regime and the stage depends on the type of partition. The types of partitions are as follows.
 
-       1. Hypervisor, stage 2 translations on behalf of a EL1 PE endpoint, 
-          in the Non-secure EL1&0 translation regime, when EL2 is enabled
-       2. Hypervisor, stage 2 translations for a Non-secure Stream ID assigned to an
-          independent or dependent peripheral device, in the Non-secure EL1&0 translation regime in the SMMU. 
-          A SEPID is used to identify the stage 2 translation tables
-       3. SPMC, stage 2 translations on behalf of a S-EL1 PE endpoint in the Secure EL1&0 translation regime, 
-          when S-EL2 is enabled.
-       4. SPMC, stage 1 translations on behalf of a S-EL0 PE endpoint in the Secure EL1&0 translation regime, 
-          when S-EL2 is disabled.
-       5. SPMC, stage 2 translations for a Secure Stream ID assigned to an independent or dependent peripheral device in 
-          the Secure EL1&0 translation regime in the SMMU. A SEPID is used to identify the stage 2 translation tables. *)
+       - Hypervisor, stage 2 translations on behalf of a EL1 PE endpoint, 
+         in the Non-secure EL1&0 translation regime, when EL2 is enabled
+       - Hypervisor, stage 2 translations for a Non-secure Stream ID assigned to an
+         independent or dependent peripheral device, in the Non-secure EL1&0 translation regime in the SMMU. 
+         A SEPID is used to identify the stage 2 translation tables
+       - SPMC, stage 2 translations on behalf of a S-EL1 PE endpoint in the Secure EL1&0 translation regime, 
+         when S-EL2 is enabled.
+       - SPMC, stage 1 translations on behalf of a S-EL0 PE endpoint in the Secure EL1&0 translation regime, 
+         when S-EL2 is disabled.
+       - SPMC, stage 2 translations for a Secure Stream ID assigned to an independent or dependent peripheral device in 
+         the Secure EL1&0 translation regime in the SMMU. A SEPID is used to identify the stage 2 translation tables. *)
     
   End AddressTranslationRegimes.
 
@@ -626,10 +618,10 @@ Section MemoryManagementIntro.
     - A Borrower tracks the level of access that other Borrowers have to a memory region along with the identity
       of the Borrowers.
     - For each memory region, the SPM and Hypervisor track the following.
-      – The identity of each Borrower.
-      – The identity of the Owner.
-      – The level of access of each Borrower.
-      – The level of access of the Owner.
+      - The identity of each Borrower.
+      - The identity of the Owner.
+      - The level of access of each Borrower.
+      - The level of access of the Owner.
      *)
     
   End OwnershipAndAccessAttributes.

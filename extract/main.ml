@@ -335,7 +335,10 @@ let main =
   *)
 
   print_endline "----------------------Top-level testing-----------------------" ;
+  print_endline "--------------------Simple mem load/store---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST1.isem) ;
+  print_endline "--------------------Simple donate setting---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST1.isem) ;
   ()
 
 let main t =

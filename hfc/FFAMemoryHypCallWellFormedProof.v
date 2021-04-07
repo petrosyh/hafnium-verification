@@ -93,15 +93,15 @@ Section AbstractStateContextProps.
     alignment_value_non_zero_prop :
       alignment_value > 0;
     address_low_alignment_prop :
-      (Z.modulo address_low alignment_value)%Z = 0;
+      (Z.modulo page_low alignment_value)%Z = 0;
     address_high_alignment_prop :
-      (Z.modulo (address_high + 1) alignment_value)%Z = 0;
+      (Z.modulo (page_high + 1) alignment_value)%Z = 0;
 
     (** all results of  the address translation needs to be in betweeen low and high *)
     address_translation_table_prop :
       forall addr,
         match stage2_address_translation_table addr with
-        | Some addr' => (address_low <= addr' <= address_high)
+        | Some addr' => (page_low <= addr' <= page_high)
         | _ => True
         end;
     (* TODO: add more invariants *)    
@@ -146,7 +146,7 @@ Section AbstractStateContextProps.
   
   Definition mem_properties_prop_low_out_of_bound (st : AbstractState) :=
     forall addr,
-      (addr < address_low)%Z ->
+      (addr < page_low)%Z ->
       ZTree.get
         addr
         (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
@@ -154,7 +154,7 @@ Section AbstractStateContextProps.
   
   Definition mem_properties_prop_high_out_of_bound (st : AbstractState) :=
     forall addr,
-      (address_high < addr)%Z ->
+      (page_high < addr)%Z ->
       ZTree.get
         addr
         (st.(hypervisor_context)).(mem_properties).(mem_global_properties)
@@ -170,7 +170,7 @@ Section AbstractStateContextProps.
   
   Definition mem_properties_global_properties_existence  (st : AbstractState) :=
     forall addr,
-      (address_low <= addr <= address_high)%Z ->
+      (page_low <= addr <= page_high)%Z ->
       (Z.modulo addr alignment_value)%Z = 0 ->
       exists global_properties,
         ZTree.get

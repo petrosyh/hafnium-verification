@@ -46,18 +46,32 @@ Set Implicit Arguments.
 *)
 Section FFA_VM.
 
+  (*************************************************************)
+  (** ***    Abstract definitions                              *)
+  (*************************************************************) 
   Class FFA_VM_CONTEXT `{ffa_types_and_constants: FFA_TYPES_AND_CONSTANTS}  :=
     {
     (** - The following two types are for message passings. We use them to record and 
-        retrieve descriptor information *)
+          retrieve descriptor information *)
+    (** - Message types. The default communication 
+          channel in our formalization is by using
+          the designated mailbox to each VM. 
+          The following message types are for those communication messages.  *)
     ffa_mailbox_send_msg_t : Type;
     ffa_mailbox_recv_msg_t : Type;
     init_ffa_mailbox_send_msg: ffa_mailbox_send_msg_t;
     init_ffa_mailbox_recv_msg: ffa_mailbox_recv_msg_t;
 
+    (** - Virtual CPU numbers in the system. All VCPUs will be shared by 
+          multiple VMs. Each VCPU in the system will be connected with 
+          the physical CPU when they are used by a certain VM, but there are
+          no restrictions (in general) that which CPU will be connected with 
+          which VCPU. *)
     vcpu_max_num : Z;
 
-    (** mailbox to/from descriptors *)
+    (** - Mailbox to/from descriptors. The followings are interpreter and 
+          generator of mailbox messages. Note that mailbox messages can be used as 
+          multiple purpose *)
     mailbox_send_msg_to_region_struct :
       ffa_mailbox_send_msg_t -> option FFA_memory_region_struct;
     mailbox_send_msg_to_relinqiush_struct:
@@ -84,57 +98,48 @@ Section FFA_VM.
     Z_to_mailbox_recv_msg :
       Z -> option ffa_mailbox_recv_msg_t;
 
-    hafnium_id : ffa_UUID_t := 0;
+    (** - Simple system configuration related values *)
+    (** - Hypervisor entity has a designated ID *)
+    hypervisor_id : ffa_UUID_t := 0;
+    (** - Primary VM has a designated ID, but the ID of the primary VM may depend on the configuration *)
     primary_vm_id: ffa_UUID_t;
+    (** - There can be multiple secondary VMs in the system  *)
     secondary_vm_ids : list ffa_UUID_t;
     vm_ids := primary_vm_id::secondary_vm_ids;
     number_of_vm := Zlength vm_ids;    
-    entity_list : list ffa_UUID_t := hafnium_id::vm_ids;
-    
+    entity_list : list ffa_UUID_t := hypervisor_id::vm_ids;
+
+    (** - the size of the memory region struct. It is required for us to keep track of 
+          the remaining memory pool size to save/delete the region descriptor during the evaluation *)
     FFA_memory_region_struct_size
-      (contituents: Z) : Z; (* probably 36 *)
+      (contituents: Z) : Z;
     }.
 
   Context `{ffa_vm_context: FFA_VM_CONTEXT}.
-  
-  (** In Hafnium: registers in "/src/arch/aarch64/inc/hf/arch/types.h" 
-      
-      Type to represent the register state of a vCPU. 
-      - [uintreg_t r(NUM_GP_REGS);]: General purpose registers.
-      - [uintreg_t pc;]
-      - [uintreg_t spsr;]
-  *)
 
-  (** In Hafnium: VM struct in "/inc/hf/vm.h" 
-
-      - [ffa_vm_id_t id;]
-      - [struct smc_whitelist smc_whitelist;]: See api.c for the partial ordering on locks.        
-      - [struct spinlock lock;]
-      - [ffa_vcpu_count_t vcpu_count;]
-      - [struct vcpu vcpus(MAX_CPUS);]
-      - [struct mm_ptable ptable;]
-      - [struct mailbox mailbox;]
-      - [char log_buffer(LOG_BUFFER_SIZE);]
-      - [uint16_t log_buffer_length;]
-      - [struct wait_entry wait_entries(MAX_VMS);]: Wait entries to be used when waiting on other VM mailboxes. 
-        See comments on `struct wait_entry` for the lock discipline of these.
-      - [atomic_bool aborting;]
-      - [struct arch_vm arch;]: Arch-specific VM information.
-   *)
-
-  (** Simplified vcpu context - we only includes some registers - actually only FFA related values *)
+  (*************************************************************)
+  (** ***    VCPU                                              *)
+  (*************************************************************)   
+  (** Simplified VCPU context 
+      - We only include a small set of registers
+      - They are minimum values to model FFA memory management interfaces *)
   Record ArchRegs :=
     mkArchRegs {
         regs: FFA_value_type;
       }.
+  
   Record VCPU_struct :=
     mkVCPU_struct{
-        (** the vm that is currently associated with this vcpu - the connect *)
+        (** The vm that is currently associated with this vcpu *)
         cpu_id : option ffa_CPU_ID_t; 
         vm_id: option ffa_UUID_t;
         vcpu_regs: ArchRegs;
       }.
-
+  
+  (*************************************************************)
+  (** ***    Mailbox                                           *)
+  (*************************************************************)   
+  (** Mailbox definition. Each mailbox is assigned into each VM *)
   Record MAILBOX_struct :=
     mkMAILBOX_struct {
         send : ffa_mailbox_send_msg_t;
@@ -144,6 +149,10 @@ Section FFA_VM.
         recv_func : option FFA_FUNCTION_TYPE;
       }.
 
+  (*************************************************************)
+  (** ***    VM modeling                                       *)
+  (*************************************************************)   
+  (** The common data structure for VM userspace modeling and VM context modeling in the hypervisor *)
   Record VM_COMMON_struct :=
     mkVM_COMMON_struct {
         cur_vcpu_index : option ffa_VCPU_ID_t;
@@ -155,16 +164,18 @@ Section FFA_VM.
         (** ptable for each VM is defined in AddressTranslation class *)
       }.
 
+  (** VM userspace modeling *)
   (** Adding several things in here is possible, but we focus on 
       FFA-related things in this VM userspace modeling. We are able to add
       any other things according to our decision *)
   Record VM_USERSPACE_struct :=
     mkVM_USERSPACE_struct {
         vm_userspace_context: VM_COMMON_struct;
-        (** all other parts are ignored at this moment *)
+        (** all other parts are ignored *)
       }.
   
-  (** Simplified VM context - we assume VM only has own vcpu *)
+  (** VM context modeling in the hypervisor *)
+  (** Simplified VM context *)
   Record VM_KERNEL_struct :=
     mkVM_KERNEL_struct {
         vm_kernelspace_context : VM_COMMON_struct;
@@ -172,7 +183,7 @@ Section FFA_VM.
         (** IN FFA ABI handling, the actual information for the handling is in mailboxes. 
            In this sense, we includes this informaiton in this state definition *)
         mailbox : MAILBOX_struct;
-        (** all other parts are ignored at this moment *)        
+        (** all other parts are ignored *)        
       }.
 
 End FFA_VM.
@@ -198,6 +209,9 @@ Section MEM_AND_PTABLE.
    
    *)
 
+  (*************************************************************)
+  (** ***    Global properties                                 *)
+  (*************************************************************)    
   (** Indicates who is the owner of the memory *)
   Inductive OWNERSHIP_STATE_TYPE :=
   | Owned (id : ffa_UUID_t)
@@ -230,10 +244,11 @@ Section MEM_AND_PTABLE.
       make invariants to guarantee well-formed relations between the following different properties 
       (and other parts of the abstract state). 
    *)
-
   
   Record MemGlobalProperties :=
     mkMemGlobalProperties {
+        (** - for secure world or non-secure world *)
+        is_ns : bool; 
         (** - there can be only one owner *)
         owned_by : OWNERSHIP_STATE_TYPE;
         (** - access information *)
@@ -249,9 +264,12 @@ Section MEM_AND_PTABLE.
         mem_dirty: MEM_DIRTY_TYPE;        
       }.
 
-  (** key is a base address of memory region *)
+  (** key is a page number (address / granuale) of the memory region *)
   Definition mem_global_properties_pool := ZTree.t MemGlobalProperties.
 
+  (*************************************************************)
+  (** ***     Local properties                                 *)
+  (*************************************************************)    
   (** It indicates the owned infromation in memory local properties.
       This needs to be consistent with OwnershipState. *)
   Inductive MEM_LOCAL_OWNED_TYPE :=
@@ -305,7 +323,10 @@ Section MEM_AND_PTABLE.
   (** key is a entity id of the system *)  
   Definition mem_local_properties_global_pool
     := ZTree.t mem_local_properties_pool.
-
+  
+  (*************************************************************)
+  (** ***     Memory properties                                *)
+  (*************************************************************)      
   (** There are relations between mem_global_properties and mem_local_properties.
       For example, if a certain address in access_state of MemGlobalProperties is mapped with 
       SharedAccess 1, then there should be a valid element for the address in the mem local properties pool for entity 1.
@@ -325,20 +346,32 @@ Section MEM_AND_PTABLE.
 
 End MEM_AND_PTABLE.
 
+(*************************************************************)
+(** **      Page Table                                       *)
+(*************************************************************)
 Section MEM_AND_PTABLE_CONTEXT.
   (** In top level, we do not need to specify ptable in detail. 
      In this sense, we try to abstract the definition of ptable. 
      => gets the input address (e.g., va or ipa) and return the address (e.g., ipa or pa) 
 
-     Filling out details of those definitions are user's obligations *)       
+     Filling out details of those definitions are user's obligations *)
+
+  (** - Similar to the granuale size value in [FFAMemoryHypcallDescriptorState.v], 
+        all the following values correspond to page numbers instead of bare address values.
+        - For example, if the page low is 2 and granuale is 1, then the actual low address of the system is 8192 (2 * 1 * 4096)
+        - For example, if the page high is 2 ^ 12 and granuale is 1, then the actual high address of the system is 16777216 (2 ^ 12 * 1 * 4096)
+      - alignment value indicates how each VM aligns the memory. the value should be exactly divided with granuale. 
+        - For example, if the alignment value is 2 and granuale is 1, they are acceptable. 
+        - For example, if the alignment value is 3 and granuale is 2, they are unacceptable. 
+   *)
   Class MemoryManagementBasicContext
         `{ffa_vm_context: FFA_VM_CONTEXT} :=
     {
-    (** address low and high *)
-    address_low : ffa_address_t;
-    address_high : ffa_address_t;
+    (** - Page low and high *)
+    page_low : Z;
+    page_high : Z;
 
-    (** usually 4096 *)
+    (** - Alignment value *)
     alignment_value : Z;
     }.
   
@@ -346,11 +379,11 @@ Section MEM_AND_PTABLE_CONTEXT.
         `{memory_management_basic_context
           : MemoryManagementBasicContext} :=
     {
-    (** address translation funciton in ptable. There are two possible cases 
-        1. provides the entire address translation from 
-           the root level to the bottom level 
-        2. provides the only one level address translation. 
-           Among them, our high-level model assumes the following ptable uses the second approach *)
+    (** Address translation funciton in ptable. There are two possible cases 
+        - provides the entire address translation from 
+          the root level to the bottom level 
+        - provides the only one level address translation. 
+          Among them, our high-level model assumes the following ptable uses the second approach *)
     stage2_address_translation_table
       (input_addr:  ffa_address_t) : option ffa_address_t;
     (** This address translation won't be used in the current setting.
@@ -413,13 +446,6 @@ Section AbstractState.
             - The following register keeps the currently existing VCPU information that is 
               associated with the current hvc_call. via that VCPU, it is possible for us to find out 
               the sender's information for ABI calls 
-           
-            - The related part in the Hafnium code is the following function in
-              "/src/arch/aarch64/hypervisor/handler.c"
-            
-              - [static struct vcpu *current(void){]
-                - [return (struct vcpu * )read_msr(tpidr_el2);]
-              - [}]
 
             - List of registers  will be increasing to model other behaviours
               - e.g., the register for TLB invalidate *)
@@ -427,13 +453,13 @@ Section AbstractState.
         
         (** - For API - FFA ABI handlings 
 
-            = Free pages at the top level. those pages need to be used for the 
-            FFA ABI handlings. But, to simplify it (like what we have currently doing in
-            page_table, we represent it as a size of free pages. Then, we will only increase / decrease
-            the number when we allocate pages or free those pages while handling FFA ABIs *)
+            - Free page pool at the top level. those pages need to be used for the 
+              FFA ABI handlings. But, to simplify it (like what we have currently doing in
+              page_table, we represent it as a size of free pages. Then, we will only increase / decrease
+              the number when we allocate pages or free those pages while handling FFA ABIs *)
         api_page_pool_size : Z;
         
-        (** - ffa_share_state is for ffa communications  *)
+        (** - ffa_share_state is to store and retrieve ffa descriptor information  *)
         ffa_share_state: share_state_pool;
         fresh_index_for_ffa_share_state : Z;
         
@@ -448,21 +474,20 @@ Section AbstractState.
         vms_contexts :  ZTree.t VM_KERNEL_struct;
       }.
   
-  (** Log file to easily print out system's change history. 
-      This definition can be abstracted if it is preferred *)
+  (** Log file to print out the history of system changes. *)
   Inductive log_type :=
-    (** - Scheduling *)
+  (** - Scheduling *)
   | ChangeCurEntityID (from_id to_id : ffa_UUID_t) (* by scheduler *)
-    (** - Context switching *)
+  (** - Context switching *)
   | UserToKernel (vid: ffa_UUID_t)
                  (vcpu_id : ffa_VCPU_ID_t)
                  (reg_values: ArchRegs)
   | KernelToUser (vid: ffa_UUID_t)
                  (vcpu_id : ffa_VCPU_ID_t)
                  (reg_values: ArchRegs)
-    (** - Dispatch Information *)                 
+  (** - Dispatch Information *)                 
   | DispathFFAInterface (reg_values: ArchRegs)      
-    (** - Mem property change *)
+  (** - Mem property change *)
   | SetOwner (entity_id : ffa_UUID_t) (address : ffa_address_t)
              (owner: OWNERSHIP_STATE_TYPE)
   | SetAccessible (vm_id : ffa_UUID_t) (address: ffa_address_t)
@@ -475,12 +500,11 @@ Section AbstractState.
                   (access: FFA_DATA_ACCESS_TYPE)
   | SetAttributes (vm_id : ffa_UUID_t) (address: ffa_address_t)
                   (attributes: FFA_MEMORY_TYPE)
-    (** - Send and receiver Msg *)
+  (** - Send and receiver Msg *)
   | SendMsg (sender receiver: ffa_UUID_t)
             (msg : MAILBOX_struct)
   | RecvMsg (receiver: ffa_UUID_t)
             (msg : MAILBOX_struct).
-
   
   Record AbstractState :=
     mkAbstractState{
@@ -533,7 +557,7 @@ Section AbstractStateContext.
              (memory_management_basic_context
                 := memory_management_basic_context)} :=
     {
-    (** We may be able to use some feature of interaction tree for this scheduling? *)
+    (** Abstract scheduler that changes the cur_user_entity_id in the state  *)
     scheduler : AbstractState -> ffa_UUID_t; 
     
     initial_state : AbstractState;    
@@ -556,9 +580,20 @@ Section AbstractStateUpdate.
   (** update functions for better readability *)
   
   (** update memory global properties *)
-  Definition update_owned_by_in_mem_global_properties
+  Definition update_is_ns_in_mem_global_properties
              (a : MemGlobalProperties) b :=
     mkMemGlobalProperties b
+                          (a.(owned_by))
+                          (a.(accessible_by))
+                          (a.(global_instruction_access_property))
+                          (a.(global_data_access_property))
+                          (a.(global_mem_attribute))
+                          (a.(mem_dirty)).
+  
+  Definition update_owned_by_in_mem_global_properties
+             (a : MemGlobalProperties) b :=
+    mkMemGlobalProperties (a.(is_ns))
+                          b
                           (a.(accessible_by))
                           (a.(global_instruction_access_property))
                           (a.(global_data_access_property))
@@ -567,7 +602,8 @@ Section AbstractStateUpdate.
   
   Definition update_accessible_by_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by))
+    mkMemGlobalProperties (a.(is_ns))
+                          (a.(owned_by))
                           b
                           (a.(global_instruction_access_property))
                           (a.(global_data_access_property))
@@ -576,7 +612,8 @@ Section AbstractStateUpdate.
 
   Definition update_global_instruction_access_property_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by))
+    mkMemGlobalProperties (a.(is_ns))
+                          (a.(owned_by))
                           (a.(accessible_by))
                           b
                           (a.(global_data_access_property))
@@ -585,7 +622,8 @@ Section AbstractStateUpdate.
              
   Definition update_global_data_access_property_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by))
+    mkMemGlobalProperties (a.(is_ns))
+                          (a.(owned_by))
                           (a.(accessible_by))
                           (a.(global_instruction_access_property))
                           b
@@ -594,17 +632,18 @@ Section AbstractStateUpdate.
 
   Definition update_global_mem_attribute_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by))
+    mkMemGlobalProperties (a.(is_ns))
+                          (a.(owned_by))
                           (a.(accessible_by))
                           (a.(global_instruction_access_property))
                           (a.(global_data_access_property))
                           b
                           (a.(mem_dirty)).
-
     
   Definition update_mem_dirty_in_mem_global_properties
              (a : MemGlobalProperties) b :=
-    mkMemGlobalProperties (a.(owned_by))
+    mkMemGlobalProperties (a.(is_ns))
+                          (a.(owned_by))
                           (a.(accessible_by))
                           (a.(global_instruction_access_property))
                           (a.(global_data_access_property))
@@ -946,6 +985,8 @@ Section AbstractStateUpdate.
 End AbstractStateUpdate.
 
 (** update memory global properties *)
+Notation "a '{' 'is_ns' : b '}'" :=
+  (update_is_ns_in_mem_global_properties a b) (at level 1).
 Notation "a '{' 'owned_by' : b '}'" :=
   (update_owned_by_in_mem_global_properties a b) (at level 1).
 Notation "a '{' 'accessible_by' : b '}'" :=
