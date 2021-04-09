@@ -77,14 +77,10 @@ Section AbstractStateContextProps.
     (** - Basic decidability properties of them *)
     ffa_memory_region_tag_t_dec : forall (tag1 tag2: ffa_memory_region_tag_t),
         {tag1 = tag2} + {tag1 <> tag2};
-    ffa_mailbox_send_msg_t_dec :
-      forall (mailbox_send_msg1 mailbox_send_msg2: ffa_mailbox_send_msg_t),
-        {mailbox_send_msg1 = mailbox_send_msg2} +
-        {mailbox_send_msg1 <> mailbox_send_msg2};
-    ffa_mailbox_recv_msg_t_dec :
-      forall (mailbox_recv_msg1 mailbox_recv_msg2: ffa_mailbox_recv_msg_t),
-        {mailbox_recv_msg1 = mailbox_recv_msg2} +
-        {mailbox_recv_msg1 <> mailbox_recv_msg2};    
+    ffa_mailbox_msg_t_dec :
+      forall (mailbox_msg1 mailbox_msg2: ffa_mailbox_msg_t),
+        {mailbox_msg1 = mailbox_msg2} +
+        {mailbox_msg1 <> mailbox_msg2};
 
     
     entity_list_prop := NoDup entity_list;

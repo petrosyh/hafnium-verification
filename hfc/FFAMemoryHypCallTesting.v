@@ -30,7 +30,6 @@ From ExtLib Require Import
      Data.Option
      Data.Monads.OptionMonad.
 
-
 From ITree Require Import
      ITree
      ITreeFacts
@@ -124,7 +123,7 @@ Section FFAMemoryHypCallInitialization.
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr primary_vm_id); CBV cur_address; CBV initial_local_value])              
               #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
-        #while (cur_address <= page_high_int)
+        #while (cur_address < page_high_int)
         do (
             (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMTwo)))
               #; (Call "HVCTopLevel.global_properties_setter"

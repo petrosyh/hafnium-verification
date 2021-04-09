@@ -65,7 +65,6 @@ Require Export FFAMemoryHypCallCoreTransition.
 Require Export FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.
 Require Export FFAMemoryHypCallAdditionalSteps.
 
-
 Import LangNotations.
 Local Open Scope expr_scope.
 Local Open Scope stmt_scope.
@@ -87,28 +86,23 @@ Definition Z_not := fun val => (Z.lxor Z_64MAX val).
     inductive type values in other files. 
 *)
 
-Notation "'do' X <- A ;;; B" :=
+Notation "'get' E ',' X <- A ';;;' B" :=
   (match A with Some X => B |
-           None => triggerUB "None" end)
+           None => triggerNB E end)
     (at level 200, X ident, A at level 100, B at level 200)
   : itree_monad_scope.
- 
-Notation "'do' X , Y <- A ;;; B" :=
-  (match A with Some (X, Y) => B |
-           None => triggerUB "None" end)
-    (at level 200, X ident, Y ident, A at level 100, B at level 200)
+
+Notation "'get' X <- A ';;;' B" :=
+  (match A with Some X => B |
+           None => triggerNB "None" end)
+    (at level 200, X ident, A at level 100, B at level 200)
   : itree_monad_scope.
- 
-Notation "'do' X , Y , Z <- A ;;; B" :=
-  (match A with Some (X, Y, Z) => B | None => triggerUB "None" end)
-    (at level 200, X ident, Y ident, Z ident, A at level 100, B at level 200)
-  : itree_monad_scope.
- 
-Notation " 'check' A ;;; B" :=
-  (if A then B else Ret None)
+
+Notation "'check' E ',' A ';;;' B" :=
+  (if A then B else triggerNB E)
     (at level 200, A at level 100, B at level 200)
   : itree_monad_scope.
- 
+
 Local Open Scope itree_monad_scope.
 
 (***********************************************************************)
@@ -121,15 +115,7 @@ Local Open Scope itree_monad_scope.
 (** **            FFA_TYPES_AND_CONSTANTS instance                     *)
 (***********************************************************************)
 Definition ffa_memory_region_tag_t := Z.
-
-(** This is the valule that we have to use. 
-    However, due to the stack overflow in the recursion, 
-    we reduce the number as 4. *)
-(*
 Definition granuale_shift := 12.
-*)
-
-Definition granuale_shift := 1.
 
 Global Instance ffa_types_and_constants : FFA_TYPES_AND_CONSTANTS :=
   {
@@ -142,15 +128,14 @@ Global Instance ffa_types_and_constants : FFA_TYPES_AND_CONSTANTS :=
   init_ffa_memory_region_tag := 0;
   }.
 
+Eval compute in granuale.
+
 (***********************************************************************)
 (** **                  DescriptorContext instance                     *)
 (***********************************************************************)
 Global Instance descriptor_context :
   DescriptorContext (ffa_types_and_constants := ffa_types_and_constants) :=
   {
-  (** Commented out the more realistic version and provided
-      simplified (with the small number) version to avoid buffer
-      overflow 
   make_handle := fun vid value =>
                    if decide (0 <= vid < (Z.shiftl 1 16))
                    then if decide (0 <= value < (Z.shiftl 1 16))
@@ -162,33 +147,24 @@ Global Instance descriptor_context :
                  Z.land mask handle;
   get_sender := fun handle =>
                   Z.shiftr handle 16;
-   *)
-  make_handle := fun vid value =>
-                   if decide (0 <= vid < (Z.shiftl 1 4))
-                   then if decide (0 <= value < (Z.shiftl 1 4))
-                        then Some (Z.lor (Z.shiftl vid 4) value)
-                        else None
-                   else None;
-  get_value := fun handle =>
-                 let mask := ((Z.shiftl 1 4) - 1)%Z in
-                 Z.land mask handle;
-  get_sender := fun handle =>
-                  Z.shiftr handle 4;  
   }.
-
 
 (***********************************************************************)
 (** **                  FFA_VM_CONTEXT instance                        *)
 (***********************************************************************)
-Inductive ffa_mailbox_msg_t : Type :=
+(** Mailbox message could be either the initial value, memory region descriptor, relinquish descriptor,
+    or handle value (Z type value). *)
+Inductive ffa_mailbox_msg_instance_t : Type :=
 | mailbox_memory_init_value
 | mailbox_memory_region (region_descriptor: FFA_memory_region_struct)
 | mailbox_memory_relinquish (relinquish_descriptor: FFA_memory_relinquish_struct)
 | mailbox_z (value : Z).
 
+(** We assume there are four VCPUs in the system *)
 Definition init_ffa_mailbox_msg := mailbox_memory_init_value.
-Definition vcpu_max_num := 2.
+Definition vcpu_max_num := 4.
 
+(** Conversions to/from mailbox messages from/to memory region descriptor/relinquish descriptor/handle value *) 
 Definition mailbox_msg_to_region_struct :=
   fun x =>
     match x with
@@ -227,27 +203,18 @@ Global Instance ffa_vm_context :
     {
     (** - The following two types are for message passings. We use them to record and 
         retrieve descriptor information *)
-    ffa_mailbox_send_msg_t := ffa_mailbox_msg_t;
-    ffa_mailbox_recv_msg_t := ffa_mailbox_msg_t;
-    init_ffa_mailbox_send_msg := init_ffa_mailbox_msg;
-    init_ffa_mailbox_recv_msg := init_ffa_mailbox_msg;
+    ffa_mailbox_msg_t := ffa_mailbox_msg_instance_t;
+    init_ffa_mailbox_msg := init_ffa_mailbox_msg;
 
     vcpu_max_num := vcpu_max_num;
 
     (** mailbox to/from descriptors *)
-    mailbox_send_msg_to_region_struct := mailbox_msg_to_region_struct;
-    mailbox_send_msg_to_relinqiush_struct := mailbox_msg_to_relinquish_struct;
-    mailbox_send_msg_to_Z := mailbox_msg_to_z;
-    region_struct_to_mailbox_send_msg := region_struct_to_mailbox_msg;
-    relinqiush_struct_to_mailbox_send_msg := relinquish_struct_to_mailbox_msg;
-    Z_to_mailbox_send_msg := z_to_mailbox_msg;
-
-    mailbox_recv_msg_to_region_struct := mailbox_msg_to_region_struct;
-    mailbox_recv_msg_to_relinqiush_struct := mailbox_msg_to_relinquish_struct;
-    mailbox_recv_msg_to_Z := mailbox_msg_to_z;
-    region_struct_to_mailbox_recv_msg := region_struct_to_mailbox_msg;
-    relinqiush_struct_to_mailbox_recv_msg := relinquish_struct_to_mailbox_msg;
-    Z_to_mailbox_recv_msg := z_to_mailbox_msg;
+    mailbox_msg_to_region_struct := mailbox_msg_to_region_struct;
+    mailbox_msg_to_relinqiush_struct := mailbox_msg_to_relinquish_struct;
+    mailbox_msg_to_Z := mailbox_msg_to_z;
+    region_struct_to_mailbox_msg := region_struct_to_mailbox_msg;
+    relinqiush_struct_to_mailbox_msg := relinquish_struct_to_mailbox_msg;
+    Z_to_mailbox_msg := z_to_mailbox_msg;
 
     primary_vm_id := 1;
     secondary_vm_ids := 2::nil;
@@ -263,34 +230,39 @@ Global Instance ffa_vm_context :
 (***********************************************************************)
 (** **       HafniumMemoryManagementContext instance                   *)
 (***********************************************************************)
+(** Note that we cannot use a large number in here to avoid stack overflow. 
+    I have tested with 16, but it raised stack overflow. 
 
-(** Commented out the realistic version and provide the simplified (with small numbers)
-    version 
-Definition address_low_shift := 30.
-Definition address_high_shift := 32.
-*)
-Definition page_low_shift := 0.
-Definition page_high_shift := 4.
+    With the current instance, the memory address range that we can represent 
+    is from (0 * 2^12) to (2^12 * 2^12) since the granuale is 2^12.
+ *)
+Definition page_high_shift := 12.
 
 Global Instance memory_management_basic_context
   : MemoryManagementBasicContext
       (ffa_vm_context := ffa_vm_context) :=
   {
-  page_low := (Z.shiftl 1 page_low_shift)%Z;
+  page_low := 0;
   page_high := (Z.shiftl 1 page_high_shift)%Z;
   alignment_value := granuale;
   }.
+
+Eval compute in (page_low * granuale)%Z.
+Eval compute in (page_high * granuale)%Z.
  
 Definition stage2_address_translation_table :=
   fun (x : ffa_address_t) =>
-    if decide ((page_low * granuale) <= x)%Z && decide (x < (page_high * granuale))%Z
+    if decide ((page_low * granuale) <= x)%Z
+       && decide (x < (page_high * granuale))%Z
     then Some x else None.
 
 Definition stage1_address_translation_table :=
   fun (vid : ffa_UUID_t) (x : ffa_address_t) =>
+    let address_low := (page_low * granuale)%Z in
+    let address_high := (page_high * granuale)%Z in
     if decide (0 <= vid)%Z && decide (vid < number_of_vm)%Z
-    then if decide ((page_low * granuale) <= x)%Z &&
-            decide (x < (page_high * granuale))%Z
+    then if decide (address_low <= x)%Z &&
+            decide (x < address_high)%Z
          then Some x
          else None
     else None.  
@@ -310,6 +282,7 @@ Global Instance memory_management_context
 (** **                 AbstractStateContext instance                   *)
 (***********************************************************************)
 
+(** We assume number of CPUs as 4 *)
 Definition init_cpu_id := 0.
 Definition num_of_cpus := 4.
 
@@ -324,7 +297,7 @@ Fixpoint cal_init_cpus (cpu_nums : nat) :=
               init_CPU_struct res
   end.
 
-Definition init_cpus := cal_init_cpus (Z.to_nat num_of_cpus).
+Definition init_cpus := cal_init_cpus (Z.to_nat (num_of_cpus - 1)).
 
 Definition init_api_page_pool_size_shift := 4.
 
@@ -337,7 +310,7 @@ Definition init_mem_global_properties :=
     FFA_DATA_ACCESS_NOT_SPECIFIED
     FFA_MEMORY_NOT_SPECIFIED_MEM
     MemClean.
-    
+
 Fixpoint cal_init_global_properties_pool
          (address : nat)  :=
   match address with 
@@ -373,7 +346,7 @@ Fixpoint cal_init_local_properties_pool
 
 Definition init_mem_local_properties_global_pool 
   : mem_local_properties_global_pool
-  :=  cal_init_local_properties_pool vm_ids.
+  := cal_init_local_properties_pool vm_ids.
 
 Definition init_mem_properties :=
   mkMemProperties
@@ -389,9 +362,8 @@ Definition init_VM_COMMON_struct (vcpu_ids: list Z)
 Definition init_MAILBOX_struct :=
   mkMAILBOX_struct
     init_ffa_mailbox_msg
-    init_ffa_mailbox_msg
-    None (* recv_sender *)
-    0 (* recv_size *)
+    None (* sender *)
+    0 (* size *)
     None (* recv func *)
 .
 
@@ -729,7 +701,6 @@ Definition updateState_handler {E: Type -> Type}
     | SetState st' => Ret (st', tt)
     end.
 
-
 Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
 
 (***********************************************************************)
@@ -759,52 +730,67 @@ Section FFAContextSwitching.
      Then, "lower_sync_exception" performs context switching and calls a C handler function to
      service the exception.
    *)
-  (** Save contexts *)    
+  (** Save contexts *)
   Definition save_regs_to_vcpu_spec  :
-    itree HypervisorEE (unit) := 
+    itree HypervisorEE (unit) :=
+    (** - Extract state *)
     st <- trigger GetState;;
-    (* check whether the current running entity is one of VMs *)
-    if decide (st.(is_hvc_mode) = true) &&
-       in_dec zeq st.(cur_user_entity_id) vm_ids
-    then (* get contexts for the currently running entity ID *)
-      do vm_userspace <- ZTree.get st.(cur_user_entity_id) st.(vms_userspaces) ;;;
-      do cur_vcpu_index <- (vm_userspace.(vm_userspace_context).(cur_vcpu_index)) ;;;
-      do cur_vcpu_regs <- ZTree.get cur_vcpu_index 
-                                   (vm_userspace.(vm_userspace_context).(vcpus_contexts)) ;;;
-                                                                         
-      (* get vm contexts in Hanfium to save the userspace information in it *)              
-      do vm_context <- ZTree.get st.(cur_user_entity_id) st.(hypervisor_context).(vms_contexts) ;;;
-      if decide (list_eq_dec zeq (vm_context.(vm_kernelspace_context).(vcpus)) 
-                             (vm_userspace.(vm_userspace_context).(vcpus))) &&
-         decide (cur_vcpu_regs.(vm_id) = Some st.(cur_user_entity_id))
-      then
-        let new_vm_context :=
-            vm_context {vm_cur_vcpu_index: Some cur_vcpu_index}
-                       {vm_vcpus_contexts:
-                          ZTree.set cur_vcpu_index cur_vcpu_regs
-                                    vm_context.(vm_kernelspace_context).(vcpus_contexts)} in
-        let new_vms_contexts :=
-            ZTree.set st.(cur_user_entity_id)
-                           new_vm_context
-                           st.(hypervisor_context).(vms_contexts) in
-        let new_st := st {is_hvc_mode: true}
-                         {hypervisor_context/tpidr_el2: Some cur_vcpu_regs}
-                         {hypervisor_context/vms_contexts: new_vms_contexts}
-                         {system_log : st.(system_log)
-                                            ++(UserToKernel (st.(cur_user_entity_id))
-                                                            cur_vcpu_index
-                                                            cur_vcpu_regs.(vcpu_regs)::nil)} in
-                                                                     
-        trigger (SetState new_st)
-      else triggerUB "save_resg_to_vcpu_spec: inconsistency in total vcpu number"
-    else triggerUB "save_resg_to_vcpu_spec: wrong cur entity id".
+
+    (** - Check validities *)
+    (** - Check whether the current running entity is one of VMs *)
+    check "save_regs_to_vcpu: wrong cur entity id" ,
+    (decide (st.(is_hvc_mode) = true) && (in_dec zeq st.(cur_user_entity_id) vm_ids))
+      
+      (** - Extracts the VM userspace information with the given entity ID *)
+      ;;; get "save_regs_to_vcpu: cannot find vm_userspace for the entity id",
+    vm_userspace
+    <- (ZTree.get st.(cur_user_entity_id) st.(vms_userspaces))
+        
+        (** - Get the current VCPU index for the VM *)        
+        ;;; get "save_regs_to_vcpu: cannot find vcpu_index information of the vm userspace",
+    cur_vcpu_index
+    <- (vm_userspace.(vm_userspace_context).(cur_vcpu_index))
+
+        (** - Copy the VCPU register information to the kernel to perform hypervisor calls *)
+        ;;; get "save_regs_to_vcpu: cannot find vcpu_context information",
+    cur_vcpu_regs
+    <- (ZTree.get cur_vcpu_index 
+                 (vm_userspace.(vm_userspace_context).(vcpus_contexts)))
+        
+        ;;; get "save_regs_to_vcpu: cannot find vm context",
+    vm_context
+    <- (ZTree.get st.(cur_user_entity_id) st.(hypervisor_context).(vms_contexts))
+        ;;;
+        check "save_regs_to_vcpu: inconsistency between saved context and user context",
+    (decide (list_eq_dec zeq (vm_context.(vm_kernelspace_context).(vcpus)) 
+                         (vm_userspace.(vm_userspace_context).(vcpus))) &&
+     decide (cur_vcpu_regs.(vm_id) = Some st.(cur_user_entity_id)))
+      (** - Trigger transitions in the state *)
+      ;;; let new_vm_context :=
+              vm_context {vm_cur_vcpu_index: Some cur_vcpu_index}
+                         {vm_vcpus_contexts:
+                            ZTree.set cur_vcpu_index cur_vcpu_regs
+                                      vm_context.(vm_kernelspace_context).(vcpus_contexts)} in
+          let new_vms_contexts :=
+              ZTree.set st.(cur_user_entity_id)
+                             new_vm_context
+                             st.(hypervisor_context).(vms_contexts) in
+          let new_st := st {is_hvc_mode: true}
+                           {hypervisor_context/tpidr_el2: Some cur_vcpu_regs}
+                           {hypervisor_context/vms_contexts: new_vms_contexts}
+                           {system_log : st.(system_log)
+                                              ++(UserToKernel (st.(cur_user_entity_id))
+                                                              cur_vcpu_index
+                                                              cur_vcpu_regs.(vcpu_regs)::nil)} in
+          
+          trigger (SetState new_st).
 
   Definition save_regs_to_vcpu_call (args : list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val)  :=
     match args with
     | nil => save_regs_to_vcpu_spec;;
             Ret (Vnull, args)
-    | _ => triggerUB "save_regs_to_vcpu_call: wrong arguments"
+    | _ => triggerUB "save_regs_to_vcpu: wrong arguments"
     end.
   
   (** Restore contexts and run.
@@ -817,46 +803,57 @@ Section FFAContextSwitching.
     (** - Since we do not have any scheduler implementations, we introduced abstract scheduler *)
     let next_vm_id := scheduler st in
     (** check whether the current running entity is Hafnium *)
-    if decide (st.(is_hvc_mode) = true) && in_dec zeq next_vm_id vm_ids
-    then
-      (** get the userspace information *)
-      do vm_userspace <- ZTree.get next_vm_id st.(vms_userspaces) ;;;
-      (** get vm context to restore the userspace information *)
-      do vm_context <- ZTree.get next_vm_id st.(hypervisor_context).(vms_contexts) ;;;
-      (** get vcpu register information *)
-      do cur_kernel_vcpu_index <- (vm_context.(vm_kernelspace_context).(cur_vcpu_index)) ;;;
-      do cur_user_vcpu_index <- (vm_userspace.(vm_userspace_context).(cur_vcpu_index)) ;;;
-      do cur_vcpu_regs <- ZTree.get cur_kernel_vcpu_index
-                               (vm_context.(vm_kernelspace_context).(vcpus_contexts)) ;;;
-         if decide (list_eq_dec zeq (vm_context.(vm_kernelspace_context).(vcpus))
-                                vm_userspace.(vm_userspace_context).(vcpus)) &&
-            decide (cur_kernel_vcpu_index = cur_user_vcpu_index) &&
-            decide (cur_vcpu_regs.(vm_id) = Some next_vm_id)
-            (* TODO: add cpu connection check with vcpu_regs later *)
-         then
-           let new_vm_userspace := 
-               vm_userspace
-                 {client_vcpus_contexts :
-                    (ZTree.set cur_kernel_vcpu_index
-                               cur_vcpu_regs
-                               (vm_userspace.(vm_userspace_context).(vcpus_contexts)))} in
-           let new_vms_userspaces :=
-               ZTree.set next_vm_id new_vm_userspace st.(vms_userspaces) in
-           let new_st := st {is_hvc_mode: false}
-                            {cur_user_entity_id: next_vm_id}
-                            {hypervisor_context/tpidr_el2: None}
-                            {vms_userspaces: new_vms_userspaces}
-                            {system_log : st.(system_log)
-                                               ++(ChangeCurEntityID
-                                                    st.(cur_user_entity_id)
-                                                         next_vm_id)
-                                               ::(KernelToUser next_vm_id
-                                                               cur_user_vcpu_index
-                                                               cur_vcpu_regs.(vcpu_regs))::nil} in
-           trigger (SetState new_st)
-         else triggerUB "vcpu_restore_and_run__spec: inconsistency in vcpu number"
-    else triggerUB "vcpu_restore_and_run__spec: wrong cur entity id".
-
+    check "vcpu_restore_and_run: wrong cur entity id" ,
+    (decide (st.(is_hvc_mode) = true) && (in_dec zeq next_vm_id vm_ids))
+      ;;; (** get the userspace information *)
+      get "vcpu_restore_and_run: Cannot find userspace information",
+    vm_userspace
+    <- (ZTree.get next_vm_id st.(vms_userspaces))
+        ;;; (** get vm context to restore the userspace information *)
+      get "vcpu_restore_and_run: Cannot find vm context",
+    vm_context
+    <- (ZTree.get next_vm_id st.(hypervisor_context).(vms_contexts))
+        ;;;  (** get vcpu register information *)
+        get  "vcpu_restore_and_run: cannot find vcpu index from kernel vm context",
+    cur_kernel_vcpu_index
+    <- (vm_context.(vm_kernelspace_context).(cur_vcpu_index))
+        ;;;
+        get  "vcpu_restore_and_run: cannot find vcpu index from user vm context",
+    cur_user_vcpu_index
+    <- (vm_userspace.(vm_userspace_context).(cur_vcpu_index))
+        ;;; get "vcpu_restore_and_run: extract the curretnt vcpu context",
+    cur_vcpu_regs
+    <- (ZTree.get cur_kernel_vcpu_index
+                 (vm_context.(vm_kernelspace_context).(vcpus_contexts)))
+        ;;;
+        check "vcpu_restore_and_run: inconsistency between kernel vm context and user vm context" ,
+    (decide (list_eq_dec zeq (vm_context.(vm_kernelspace_context).(vcpus))
+                         vm_userspace.(vm_userspace_context).(vcpus)) &&
+     decide (cur_kernel_vcpu_index = cur_user_vcpu_index) &&
+     decide (cur_vcpu_regs.(vm_id) = Some next_vm_id))
+      ;;; 
+      (* TODO: add cpu connection check with vcpu_regs later *)
+      let new_vm_userspace := 
+          vm_userspace
+            {client_vcpus_contexts :
+               (ZTree.set cur_kernel_vcpu_index
+                          cur_vcpu_regs
+                          (vm_userspace.(vm_userspace_context).(vcpus_contexts)))} in
+      let new_vms_userspaces :=
+          ZTree.set next_vm_id new_vm_userspace st.(vms_userspaces) in
+      let new_st := st {is_hvc_mode: false}
+                       {cur_user_entity_id: next_vm_id}
+                       {hypervisor_context/tpidr_el2: None}
+                       {vms_userspaces: new_vms_userspaces}
+                       {system_log : st.(system_log)
+                                          ++(ChangeCurEntityID
+                                               st.(cur_user_entity_id)
+                                                    next_vm_id)
+                                          ::(KernelToUser next_vm_id
+                                                         cur_user_vcpu_index
+                                                         cur_vcpu_regs.(vcpu_regs))::nil} in
+      trigger (SetState new_st). 
+    
   Definition vcpu_restore_and_run_call (args : list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val)  :=             
     match args with
@@ -871,31 +868,69 @@ End FFAContextSwitching.
 (** **                       FFA Dispatch                              *)
 (***********************************************************************)
 Section FFADispatch.  
-   
+  
+  (** Function dispatch. It dispatch the proper specification based on 
+      the value in the VCPU context *)
+      
   Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
-
+  
   Definition function_dispatcher
              (ffa_function_type: FFA_FUNCTION_TYPE)
              (vid: ffa_UUID_t)
              (vals: ZMap.t Z) (st : AbstractState) :=
     match ffa_function_type with
+      (**  - FFA_MEM_DONATE gets four arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+             - Total length
+             - Fragment length
+             - Address
+             - Page count *)
     | FFA_MEM_DONATE 
       => ffa_mem_donate_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
                             (ZMap.get 3 vals) (ZMap.get 4 vals) st
+      (**  - FFA_MEM_LEND gets four arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+             - Total length
+             - Fragment length
+             - Address
+             - Page count *)
     | FFA_MEM_LEND
       => ffa_mem_lend_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
                           (ZMap.get 3 vals) (ZMap.get 4 vals) st
+      (**  - FFA_MEM_SHARE gets four arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+             - Total length
+             - Fragment length
+             - Address
+             - Page count *)
     | FFA_MEM_SHARE
       => ffa_mem_share_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
                            (ZMap.get 3 vals) (ZMap.get 4 vals) st
+      (**  - FFA_MEM_RETREIVE_REQ gets four arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+             - Total length
+             - Fragment length
+             - Address
+             - Page count *)
     | FFA_MEM_RETREIVE_REQ
       => ffa_mem_retrieve_req_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
                                   (ZMap.get 3 vals) (ZMap.get 4 vals) st
+      (**  - FFA_MEM_RETREIVE_RESP gets two arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+             - Total length
+             - Fragment length *)
     | FFA_MEM_RETREIVE_RESP
       => ffa_mem_retrieve_resp_spec vid (ZMap.get 1 vals)
                                    (ZMap.get 2 vals) st
+      (**  - FFA_MEM_RETREIVE_RESP doesn't have any arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details. *)
     | FFA_MEM_RELINQUISH 
       => ffa_mem_relinquish_spec vid st
+      (**  - FFA_MEM_RECLAIM gets three arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+             - Handle (first half)
+             - Handle (second half)
+             - Falgs *)
     | FFA_MEM_RECLAIM
       => ffa_mem_reclaim_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
                              (ZMap.get 3 vals) st
@@ -933,62 +968,65 @@ Section FFADispatch.
     (** - Extract the curretnt vcpu *)
     st <- trigger GetState;;
     (** - Get the information in tpidr_el2 register to find out the current VM to be served *)
-    let vcpu_regs := st.(hypervisor_context).(tpidr_el2) in
-    match vcpu_regs with
-    | Some vcpu_regs' =>
-      match vcpu_regs' with
-      | mkVCPU_struct (Some cid) (Some vid) arch_regs =>
-        match arch_regs with
-        | mkArchRegs (mkFFA_value_type func_type vals) =>
-          match func_type with
-          | FFA_FUNCTION_IDENTIFIER ffa_function_type =>
-            (** - Find out the result of the FFA ABI calls by using the proper handling functions *)
+    get "ffa_dispatch: vcpu value is not proper",
+    vcpu_regs
+    <- (st.(hypervisor_context).(tpidr_el2))
+        ;;;
+        match vcpu_regs with
+        | mkVCPU_struct (Some cid) (Some vid) arch_regs =>
+          match arch_regs with
+          | mkArchRegs (mkFFA_value_type func_type vals) =>
+            match func_type with
+            | FFA_FUNCTION_IDENTIFIER ffa_function_type =>
+              (** - Find out the result of the FFA ABI calls by using the proper handling functions *)
 
-            let new_st := st {system_log: st.(system_log)
-                                               ++(DispathFFAInterface arch_regs)::nil} in     
-            do result <- function_dispatcher ffa_function_type
-                                            vid vals new_st ;;;
-             match result with                                
-            | (updated_st, ffa_result) =>
-              (** - Set the result inside the updated state *)
-              do vm_context <-
-                 ZTree.get
-                   vid
-                   updated_st.(hypervisor_context).(vms_contexts);;;
-              do cur_kernel_vcpu_index <-
-                 vm_context.(vm_kernelspace_context).(cur_vcpu_index) ;;;
-              do vcpu_reg <-
-                 ZTree.get cur_kernel_vcpu_index 
-                    vm_context.(vm_kernelspace_context).(vcpus_contexts);;;
-              let new_vcpu_reg :=
-                  mkVCPU_struct (vcpu_reg.(cpu_id)) (vcpu_reg.(vm_id))
-                                (mkArchRegs (ffa_value_gen ffa_result)) in
-              let new_vm_context := 
-                  vm_context
-                    {vm_vcpus_contexts:
-                       ZTree.set
-                         cur_kernel_vcpu_index
-                         new_vcpu_reg 
-                         vm_context.(vm_kernelspace_context).(vcpus_contexts)} in
-              let new_st :=
-                  updated_st
-                    {hypervisor_context / vms_contexts:
-                       ZTree.set vid new_vm_context
-                                 (updated_st.(hypervisor_context).(vms_contexts))} in
-              trigger (SetState new_st)
-            end                                     
-
-
-             | _ => triggerUB "ffa_dispatch_spec: impossible case happens"
+              let new_st := st {system_log: st.(system_log)
+                                                 ++(DispathFFAInterface arch_regs)::nil} in     
+              get "ffa_dispatch: error in function dispatch", 
+              result
+              <- (function_dispatcher ffa_function_type
+                                     vid vals new_st)
+                  ;;;
+                  match result with
+                  | (updated_st, ffa_result) =>
+                    (** - Set the result inside the updated state *)
+                    get "ffa_dispatch: error in getting vm_context",
+                    vm_context
+                    <- (ZTree.get
+                         vid
+                         updated_st.(hypervisor_context).(vms_contexts))
+                        ;;; get "ffa_dispatch: error in getting vcpu index",
+                    cur_kernel_vcpu_index
+                    <- (vm_context.(vm_kernelspace_context).(cur_vcpu_index))
+                        ;;; get "ffa_dispatch: error in getting saved vcpu index",
+                    vcpu_reg
+                    <- (ZTree.get cur_kernel_vcpu_index 
+                                 vm_context.(vm_kernelspace_context).(vcpus_contexts))
+                        ;;; let new_vcpu_reg :=
+                                mkVCPU_struct (vcpu_reg.(cpu_id)) (vcpu_reg.(vm_id))
+                                              (mkArchRegs (ffa_value_gen ffa_result)) in
+                            let new_vm_context := 
+                                vm_context
+                                  {vm_vcpus_contexts:
+                                     ZTree.set
+                                       cur_kernel_vcpu_index
+                                       new_vcpu_reg 
+                                       vm_context.(vm_kernelspace_context).(vcpus_contexts)} in
+                            let new_st :=
+                                updated_st
+                                  {hypervisor_context / vms_contexts:
+                                     ZTree.set vid new_vm_context
+                                               (updated_st.(hypervisor_context).(vms_contexts))} in
+                            trigger (SetState new_st)
+                  end                                    
+            | _ => triggerUB "ffa_dispatch_spec: function identifier is not proper"
+            end
           end
-        end
-      | _ => triggerUB "ffa_dispatch_spec: impossible case happens"
-      end
-    | None => triggerUB "ffa_dispatch_spec: impossible case happens" 
-    end.
+        | _ => triggerUB "ffa_dispatch_spec: erros in vcpu struct value"
+        end.
                         
   Definition ffa_dispatch_call (args : list Lang.val) 
-    : itree HypervisorEE (Lang.val * list Lang.val)  :=             
+    : itree HypervisorEE (Lang.val * list Lang.val)  :=
     match args with
     | nil => ffa_dispatch_spec;;
             Ret (Vnull, args)
@@ -1092,23 +1130,19 @@ Section InterfaceFunctions.
   : itree HypervisorEE (ffa_UUID_t) := 
     match stage2_address_translation_table addr with
     | Some res =>
+      let page_num := Z.div res granuale in
       match
-        ZTree.get res st.(hypervisor_context).(mem_properties).(mem_global_properties) with
+        ZTree.get page_num st.(hypervisor_context).(mem_properties).(mem_global_properties) with
       | Some property =>
-        match
-          ZTree.get res st.(hypervisor_context).(mem_properties).(mem_global_properties) with
-        | Some property =>
-          match property.(accessible_by) with
-          | ExclusiveAccess accessor
-            => if (decide (st.(cur_user_entity_id) = accessor))
-              then Ret (res)
-              else triggerNB "stage2_address_translation_table error"
-          | SharedAccess accessors
-            => if (in_dec zeq (st.(cur_user_entity_id)) accessors)
-              then Ret (res)
-              else triggerNB "stage2_address_translation_table error"
-          | _ => triggerNB "stage2_address_translation_table error"
-          end
+        match property.(accessible_by) with
+        | ExclusiveAccess accessor
+          => check "stage2_address_translation_table error",
+            (decide (st.(cur_user_entity_id) = accessor))
+              ;;; Ret (res)
+        | SharedAccess accessors
+          => check "stage2_address_translation_table error",
+            (in_dec zeq (st.(cur_user_entity_id)) accessors)
+              ;;; Ret (res)
         | _ => triggerNB "stage2_address_translation_table error"
         end
       | _ => triggerNB "stage2_address_translation_table error"
@@ -1124,10 +1158,10 @@ Section InterfaceFunctions.
     then Ret (addr)
     else if st.(use_stage1_table)
          then
-           match stage1_address_translation_table st.(cur_user_entity_id) addr with
-           | Some res' => stage2_get_physical_address_spec st res'
-           | None => triggerNB "stage1_address_translation_table error"
-           end
+           get "stage1_address_translation_table error",
+           res'
+           <- (stage1_address_translation_table st.(cur_user_entity_id) addr)
+               ;;; stage2_get_physical_address_spec st res'
          else stage2_get_physical_address_spec st addr.
   
   Definition get_physical_address_call (args: list Lang.val)
@@ -1142,9 +1176,9 @@ Section InterfaceFunctions.
   Definition set_is_hvc_mode_spec
     : itree HypervisorEE (unit) := 
     st <- trigger GetState;;
-    if st.(is_hvc_mode)
-    then triggerNB "error"
-    else trigger (SetState (st {is_hvc_mode : true})).
+    check "set_is_hvc_mode: invalid mode",
+    (negb st.(is_hvc_mode))
+      ;;; trigger (SetState (st {is_hvc_mode : true})).
 
   Definition set_is_hvc_mode_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
@@ -1157,9 +1191,9 @@ Section InterfaceFunctions.
   Definition unset_is_hvc_mode_spec
     : itree HypervisorEE (unit) := 
     st <- trigger GetState;;
-    if st.(is_hvc_mode)
-    then trigger (SetState (st {is_hvc_mode : false}))
-    else triggerNB "error".
+    check "unset_is_hvc_mode: invalid mode",
+    (st.(is_hvc_mode))
+      ;;; trigger (SetState (st {is_hvc_mode : false})).
 
   Definition unset_is_hvc_mode_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
@@ -1172,9 +1206,9 @@ Section InterfaceFunctions.
   Definition set_use_stage1_table_spec
     : itree HypervisorEE (unit) := 
     st <- trigger GetState;;
-    if st.(use_stage1_table)
-    then triggerNB "error"
-    else trigger (SetState (st {use_stage1_table : true})).
+    check "set_use_stage1_table: invalid mode",
+    (negb st.(use_stage1_table))
+      ;;; trigger (SetState (st {use_stage1_table : true})).
 
   Definition set_use_stage1_table_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
@@ -1187,9 +1221,9 @@ Section InterfaceFunctions.
   Definition unset_use_stage1_table_spec
     : itree HypervisorEE (unit) := 
     st <- trigger GetState;;
-    if st.(use_stage1_table)
-    then trigger (SetState (st {use_stage1_table : false}))
-    else triggerNB "error".
+    check "unset_use_stage1_table: invalid mode",
+    (st.(use_stage1_table))
+      ;;; trigger (SetState (st {use_stage1_table : false})).
 
   Definition unset_use_stage1_table_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
@@ -1201,26 +1235,28 @@ Section InterfaceFunctions.
   
   Definition send_msg_spec
              (receiver size: ffa_UUID_t)
-             (msg : ffa_mailbox_send_msg_t)
+             (msg : ffa_mailbox_msg_t)
              (recv_func : FFA_FUNCTION_TYPE) 
     : itree HypervisorEE (unit) := 
     state <- trigger GetState;;
     let sender := state.(cur_user_entity_id) in
-    do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
-    let mailbox_contents := mkMAILBOX_struct 
-                              (vm_context.(mailbox).(send))
-                              msg (Some sender) size (Some recv_func) in
-    let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
-    let new_vm_contexts :=
-        ZTree.set receiver new_vm_context
-                  state.(hypervisor_context).(vms_contexts) in
-    trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts})).
+    get "send_msg: error in getting vm_context",
+    vm_context
+    <- (ZTree.get receiver state.(hypervisor_context).(vms_contexts))
+        ;;;
+        let mailbox_contents := mkMAILBOX_struct 
+                                  msg (Some sender) size (Some recv_func) in
+        let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
+        let new_vm_contexts :=
+            ZTree.set receiver new_vm_context
+                      state.(hypervisor_context).(vms_contexts) in
+        trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts})).
     
   Definition send_msg_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [(Vcomp (Vlong receiver)); (Vcomp (Vlong size)); (Vabs mailbox_msg); (Vabs recv_func)] =>
-        match downcast mailbox_msg ffa_mailbox_send_msg_t, downcast recv_func FFA_FUNCTION_TYPE with
+        match downcast mailbox_msg ffa_mailbox_msg_t, downcast recv_func FFA_FUNCTION_TYPE with
         | Some msg, Some func_type =>
           res <- send_msg_spec (Int64.unsigned receiver) (Int64.unsigned size) msg func_type ;;
           Ret (Vnull, args)
@@ -1230,11 +1266,13 @@ Section InterfaceFunctions.
     end.
 
   Definition recv_msg_spec
-    : itree HypervisorEE (ffa_mailbox_send_msg_t) :=
+    : itree HypervisorEE (FFAMemoryHypCallState.ffa_mailbox_msg_t) :=
     st <- trigger GetState;;
     let current_vm_id := st.(cur_user_entity_id) in
-    do vm_context <- ZTree.get current_vm_id st.(hypervisor_context).(vms_contexts) ;;;
-    Ret (vm_context.(mailbox).(send)).
+    get "recv_msg: error in getting vm_context",
+    vm_context
+    <- (ZTree.get current_vm_id st.(hypervisor_context).(vms_contexts))
+        ;;; Ret (vm_context.(mailbox).(message)).
   
   Definition recv_msg_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
@@ -1253,41 +1291,44 @@ End InterfaceFunctions.
 Section MemSetterGetter.
   
   Definition global_properties_getter_spec
-             (addr: ffa_address_t)
+             (page_num: Z)
   : itree HypervisorEE (MemGlobalProperties) :=
     st <- trigger GetState;;
-    match ZTree.get
-            addr 
-            st.(hypervisor_context).(mem_properties)
-          .(mem_global_properties) with
-    | Some v => Ret(v)
-    | _ => triggerNB "error"
-    end.
+    check "global_properties_getter: page number out of range",
+    (decide (page_low <= page_num)%Z && decide (page_num < page_high)%Z)
+      ;;; get "global_properties_getter_spec: no properties in the map",
+    v <- ZTree.get
+          page_num
+          st.(hypervisor_context).(mem_properties)
+        .(mem_global_properties)
+           ;;; Ret (v).
 
   Definition global_properties_getter_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
-    | [(Vcomp (Vlong addr))] =>
-      res <- global_properties_getter_spec (Int64.unsigned addr) ;;
+    | [(Vcomp (Vlong page_num))] =>
+      res <- global_properties_getter_spec (Int64.unsigned page_num) ;;
       Ret (Vabs (upcast res), args)
     | _ => triggerNB "send_msg_call: wrong arguments"
     end.
   
   Definition global_properties_setter_spec
-             (addr: ffa_address_t)
+             (page_num: Z)
              (global_properties: MemGlobalProperties) 
     : itree HypervisorEE (unit) :=
-    st <- trigger GetState;;
-    let mem_props := st.(hypervisor_context).(mem_properties) in
-    let new_mem_global_props_pool
-        := ZTree.set addr global_properties
-                     mem_props.(mem_global_properties) in
-    let new_mem_props :=
-        mkMemProperties 
-          new_mem_global_props_pool
-          mem_props.(mem_local_properties) in
-    trigger (SetState (st {hypervisor_context
-                             / mem_properties: new_mem_props})).
+    st <- trigger GetState ;;
+    check "global_properties_setter: page number out of range",
+    (decide (page_low <= page_num)%Z && decide (page_num < page_high)%Z)
+      ;;; let mem_props := st.(hypervisor_context).(mem_properties) in
+          let new_mem_global_props_pool
+              := ZTree.set page_num global_properties
+                           mem_props.(mem_global_properties) in
+          let new_mem_props :=
+              mkMemProperties 
+                new_mem_global_props_pool
+                mem_props.(mem_local_properties) in
+          trigger (SetState (st {hypervisor_context
+                                   / mem_properties: new_mem_props})).
 
   Definition global_properties_setter_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
@@ -1303,76 +1344,79 @@ Section MemSetterGetter.
     end.
   
   Definition local_properties_getter_spec
-             (owner : ffa_UUID_t) (addr: ffa_address_t)
+             (owner : ffa_UUID_t) (page_num: Z)
     : itree HypervisorEE (MemLocalProperties) :=
     st <- trigger GetState;;
-    match ZTree.get
-            owner
-            st.(hypervisor_context).(mem_properties)
-          .(mem_local_properties) with
-    | Some local_props_pool =>
-      match ZTree.get addr local_props_pool with
-      | Some v => Ret(v)
-      | _ => triggerNB "error"
-      end
-    | _ => triggerNB "error"
-    end.
+    check "local_properties_getter: page number out of range",
+    (decide (page_low <= page_num)%Z && decide (page_num < page_high)%Z)
+      ;;; get "local_properties_getter: no local property pool in the map",
+    local_props_pool
+    <- (ZTree.get
+         owner
+         st.(hypervisor_context).(mem_properties)
+       .(mem_local_properties))
+        ;;; get "local_properties_getter: no properties in the map",
+    value
+    <- (ZTree.get page_num local_props_pool)
+        ;;; Ret(value).
 
   Definition local_properties_getter_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
-    | [(Vcomp (Vlong owner)); (Vcomp (Vlong addr))] =>
-      res <-  local_properties_getter_spec (Int64.unsigned owner) (Int64.unsigned addr) ;;
+    | [(Vcomp (Vlong owner)); (Vcomp (Vlong page_num))] =>
+      res <-  local_properties_getter_spec (Int64.unsigned owner) (Int64.unsigned page_num) ;;
       Ret (Vnull, args)
     | _ => triggerNB "send_msg_call: wrong arguments"
     end.
 
   Definition local_properties_setter_spec
-             (owner : ffa_UUID_t) (addr: ffa_address_t)
+             (owner : ffa_UUID_t) (page_num: Z)
              (local_properties: MemLocalProperties)
     : itree HypervisorEE (unit) :=
     st <- trigger GetState;;
-    match ZTree.get
-            owner
-            st.(hypervisor_context).(mem_properties)
-          .(mem_local_properties) with
-    | Some local_props_local_pool =>
-      let new_local_props :=
-          ZTree.set addr local_properties 
-                    local_props_local_pool in
-      let new_local_props_pool :=
-          ZTree.set owner new_local_props
-                    st.(hypervisor_context).(mem_properties)
-          .(mem_local_properties) in
-      let new_mem_props :=
-          mkMemProperties
-            st.(hypervisor_context).(mem_properties)
-          .(mem_global_properties)
-             new_local_props_pool in
-      trigger (SetState (st {hypervisor_context
-                               / mem_properties: new_mem_props}))
-    | _ => triggerNB "error"
-    end.
+    check "local_properties_setter: page number out of range",
+    (decide (page_low <= page_num)%Z && decide (page_num < page_high)%Z)
+      ;;; get "local_properties_setter: no local property pool in the map",
+    local_props_local_pool
+    <- (ZTree.get
+         owner
+         st.(hypervisor_context).(mem_properties)
+       .(mem_local_properties))
+        ;;;     
+        let new_local_props :=
+            ZTree.set page_num local_properties 
+                      local_props_local_pool in
+        let new_local_props_pool :=
+            ZTree.set owner new_local_props
+                      st.(hypervisor_context).(mem_properties)
+            .(mem_local_properties) in
+        let new_mem_props :=
+            mkMemProperties
+              st.(hypervisor_context).(mem_properties)
+            .(mem_global_properties)
+               new_local_props_pool in
+        trigger (SetState (st {hypervisor_context
+                                 / mem_properties: new_mem_props})).
 
   Definition local_properties_setter_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
-    | [(Vcomp (Vlong owner));(Vcomp (Vlong addr)); (Vabs local_properties)] =>
+    | [(Vcomp (Vlong owner));(Vcomp (Vlong page_num)); (Vabs local_properties)] =>
       match downcast local_properties MemLocalProperties with
       | Some local_props =>
         local_properties_setter_spec (Int64.unsigned owner)
-                                 (Int64.unsigned addr) local_props;;
+                                 (Int64.unsigned page_num) local_props;;
         Ret (Vnull, args)
       | _ => triggerNB "send_msg_call: impossible conversion"
       end
     | _ => triggerNB "send_msg_call: wrong arguments"
     end.
 
-  Definition set_mem_dirty_spec (writer: ffa_UUID_t) (addr: ffa_address_t)
+  Definition set_mem_dirty_spec (writer: ffa_UUID_t) (page_num: Z)
     : itree HypervisorEE (unit) :=
     st <- trigger GetState;;
     match ZTree.get
-            addr
+            page_num
             st.(hypervisor_context).(mem_properties)
           .(mem_global_properties) with
     | Some (mkMemGlobalProperties is_ns owner access inst_access
@@ -1390,7 +1434,7 @@ Section MemSetterGetter.
                                   new_mem_dirty in
         let new_global_props :=
             ZTree.set
-              addr new_global_prop 
+              page_num new_global_prop 
               st.(hypervisor_context).(mem_properties)
             .(mem_global_properties) in
         let new_mem_props :=
@@ -1400,7 +1444,7 @@ Section MemSetterGetter.
             .(mem_local_properties) in
         trigger (SetState (st {hypervisor_context
                                  / mem_properties: new_mem_props}))
-    | _ => triggerNB "error"
+    | _ => triggerNB "set_mem_dirty: cannot find property"
     end.
 
   Definition set_mem_dirty_call (args: list Lang.val)
@@ -1412,11 +1456,11 @@ Section MemSetterGetter.
     | _ => triggerNB "set_mem_dirty_call: wrong arguments"
     end.
 
-  Definition clean_mem_dirty_spec (writer: ffa_UUID_t) (addr: ffa_address_t)
+  Definition clean_mem_dirty_spec (writer: ffa_UUID_t) (page_num: Z)
     : itree HypervisorEE (unit) :=
     st <- trigger GetState;;
     match ZTree.get
-            addr
+            page_num
             st.(hypervisor_context).(mem_properties)
           .(mem_global_properties) with
     | Some (mkMemGlobalProperties is_ns owner access inst_access
@@ -1427,7 +1471,7 @@ Section MemSetterGetter.
                                   MemClean in
         let new_global_props :=
             ZTree.set
-              addr new_global_prop 
+              page_num new_global_prop 
               st.(hypervisor_context).(mem_properties)
             .(mem_global_properties) in
         let new_mem_props :=
@@ -1437,7 +1481,7 @@ Section MemSetterGetter.
             .(mem_local_properties) in
         trigger (SetState (st {hypervisor_context
                                  / mem_properties: new_mem_props}))
-    | _ => triggerNB "error"
+    | _ => triggerNB "clean_mem_dirty: cannot find property"
     end.
 
   Definition clean_mem_dirty_call (args: list Lang.val)
@@ -1464,6 +1508,17 @@ Section MemSetterGetter.
     | _ => triggerNB "get_current_entity_id_call: wrong arguments"
     end.
   
+(*
+  Definition vcpu_struct_getter_spec :=
+    : itree HypervisorEE (VCPU_struct) :=
+      st <- trigger GetState;;
+      if st.(is_hvc_mode) then
+        triggerNB "vcpu_struct_getter_spec: "
+      let cur_user_entity_id 
+      if (st.(is_hvc_mode)) then Ret (hypervisor_id)
+      else Ret (st.(cur_user_entity_id)).
+*)
+  
 End MemSetterGetter.
 
 (***********************************************************************)
@@ -1473,8 +1528,8 @@ Section FFAMemoryManagementInterfaceModule.
 
   Definition funcs :=
     [
-      ("HVCTopLevel.save_regs_to_vcpu_call", save_regs_to_vcpu_call) ;
-    ("HVCTopLevel.vcpu_restore_and_run_call", vcpu_restore_and_run_call) ;
+      ("HVCTopLevel.save_regs_to_vcpu", save_regs_to_vcpu_call) ;
+    ("HVCTopLevel.vcpu_restore_and_run", vcpu_restore_and_run_call) ;
     ("HVCTopLevel.ffa_dispatch_call", ffa_dispatch_call) ;
     
     ("HVCTopLevel.get_physical_address", get_physical_address_call);
@@ -1535,9 +1590,14 @@ Import Int64.
 Section HypervisorCall.
   
   Definition hypervisor_call :=
+    (Call "HVCTopLevel.set_is_hvc_mode" []) #;
+    (Put "set_is_hvc_mode done" Vnull) #;
     (Call "HVCTopLevel.save_regs_to_vcpu" []) #;
+    (Put "context changing is done" Vnull) #;
     (Call "HVCTopLevel.function_dispatcher" []) #;
-    (Call "HVCTopLevel.vcpu_restore_and_run_spec" []).
+    (Put "function_dispatcher has be invoked" Vnull) #;
+    (Call "HVCTopLevel.vcpu_restore_and_run_spec" []) #;
+    (Call "HVCTopLevel.unset_is_hvc_mode" []).
 
   Definition hypervisor_callF : function.
     mk_function_tac hypervisor_call ([]: list var) ([]: list var).
@@ -1556,9 +1616,9 @@ Section FFAMemoryManagementInterfaceWithMemAccessorModule.
   Definition mem_store_spec (addr value : var) (entity_id paddr : var) : stmt :=
     entity_id #= (Call "HVCToplevel.get_current_entity_id" []) #;
               paddr #= (Call "HVCTopLevel.get_physical_address" [CBV addr]) #;
-              (Call "HVCTopLevel.set_mem_dirty" [CBV entity_id; CBV addr]) #;
+              (Call "HVCTopLevel.set_mem_dirty" [CBV entity_id; CBV (addr / (Int64.repr granuale))]) #;
               (flat_mem_block_ptr @ paddr #:= value).
-                                          
+              
   Definition mem_load_spec (addr : var) (paddr: var): stmt :=
     paddr #= (Call "HVCTopLevel.get_physical_address" [CBV addr]) #;    
     Return (flat_mem_block_ptr  #@ paddr).

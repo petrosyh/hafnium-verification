@@ -57,10 +57,8 @@ Section FFA_VM.
           channel in our formalization is by using
           the designated mailbox to each VM. 
           The following message types are for those communication messages.  *)
-    ffa_mailbox_send_msg_t : Type;
-    ffa_mailbox_recv_msg_t : Type;
-    init_ffa_mailbox_send_msg: ffa_mailbox_send_msg_t;
-    init_ffa_mailbox_recv_msg: ffa_mailbox_recv_msg_t;
+    ffa_mailbox_msg_t : Type;
+    init_ffa_mailbox_msg: ffa_mailbox_msg_t;
 
     (** - Virtual CPU numbers in the system. All VCPUs will be shared by 
           multiple VMs. Each VCPU in the system will be connected with 
@@ -72,31 +70,18 @@ Section FFA_VM.
     (** - Mailbox to/from descriptors. The followings are interpreter and 
           generator of mailbox messages. Note that mailbox messages can be used as 
           multiple purpose *)
-    mailbox_send_msg_to_region_struct :
-      ffa_mailbox_send_msg_t -> option FFA_memory_region_struct;
-    mailbox_send_msg_to_relinqiush_struct:
-      ffa_mailbox_send_msg_t -> option FFA_memory_relinquish_struct;
-    mailbox_send_msg_to_Z :
-      ffa_mailbox_send_msg_t -> option Z;
-    region_struct_to_mailbox_send_msg :
-      FFA_memory_region_struct -> option ffa_mailbox_send_msg_t;
-    relinqiush_struct_to_mailbox_send_msg :
-      FFA_memory_relinquish_struct -> option ffa_mailbox_send_msg_t;
-    Z_to_mailbox_send_msg :
-      Z -> option ffa_mailbox_send_msg_t;
-
-    mailbox_recv_msg_to_region_struct :
-      ffa_mailbox_recv_msg_t -> option FFA_memory_region_struct;
-    mailbox_recv_msg_to_relinqiush_struct:
-      ffa_mailbox_recv_msg_t -> option FFA_memory_relinquish_struct;
-    mailbox_recv_msg_to_Z:
-      ffa_mailbox_recv_msg_t -> option Z;
-    region_struct_to_mailbox_recv_msg :
-      FFA_memory_region_struct -> option ffa_mailbox_recv_msg_t;
-    relinqiush_struct_to_mailbox_recv_msg :
-      FFA_memory_relinquish_struct -> option ffa_mailbox_recv_msg_t;
-    Z_to_mailbox_recv_msg :
-      Z -> option ffa_mailbox_recv_msg_t;
+    mailbox_msg_to_region_struct :
+      ffa_mailbox_msg_t -> option FFA_memory_region_struct;
+    mailbox_msg_to_relinqiush_struct:
+      ffa_mailbox_msg_t -> option FFA_memory_relinquish_struct;
+    mailbox_msg_to_Z :
+      ffa_mailbox_msg_t -> option Z;
+    region_struct_to_mailbox_msg :
+      FFA_memory_region_struct -> option ffa_mailbox_msg_t;
+    relinqiush_struct_to_mailbox_msg :
+      FFA_memory_relinquish_struct -> option ffa_mailbox_msg_t;
+    Z_to_mailbox_msg :
+      Z -> option ffa_mailbox_msg_t;
 
     (** - Simple system configuration related values *)
     (** - Hypervisor entity has a designated ID *)
@@ -142,11 +127,10 @@ Section FFA_VM.
   (** Mailbox definition. Each mailbox is assigned into each VM *)
   Record MAILBOX_struct :=
     mkMAILBOX_struct {
-        send : ffa_mailbox_send_msg_t;
-        recv : ffa_mailbox_recv_msg_t;
-        recv_sender : option ffa_UUID_t;
-        recv_size : Z;
-        recv_func : option FFA_FUNCTION_TYPE;
+        message: ffa_mailbox_msg_t;
+        sender : option ffa_UUID_t;
+        size : Z;
+        func : option FFA_FUNCTION_TYPE;
       }.
 
   (*************************************************************)

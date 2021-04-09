@@ -91,7 +91,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
     if decide (total_length = 0) && decide (fragment_length = 0)
     then true
     else false. 
-
+  
   (***********************************************************************)
   (** **   Getter and setter functions for RX/TX buffers                 *)
   (***********************************************************************)
@@ -105,8 +105,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
        ZTree.get caller
                  state.(hypervisor_context).(vms_contexts) ;;;
     do memory_region <-
-       mailbox_send_msg_to_region_struct
-         vm_context.(mailbox).(send) ;;;
+       mailbox_msg_to_region_struct
+         vm_context.(mailbox).(message) ;;;
     Some (state
             {system_log: state.(system_log)
                                  ++(RecvMsg caller vm_context.(mailbox))::nil},
@@ -120,9 +120,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
     : option AbstractState := 
     do vm_context <- ZTree.get
                       receiver state.(hypervisor_context).(vms_contexts) ;;;
-    do message <- region_struct_to_mailbox_recv_msg region_descriptor ;;; 
+    do message <- region_struct_to_mailbox_msg region_descriptor ;;; 
     let mailbox_contents := mkMAILBOX_struct 
-                              (vm_context.(mailbox).(send))
                               message (Some sender) size (Some recv_func) in
     let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
     let new_vm_contexts :=
@@ -155,7 +154,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
              (caller : Z) (state: AbstractState)
     : option (AbstractState * Z) := 
     do vm_context <- ZTree.get caller state.(hypervisor_context).(vms_contexts) ;;;
-    do handle <- mailbox_send_msg_to_Z vm_context.(mailbox).(send);;;
+    do handle <- mailbox_msg_to_Z vm_context.(mailbox).(message);;;
     Some (state {system_log: state.(system_log)
                                      ++(RecvMsg caller vm_context.(mailbox))::nil},
           handle).
@@ -167,9 +166,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
              (state: AbstractState)
     : option AbstractState := 
     do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
-    do message <- Z_to_mailbox_recv_msg handle ;;; 
+    do message <- Z_to_mailbox_msg handle ;;; 
     let mailbox_contents := mkMAILBOX_struct 
-                              (vm_context.(mailbox).(send))
                               message (Some sender) size (Some recv_func) in
     let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
     let new_vm_contexts :=
@@ -208,7 +206,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
              (caller : Z) (state: AbstractState)
     : option (AbstractState * FFA_memory_relinquish_struct) := 
     do vm_context <- ZTree.get caller state.(hypervisor_context).(vms_contexts) ;;;
-    do relinquish_descriptor <- mailbox_send_msg_to_relinqiush_struct vm_context.(mailbox).(send) ;;;
+    do relinquish_descriptor <- mailbox_msg_to_relinqiush_struct vm_context.(mailbox).(message) ;;;
     Some (state {system_log: state.(system_log)
                                      ++(RecvMsg caller vm_context.(mailbox))::nil},
            relinquish_descriptor).
@@ -219,10 +217,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
              (state: AbstractState)
     : option AbstractState := 
     do vm_context <- ZTree.get receiver state.(hypervisor_context).(vms_contexts) ;;;
-    do message <- relinqiush_struct_to_mailbox_send_msg relinquish_descriptor ;;; 
+    do message <- relinqiush_struct_to_mailbox_msg relinquish_descriptor ;;; 
     let mailbox_contents := mkMAILBOX_struct
                               message 
-                              (vm_context.(mailbox).(recv))
                               (Some sender) size (Some FFA_MEM_RELINQUISH) in
     let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
     let new_vm_contexts :=
