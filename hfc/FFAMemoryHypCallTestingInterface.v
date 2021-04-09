@@ -1507,18 +1507,85 @@ Section MemSetterGetter.
       Ret (Vcomp (Vlong (Int64.repr entity_id)), args)
     | _ => triggerNB "get_current_entity_id_call: wrong arguments"
     end.
-  
-(*
-  Definition vcpu_struct_getter_spec :=
+
+  Definition vcpu_struct_getter_spec
     : itree HypervisorEE (VCPU_struct) :=
       st <- trigger GetState;;
-      if st.(is_hvc_mode) then
-        triggerNB "vcpu_struct_getter_spec: "
-      let cur_user_entity_id 
-      if (st.(is_hvc_mode)) then Ret (hypervisor_id)
-      else Ret (st.(cur_user_entity_id)).
-*)
+      check "vcpu_struct_getter: invalid mode for this operation",
+      (st.(is_hvc_mode))
+        ;;;
+        let cur_user_entity_id :=
+            (st.(cur_user_entity_id)) in
+        get "vcpu_struct_getter: current user vm context does not exist",
+        cur_user_vm_context
+        <- (ZTree.get cur_user_entity_id
+                     st.(vms_userspaces))
+            ;;; get "vcpu_struct_getter: current user vcpu id is invalid",
+        cur_user_vcpu_id
+        <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
+            ;;; get "vcpu_struct_getter: does not have vcpu values",
+        cur_vcpu_values 
+        <- (ZTree.get
+             cur_user_vcpu_id
+             (cur_user_vm_context.(vm_userspace_context).(vcpus_contexts)))
+            ;;; Ret (cur_vcpu_values).
   
+  Definition vcpu_struct_getter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [] =>
+      vcpu_values<- vcpu_struct_getter_spec;;
+      Ret (Vabs (upcast vcpu_values), args)
+    | _ => triggerNB "vcpu_struct_getter_call: wrong arguments"
+    end.
+  
+  Definition vcpu_struct_setter_spec (vcpu_values: VCPU_struct)
+    : itree HypervisorEE (unit) :=
+      st <- trigger GetState;;
+      check "vcpu_struct_getter: invalid mode for this operation",
+      (st.(is_hvc_mode))
+        ;;;
+        let cur_user_entity_id :=
+            (st.(cur_user_entity_id)) in
+        get "vcpu_struct_getter: current user vm context does not exist",
+        cur_user_vm_context
+        <- (ZTree.get cur_user_entity_id
+                     st.(vms_userspaces))
+            ;;; get "vcpu_struct_getter: current user vcpu id is invalid",
+        cur_user_vcpu_id
+        <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
+            ;;;
+            let new_vcpu_contexts :=
+                (ZTree.set
+                   cur_user_vcpu_id
+                   vcpu_values
+                   (cur_user_vm_context.(vm_userspace_context).(vcpus_contexts))) in
+            let new_user_vm_context :=
+                mkVM_USERSPACE_struct
+                  (mkVM_COMMON_struct
+                     (Some cur_user_vcpu_id)
+                     (cur_user_vm_context.(vm_userspace_context).(vcpus))
+                     new_vcpu_contexts) in
+            let new_vm_contexts :=
+                (ZTree.set cur_user_entity_id 
+                           new_user_vm_context
+                           st.(vms_userspaces)) in
+            let new_state := st {vms_userspaces : new_vm_contexts} in
+            trigger (SetState (st)).
+  
+  Definition vcpu_struct_setter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [Vabs vcpu_struct_val ] =>
+        match downcast vcpu_struct_val VCPU_struct with
+        | Some vcpu_val =>
+          vcpu_struct_setter_spec vcpu_val ;;
+          Ret (Vnull, args)
+        | _ => triggerNB "vcpu_struct_setter_call: impossible conversion"
+        end
+    | _ => triggerNB "vcpu_struct_setter_call: wrong arguments"
+    end.
+
 End MemSetterGetter.
 
 (***********************************************************************)
@@ -1547,7 +1614,9 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.local_properties_getter", local_properties_getter_call);
     ("HVCTopLevel.local_properties_setter", local_properties_setter_call);
     ("HVCTopLevel.set_mem_dirty", set_mem_dirty_call);
-    ("HVCTopLevel.clean_mem_dirty", clean_mem_dirty_call)
+    ("HVCTopLevel.clean_mem_dirty", clean_mem_dirty_call);
+    ("HVCTopLevel.vcpu_struct_getter", vcpu_struct_getter_call);
+    ("HVCTopLevel.vcpu_struct_setter", vcpu_struct_getter_call)
       (* TODO: add more getter/setter functions for clients *)
     ].
 
