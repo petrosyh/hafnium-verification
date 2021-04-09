@@ -72,9 +72,14 @@ Require Import Maps.
 Set Implicit Arguments.
 
 Definition page_low_int := Int64.repr page_low.
-Definition page_mid_int :=
-  ((Int64.repr page_high -  Int64.repr page_low) / (Int64.repr 2))
-  + Int64.repr page_low.
+Definition page_quater_value :=
+  ((Int64.repr page_high -  Int64.repr page_low) / (Int64.repr 4)).  
+Definition page_1st_quater_int :=
+  Int64.repr page_low + page_quater_value.
+Definition page_2nd_quater_int :=
+  Int64.repr page_low + (page_quater_value * (Int64.repr 2)).
+Definition page_3rd_quater_int :=
+  Int64.repr page_low + (page_quater_value * (Int64.repr 3)).
 Definition page_high_int := Int64.repr page_high.
 
 Section FFAMemoryHypCallInitialization.
@@ -103,6 +108,29 @@ Section FFAMemoryHypCallInitialization.
                              FFA_MEMORY_OUTER_SHAREABLE)
                           MemClean.
 
+  Definition InitialGlobalAttributesForVMThree :=
+    mkMemGlobalProperties false
+                          (Owned 3)
+                          (ExclusiveAccess 3)
+                          (FFA_INSTRUCTION_ACCESS_NX)
+                          (FFA_DATA_ACCESS_RW)
+                          (FFA_MEMORY_NORMAL_MEM
+                             FFA_MEMORY_CACHE_NON_CACHEABLE
+                             FFA_MEMORY_OUTER_SHAREABLE)
+                          MemClean.
+
+
+  Definition InitialGlobalAttributesForVMFour :=
+    mkMemGlobalProperties false
+                          (Owned 4)
+                          (ExclusiveAccess 4)
+                          (FFA_INSTRUCTION_ACCESS_NX)
+                          (FFA_DATA_ACCESS_RW)
+                          (FFA_MEMORY_NORMAL_MEM
+                             FFA_MEMORY_CACHE_NON_CACHEABLE
+                             FFA_MEMORY_OUTER_SHAREABLE)
+                          MemClean.
+  
   Definition InitialLocalAttributes :=
     mkMemLocalProperties (LocalOwned)
                          (FFA_INSTRUCTION_ACCESS_NX)
@@ -115,21 +143,37 @@ Section FFAMemoryHypCallInitialization.
     Put "start initializaiton" (Vnull) #;
         cur_address #= page_low_int #;
         (initial_local_value #= (Vabs (upcast InitialLocalAttributes))) #;
-        #while (cur_address < page_mid_int)
+        #while (cur_address < page_1st_quater_int)
         do (
-            (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMOne)))
+            (initial_global_value #= (Vabs (upcast InitialGlobalAttributesForVMOne)))
               #; (Call "HVCTopLevel.global_properties_setter"
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr primary_vm_id); CBV cur_address; CBV initial_local_value])              
               #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
-        #while (cur_address < page_high_int)
+        #while (cur_address < page_2nd_quater_int)
         do (
             (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMTwo)))
               #; (Call "HVCTopLevel.global_properties_setter"
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr 2); CBV cur_address; CBV initial_local_value])              
+              #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
+        #while (cur_address < page_3rd_quater_int)
+        do (
+            (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMThree)))
+              #; (Call "HVCTopLevel.global_properties_setter"
+                       [CBV cur_address; CBV initial_global_value])
+              #; (Call "HVCTopLevel.local_properties_setter"
+                       [CBV (Int64.repr 3); CBV cur_address; CBV initial_local_value])              
+              #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
+        #while (cur_address < page_high_int)
+        do (
+            (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMFour)))
+              #; (Call "HVCTopLevel.global_properties_setter"
+                       [CBV cur_address; CBV initial_global_value])
+              #; (Call "HVCTopLevel.local_properties_setter"
+                       [CBV (Int64.repr 4); CBV cur_address; CBV initial_local_value])              
               #; cur_address #= cur_address + (Int64.repr alignment_value)).
 
 End  FFAMemoryHypCallInitialization.
@@ -219,8 +263,17 @@ Module FFAMEMORYHYPCALLTESTING.
                                         CBV (Vabs (upcast (mailbox_msg
                                                              primary_vm_id primary_vm_id
                                                              page_low 1)));
-                                        CBV (Vabs (upcast FFA_MEM_DONATE))]) 
-        #; (Call "HVCTopLevel.hypervisor_call" []).
+                                        CBV (Vabs (upcast FFA_MEM_DONATE))])
+
+        #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 0)])
+        #; (Call "HVCToplevel.vcpu_struct_setter" [CBV (Vabs (upcast (mkVCPU_struct
+                                                                        (Some 0)
+                                                                        (Some primary_vm_id)
+                                                                        (mkArchRegs
+                                                                           (mkFFA_value_type
+                                                                              (FFA_FUNCTION_IDENTIFIER FFA_MEM_DONATE)
+                                                                              (ZMap.init 0))))))])
+        #; (Call "HVCTopLevel.hypervisor_call" []).    
 
     Definition mainF: function.
       mk_function_tac main ([]: list var) (["cur_address";
@@ -241,5 +294,4 @@ Module FFAMEMORYHYPCALLTESTING.
   End DONATETEST1.
   
 End FFAMEMORYHYPCALLTESTING.
-
 

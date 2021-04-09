@@ -217,7 +217,7 @@ Global Instance ffa_vm_context :
     Z_to_mailbox_msg := z_to_mailbox_msg;
 
     primary_vm_id := 1;
-    secondary_vm_ids := 2::nil;
+    secondary_vm_ids := 2::3::4::nil;
 
     (* TODO: Need to fix *)
     FFA_memory_region_struct_size := fun x => 1;
@@ -1507,12 +1507,74 @@ Section MemSetterGetter.
       Ret (Vcomp (Vlong (Int64.repr entity_id)), args)
     | _ => triggerNB "get_current_entity_id_call: wrong arguments"
     end.
+  
+  Definition userspace_vcpu_index_getter_spec
+    : itree HypervisorEE (ffa_VCPU_ID_t) :=
+    st <- trigger GetState;;
+    check "userspace_vcpu_index_getter: invalid mode for this operation",
+    (negb st.(is_hvc_mode))
+      ;;;
+      let cur_user_entity_id :=
+          (st.(cur_user_entity_id)) in
+      get "userspace_vcpu_index_getter: current user vm context does not exist",
+      cur_user_vm_context
+      <- (ZTree.get cur_user_entity_id
+                   st.(vms_userspaces))
+          ;;; get "userspace_vcpu_index_getter: current user vcpu id is invalid",
+      cur_user_vcpu_id
+      <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
+          ;;; Ret (cur_user_vcpu_id).
 
+  Definition userspace_vcpu_index_getter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [] =>
+      vcpu_index <- userspace_vcpu_index_getter_spec;;
+      Ret (Vcomp (Vlong (Int64.repr vcpu_index)), args)
+    | _ => triggerNB "userspace_vcpu_index_getter_call: wrong arguments"
+    end.
+
+  Definition userspace_vcpu_index_setter_spec
+             (vcpu_index : ffa_VCPU_ID_t) 
+    : itree HypervisorEE (unit) :=
+    st <- trigger GetState;;
+    check "userspace_vcpu_index_setter: invalid mode for this operation",
+    (negb st.(is_hvc_mode))
+      ;;;
+      let cur_user_entity_id :=
+          (st.(cur_user_entity_id)) in
+      get "userspace_vcpu_index_setter: current user vm context does not exist",
+      cur_user_vm_context
+      <- (ZTree.get cur_user_entity_id
+                   st.(vms_userspaces))
+          ;;;
+          let new_user_vm_context :=
+              mkVM_USERSPACE_struct
+                (mkVM_COMMON_struct
+                   (Some vcpu_index)
+                   (cur_user_vm_context.(vm_userspace_context).(vcpus))
+                   (cur_user_vm_context.(vm_userspace_context).(vcpus_contexts))) in
+          let new_vm_contexts :=
+              (ZTree.set cur_user_entity_id 
+                         new_user_vm_context
+                         st.(vms_userspaces)) in
+          let new_state := st {vms_userspaces : new_vm_contexts} in
+          trigger (SetState (new_state)).
+  
+  Definition userspace_vcpu_index_setter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [Vcomp (Vlong value)] =>
+      userspace_vcpu_index_setter_spec (Int64.unsigned value);;
+      Ret (Vnull, args)
+    | _ => triggerNB "userspace_vcpu_index_setter_call: wrong arguments"
+    end.
+  
   Definition vcpu_struct_getter_spec
     : itree HypervisorEE (VCPU_struct) :=
       st <- trigger GetState;;
       check "vcpu_struct_getter: invalid mode for this operation",
-      (st.(is_hvc_mode))
+      (negb st.(is_hvc_mode))
         ;;;
         let cur_user_entity_id :=
             (st.(cur_user_entity_id)) in
@@ -1543,7 +1605,7 @@ Section MemSetterGetter.
     : itree HypervisorEE (unit) :=
       st <- trigger GetState;;
       check "vcpu_struct_getter: invalid mode for this operation",
-      (st.(is_hvc_mode))
+      (negb st.(is_hvc_mode))
         ;;;
         let cur_user_entity_id :=
             (st.(cur_user_entity_id)) in
@@ -1616,7 +1678,9 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.set_mem_dirty", set_mem_dirty_call);
     ("HVCTopLevel.clean_mem_dirty", clean_mem_dirty_call);
     ("HVCTopLevel.vcpu_struct_getter", vcpu_struct_getter_call);
-    ("HVCTopLevel.vcpu_struct_setter", vcpu_struct_getter_call)
+    ("HVCTopLevel.vcpu_struct_setter", vcpu_struct_getter_call);
+    ("HVCToplevel.userspace_vcpu_index_getter", userspace_vcpu_index_getter_call);
+    ("HVCToplevel.userspace_vcpu_index_setter", userspace_vcpu_index_setter_call)
       (* TODO: add more getter/setter functions for clients *)
     ].
 
