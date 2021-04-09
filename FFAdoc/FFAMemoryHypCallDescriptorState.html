@@ -59,7 +59,7 @@
 </div>
 
 <div class="doc">
-<a name="lab32"></a><h1 class="section">Introduction</h1>
+<a name="lab31"></a><h1 class="section">Introduction</h1>
 
 <div class="paragraph"> </div>
 
@@ -68,7 +68,7 @@
 
 <div class="paragraph"> </div>
 
-<a name="lab33"></a><h1 class="section">Types and Constant values that are used in FF</h1>
+<a name="lab32"></a><h1 class="section">Types and Constant values that are used in FF</h1>
 
 </div>
 <div class="code">
@@ -207,7 +207,7 @@ Type definitions in the below are mostly type aliasing for the readability.
 </div>
 
 <div class="doc">
-<a name="lab34"></a><h1 class="section">FFA  keyword</h1>
+<a name="lab33"></a><h1 class="section">FFA  keyword</h1>
 
 </div>
 <div class="code">
@@ -294,11 +294,11 @@ The following types are defined in Chapter 11 (Memory management interfaces docu
    
 <div class="paragraph"> </div>
 
-<a name="lab35"></a><h4 class="section"> </h4>
+<a name="lab34"></a><h4 class="section"> </h4>
 
 <div class="paragraph"> </div>
 
-<a name="lab36"></a><h4 class="section">FFA Function Type Coq Definition</h4>
+<a name="lab35"></a><h4 class="section">FFA Function Type Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -349,11 +349,11 @@ The following parts are not defined in Chapter 5, but in Chapter 7.
   
 <div class="paragraph"> </div>
 
-<a name="lab37"></a><h4 class="section"> </h4>
+<a name="lab36"></a><h4 class="section"> </h4>
 
 <div class="paragraph"> </div>
 
-<a name="lab38"></a><h4 class="section">FFA Error Code Type Coq Definition</h4>
+<a name="lab37"></a><h4 class="section">FFA Error Code Type Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -393,7 +393,7 @@ The following numbers are also defined in Chapter 7
   
 <div class="paragraph"> </div>
 
-<a name="lab39"></a><h3 class="section">FFA Result Code Type Coq Definition</h3>
+<a name="lab38"></a><h3 class="section">FFA Result Code Type Coq Definition</h3>
 
 </div>
 <div class="code">
@@ -405,7 +405,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab40"></a><h3 class="section">FFA Identifier Type Coq Definition</h3>
+<a name="lab39"></a><h3 class="section">FFA Identifier Type Coq Definition</h3>
  This version only focus on two FFA interfaces, memory management related interfaces and interfaces for 
      the result of memory management related parts 
 </div>
@@ -422,7 +422,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab41"></a><h1 class="section">FFA value structures</h1>
+<a name="lab40"></a><h1 class="section">FFA value structures</h1>
  This one is related to the interface definitions in Section 11 of the document.
 
 <div class="paragraph"> </div>
@@ -504,7 +504,7 @@ The minimum register model that are necessary for modeling FFA memory management
   
 <div class="paragraph"> </div>
 
-<a name="lab42"></a><h3 class="section">Formal definition of FFA value</h3>
+<a name="lab41"></a><h3 class="section">Formal definition of FFA value</h3>
 
 </div>
 <div class="code">
@@ -552,7 +552,7 @@ Default value
 </div>
 
 <div class="doc">
-<a name="lab43"></a><h1 class="section">Descriptors</h1>
+<a name="lab42"></a><h1 class="section">Descriptors</h1>
  <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">parts</span></span> <span class="inlinecode"><span class="id" title="var">are</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode">&quot;5.10</span> <span class="inlinecode"><span class="id" title="var">Memory</span></span> <span class="inlinecode"><span class="id" title="var">region</span></span> <span class="inlinecode"><span class="id" title="var">description</span>&quot;</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode">&quot;5.11</span> <span class="inlinecode"><span class="id" title="var">Memory</span></span> <span class="inlinecode"><span class="id" title="var">region</span></span> <span class="inlinecode"><span class="id" title="var">properties</span>&quot;</span> 
 </div>
 <div class="code">
@@ -562,7 +562,7 @@ Default value
 </div>
 
 <div class="doc">
-<a name="lab44"></a><h2 class="section">5.10 Memory region description</h2>
+<a name="lab43"></a><h2 class="section">5.10 Memory region description</h2>
 
 <div class="paragraph"> </div>
 
@@ -591,7 +591,7 @@ Default value
 </div>
 
 <div class="doc">
-<a name="lab45"></a><h3 class="section">Constituent memory region and composite_memory_region descriptors</h3>
+<a name="lab44"></a><h3 class="section">Constituent memory region and composite_memory_region descriptors</h3>
  <span class="inlinecode"><span class="id" title="var">We</span></span> <span class="inlinecode"><span class="id" title="var">define</span></span> <span class="inlinecode"><span class="id" title="var">descriptors</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="var">are</span></span> <span class="inlinecode"><span class="id" title="var">used</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">FFA</span></span> <span class="inlinecode"><span class="id" title="var">interfaces</span>.</span> <span class="inlinecode"><span class="id" title="var">Sender</span>,</span> <span class="inlinecode"><span class="id" title="var">Relayer</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">Borrower</span></span> <span class="inlinecode"><span class="id" title="var">use</span></span> <span class="inlinecode"><span class="id" title="var">them</span></span> 
       <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">figure</span></span> <span class="inlinecode"><span class="id" title="var">out</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">information</span></span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">check</span></span> <span class="inlinecode"><span class="id" title="var">validity</span></span> <span class="inlinecode"><span class="id" title="keyword">of</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">query</span></span> <span class="inlinecode"><span class="id" title="tactic">by</span></span> <span class="inlinecode"><span class="id" title="keyword">using</span></span> <span class="inlinecode"><span class="id" title="var">them</span></span>  A memory region is described in a memory management transaction by specifying the list and count of 4K sized
       pages that constitute it (see Table 5.13). 
@@ -683,7 +683,7 @@ Default value
    
 <div class="paragraph"> </div>
 
-<a name="lab46"></a><h4 class="section">FFA Memory Region Constituent Coq Definition</h4>
+<a name="lab45"></a><h4 class="section">FFA Memory Region Constituent Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -759,7 +759,7 @@ Table 5.13: Composite memory region descriptor - A set of pages comprising a mem
 </div>
 
 <div class="doc">
-<a name="lab47"></a><h4 class="section">FFA Composition Memory Region Coq Definition</h4>
+<a name="lab46"></a><h4 class="section">FFA Composition Memory Region Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -824,7 +824,7 @@ Basic well-formedness condition
    
 <div class="paragraph"> </div>
 
-<a name="lab48"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab47"></a><h4 class="section">Well formed conditions</h4>
  Check addresses in multiple constituents to see whether they are disjoint 
 </div>
 <div class="code">
@@ -917,7 +917,7 @@ Return INVALID_PARAMETER when it is not satisfied
 </div>
 
 <div class="doc">
-<a name="lab49"></a><h3 class="section">Memory region handle</h3>
+<a name="lab48"></a><h3 class="section">Memory region handle</h3>
  Handle : 64-bit, and the handle is allocated by teh replayer 
 <ul class="doclist">
 <li> A 64-bit Handle is used to identify a composite memory region description for example, VA_0 described in
@@ -989,8 +989,8 @@ Return INVALID_PARAMETER when it is not satisfied
 </div>
 
 <div class="doc">
-<a name="lab50"></a><h2 class="section">5.11 Memory region properties</h2>
-<a name="lab51"></a><h3 class="section">Constituent memory region and composite_memory_region descriptors</h3>
+<a name="lab49"></a><h2 class="section">5.11 Memory region properties</h2>
+<a name="lab50"></a><h3 class="section">Constituent memory region and composite_memory_region descriptors</h3>
 
 <div class="paragraph"> </div>
 
@@ -1035,7 +1035,7 @@ Return INVALID_PARAMETER when it is not satisfied
   
 <div class="paragraph"> </div>
 
-<a name="lab52"></a><h4 class="section">FFA Instruction Access Coq Definition</h4>
+<a name="lab51"></a><h4 class="section">FFA Instruction Access Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -1058,7 +1058,7 @@ Return INVALID_PARAMETER when it is not satisfied
    
 <div class="paragraph"> </div>
 
-<a name="lab53"></a><h4 class="section">FFA Data Access Coq Definition</h4>
+<a name="lab52"></a><h4 class="section">FFA Data Access Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -1099,7 +1099,7 @@ FFA memory access permissions descriptor
    
 <div class="paragraph"> </div>
 
-<a name="lab54"></a><h4 class="section">Order of instruction access and data access to check</h4>
+<a name="lab53"></a><h4 class="section">Order of instruction access and data access to check</h4>
 
       whether a is more permissive. 
 <ul class="doclist">
@@ -1164,7 +1164,7 @@ invalid pairs
 </div>
 
 <div class="doc">
-<a name="lab55"></a><h4 class="section">FFA Memory Access Permissions Descriptor Coq Definitoin</h4>
+<a name="lab54"></a><h4 class="section">FFA Memory Access Permissions Descriptor Coq Definitoin</h4>
 
 </div>
 <div class="code">
@@ -1341,7 +1341,7 @@ invalid pairs
 </div>
 
 <div class="doc">
-<a name="lab56"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab55"></a><h4 class="section">Well formed conditions</h4>
  The call should return INVALID_PARAMETERS when the following is not satisfied 
 </div>
 <div class="code">
@@ -1416,7 +1416,7 @@ invalid pairs
 </div>
 
 <div class="doc">
-<a name="lab57"></a><h4 class="section">FFA Endpoint Memory Access Descriptor Coq Definitoin</h4>
+<a name="lab56"></a><h4 class="section">FFA Endpoint Memory Access Descriptor Coq Definitoin</h4>
 
 </div>
 <div class="code">
@@ -1505,7 +1505,7 @@ invalid pairs
 </div>
 
 <div class="doc">
-<a name="lab58"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab57"></a><h4 class="section">Well formed conditions</h4>
  <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="var">error</span></span> <span class="inlinecode"><span class="id" title="var">code</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">not</span></span> <span class="inlinecode"><span class="id" title="var">defined</span></span> <span class="inlinecode"><span class="id" title="var">when</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">offset</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">not</span></span> <span class="inlinecode"><span class="id" title="var">correct</span>.</span> 
       <span class="inlinecode"><span class="id" title="var">I</span></span> <span class="inlinecode"><span class="id" title="var">will</span></span> <span class="inlinecode"><span class="id" title="keyword">return</span></span> <span class="inlinecode"><span class="id" title="var">INVALID_PARAMETER</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="tactic">case</span></span> 
 </div>
@@ -1527,7 +1527,7 @@ invalid pairs
 </div>
 
 <div class="doc">
-<a name="lab59"></a><h3 class="section">5.11.2 Data access permissions usage</h3>
+<a name="lab58"></a><h3 class="section">5.11.2 Data access permissions usage</h3>
 
 <div class="paragraph"> </div>
 
@@ -1722,7 +1722,7 @@ invalid pairs
    
 <div class="paragraph"> </div>
 
-<a name="lab60"></a><h4 class="section">Access permission checker</h4>
+<a name="lab59"></a><h4 class="section">Access permission checker</h4>
  Definitions to check access permissions.
 
 <div class="paragraph"> </div>
@@ -1772,7 +1772,7 @@ invalid pairs
    
 <div class="paragraph"> </div>
 
-<a name="lab61"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab60"></a><h4 class="section">Well formed conditions</h4>
  I added the following checkers, but some of them may not be used due to the redundancy  Returns DENIED, when it returns false 
 </div>
 <div class="code">
@@ -1819,7 +1819,7 @@ Return INVALID_PARAMETER when it returns false
 <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">does</span></span> <span class="inlinecode"><span class="id" title="var">not</span></span> <span class="inlinecode"><span class="id" title="var">specify</span></span> <span class="inlinecode"><span class="id" title="var">which</span></span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">have</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">store</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">resp</span>.</span> 
 <div class="paragraph"> </div>
 
-<a name="lab62"></a><h3 class="section">5.11.3 Instruction access permissions usage</h3>
+<a name="lab61"></a><h3 class="section">5.11.3 Instruction access permissions usage</h3>
  <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">things</span></span> <span class="inlinecode"><span class="id" title="var">need</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">implemented</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">transition</span></span> <span class="inlinecode"><span class="id" title="var">rules</span></span>
 
 <div class="paragraph"> </div>
@@ -1864,7 +1864,7 @@ Return INVALID_PARAMETER when it returns false
    
 <div class="paragraph"> </div>
 
-<a name="lab63"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab62"></a><h4 class="section">Well formed conditions</h4>
  <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">it</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">not</span></span> <span class="inlinecode"><span class="id" title="var">specified</span>,</span> <span class="inlinecode"><span class="id" title="var">but</span></span> <span class="inlinecode"><span class="id" title="keyword">return</span></span> <span class="inlinecode"><span class="id" title="var">INVALID_PARAMETER</span></span> <span class="inlinecode"><span class="id" title="var">when</span></span> <span class="inlinecode"><span class="id" title="var">it</span></span> <span class="inlinecode"><span class="id" title="var">returns</span></span> <span class="inlinecode"><span class="id" title="var">false</span></span>  Return INVALID_PARAMETER when it is not specified 
 </div>
 <div class="code">
@@ -2008,7 +2008,7 @@ for resp's descriptor - FFA_MEM_SHARE and FFA_MEM_LEND for multiple borrowers  R
    
 <div class="paragraph"> </div>
 
-<a name="lab64"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab63"></a><h4 class="section">Well formed conditions</h4>
  for borower's descriptor - FFA_MEM_DONATE and FFA_MEM_LEND for single borrowers  Return INVALID_PARAMETER when it returns false 
 </div>
 <div class="code">
@@ -2068,7 +2068,7 @@ Return INVALID_PARAMETER when it is not possible
 </div>
 
 <div class="doc">
-<a name="lab65"></a><h3 class="section">5.11.4 Memory region attributes usage</h3>
+<a name="lab64"></a><h3 class="section">5.11.4 Memory region attributes usage</h3>
  Memory type : Device-nGnRnE &lt; Device-nGnRE &lt; Device-nGRE &lt; Device-GRE &lt; Normal.
 
 <div class="paragraph"> </div>
@@ -2259,7 +2259,7 @@ Return INVALID_PARAMETER when it is not possible
 </div>
 
 <div class="doc">
-<a name="lab66"></a><h4 class="section">FFA Memory Region Attributes Descriptor Coq definition</h4>
+<a name="lab65"></a><h4 class="section">FFA Memory Region Attributes Descriptor Coq definition</h4>
 
 </div>
 <div class="code">
@@ -2447,7 +2447,7 @@ Return INVALID_PARAMETER when it is not possible
    
 <div class="paragraph"> </div>
 
-<a name="lab67"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab66"></a><h4 class="section">Well formed conditions</h4>
  Return DENIED when it is not satisfied 
 </div>
 <div class="code">
@@ -2556,7 +2556,7 @@ Return DENIED when it is not satisfied
    
 <div class="paragraph"> </div>
 
-<a name="lab68"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab67"></a><h4 class="section">Well formed conditions</h4>
  Return INVALID_PARAMETERS when it is not statisfied 
 </div>
 <div class="code">
@@ -2588,7 +2588,7 @@ Return DENIED when it is not statisfied
 </div>
 
 <div class="doc">
-<a name="lab69"></a><h1 class="section">transaction descriptors</h1>
+<a name="lab68"></a><h1 class="section">transaction descriptors</h1>
 
 </div>
 <div class="code">
@@ -2599,11 +2599,11 @@ Return DENIED when it is not statisfied
 </div>
 
 <div class="doc">
-<a name="lab70"></a><h2 class="section">5.12 Lend, donate, and share transaction descriptor</h2>
+<a name="lab69"></a><h2 class="section">5.12 Lend, donate, and share transaction descriptor</h2>
 
 <div class="paragraph"> </div>
 
-<a name="lab71"></a><h3 class="section">5.12.4 Flags usage</h3>
+<a name="lab70"></a><h3 class="section">5.12.4 Flags usage</h3>
 
 <div class="paragraph"> </div>
 
@@ -2642,7 +2642,7 @@ Return DENIED when it is not statisfied
    
 <div class="paragraph"> </div>
 
-<a name="lab72"></a><h4 class="section">Zero memory flag</h4>
+<a name="lab71"></a><h4 class="section">Zero memory flag</h4>
 
       In some ABI invocations, the caller could set a 
       flag to request the Relayer to zero a memory region. To do this, the Relayer must:
@@ -2694,7 +2694,7 @@ Return DENIED when it is not statisfied
 </div>
 
 <div class="doc">
-<a name="lab73"></a><h4 class="section">FFA Mem Default Flags</h4>
+<a name="lab72"></a><h4 class="section">FFA Mem Default Flags</h4>
 
 </div>
 <div class="code">
@@ -2778,7 +2778,7 @@ Return DENIED when it is not statisfied
 </div>
 
 <div class="doc">
-<a name="lab74"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab73"></a><h4 class="section">Well formed conditions</h4>
  Return INVALID_PARAMETER or DENIED when it is not satisfied 
 </div>
 <div class="code">
@@ -2824,7 +2824,7 @@ Return INVALID_PARAMETER when it is not satisfied
 </div>
 
 <div class="doc">
-<a name="lab75"></a><h4 class="section">Well formed conditions for retrieve (when it is not using retrieve flags</h4>
+<a name="lab74"></a><h4 class="section">Well formed conditions for retrieve (when it is not using retrieve flags</h4>
  Return INVALID_PARAMETER or DENIED when it is not satisfied 
 </div>
 <div class="code">
@@ -2880,7 +2880,7 @@ FFA_MEM_RETRIEVE_REQ
 </div>
 
 <div class="doc">
-<a name="lab76"></a><h4 class="section">FFA Mem Relinquish Req Flags Coq Definition</h4>
+<a name="lab75"></a><h4 class="section">FFA Mem Relinquish Req Flags Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -3090,7 +3090,7 @@ FFA_MEM_RETRIEVE_REQ
 </div>
 
 <div class="doc">
-<a name="lab77"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab76"></a><h4 class="section">Well formed conditions</h4>
  Return INVALID_PARAMETER or DENIED if it is not satisfied 
 </div>
 <div class="code">
@@ -3232,7 +3232,7 @@ FFA_MEM_RETRIEVE_RESP
 </div>
 
 <div class="doc">
-<a name="lab78"></a><h4 class="section">FFA Mem Relinquish Resp Flags Coq Definition</h4>
+<a name="lab77"></a><h4 class="section">FFA Mem Relinquish Resp Flags Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -3324,7 +3324,7 @@ FFA_MEM_RETRIEVE_RESP
 </div>
 
 <div class="doc">
-<a name="lab79"></a><h4 class="section">Well formed conditions</h4>
+<a name="lab78"></a><h4 class="section">Well formed conditions</h4>
  <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="keyword">return</span></span> <span class="inlinecode"><span class="id" title="var">value</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">not</span></span> <span class="inlinecode"><span class="id" title="var">specified</span>,</span> <span class="inlinecode"><span class="id" title="var">but</span></span> <span class="inlinecode"><span class="id" title="var">I</span></span> <span class="inlinecode"><span class="id" title="var">will</span></span> <span class="inlinecode"><span class="id" title="var">follow</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">rule</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span>
       <span class="inlinecode"><span class="id" title="var">previous</span></span> <span class="inlinecode"><span class="id" title="var">flag</span></span> <span class="inlinecode"><span class="id" title="var">checks</span></span> <span class="inlinecode"><span class="id" title="var">use</span></span> <span class="inlinecode"></span> Return INVALID_PARAMETER or DENIED if it is not satisfied 
 </div>
@@ -3399,7 +3399,7 @@ Return INVALID_PARAMETER if it is not satisfied
 </div>
 
 <div class="doc">
-<a name="lab80"></a><h4 class="section">FFA Mem Region Flags Coq Definition</h4>
+<a name="lab79"></a><h4 class="section">FFA Mem Region Flags Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -3446,7 +3446,7 @@ The following descriptor specifies the data structure that must be used by the
    
 <div class="paragraph"> </div>
 
-<a name="lab81"></a><h2 class="section">Table 5.19: Lend, donate or share memory transaction descriptor</h2>
+<a name="lab80"></a><h2 class="section">Table 5.19: Lend, donate or share memory transaction descriptor</h2>
  Table 5.19: Lend, donate or share memory transaction descriptor  Note that it is also used for retrieve requests and responses. The ID of the VM which originally sent the memory region, i.e. the  owner.
 <ul class="doclist">
 <li> <span class="inlinecode"><span class="id" title="var">ffa_vm_id_t</span></span> <span class="inlinecode"><span class="id" title="var">sender</span>;</span>
@@ -3488,7 +3488,7 @@ The following descriptor specifies the data structure that must be used by the
 </div>
 
 <div class="doc">
-<a name="lab82"></a><h4 class="section">FFA Memory Region Coq Definition</h4>
+<a name="lab81"></a><h4 class="section">FFA Memory Region Coq Definition</h4>
 
 </div>
 <div class="code">
@@ -3696,7 +3696,7 @@ The following descriptor specifies the data structure that must be used by the
 </div>
 
 <div class="doc">
-<a name="lab83"></a><h4 class="section">well formed conditions</h4>
+<a name="lab82"></a><h4 class="section">well formed conditions</h4>
 
 </div>
 <div class="code">
@@ -3802,7 +3802,7 @@ Return INVALID_PARAMETERS when it is not satisfied <ul class="doclist">
 </div>
 
 <div class="doc">
-<a name="lab84"></a><h2 class="section">Handle Usage</h2>
+<a name="lab83"></a><h2 class="section">Handle Usage</h2>
 
 <div class="paragraph"> </div>
 
@@ -3860,7 +3860,7 @@ Return INVALID_PARAMETERS when it is not satisfied <ul class="doclist">
  <span class="inlinecode"><span class="id" title="var">See</span></span> <span class="inlinecode"><span class="id" title="var">well_formed_FFA_memory_region_struct</span></span> 
 <div class="paragraph"> </div>
 
-<a name="lab85"></a><h2 class="section">Tag usage</h2>
+<a name="lab84"></a><h2 class="section">Tag usage</h2>
 
 <div class="paragraph"> </div>
 
@@ -3905,9 +3905,9 @@ Return INVALID_PARAMETERS when it is not satisfied <ul class="doclist">
  <span class="inlinecode"><span class="id" title="var">See</span></span> <span class="inlinecode"><span class="id" title="var">well_formed_FFA_memory_region_struct</span></span> 
 <div class="paragraph"> </div>
 
-<a name="lab86"></a><h2 class="section">Endpoint memory access descriptor array usage</h2>
+<a name="lab85"></a><h2 class="section">Endpoint memory access descriptor array usage</h2>
  <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">similar</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">previous</span></span> <span class="inlinecode"><span class="id" title="var">usage</span></span> <span class="inlinecode"><span class="id" title="var">descriptions</span>,</span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> 
-      <span class="inlinecode"><span class="id" title="var">things</span></span> <span class="inlinecode"><span class="id" title="var">has</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">defined</span></span> <span class="inlinecode"><span class="id" title="keyword">as</span></span> <span class="inlinecode"><span class="id" title="var">invariants</span></span> <a name="lab87"></a><h3 class="section">Sender usage</h3>
+      <span class="inlinecode"><span class="id" title="var">things</span></span> <span class="inlinecode"><span class="id" title="var">has</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">defined</span></span> <span class="inlinecode"><span class="id" title="keyword">as</span></span> <span class="inlinecode"><span class="id" title="var">invariants</span></span> <a name="lab86"></a><h3 class="section">Sender usage</h3>
  A Sender must use this field to specify one or more Receivers and the access permissions each should have on the
       memory region it is donating, lending or sharing through an invocation of one of the following ABIs.
 <ul class="doclist">
@@ -3990,7 +3990,7 @@ Return INVALID_PARAMETERS when it is not satisfied <ul class="doclist">
  <span class="inlinecode"><span class="id" title="var">See</span></span> <span class="inlinecode"><span class="id" title="var">well_formed_FFA_memory_region_struct</span></span> 
 <div class="paragraph"> </div>
 
-<a name="lab88"></a><h3 class="section">Receiver usage</h3>
+<a name="lab87"></a><h3 class="section">Receiver usage</h3>
  A Receiver must use this field to specify the access permissions it should have on the memory region
       being donated,
       lent or shared in an invocation of the FFA_MEM_RETRIEVE_REQ ABI. This is specified in 5.11.3 Instruction
@@ -4048,7 +4048,7 @@ Return INVALID_PARAMETERS when it is not satisfied <ul class="doclist">
    
 <div class="paragraph"> </div>
 
-<a name="lab89"></a><h3 class="section">Relayer usage</h3>
+<a name="lab88"></a><h3 class="section">Relayer usage</h3>
  A Relayer must validate the Endpoint memory access descriptor count and each entry in the Endpoint memory
       access descriptor array as follows.
 <ul class="doclist">
@@ -4174,7 +4174,7 @@ Return INVALID_PARAMETERS when it is not satisfied <ul class="doclist">
    
 <div class="paragraph"> </div>
 
-<a name="lab90"></a><h2 class="section">Table 11.25: Descriptor to relinquish a memory region</h2>
+<a name="lab89"></a><h2 class="section">Table 11.25: Descriptor to relinquish a memory region</h2>
 
 <div class="paragraph"> </div>
 
@@ -4329,26 +4329,13 @@ Return INVALID_PARAMETERS when it is not satisfied <ul class="doclist">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkFFA_memory_relinquish_struct</span> 0 <span class="id" title="var">MEMORY_REGION_FLAG_DEFAULT</span> <span class="id" title="var">nil</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-<a name="lab91"></a><h4 class="section">well formed</h4>
- for FFA_memory_relinquish_struct_flags,
-      we can check flag values using the previous well-formed checks  for FFA_memory_relinquish_struct_endpoints,
-      we need to check whether all endpoints are valid 
-</div>
-<div class="code">
-
-<br/>
-
-<br/>
 <span class="id" title="keyword">End</span> <span class="id" title="var">FFA_MEMORY_REGION_DESCRIPTOR</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-<a name="lab92"></a><h1 class="section">Descriptor Context</h1>
+<a name="lab90"></a><h1 class="section">Descriptor Context</h1>
  This context defines the abstract view of 
     the handle and relative auxiliary functions with the handle. 
 </div>

@@ -96,14 +96,10 @@
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_memory_region_tag_t_dec</span> : <span class="id" title="keyword">forall</span> (<span class="id" title="var">tag1</span> <span class="id" title="var">tag2</span>: <span class="id" title="var">ffa_memory_region_tag_t</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">tag1</span> = <span class="id" title="var">tag2</span>} + {<span class="id" title="var">tag1</span> &lt;&gt; <span class="id" title="var">tag2</span>};<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_send_msg_t_dec</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<span class="id" title="var">mailbox_send_msg1</span> <span class="id" title="var">mailbox_send_msg2</span>: <span class="id" title="var">ffa_mailbox_send_msg_t</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mailbox_send_msg1</span> = <span class="id" title="var">mailbox_send_msg2</span>} +<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mailbox_send_msg1</span> &lt;&gt; <span class="id" title="var">mailbox_send_msg2</span>};<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_recv_msg_t_dec</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<span class="id" title="var">mailbox_recv_msg1</span> <span class="id" title="var">mailbox_recv_msg2</span>: <span class="id" title="var">ffa_mailbox_recv_msg_t</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mailbox_recv_msg1</span> = <span class="id" title="var">mailbox_recv_msg2</span>} +<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mailbox_recv_msg1</span> &lt;&gt; <span class="id" title="var">mailbox_recv_msg2</span>};    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t_dec</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<span class="id" title="var">mailbox_msg1</span> <span class="id" title="var">mailbox_msg2</span>: <span class="id" title="var">ffa_mailbox_msg_t</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mailbox_msg1</span> = <span class="id" title="var">mailbox_msg2</span>} +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mailbox_msg1</span> &lt;&gt; <span class="id" title="var">mailbox_msg2</span>};<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">entity_list_prop</span> := <span class="id" title="var">NoDup</span> <span class="id" title="var">entity_list</span>;<br/>
@@ -112,9 +108,9 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">alignment_value_non_zero_prop</span> :<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">alignment_value</span> &gt; 0;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address_low_alignment_prop</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Z.modulo</span> <span class="id" title="var">address_low</span> <span class="id" title="var">alignment_value</span>)%<span class="id" title="var">Z</span> = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Z.modulo</span> <span class="id" title="var">page_low</span> <span class="id" title="var">alignment_value</span>)%<span class="id" title="var">Z</span> = 0;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address_high_alignment_prop</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Z.modulo</span> (<span class="id" title="var">address_high</span> + 1) <span class="id" title="var">alignment_value</span>)%<span class="id" title="var">Z</span> = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Z.modulo</span> (<span class="id" title="var">page_high</span> + 1) <span class="id" title="var">alignment_value</span>)%<span class="id" title="var">Z</span> = 0;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
 
@@ -125,7 +121,7 @@ all results of  the address translation needs to be in betweeen low and high
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address_translation_table_prop</span> :<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <span class="id" title="var">addr</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">stage2_address_translation_table</span> <span class="id" title="var">addr</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">addr'</span> =&gt; (<span class="id" title="var">address_low</span> &lt;= <span class="id" title="var">addr'</span> &lt;= <span class="id" title="var">address_high</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">addr'</span> =&gt; (<span class="id" title="var">page_low</span> &lt;= <span class="id" title="var">addr'</span> &lt;= <span class="id" title="var">page_high</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">True</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
@@ -168,7 +164,7 @@ all results of  the address translation needs to be in betweeen low and high
 </div>
 
 <div class="doc">
-<a name="lab135"></a><h2 class="section">Invariants for memory</h2>
+<a name="lab141"></a><h2 class="section">Invariants for memory</h2>
  We specified several (basic) invariants for memory attributes, properties, etc 
 </div>
 <div class="code">
@@ -181,7 +177,7 @@ all results of  the address translation needs to be in betweeen low and high
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mem_properties_prop_low_out_of_bound</span> (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <span class="id" title="var">addr</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">addr</span> &lt; <span class="id" title="var">address_low</span>)%<span class="id" title="var">Z</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">addr</span> &lt; <span class="id" title="var">page_low</span>)%<span class="id" title="var">Z</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">addr</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>)).(<span class="id" title="var">mem_properties</span>).(<span class="id" title="var">mem_global_properties</span>)<br/>
@@ -190,7 +186,7 @@ all results of  the address translation needs to be in betweeen low and high
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mem_properties_prop_high_out_of_bound</span> (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <span class="id" title="var">addr</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address_high</span> &lt; <span class="id" title="var">addr</span>)%<span class="id" title="var">Z</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">page_high</span> &lt; <span class="id" title="var">addr</span>)%<span class="id" title="var">Z</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">addr</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>)).(<span class="id" title="var">mem_properties</span>).(<span class="id" title="var">mem_global_properties</span>)<br/>
@@ -208,7 +204,7 @@ all results of  the address translation needs to be in betweeen low and high
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mem_properties_global_properties_existence</span>  (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> <span class="id" title="var">addr</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address_low</span> &lt;= <span class="id" title="var">addr</span> &lt;= <span class="id" title="var">address_high</span>)%<span class="id" title="var">Z</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">page_low</span> &lt;= <span class="id" title="var">addr</span> &lt;= <span class="id" title="var">page_high</span>)%<span class="id" title="var">Z</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Z.modulo</span> <span class="id" title="var">addr</span> <span class="id" title="var">alignment_value</span>)%<span class="id" title="var">Z</span> = 0 -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">exists</span> <span class="id" title="var">global_properties</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span><br/>
@@ -307,7 +303,7 @@ all results of  the address translation needs to be in betweeen low and high
 </div>
 
 <div class="doc">
-<a name="lab136"></a><h2 class="section">Wrapper spec</h2>
+<a name="lab142"></a><h2 class="section">Wrapper spec</h2>
  The following definition is a wrapper spec to easily find out 
       input and output states 
 </div>

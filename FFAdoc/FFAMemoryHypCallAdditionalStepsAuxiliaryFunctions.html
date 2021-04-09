@@ -55,25 +55,12 @@
 <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallCoreTransition</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Notation</span> &quot;'do' X &lt;- A ;;; B" :=<br/>
-&nbsp;&nbsp;(<span class="id" title="keyword">match</span> <span class="id" title="var">A</span> <span class="id" title="keyword">with</span> <span class="id" title="var">Some</span> <span class="id" title="var">X</span> =&gt; <span class="id" title="var">B</span> |<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">None</span> =&gt; <span class="id" title="var">None</span><br/>
-&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">X</span> <span class="id" title="var">ident</span>, <span class="id" title="var">A</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 100, <span class="id" title="var">B</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200) : <span class="id" title="var">ffa_monad_scope</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Notation</span> &quot; 'check' A ;;; B" :=<br/>
-&nbsp;&nbsp;(<span class="id" title="keyword">if</span> <span class="id" title="var">A</span> <span class="id" title="keyword">then</span> <span class="id" title="var">B</span> <span class="id" title="keyword">else</span> <span class="id" title="var">None</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">A</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 100, <span class="id" title="var">B</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200) : <span class="id" title="var">ffa_monad_scope</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">ffa_monad_scope</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-<a name="lab10"></a><h1 class="section">Auxiliary Functions for additional transition Rules</h1>
+<a name="lab8"></a><h1 class="section">Auxiliary Functions for additional transition Rules</h1>
 
 </div>
 <div class="code">
@@ -86,7 +73,16 @@
 </div>
 
 <div class="doc">
-TODO: when TX/RX buffers are used to trasmit descriptors, 
+<a name="lab9"></a><h2 class="section">Check functions for arguments</h2>
+ The following two functions check the validity of argument values transferred by registers. 
+      In the current implementation, all of them should be 0. This is because 
+      the current version only considers the interface that uses TX/RX buffers. 
+      We do not allow the case that directly uses registers to pass the information of the 
+      hypervisor call.
+
+<div class="paragraph"> </div>
+
+      TODO: when TX/RX buffers are used to trasmit descriptors, 
       <span class="inlinecode"><span class="id" title="var">length</span></span>, <span class="inlinecode"><span class="id" title="var">fragement_length</span></span>, <span class="inlinecode"><span class="id" title="var">address</span></span>, and <span class="inlinecode"><span class="id" title="var">page_count</span></span> 
       are not actually used. Do we need to define the following definitions even for that case? 
 </div>
@@ -109,36 +105,38 @@ TODO: when TX/RX buffers are used to trasmit descriptors,
 </div>
 
 <div class="doc">
-<a name="lab11"></a><h2 class="section">Getter and setter functions for RX/TX buffers</h2>
- Get a memory region descriptor for send (donate, lend, share) operations 
+<a name="lab10"></a><h2 class="section">Getter and setter functions for RX/TX buffers</h2>
+ Auxiliary functions to send and receive messages in the RX/TX buffers. 
+<div class="paragraph"> </div>
+
+ Getter and setters for memory region descriptors in the RX/TX buffers 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_send_memory_region_descriptor</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">caller</span> : <span class="id" title="var">Z</span>) (<span class="id" title="var">state</span>: <span class="id" title="var">AbstractState</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">FFA_memory_region_struct</span>) := <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">caller</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">memory_region</span> &lt;- <span class="id" title="var">mailbox_send_msg_to_region_struct</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">send</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">state</span> {<span class="id" title="var">system_log</span>: <span class="id" title="var">state</span>.(<span class="id" title="var">system_log</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">RecvMsg</span> <span class="id" title="var">caller</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>))::<span class="id" title="var">nil</span>},<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;-<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">caller</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">memory_region</span> &lt;-<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_region_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">message</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">state</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">state</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">RecvMsg</span> <span class="id" title="var">caller</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>))::<span class="id" title="var">nil</span>},<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">memory_region</span>).<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-Set a memory region descriptor for receivers (donate, lend, share) 
-</div>
-<div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_send_memory_region_descriptor</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">size</span> : <span class="id" title="var">Z</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">region_descriptor</span>: <span class="id" title="var">FFA_memory_region_struct</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">recv_func</span> : <span class="id" title="var">FFA_FUNCTION_TYPE</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">state</span>: <span class="id" title="var">AbstractState</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> <span class="id" title="var">AbstractState</span> := <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">message</span> &lt;- <span class="id" title="var">region_struct_to_mailbox_recv_msg</span> <span class="id" title="var">region_descriptor</span> ;;; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">receiver</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">message</span> &lt;- <span class="id" title="var">region_struct_to_mailbox_msg</span> <span class="id" title="var">region_descriptor</span> ;;; <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mailbox_contents</span> := <span class="id" title="var">mkMAILBOX_struct</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">send</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">message</span> (<span class="id" title="var">Some</span> <span class="id" title="var">sender</span>) <span class="id" title="var">size</span> (<span class="id" title="var">Some</span> <span class="id" title="var">recv_func</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_mailbox</span> : <span class="id" title="var">mailbox_contents</span>} <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
@@ -149,12 +147,6 @@ Set a memory region descriptor for receivers (donate, lend, share)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">SendMsg</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">mailbox_contents</span>)::<span class="id" title="var">nil</span>}.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-Set a memory region descriptor for receivers (donate, lend, share) 
-</div>
-<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">set_send_memory_region_descriptors_for_multiple_receivers</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">receivers</span>: <span class="id" title="var">list</span> <span class="id" title="var">ffa_UUID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sender</span>: <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">size</span> : <span class="id" title="var">Z</span>)<br/>
@@ -166,34 +158,30 @@ Set a memory region descriptor for receivers (donate, lend, share)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">nil</span> =&gt; <span class="id" title="var">Some</span> <span class="id" title="var">state</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">hd</span>::<span class="id" title="var">tl</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">new_st</span> &lt;- <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">set_send_memory_region_descriptors_for_multiple_receivers</span> <span class="id" title="var">tl</span> <span class="id" title="var">sender</span> <span class="id" title="var">size</span> <span class="id" title="var">region_descriptor</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">recv_func</span> <span class="id" title="var">state</span> ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">set_send_memory_region_descriptor</span> <span class="id" title="var">sender</span> <span class="id" title="var">hd</span> <span class="id" title="var">size</span>  <span class="id" title="var">region_descriptor</span> <span class="id" title="var">recv_func</span> <span class="id" title="var">new_st</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">set_send_memory_region_descriptors_for_multiple_receivers</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">tl</span> <span class="id" title="var">sender</span> <span class="id" title="var">size</span> <span class="id" title="var">region_descriptor</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">recv_func</span> <span class="id" title="var">state</span> ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">set_send_memory_region_descriptor</span> <span class="id" title="var">sender</span> <span class="id" title="var">hd</span> <span class="id" title="var">size</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_descriptor</span> <span class="id" title="var">recv_func</span> <span class="id" title="var">new_st</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-Get a memory region descriptor for send (donate, lend, share) operations 
+Getter and setters for the handle value in the RX/TX buffers 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_send_handle_value</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">caller</span> : <span class="id" title="var">Z</span>) (<span class="id" title="var">state</span>: <span class="id" title="var">AbstractState</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">Z</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">caller</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">handle</span> &lt;- <span class="id" title="var">mailbox_send_msg_to_Z</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">send</span>);;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">handle</span> &lt;- <span class="id" title="var">mailbox_msg_to_Z</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">message</span>);;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">state</span> {<span class="id" title="var">system_log</span>: <span class="id" title="var">state</span>.(<span class="id" title="var">system_log</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">RecvMsg</span> <span class="id" title="var">caller</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>))::<span class="id" title="var">nil</span>},<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">handle</span>).<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-Set a memory region descriptor for receivers (donate, lend, share) 
-</div>
-<div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_send_handle</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">size</span> : <span class="id" title="var">Z</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">handle</span>: <span class="id" title="var">Z</span>)<br/>
@@ -201,54 +189,9 @@ Set a memory region descriptor for receivers (donate, lend, share)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">state</span>: <span class="id" title="var">AbstractState</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> <span class="id" title="var">AbstractState</span> := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">message</span> &lt;- <span class="id" title="var">Z_to_mailbox_recv_msg</span> <span class="id" title="var">handle</span> ;;; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">message</span> &lt;- <span class="id" title="var">Z_to_mailbox_msg</span> <span class="id" title="var">handle</span> ;;; <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mailbox_contents</span> := <span class="id" title="var">mkMAILBOX_struct</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">send</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">message</span> (<span class="id" title="var">Some</span> <span class="id" title="var">sender</span>) <span class="id" title="var">size</span> (<span class="id" title="var">Some</span> <span class="id" title="var">recv_func</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_mailbox</span> : <span class="id" title="var">mailbox_contents</span>} <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">receiver</span> <span class="id" title="var">new_vm_context</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> <span class="id" title="var">state</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">vms_contexts</span> : <span class="id" title="var">new_vm_contexts</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">state</span>.(<span class="id" title="var">system_log</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">SendMsg</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">mailbox_contents</span>)::<span class="id" title="var">nil</span>}.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-Get a relinquish descriptor for send (donate, lend, share) operations 
-</div>
-<div class="code">
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_send_relinquish_descriptor</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">caller</span> : <span class="id" title="var">Z</span>) (<span class="id" title="var">state</span>: <span class="id" title="var">AbstractState</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">FFA_memory_relinquish_struct</span>) := <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">caller</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">relinquish_descriptor</span> &lt;- <span class="id" title="var">mailbox_send_msg_to_relinqiush_struct</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">send</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">state</span> {<span class="id" title="var">system_log</span>: <span class="id" title="var">state</span>.(<span class="id" title="var">system_log</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">RecvMsg</span> <span class="id" title="var">caller</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>))::<span class="id" title="var">nil</span>},<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinquish_descriptor</span>).<br/>
-
-<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-Set a memory region descriptor for receivers (donate, lend, share) 
-</div>
-<div class="code">
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_send_relinquish_descriptor</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">size</span> : <span class="id" title="var">Z</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">relinquish_descriptor</span>: <span class="id" title="var">FFA_memory_relinquish_struct</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">state</span>: <span class="id" title="var">AbstractState</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> <span class="id" title="var">AbstractState</span> := <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">message</span> &lt;- <span class="id" title="var">relinqiush_struct_to_mailbox_send_msg</span> <span class="id" title="var">relinquish_descriptor</span> ;;; <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mailbox_contents</span> := <span class="id" title="var">mkMAILBOX_struct</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">message</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">recv</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Some</span> <span class="id" title="var">sender</span>) <span class="id" title="var">size</span> (<span class="id" title="var">Some</span> <span class="id" title="var">FFA_MEM_RELINQUISH</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_mailbox</span> : <span class="id" title="var">mailbox_contents</span>} <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">receiver</span> <span class="id" title="var">new_vm_context</span><br/>
@@ -275,6 +218,12 @@ Set a memory region descriptor for receivers (donate, lend, share)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+The unwrapper to retrieve the actual information from the handle value 
+</div>
+<div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_handle_information</span> (<span class="id" title="var">handle</span>: <span class="id" title="var">ffa_memory_handle_t</span>) (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>)      <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_share_state_struct</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">share_state_pool_index</span> := <span class="id" title="var">get_value</span> <span class="id" title="var">handle</span> <span class="id" title="tactic">in</span> <br/>
@@ -286,7 +235,42 @@ Set a memory region descriptor for receivers (donate, lend, share)
 </div>
 
 <div class="doc">
-<a name="lab12"></a><h2 class="section">Getter for memory accessibility and attributes</h2>
+Getter and setters for the relinquish descriptor in the RX/TX buffers 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_send_relinquish_descriptor</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">caller</span> : <span class="id" title="var">Z</span>) (<span class="id" title="var">state</span>: <span class="id" title="var">AbstractState</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> (<span class="id" title="var">AbstractState</span> * <span class="id" title="var">FFA_memory_relinquish_struct</span>) := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">caller</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">relinquish_descriptor</span> &lt;- <span class="id" title="var">mailbox_msg_to_relinqiush_struct</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">message</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> (<span class="id" title="var">state</span> {<span class="id" title="var">system_log</span>: <span class="id" title="var">state</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">RecvMsg</span> <span class="id" title="var">caller</span> <span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>))::<span class="id" title="var">nil</span>},<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinquish_descriptor</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_send_relinquish_descriptor</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">size</span> : <span class="id" title="var">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">relinquish_descriptor</span>: <span class="id" title="var">FFA_memory_relinquish_struct</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">state</span>: <span class="id" title="var">AbstractState</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> <span class="id" title="var">AbstractState</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">message</span> &lt;- <span class="id" title="var">relinqiush_struct_to_mailbox_msg</span> <span class="id" title="var">relinquish_descriptor</span> ;;; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mailbox_contents</span> := <span class="id" title="var">mkMAILBOX_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">message</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Some</span> <span class="id" title="var">sender</span>) <span class="id" title="var">size</span> (<span class="id" title="var">Some</span> <span class="id" title="var">FFA_MEM_RELINQUISH</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_mailbox</span> : <span class="id" title="var">mailbox_contents</span>} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">receiver</span> <span class="id" title="var">new_vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> <span class="id" title="var">state</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">vms_contexts</span> : <span class="id" title="var">new_vm_contexts</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: <span class="id" title="var">state</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">SendMsg</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">mailbox_contents</span>)::<span class="id" title="var">nil</span>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab11"></a><h2 class="section">Getter for memory accessibility and attributes</h2>
  Get memory attributes and access infomation from descriptor 
 </div>
 <div class="code">
@@ -396,7 +380,7 @@ Get memory attributes and access infomation from global pools
 </div>
 
 <div class="doc">
-<a name="lab13"></a><h2 class="section">Get addresses</h2>
+<a name="lab12"></a><h2 class="section">Get addresses from the descriptor</h2>
 
 </div>
 <div class="code">
@@ -471,7 +455,7 @@ Get memory attributes and access infomation from global pools
 </div>
 
 <div class="doc">
-<a name="lab14"></a><h2 class="section">Get receiver IDs</h2>
+<a name="lab13"></a><h2 class="section">Get receiver IDs</h2>
 
 </div>
 <div class="code">
@@ -490,7 +474,7 @@ Get memory attributes and access infomation from global pools
 </div>
 
 <div class="doc">
-<a name="lab15"></a><h2 class="section">Get receiver IDs and addresses pair</h2>
+<a name="lab14"></a><h2 class="section">Get receiver IDs and addresses pair</h2>
 
 </div>
 <div class="code">
@@ -577,19 +561,33 @@ Get memory attributes and access infomation from global pools
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_receiver_id_addrs_pair</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">info_tuple</span> : <span class="id" title="var">list</span> (<span class="id" title="var">FFA_endpoint_memory_access_descriptor_struct</span> * <span class="id" title="var">ffa_UUID_t</span> * <span class="id" title="var">list</span> <span class="id" title="var">Z</span>)) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">info_tuple</span> : <span class="id" title="var">list</span> (<span class="id" title="var">FFA_endpoint_memory_access_descriptor_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id" title="var">ffa_UUID_t</span> * <span class="id" title="var">list</span> <span class="id" title="var">Z</span>)) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">map</span> (<span class="id" title="keyword">fun</span> '(<span class="id" title="var">receiver</span>, <span class="id" title="var">id</span>, <span class="id" title="var">addrs</span>) =&gt; (<span class="id" title="var">id</span>, <span class="id" title="var">addrs</span>)) <span class="id" title="var">info_tuple</span>.<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_receiver_ids</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">info_tuple</span> : <span class="id" title="var">list</span> (<span class="id" title="var">FFA_endpoint_memory_access_descriptor_struct</span> * <span class="id" title="var">ffa_UUID_t</span> * <span class="id" title="var">list</span> <span class="id" title="var">Z</span>)) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">info_tuple</span> : <span class="id" title="var">list</span> (<span class="id" title="var">FFA_endpoint_memory_access_descriptor_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id" title="var">ffa_UUID_t</span> * <span class="id" title="var">list</span> <span class="id" title="var">Z</span>)) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">map</span> (<span class="id" title="keyword">fun</span> '(<span class="id" title="var">receiver</span>, <span class="id" title="var">id</span>, <span class="id" title="var">addrs</span>) =&gt; <span class="id" title="var">id</span>) <span class="id" title="var">info_tuple</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">convert_addresses_to_page_numbers</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">addresses</span>: <span class="id" title="var">list</span> <span class="id" title="var">Z</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">map</span> (<span class="id" title="keyword">fun</span> <span class="id" title="var">addr</span> =&gt; <span class="id" title="var">Z.div</span> <span class="id" title="var">addr</span> <span class="id" title="var">granuale</span>) <span class="id" title="var">addresses</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">convert_addresses_in_info_tuple_to_page_numbers</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">info_tuple</span> : <span class="id" title="var">list</span> (<span class="id" title="var">FFA_endpoint_memory_access_descriptor_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id" title="var">ffa_UUID_t</span> * <span class="id" title="var">list</span> <span class="id" title="var">Z</span>)) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">map</span> (<span class="id" title="keyword">fun</span> '(<span class="id" title="var">receiver</span>, <span class="id" title="var">id</span>, <span class="id" title="var">addrs</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">receiver</span>, <span class="id" title="var">id</span>, <span class="id" title="var">convert_addresses_to_page_numbers</span> <span class="id" title="var">addrs</span>)) <span class="id" title="var">info_tuple</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-<a name="lab16"></a><h2 class="section">Auxiliary functions to construct retrieve information</h2>
+<a name="lab15"></a><h2 class="section">Auxiliary functions to construct retrieve information</h2>
 
 </div>
 <div class="code">
@@ -640,7 +638,7 @@ Get memory attributes and access infomation from global pools
 </div>
 
 <div class="doc">
-<a name="lab17"></a><h2 class="section">Setter for memory region descriptor in the hypervisor</h2>
+<a name="lab16"></a><h2 class="section">Setter for memory region descriptor in the hypervisor</h2>
  Set memory region when sender tries to send the message to receivers 
 </div>
 <div class="code">
@@ -752,7 +750,7 @@ Get memory attributes and access infomation from global pools
 </div>
 
 <div class="doc">
-<a name="lab18"></a><h2 class="section">Flag value getters</h2>
+<a name="lab17"></a><h2 class="section">Flag value getters</h2>
 
 </div>
 <div class="code">

@@ -54,11 +54,11 @@
 </div>
 
 <div class="doc">
-<a name="lab111"></a><h1 class="section">Introduction - state definition</h1>
+<a name="lab109"></a><h1 class="section">Introduction - state definition</h1>
  This file provides a state definition for FF-A memory management interfaces. 
 <div class="paragraph"> </div>
 
-<a name="lab112"></a><h2 class="section">VM CONTEXT</h2>
+<a name="lab110"></a><h2 class="section">VM CONTEXT</h2>
  This one is necessary to model context saving/restoring of FFA ABI.  
     To model these parts, we refer Hafnium. However, the following model 
     should be quite general enough to use them in other hypervisor implementations. 
@@ -87,6 +87,13 @@
 <span class="id" title="keyword">Section</span> <span class="id" title="var">FFA_VM</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<a name="lab111"></a><h3 class="section">Abstract definitions</h3>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Class</span> <span class="id" title="var">FFA_VM_CONTEXT</span> `{<span class="id" title="var">ffa_types_and_constants</span>: <span class="id" title="var">FFA_TYPES_AND_CONSTANTS</span>}  :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
@@ -94,60 +101,117 @@
 <div class="doc">
 <ul class="doclist">
 <li> The following two types are for message passings. We use them to record and 
-        retrieve descriptor information 
+          retrieve descriptor information 
+</li>
+</ul>
+<ul class="doclist">
+<li> Message types. The default communication 
+          channel in our formalization is by using
+          the designated mailbox to each VM. 
+          The following message types are for those communication messages.  
 </li>
 </ul>
 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_send_msg_t</span> : <span class="id" title="keyword">Type</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_recv_msg_t</span> : <span class="id" title="keyword">Type</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_send_msg</span>: <span class="id" title="var">ffa_mailbox_send_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_recv_msg</span>: <span class="id" title="var">ffa_mailbox_recv_msg_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> : <span class="id" title="keyword">Type</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_msg</span>: <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
 <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Virtual CPU numbers in the system. All VCPUs will be shared by 
+          multiple VMs. Each VCPU in the system will be connected with 
+          the physical CPU when they are used by a certain VM, but there are
+          no restrictions (in general) that which CPU will be connected with 
+          which VCPU. 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vcpu_max_num</span> : <span class="id" title="var">Z</span>;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
-mailbox to/from descriptors 
+<ul class="doclist">
+<li> Mailbox to/from descriptors. The followings are interpreter and 
+          generator of mailbox messages. Note that mailbox messages can be used as 
+          multiple purpose 
+</li>
+</ul>
+
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_send_msg_to_region_struct</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_send_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_region_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_send_msg_to_relinqiush_struct</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_send_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_relinquish_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_send_msg_to_Z</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_send_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">Z</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_mailbox_send_msg</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_region_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_send_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_mailbox_send_msg</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_relinquish_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_send_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_mailbox_send_msg</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_send_msg_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_region_struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_region_struct</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_relinqiush_struct</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_relinquish_struct</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_Z</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">Z</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_mailbox_msg</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_region_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_mailbox_msg</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_relinquish_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_mailbox_msg</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
 <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_recv_msg_to_region_struct</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_recv_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_region_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_recv_msg_to_relinqiush_struct</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_recv_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_relinquish_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_recv_msg_to_Z</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_recv_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">Z</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_mailbox_recv_msg</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_region_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_recv_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_mailbox_recv_msg</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_relinquish_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_recv_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_mailbox_recv_msg</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_recv_msg_t</span>;<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">hafnium_id</span> : <span class="id" title="var">ffa_UUID_t</span> := 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Simple system configuration related values 
+</li>
+</ul>
+<ul class="doclist">
+<li> Hypervisor entity has a designated ID 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">hypervisor_id</span> : <span class="id" title="var">ffa_UUID_t</span> := 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Primary VM has a designated ID, but the ID of the primary VM may depend on the configuration 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span>: <span class="id" title="var">ffa_UUID_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> There can be multiple secondary VMs in the system  
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">secondary_vm_ids</span> : <span class="id" title="var">list</span> <span class="id" title="var">ffa_UUID_t</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_ids</span> := <span class="id" title="var">primary_vm_id</span>::<span class="id" title="var">secondary_vm_ids</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">number_of_vm</span> := <span class="id" title="var">Zlength</span> <span class="id" title="var">vm_ids</span>;    <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">entity_list</span> : <span class="id" title="var">list</span> <span class="id" title="var">ffa_UUID_t</span> := <span class="id" title="var">hafnium_id</span>::<span class="id" title="var">vm_ids</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">entity_list</span> : <span class="id" title="var">list</span> <span class="id" title="var">ffa_UUID_t</span> := <span class="id" title="var">hypervisor_id</span>::<span class="id" title="var">vm_ids</span>;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> the size of the memory region struct. It is required for us to keep track of 
+          the remaining memory pool size to save/delete the region descriptor during the evaluation 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_region_struct_size</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">contituents</span>: <span class="id" title="var">Z</span>) : <span class="id" title="var">Z</span>; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">contituents</span>: <span class="id" title="var">Z</span>) : <span class="id" title="var">Z</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
 
 <br/>
@@ -157,84 +221,30 @@ mailbox to/from descriptors
 </div>
 
 <div class="doc">
-In Hafnium: registers in "/src/arch/aarch64/inc/hf/arch/types.h" 
-
-<div class="paragraph"> </div>
-
-      Type to represent the register state of a vCPU. 
+<a name="lab112"></a><h3 class="section">VCPU</h3>
+ Simplified VCPU context 
 <ul class="doclist">
-<li> <span class="inlinecode"><span class="id" title="var">uintreg_t</span></span> <span class="inlinecode"><span class="id" title="var">r</span>(<span class="id" title="var">NUM_GP_REGS</span>);</span>: General purpose registers.
+<li> We only include a small set of registers
 
 </li>
-<li> <span class="inlinecode"><span class="id" title="var">uintreg_t</span></span> <span class="inlinecode"><span class="id" title="var">pc</span>;</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">uintreg_t</span></span> <span class="inlinecode"><span class="id" title="var">spsr</span>;</span>
-
+<li> They are minimum values to model FFA memory management interfaces 
 </li>
 </ul>
-  
-<div class="paragraph"> </div>
 
- In Hafnium: VM struct in "/inc/hf/vm.h" 
-
-<div class="paragraph"> </div>
-
-<ul class="doclist">
-<li> <span class="inlinecode"><span class="id" title="var">ffa_vm_id_t</span></span> <span class="inlinecode"><span class="id" title="var">id</span>;</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="keyword">struct</span></span> <span class="inlinecode"><span class="id" title="var">smc_whitelist</span></span> <span class="inlinecode"><span class="id" title="var">smc_whitelist</span>;</span>: See api.c for the partial ordering on locks.        
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="keyword">struct</span></span> <span class="inlinecode"><span class="id" title="var">spinlock</span></span> <span class="inlinecode"><span class="id" title="var">lock</span>;</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">ffa_vcpu_count_t</span></span> <span class="inlinecode"><span class="id" title="var">vcpu_count</span>;</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="keyword">struct</span></span> <span class="inlinecode"><span class="id" title="var">vcpu</span></span> <span class="inlinecode"><span class="id" title="var">vcpus</span>(<span class="id" title="var">MAX_CPUS</span>);</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="keyword">struct</span></span> <span class="inlinecode"><span class="id" title="var">mm_ptable</span></span> <span class="inlinecode"><span class="id" title="var">ptable</span>;</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="keyword">struct</span></span> <span class="inlinecode"><span class="id" title="var">mailbox</span></span> <span class="inlinecode"><span class="id" title="var">mailbox</span>;</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">char</span></span> <span class="inlinecode"><span class="id" title="var">log_buffer</span>(<span class="id" title="var">LOG_BUFFER_SIZE</span>);</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">uint16_t</span></span> <span class="inlinecode"><span class="id" title="var">log_buffer_length</span>;</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="keyword">struct</span></span> <span class="inlinecode"><span class="id" title="var">wait_entry</span></span> <span class="inlinecode"><span class="id" title="var">wait_entries</span>(<span class="id" title="var">MAX_VMS</span>);</span>: Wait entries to be used when waiting on other VM mailboxes. 
-        See comments on `struct wait_entry` for the lock discipline of these.
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">atomic_bool</span></span> <span class="inlinecode"><span class="id" title="var">aborting</span>;</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="keyword">struct</span></span> <span class="inlinecode"><span class="id" title="var">arch_vm</span></span> <span class="inlinecode"><span class="id" title="var">arch</span>;</span>: Arch-specific VM information.
-
-</li>
-</ul>
-   
-<div class="paragraph"> </div>
-
- Simplified vcpu context - we only includes some registers - actually only FFA related values 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">ArchRegs</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkArchRegs</span> {<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">regs</span>: <span class="id" title="var">FFA_value_type</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+
+<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">VCPU_struct</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkVCPU_struct</span>{<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
-the vm that is currently associated with this vcpu - the connect 
+The vm that is currently associated with this vcpu 
 </div>
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cpu_id</span> : <span class="id" title="var">option</span> <span class="id" title="var">ffa_CPU_ID_t</span>; <br/>
@@ -243,16 +253,29 @@ the vm that is currently associated with this vcpu - the connect
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<a name="lab113"></a><h3 class="section">Mailbox</h3>
+ Mailbox definition. Each mailbox is assigned into each VM 
+</div>
+<div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">MAILBOX_struct</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMAILBOX_struct</span> {<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">send</span> : <span class="id" title="var">ffa_mailbox_send_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">recv</span> : <span class="id" title="var">ffa_mailbox_recv_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">recv_sender</span> : <span class="id" title="var">option</span> <span class="id" title="var">ffa_UUID_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">recv_size</span> : <span class="id" title="var">Z</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">recv_func</span> : <span class="id" title="var">option</span> <span class="id" title="var">FFA_FUNCTION_TYPE</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">message</span>: <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">sender</span> : <span class="id" title="var">option</span> <span class="id" title="var">ffa_UUID_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">size</span> : <span class="id" title="var">Z</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">func</span> : <span class="id" title="var">option</span> <span class="id" title="var">FFA_FUNCTION_TYPE</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<a name="lab114"></a><h3 class="section">VM modeling</h3>
+ The common data structure for VM userspace modeling and VM context modeling in the hypervisor 
+</div>
+<div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">VM_COMMON_struct</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkVM_COMMON_struct</span> {<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_index</span> : <span class="id" title="var">option</span> <span class="id" title="var">ffa_VCPU_ID_t</span>;<br/>
@@ -283,7 +306,7 @@ ptable for each VM is defined in AddressTranslation class
 </div>
 
 <div class="doc">
-Adding several things in here is possible, but we focus on 
+VM userspace modeling  Adding several things in here is possible, but we focus on 
       FFA-related things in this VM userspace modeling. We are able to add
       any other things according to our decision 
 </div>
@@ -294,7 +317,7 @@ Adding several things in here is possible, but we focus on
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
-all other parts are ignored at this moment 
+all other parts are ignored 
 </div>
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
@@ -303,7 +326,7 @@ all other parts are ignored at this moment
 </div>
 
 <div class="doc">
-Simplified VM context - we assume VM only has own vcpu 
+VM context modeling in the hypervisor  Simplified VM context 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">VM_KERNEL_struct</span> :=<br/>
@@ -320,7 +343,7 @@ Each VM has its own mailbox.  IN FFA ABI handling, the actual information for th
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
-all other parts are ignored at this moment 
+all other parts are ignored 
 </div>
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
@@ -332,7 +355,7 @@ all other parts are ignored at this moment
 </div>
 
 <div class="doc">
-<a name="lab113"></a><h2 class="section">memory and ptable</h2>
+<a name="lab115"></a><h2 class="section">memory and ptable</h2>
 
 </div>
 <div class="code">
@@ -366,6 +389,7 @@ memory states on memory addresses
    
 <div class="paragraph"> </div>
 
+<a name="lab116"></a><h3 class="section">Global properties</h3>
  Indicates who is the owner of the memory 
 </div>
 <div class="code">
@@ -438,10 +462,19 @@ This memory properties are key features that we may hope to guarantee in our sys
 <div class="code">
 
 <br/>
-
-<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">MemGlobalProperties</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> for secure world or non-secure world 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">is_ns</span> : <span class="id" title="var">bool</span>; <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
@@ -498,7 +531,7 @@ memory attributes - e.g., sharable or cacheability
 </div>
 
 <div class="doc">
-key is a base address of memory region 
+key is a page number (address / granuale) of the memory region 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mem_global_properties_pool</span> := <span class="id" title="var">ZTree.t</span> <span class="id" title="var">MemGlobalProperties</span>.<br/>
@@ -507,7 +540,8 @@ key is a base address of memory region
 </div>
 
 <div class="doc">
-It indicates the owned infromation in memory local properties.
+<a name="lab117"></a><h3 class="section">Local properties</h3>
+ It indicates the owned infromation in memory local properties.
       This needs to be consistent with OwnershipState. 
 </div>
 <div class="code">
@@ -585,7 +619,8 @@ key is a entity id of the system
 </div>
 
 <div class="doc">
-There are relations between mem_global_properties and mem_local_properties.
+<a name="lab118"></a><h3 class="section">Memory properties</h3>
+ There are relations between mem_global_properties and mem_local_properties.
       For example, if a certain address in access_state of MemGlobalProperties is mapped with 
       SharedAccess 1, then there should be a valid element for the address in the mem local properties pool for entity 1.
       And, the corresponding mem_local_owned of the MemLocalProperties for entity 1 has to be
@@ -612,6 +647,13 @@ There are relations between mem_global_properties and mem_local_properties.
 <span class="id" title="keyword">End</span> <span class="id" title="var">MEM_AND_PTABLE</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<a name="lab119"></a><h2 class="section">Page Table</h2>
+
+</div>
+<div class="code">
 <span class="id" title="keyword">Section</span> <span class="id" title="var">MEM_AND_PTABLE_CONTEXT</span>.<br/>
 </div>
 
@@ -623,6 +665,34 @@ In top level, we do not need to specify ptable in detail.
 <div class="paragraph"> </div>
 
      Filling out details of those definitions are user's obligations 
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Similar to the granuale size value in <span class="inlinecode"><span class="id" title="var">FFAMemoryHypcallDescriptorState.v</span></span>, 
+        all the following values correspond to page numbers instead of bare address values.
+<ul class="doclist">
+<li> For example, if the page low is 2 and granuale is 1, then the actual low address of the system is 8192 (2 * 1 * 4096)
+
+</li>
+<li> For example, if the page high is 2 ^ 12 and granuale is 1, then the actual high address of the system is 16777216 (2 ^ 12 * 1 * 4096)
+
+</li>
+</ul>
+
+</li>
+<li> alignment value indicates how each VM aligns the memory. the value should be exactly divided with granuale. 
+<ul class="doclist">
+<li> For example, if the alignment value is 2 and granuale is 1, they are acceptable. 
+
+</li>
+<li> For example, if the alignment value is 3 and granuale is 2, they are unacceptable. 
+
+</li>
+</ul>
+
+</li>
+</ul>
+   
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Class</span> <span class="id" title="var">MemoryManagementBasicContext</span><br/>
@@ -631,16 +701,24 @@ In top level, we do not need to specify ptable in detail.
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
-address low and high 
+<ul class="doclist">
+<li> Page low and high 
+</li>
+</ul>
+
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address_low</span> : <span class="id" title="var">ffa_address_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address_high</span> : <span class="id" title="var">ffa_address_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">page_low</span> : <span class="id" title="var">Z</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">page_high</span> : <span class="id" title="var">Z</span>;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
-usually 4096 
+<ul class="doclist">
+<li> Alignment value 
+</li>
+</ul>
+
 </div>
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">alignment_value</span> : <span class="id" title="var">Z</span>;<br/>
@@ -654,11 +732,17 @@ usually 4096
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
-address translation funciton in ptable. There are two possible cases 
-        1. provides the entire address translation from 
-           the root level to the bottom level 
-        2. provides the only one level address translation. 
-           Among them, our high-level model assumes the following ptable uses the second approach 
+Address translation funciton in ptable. There are two possible cases 
+<ul class="doclist">
+<li> provides the entire address translation from 
+          the root level to the bottom level 
+
+</li>
+<li> provides the only one level address translation. 
+          Among them, our high-level model assumes the following ptable uses the second approach 
+</li>
+</ul>
+
 </div>
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">stage2_address_translation_table</span><br/>
@@ -681,7 +765,7 @@ This address translation won't be used in the current setting.
 </div>
 
 <div class="doc">
-<a name="lab114"></a><h2 class="section">AbstractState for FFA modeling</h2>
+<a name="lab120"></a><h2 class="section">AbstractState for FFA modeling</h2>
 
 </div>
 <div class="code">
@@ -762,29 +846,6 @@ It represents CPU object, but it is currently empty.
 
 
 </li>
-<li> The related part in the Hafnium code is the following function in
-              "/src/arch/aarch64/hypervisor/handler.c"
-
-<div class="paragraph"> </div>
-
-<ul class="doclist">
-<li> <span class="inlinecode"><span class="id" title="var">static</span></span> <span class="inlinecode"><span class="id" title="keyword">struct</span></span> <span class="inlinecode"><span class="id" title="var">vcpu</span></span> <span class="inlinecode">*<span class="id" title="var">current</span>(<span class="id" title="var">void</span>){</span>
-<ul class="doclist">
-<li> <span class="inlinecode"><span class="id" title="keyword">return</span></span> <span class="inlinecode">(<span class="id" title="keyword">struct</span></span> <span class="inlinecode"><span class="id" title="var">vcpu</span></span> <span class="inlinecode">*</span> <span class="inlinecode">)<span class="id" title="var">read_msr</span>(<span class="id" title="var">tpidr_el2</span>);</span>
-
-</li>
-</ul>
-
-</li>
-<li> <span class="inlinecode">}</span>
-
-<div class="paragraph"> </div>
-
-
-</li>
-</ul>
-
-</li>
 <li> List of registers  will be increasing to model other behaviours
 <ul class="doclist">
 <li> e.g., the register for TLB invalidate 
@@ -809,10 +870,14 @@ It represents CPU object, but it is currently empty.
 
 <div class="paragraph"> </div>
 
-            = Free pages at the top level. those pages need to be used for the 
-            FFA ABI handlings. But, to simplify it (like what we have currently doing in
-            page_table, we represent it as a size of free pages. Then, we will only increase / decrease
-            the number when we allocate pages or free those pages while handling FFA ABIs 
+<ul class="doclist">
+<li> Free page pool at the top level. those pages need to be used for the 
+              FFA ABI handlings. But, to simplify it (like what we have currently doing in
+              page_table, we represent it as a size of free pages. Then, we will only increase / decrease
+              the number when we allocate pages or free those pages while handling FFA ABIs 
+</li>
+</ul>
+
 </li>
 </ul>
 
@@ -824,7 +889,7 @@ It represents CPU object, but it is currently empty.
 
 <div class="doc">
 <ul class="doclist">
-<li> ffa_share_state is for ffa communications  
+<li> ffa_share_state is to store and retrieve ffa descriptor information  
 </li>
 </ul>
 
@@ -881,12 +946,11 @@ It represents CPU object, but it is currently empty.
 </div>
 
 <div class="doc">
-Log file to easily print out system's change history. 
-      This definition can be abstracted if it is preferred 
+Log file to print out the history of system changes. 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Inductive</span> <span class="id" title="var">log_type</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;</div>
 
 <div class="doc">
 <ul class="doclist">
@@ -897,7 +961,7 @@ Log file to easily print out system's change history.
 </div>
 <div class="code">
 &nbsp;&nbsp;| <span class="id" title="var">ChangeCurEntityID</span> (<span class="id" title="var">from_id</span> <span class="id" title="var">to_id</span> : <span class="id" title="var">ffa_UUID_t</span>) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;</div>
 
 <div class="doc">
 <ul class="doclist">
@@ -913,7 +977,7 @@ Log file to easily print out system's change history.
 &nbsp;&nbsp;| <span class="id" title="var">KernelToUser</span> (<span class="id" title="var">vid</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vcpu_id</span> : <span class="id" title="var">ffa_VCPU_ID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">reg_values</span>: <span class="id" title="var">ArchRegs</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;</div>
 
 <div class="doc">
 <ul class="doclist">
@@ -924,7 +988,7 @@ Log file to easily print out system's change history.
 </div>
 <div class="code">
 &nbsp;&nbsp;| <span class="id" title="var">DispathFFAInterface</span> (<span class="id" title="var">reg_values</span>: <span class="id" title="var">ArchRegs</span>)      <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;</div>
 
 <div class="doc">
 <ul class="doclist">
@@ -946,7 +1010,7 @@ Log file to easily print out system's change history.
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">access</span>: <span class="id" title="var">FFA_DATA_ACCESS_TYPE</span>)<br/>
 &nbsp;&nbsp;| <span class="id" title="var">SetAttributes</span> (<span class="id" title="var">vm_id</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">address</span>: <span class="id" title="var">ffa_address_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">attributes</span>: <span class="id" title="var">FFA_MEMORY_TYPE</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;</div>
 
 <div class="doc">
 <ul class="doclist">
@@ -960,8 +1024,6 @@ Log file to easily print out system's change history.
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">MAILBOX_struct</span>)<br/>
 &nbsp;&nbsp;| <span class="id" title="var">RecvMsg</span> (<span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">MAILBOX_struct</span>).<br/>
-
-<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">AbstractState</span> :=<br/>
@@ -1065,7 +1127,7 @@ Log file to easily print out system's change history.
 </div>
 
 <div class="doc">
-<a name="lab115"></a><h2 class="section">Several abstract definitions and invariants</h2>
+<a name="lab121"></a><h2 class="section">Several abstract definitions and invariants</h2>
 
 </div>
 <div class="code">
@@ -1102,7 +1164,7 @@ All contexts for high-level modeling. We currently merge all contexts that we ha
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
-We may be able to use some feature of interaction tree for this scheduling? 
+Abstract scheduler that changes the cur_user_entity_id in the state  
 </div>
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">scheduler</span> : <span class="id" title="var">AbstractState</span> -&gt; <span class="id" title="var">ffa_UUID_t</span>; <br/>

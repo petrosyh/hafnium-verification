@@ -96,7 +96,7 @@
 </div>
 
 <div class="doc">
-<a name="lab116"></a><h1 class="section">Introduction</h1>
+<a name="lab122"></a><h1 class="section">Introduction</h1>
 
 <div class="paragraph"> </div>
 
@@ -108,28 +108,22 @@
 <div class="code">
 
 <br/>
-<span class="id" title="keyword">Notation</span> &quot;'do' X &lt;- A ;;; B" :=<br/>
+<span class="id" title="keyword">Notation</span> &quot;'get' E ',' X &lt;- A ';;;' B" :=<br/>
 &nbsp;&nbsp;(<span class="id" title="keyword">match</span> <span class="id" title="var">A</span> <span class="id" title="keyword">with</span> <span class="id" title="var">Some</span> <span class="id" title="var">X</span> =&gt; <span class="id" title="var">B</span> |<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">None</span> =&gt; <span class="id" title="var">triggerUB</span> "None" <span class="id" title="keyword">end</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">None</span> =&gt; <span class="id" title="var">triggerNB</span> <span class="id" title="var">E</span> <span class="id" title="keyword">end</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">X</span> <span class="id" title="var">ident</span>, <span class="id" title="var">A</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 100, <span class="id" title="var">B</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200)<br/>
 &nbsp;&nbsp;: <span class="id" title="var">itree_monad_scope</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Notation</span> &quot;'do' X , Y &lt;- A ;;; B" :=<br/>
-&nbsp;&nbsp;(<span class="id" title="keyword">match</span> <span class="id" title="var">A</span> <span class="id" title="keyword">with</span> <span class="id" title="var">Some</span> (<span class="id" title="var">X</span>, <span class="id" title="var">Y</span>) =&gt; <span class="id" title="var">B</span> |<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">None</span> =&gt; <span class="id" title="var">triggerUB</span> "None" <span class="id" title="keyword">end</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">X</span> <span class="id" title="var">ident</span>, <span class="id" title="var">Y</span> <span class="id" title="var">ident</span>, <span class="id" title="var">A</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 100, <span class="id" title="var">B</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200)<br/>
+<span class="id" title="keyword">Notation</span> &quot;'get' X &lt;- A ';;;' B" :=<br/>
+&nbsp;&nbsp;(<span class="id" title="keyword">match</span> <span class="id" title="var">A</span> <span class="id" title="keyword">with</span> <span class="id" title="var">Some</span> <span class="id" title="var">X</span> =&gt; <span class="id" title="var">B</span> |<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">None</span> =&gt; <span class="id" title="var">triggerNB</span> "None" <span class="id" title="keyword">end</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">X</span> <span class="id" title="var">ident</span>, <span class="id" title="var">A</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 100, <span class="id" title="var">B</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200)<br/>
 &nbsp;&nbsp;: <span class="id" title="var">itree_monad_scope</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Notation</span> &quot;'do' X , Y , Z &lt;- A ;;; B" :=<br/>
-&nbsp;&nbsp;(<span class="id" title="keyword">match</span> <span class="id" title="var">A</span> <span class="id" title="keyword">with</span> <span class="id" title="var">Some</span> (<span class="id" title="var">X</span>, <span class="id" title="var">Y</span>, <span class="id" title="var">Z</span>) =&gt; <span class="id" title="var">B</span> | <span class="id" title="var">None</span> =&gt; <span class="id" title="var">triggerUB</span> "None" <span class="id" title="keyword">end</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">X</span> <span class="id" title="var">ident</span>, <span class="id" title="var">Y</span> <span class="id" title="var">ident</span>, <span class="id" title="var">Z</span> <span class="id" title="var">ident</span>, <span class="id" title="var">A</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 100, <span class="id" title="var">B</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200)<br/>
-&nbsp;&nbsp;: <span class="id" title="var">itree_monad_scope</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Notation</span> &quot; 'check' A ;;; B" :=<br/>
-&nbsp;&nbsp;(<span class="id" title="keyword">if</span> <span class="id" title="var">A</span> <span class="id" title="keyword">then</span> <span class="id" title="var">B</span> <span class="id" title="keyword">else</span> <span class="id" title="var">Ret</span> <span class="id" title="var">None</span>)<br/>
+<span class="id" title="keyword">Notation</span> &quot;'check' E ',' A ';;;' B" :=<br/>
+&nbsp;&nbsp;(<span class="id" title="keyword">if</span> <span class="id" title="var">A</span> <span class="id" title="keyword">then</span> <span class="id" title="var">B</span> <span class="id" title="keyword">else</span> <span class="id" title="var">triggerNB</span> <span class="id" title="var">E</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">A</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 100, <span class="id" title="var">B</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200)<br/>
 &nbsp;&nbsp;: <span class="id" title="var">itree_monad_scope</span>.<br/>
 
@@ -140,29 +134,17 @@
 </div>
 
 <div class="doc">
-<a name="lab117"></a><h1 class="section">Instantiations for contexts</h1>
+<a name="lab123"></a><h1 class="section">Instantiations for contexts</h1>
  We provides instantiations for the context that our specifiction
     relies on. 
 <div class="paragraph"> </div>
 
-<a name="lab118"></a><h2 class="section">FFA_TYPES_AND_CONSTANTS instance</h2>
+<a name="lab124"></a><h2 class="section">FFA_TYPES_AND_CONSTANTS instance</h2>
 
 </div>
 <div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">ffa_memory_region_tag_t</span> := <span class="id" title="var">Z</span>.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-This is the valule that we have to use. 
-    However, due to the stack overflow in the recursion, 
-    we reduce the number as 4. 
-</div>
-<div class="code">
-
-<br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">granuale_shift</span> := 1.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">granuale_shift</span> := 12.<br/>
 
 <br/>
 <span class="id" title="keyword">Global Instance</span> <span class="id" title="var">ffa_types_and_constants</span> : <span class="id" title="var">FFA_TYPES_AND_CONSTANTS</span> :=<br/>
@@ -191,64 +173,64 @@ This is the valule that we have to use.
 &nbsp;&nbsp;}.<br/>
 
 <br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> <span class="id" title="var">granuale</span>.<br/>
+
+<br/>
 </div>
 
 <div class="doc">
-<a name="lab119"></a><h2 class="section">DescriptorContext instance</h2>
+<a name="lab125"></a><h2 class="section">DescriptorContext instance</h2>
 
 </div>
 <div class="code">
 <span class="id" title="keyword">Global Instance</span> <span class="id" title="var">descriptor_context</span> :<br/>
 &nbsp;&nbsp;<span class="id" title="var">DescriptorContext</span> (<span class="id" title="var">ffa_types_and_constants</span> := <span class="id" title="var">ffa_types_and_constants</span>) :=<br/>
 &nbsp;&nbsp;{<br/>
-&nbsp;&nbsp;</div>
-
-<div class="doc">
-Commented out the more realistic version and provided
-      simplified (with the small number) version to avoid buffer
-      overflow 
-  make_handle := fun vid value =&gt;
-                   if decide (0 &lt;= vid &lt; (Z.shiftl 1 16))
-                   then if decide (0 &lt;= value &lt; (Z.shiftl 1 16))
-                        then Some (Z.lor (Z.shiftl vid 16) value)
-                        else None
-                   else None;
-  get_value := fun handle =&gt;
-                 let mask := ((Z.shiftl 1 16) - 1)
-</div>
-<div class="code">
 &nbsp;&nbsp;<span class="id" title="var">make_handle</span> := <span class="id" title="keyword">fun</span> <span class="id" title="var">vid</span> <span class="id" title="var">value</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (0 &lt;= <span class="id" title="var">vid</span> &lt; (<span class="id" title="var">Z.shiftl</span> 1 4))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (0 &lt;= <span class="id" title="var">value</span> &lt; (<span class="id" title="var">Z.shiftl</span> 1 4))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Some</span> (<span class="id" title="var">Z.lor</span> (<span class="id" title="var">Z.shiftl</span> <span class="id" title="var">vid</span> 4) <span class="id" title="var">value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (0 &lt;= <span class="id" title="var">vid</span> &lt; (<span class="id" title="var">Z.shiftl</span> 1 16))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (0 &lt;= <span class="id" title="var">value</span> &lt; (<span class="id" title="var">Z.shiftl</span> 1 16))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Some</span> (<span class="id" title="var">Z.lor</span> (<span class="id" title="var">Z.shiftl</span> <span class="id" title="var">vid</span> 16) <span class="id" title="var">value</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">None</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">None</span>;<br/>
 &nbsp;&nbsp;<span class="id" title="var">get_value</span> := <span class="id" title="keyword">fun</span> <span class="id" title="var">handle</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mask</span> := ((<span class="id" title="var">Z.shiftl</span> 1 4) - 1)%<span class="id" title="var">Z</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mask</span> := ((<span class="id" title="var">Z.shiftl</span> 1 16) - 1)%<span class="id" title="var">Z</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z.land</span> <span class="id" title="var">mask</span> <span class="id" title="var">handle</span>;<br/>
 &nbsp;&nbsp;<span class="id" title="var">get_sender</span> := <span class="id" title="keyword">fun</span> <span class="id" title="var">handle</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z.shiftr</span> <span class="id" title="var">handle</span> 4;  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z.shiftr</span> <span class="id" title="var">handle</span> 16;<br/>
 &nbsp;&nbsp;}.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-<a name="lab120"></a><h2 class="section">FFA_VM_CONTEXT instance</h2>
-
+<a name="lab126"></a><h2 class="section">FFA_VM_CONTEXT instance</h2>
+ Mailbox message could be either the initial value, memory region descriptor, relinquish descriptor,
+    or handle value (Z type value). 
 </div>
 <div class="code">
-<span class="id" title="keyword">Inductive</span> <span class="id" title="var">ffa_mailbox_msg_t</span> : <span class="id" title="keyword">Type</span> :=<br/>
+<span class="id" title="keyword">Inductive</span> <span class="id" title="var">ffa_mailbox_msg_instance_t</span> : <span class="id" title="keyword">Type</span> :=<br/>
 | <span class="id" title="var">mailbox_memory_init_value</span><br/>
 | <span class="id" title="var">mailbox_memory_region</span> (<span class="id" title="var">region_descriptor</span>: <span class="id" title="var">FFA_memory_region_struct</span>)<br/>
 | <span class="id" title="var">mailbox_memory_relinquish</span> (<span class="id" title="var">relinquish_descriptor</span>: <span class="id" title="var">FFA_memory_relinquish_struct</span>)<br/>
 | <span class="id" title="var">mailbox_z</span> (<span class="id" title="var">value</span> : <span class="id" title="var">Z</span>).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+We assume there are four VCPUs in the system 
+</div>
+<div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_ffa_mailbox_msg</span> := <span class="id" title="var">mailbox_memory_init_value</span>.<br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">vcpu_max_num</span> := 2.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">vcpu_max_num</span> := 4.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+Conversions to/from mailbox messages from/to memory region descriptor/relinquish descriptor/handle value 
+</div>
+<div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">mailbox_msg_to_region_struct</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">x</span> <span class="id" title="keyword">with</span><br/>
@@ -302,10 +284,8 @@ Commented out the more realistic version and provided
 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_send_msg_t</span> := <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_recv_msg_t</span> := <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_send_msg</span> := <span class="id" title="var">init_ffa_mailbox_msg</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_recv_msg</span> := <span class="id" title="var">init_ffa_mailbox_msg</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> := <span class="id" title="var">ffa_mailbox_msg_instance_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_msg</span> := <span class="id" title="var">init_ffa_mailbox_msg</span>;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vcpu_max_num</span> := <span class="id" title="var">vcpu_max_num</span>;<br/>
 <br/>
@@ -315,19 +295,12 @@ Commented out the more realistic version and provided
 mailbox to/from descriptors 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_send_msg_to_region_struct</span> := <span class="id" title="var">mailbox_msg_to_region_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_send_msg_to_relinqiush_struct</span> := <span class="id" title="var">mailbox_msg_to_relinquish_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_send_msg_to_Z</span> := <span class="id" title="var">mailbox_msg_to_z</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_mailbox_send_msg</span> := <span class="id" title="var">region_struct_to_mailbox_msg</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_mailbox_send_msg</span> := <span class="id" title="var">relinquish_struct_to_mailbox_msg</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_mailbox_send_msg</span> := <span class="id" title="var">z_to_mailbox_msg</span>;<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_recv_msg_to_region_struct</span> := <span class="id" title="var">mailbox_msg_to_region_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_recv_msg_to_relinqiush_struct</span> := <span class="id" title="var">mailbox_msg_to_relinquish_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_recv_msg_to_Z</span> := <span class="id" title="var">mailbox_msg_to_z</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_mailbox_recv_msg</span> := <span class="id" title="var">region_struct_to_mailbox_msg</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_mailbox_recv_msg</span> := <span class="id" title="var">relinquish_struct_to_mailbox_msg</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_mailbox_recv_msg</span> := <span class="id" title="var">z_to_mailbox_msg</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_region_struct</span> := <span class="id" title="var">mailbox_msg_to_region_struct</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_relinqiush_struct</span> := <span class="id" title="var">mailbox_msg_to_relinquish_struct</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_Z</span> := <span class="id" title="var">mailbox_msg_to_z</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_mailbox_msg</span> := <span class="id" title="var">region_struct_to_mailbox_msg</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_mailbox_msg</span> := <span class="id" title="var">relinquish_struct_to_mailbox_msg</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_mailbox_msg</span> := <span class="id" title="var">z_to_mailbox_msg</span>;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> := 1;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">secondary_vm_ids</span> := 2::<span class="id" title="var">nil</span>;<br/>
@@ -345,41 +318,48 @@ TODO: The following values are dummy representations. We have to provide
     hypervisor implementations 
 <div class="paragraph"> </div>
 
-<a name="lab121"></a><h2 class="section">HafniumMemoryManagementContext instance</h2>
+<a name="lab127"></a><h2 class="section">HafniumMemoryManagementContext instance</h2>
+ Note that we cannot use a large number in here to avoid stack overflow. 
+    I have tested with 16, but it raised stack overflow. 
 
 <div class="paragraph"> </div>
 
- Commented out the realistic version and provide the simplified (with small numbers)
-    version 
-Definition address_low_shift := 30.
-Definition address_high_shift := 32.
-
+    With the current instance, the memory address range that we can represent 
+    is from (0 * 2^12) to (2^12 * 2^12) since the granuale is 2^12.
+ 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">address_low_shift</span> := 0.<br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">address_high_shift</span> := 4.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">page_high_shift</span> := 12.<br/>
 
 <br/>
 <span class="id" title="keyword">Global Instance</span> <span class="id" title="var">memory_management_basic_context</span><br/>
 &nbsp;&nbsp;: <span class="id" title="var">MemoryManagementBasicContext</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ffa_vm_context</span> := <span class="id" title="var">ffa_vm_context</span>) :=<br/>
 &nbsp;&nbsp;{<br/>
-&nbsp;&nbsp;<span class="id" title="var">address_low</span> := (<span class="id" title="var">Z.shiftl</span> 1 <span class="id" title="var">address_low_shift</span>)%<span class="id" title="var">Z</span>;<br/>
-&nbsp;&nbsp;<span class="id" title="var">address_high</span> := (<span class="id" title="var">Z.shiftl</span> 1 <span class="id" title="var">address_high_shift</span> - 1)%<span class="id" title="var">Z</span>;<br/>
+&nbsp;&nbsp;<span class="id" title="var">page_low</span> := 0;<br/>
+&nbsp;&nbsp;<span class="id" title="var">page_high</span> := (<span class="id" title="var">Z.shiftl</span> 1 <span class="id" title="var">page_high_shift</span>)%<span class="id" title="var">Z</span>;<br/>
 &nbsp;&nbsp;<span class="id" title="var">alignment_value</span> := <span class="id" title="var">granuale</span>;<br/>
 &nbsp;&nbsp;}.<br/>
 
 <br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> (<span class="id" title="var">page_low</span> * <span class="id" title="var">granuale</span>)%<span class="id" title="var">Z</span>.<br/>
+<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span> (<span class="id" title="var">page_high</span> * <span class="id" title="var">granuale</span>)%<span class="id" title="var">Z</span>.<br/>
+
+<br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">stage2_address_translation_table</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">fun</span> (<span class="id" title="var">x</span> : <span class="id" title="var">ffa_address_t</span>) =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">address_low</span> &lt;= <span class="id" title="var">x</span>)%<span class="id" title="var">Z</span> &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">x</span> &lt; <span class="id" title="var">address_high</span>)%<span class="id" title="var">Z</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> ((<span class="id" title="var">page_low</span> * <span class="id" title="var">granuale</span>) &lt;= <span class="id" title="var">x</span>)%<span class="id" title="var">Z</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">x</span> &lt; (<span class="id" title="var">page_high</span> * <span class="id" title="var">granuale</span>))%<span class="id" title="var">Z</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Some</span> <span class="id" title="var">x</span> <span class="id" title="keyword">else</span> <span class="id" title="var">None</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">stage1_address_translation_table</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">fun</span> (<span class="id" title="var">vid</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">x</span> : <span class="id" title="var">ffa_address_t</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">address_low</span> := (<span class="id" title="var">page_low</span> * <span class="id" title="var">granuale</span>)%<span class="id" title="var">Z</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">address_high</span> := (<span class="id" title="var">page_high</span> * <span class="id" title="var">granuale</span>)%<span class="id" title="var">Z</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (0 &lt;= <span class="id" title="var">vid</span>)%<span class="id" title="var">Z</span> &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">vid</span> &lt; <span class="id" title="var">number_of_vm</span>)%<span class="id" title="var">Z</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">address_low</span> &lt;= <span class="id" title="var">x</span>)%<span class="id" title="var">Z</span> &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">x</span> &lt; <span class="id" title="var">address_high</span>)%<span class="id" title="var">Z</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">address_low</span> &lt;= <span class="id" title="var">x</span>)%<span class="id" title="var">Z</span> &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">decide</span> (<span class="id" title="var">x</span> &lt; <span class="id" title="var">address_high</span>)%<span class="id" title="var">Z</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Some</span> <span class="id" title="var">x</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">None</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">None</span>.<br/>
@@ -400,14 +380,15 @@ Definition address_high_shift := 32.
 </div>
 
 <div class="doc">
-<a name="lab122"></a><h2 class="section">AbstractStateContext instance</h2>
+<a name="lab128"></a><h2 class="section">AbstractStateContext instance</h2>
 
+<div class="paragraph"> </div>
+
+ We assume number of CPUs as 4 
 </div>
 <div class="code">
-
-<br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_cpu_id</span> := 0.<br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">num_of_cpus</span> := 8.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">num_of_cpus</span> := 4.<br/>
 
 <br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_CPU_struct</span> := <span class="id" title="var">mkCPU_struct</span>.<br/>
@@ -423,7 +404,7 @@ Definition address_high_shift := 32.
 &nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">init_cpus</span> := <span class="id" title="var">cal_init_cpus</span> (<span class="id" title="var">Z.to_nat</span> <span class="id" title="var">num_of_cpus</span>).<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">init_cpus</span> := <span class="id" title="var">cal_init_cpus</span> (<span class="id" title="var">Z.to_nat</span> (<span class="id" title="var">num_of_cpus</span> - 1)).<br/>
 
 <br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_api_page_pool_size_shift</span> := 4.<br/>
@@ -431,7 +412,9 @@ Definition address_high_shift := 32.
 <br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_mem_global_properties</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">NotOwned</span> <span class="id" title="var">NoAccess</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">NotOwned</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">NoAccess</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_DATA_ACCESS_NOT_SPECIFIED</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_NOT_SPECIFIED_MEM</span><br/>
@@ -441,14 +424,14 @@ Definition address_high_shift := 32.
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">cal_init_global_properties_pool</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span> : <span class="id" title="var">nat</span>)  :=<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">address</span> <span class="id" title="keyword">with</span> <br/>
-&nbsp;&nbsp;| <span class="id" title="var">O</span> =&gt; <span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (0 &gt;= <span class="id" title="var">address_low</span>)<br/>
+&nbsp;&nbsp;| <span class="id" title="var">O</span> =&gt; <span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (0 &gt;= <span class="id" title="var">page_low</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">ZTree.set</span> (<span class="id" title="var">Z.shiftl</span> 0 <span class="id" title="var">granuale_shift</span>)  <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_mem_global_properties</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZTree.empty</span> <span class="id" title="var">MemGlobalProperties</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> (<span class="id" title="var">ZTree.empty</span> <span class="id" title="var">MemGlobalProperties</span>)<br/>
 &nbsp;&nbsp;| <span class="id" title="var">S</span> <span class="id" title="var">n'</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">converted_addr</span> := <span class="id" title="var">Z.shiftl</span> (<span class="id" title="var">Z.of_nat</span> <span class="id" title="var">address</span>) <span class="id" title="var">granuale_shift</span> <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">converted_addr</span> &gt;= <span class="id" title="var">address_low</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">converted_addr</span> &gt;= <span class="id" title="var">page_low</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">let</span> <span class="id" title="var">res</span> := <span class="id" title="var">cal_init_global_properties_pool</span> <span class="id" title="var">n'</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">converted_addr</span>  <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_mem_global_properties</span><br/>
@@ -460,7 +443,7 @@ Definition address_high_shift := 32.
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_mem_global_properties_pool</span><br/>
 &nbsp;&nbsp;: <span class="id" title="var">mem_global_properties_pool</span><br/>
 &nbsp;&nbsp;:= <span class="id" title="var">cal_init_global_properties_pool</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Z.to_nat</span> (<span class="id" title="var">Z.shiftr</span> <span class="id" title="var">address_high</span> <span class="id" title="var">granuale_shift</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Z.to_nat</span> <span class="id" title="var">page_high</span>).<br/>
 
 <br/>
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">cal_init_local_properties_pool</span><br/>
@@ -476,7 +459,7 @@ Definition address_high_shift := 32.
 <br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_mem_local_properties_global_pool</span> <br/>
 &nbsp;&nbsp;: <span class="id" title="var">mem_local_properties_global_pool</span><br/>
-&nbsp;&nbsp;:=  <span class="id" title="var">cal_init_local_properties_pool</span> <span class="id" title="var">vm_ids</span>.<br/>
+&nbsp;&nbsp;:= <span class="id" title="var">cal_init_local_properties_pool</span> <span class="id" title="var">vm_ids</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_mem_properties</span> :=<br/>
@@ -494,7 +477,6 @@ Definition address_high_shift := 32.
 <br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_MAILBOX_struct</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="var">mkMAILBOX_struct</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_msg</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_msg</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">None</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;0 <br/>
@@ -601,7 +583,7 @@ Definition address_high_shift := 32.
 </div>
 
 <div class="doc">
-<a name="lab123"></a><h1 class="section">Showable function for the log</h1>
+<a name="lab129"></a><h1 class="section">Showable function for the log</h1>
 
 </div>
 <div class="code">
@@ -849,8 +831,8 @@ Definition address_high_shift := 32.
 </div>
 
 <div class="doc">
-<a name="lab124"></a><h1 class="section">Additional  Specifications for testing</h1>
-<a name="lab125"></a><h2 class="section">Event and Update functions</h2>
+<a name="lab130"></a><h1 class="section">Additional  Specifications for testing</h1>
+<a name="lab131"></a><h2 class="section">Event and Update functions</h2>
 
 </div>
 <div class="code">
@@ -876,7 +858,7 @@ Definition address_high_shift := 32.
 </div>
 
 <div class="doc">
-<a name="lab126"></a><h2 class="section">Context switching</h2>
+<a name="lab132"></a><h2 class="section">Context switching</h2>
 
 </div>
 <div class="code">
@@ -918,43 +900,115 @@ Definition address_high_shift := 32.
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">save_regs_to_vcpu_spec</span>  :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Extract state 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>) = <span class="id" title="var">true</span>) &amp;&amp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="var">vm_ids</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_userspace</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="var">st</span>.(<span class="id" title="var">vms_userspaces</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">cur_vcpu_index</span> &lt;- (<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">cur_vcpu_index</span>)) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">cur_vcpu_regs</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">cur_vcpu_index</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check validities 
+</li>
+</ul>
+<ul class="doclist">
+<li> Check whether the current running entity is one of VMs 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "save_regs_to_vcpu: wrong cur entity id" ,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>) = <span class="id" title="var">true</span>) &amp;&amp; (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="var">vm_ids</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">list_eq_dec</span> <span class="id" title="var">zeq</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus</span>)) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">vcpus</span>))) &amp;&amp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">decide</span> (<span class="id" title="var">cur_vcpu_regs</span>.(<span class="id" title="var">vm_id</span>) = <span class="id" title="var">Some</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_cur_vcpu_index</span>: <span class="id" title="var">Some</span> <span class="id" title="var">cur_vcpu_index</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">vm_vcpus_contexts</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">cur_vcpu_index</span> <span class="id" title="var">cur_vcpu_regs</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)} <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vms_contexts</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_vm_context</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> := <span class="id" title="var">st</span> {<span class="id" title="var">is_hvc_mode</span>: <span class="id" title="var">true</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">hypervisor_context</span>/<span class="id" title="var">tpidr_el2</span>: <span class="id" title="var">Some</span> <span class="id" title="var">cur_vcpu_regs</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">hypervisor_context</span>/<span class="id" title="var">vms_contexts</span>: <span class="id" title="var">new_vms_contexts</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span> : <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">UserToKernel</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_index</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_regs</span>.(<span class="id" title="var">vcpu_regs</span>)::<span class="id" title="var">nil</span>)} <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> <span class="id" title="var">new_st</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">triggerUB</span> "save_resg_to_vcpu_spec: inconsistency in total vcpu number"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">triggerUB</span> "save_resg_to_vcpu_spec: wrong cur entity id".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Extracts the VM userspace information with the given entity ID 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "save_regs_to_vcpu: cannot find vm_userspace for the entity id",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_userspace</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="var">st</span>.(<span class="id" title="var">vms_userspaces</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Get the current VCPU index for the VM 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "save_regs_to_vcpu: cannot find vcpu_index information of the vm userspace",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_index</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">cur_vcpu_index</span>))<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Copy the VCPU register information to the kernel to perform hypervisor calls 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "save_regs_to_vcpu: cannot find vcpu_context information",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_regs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">cur_vcpu_index</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "save_regs_to_vcpu: cannot find vm context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "save_regs_to_vcpu: inconsistency between saved context and user context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">list_eq_dec</span> <span class="id" title="var">zeq</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus</span>)) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">vcpus</span>))) &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">decide</span> (<span class="id" title="var">cur_vcpu_regs</span>.(<span class="id" title="var">vm_id</span>) = <span class="id" title="var">Some</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Trigger transitions in the state 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_cur_vcpu_index</span>: <span class="id" title="var">Some</span> <span class="id" title="var">cur_vcpu_index</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">vm_vcpus_contexts</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">cur_vcpu_index</span> <span class="id" title="var">cur_vcpu_regs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vms_contexts</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> := <span class="id" title="var">st</span> {<span class="id" title="var">is_hvc_mode</span>: <span class="id" title="var">true</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">hypervisor_context</span>/<span class="id" title="var">tpidr_el2</span>: <span class="id" title="var">Some</span> <span class="id" title="var">cur_vcpu_regs</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">hypervisor_context</span>/<span class="id" title="var">vms_contexts</span>: <span class="id" title="var">new_vms_contexts</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span> : <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">UserToKernel</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_index</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_regs</span>.(<span class="id" title="var">vcpu_regs</span>)::<span class="id" title="var">nil</span>)} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> <span class="id" title="var">new_st</span>).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">save_regs_to_vcpu_call</span> (<span class="id" title="var">args</span> : <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
@@ -962,7 +1016,7 @@ Definition address_high_shift := 32.
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">nil</span> =&gt; <span class="id" title="var">save_regs_to_vcpu_spec</span>;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vnull</span>, <span class="id" title="var">args</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerUB</span> "save_regs_to_vcpu_call: wrong arguments"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerUB</span> "save_regs_to_vcpu: wrong arguments"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
@@ -994,60 +1048,71 @@ find out the next vm to be scheduled <ul class="doclist">
 check whether the current running entity is Hafnium 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>) = <span class="id" title="var">true</span>) &amp;&amp; <span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">next_vm_id</span> <span class="id" title="var">vm_ids</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "vcpu_restore_and_run: wrong cur entity id" ,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>) = <span class="id" title="var">true</span>) &amp;&amp; (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">next_vm_id</span> <span class="id" title="var">vm_ids</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; </div>
 
 <div class="doc">
 get the userspace information 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_userspace</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">next_vm_id</span> <span class="id" title="var">st</span>.(<span class="id" title="var">vms_userspaces</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "vcpu_restore_and_run: Cannot find userspace information",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_userspace</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">next_vm_id</span> <span class="id" title="var">st</span>.(<span class="id" title="var">vms_userspaces</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; </div>
 
 <div class="doc">
 get vm context to restore the userspace information 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">next_vm_id</span> <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "vcpu_restore_and_run: Cannot find vm context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">next_vm_id</span> <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;  </div>
 
 <div class="doc">
 get vcpu register information 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">cur_kernel_vcpu_index</span> &lt;- (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">cur_vcpu_index</span>)) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">cur_user_vcpu_index</span> &lt;- (<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">cur_vcpu_index</span>)) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">cur_vcpu_regs</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">cur_kernel_vcpu_index</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">list_eq_dec</span> <span class="id" title="var">zeq</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">vcpus</span>)) &amp;&amp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">decide</span> (<span class="id" title="var">cur_kernel_vcpu_index</span> = <span class="id" title="var">cur_user_vcpu_index</span>) &amp;&amp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">decide</span> (<span class="id" title="var">cur_vcpu_regs</span>.(<span class="id" title="var">vm_id</span>) = <span class="id" title="var">Some</span> <span class="id" title="var">next_vm_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_userspace</span> := <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_userspace</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">client_vcpus_contexts</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZTree.set</span> <span class="id" title="var">cur_kernel_vcpu_index</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_regs</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)))} <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vms_userspaces</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">next_vm_id</span> <span class="id" title="var">new_vm_userspace</span> <span class="id" title="var">st</span>.(<span class="id" title="var">vms_userspaces</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> := <span class="id" title="var">st</span> {<span class="id" title="var">is_hvc_mode</span>: <span class="id" title="var">false</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">cur_user_entity_id</span>: <span class="id" title="var">next_vm_id</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">hypervisor_context</span>/<span class="id" title="var">tpidr_el2</span>: <span class="id" title="var">None</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">vms_userspaces</span>: <span class="id" title="var">new_vms_userspaces</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span> : <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">ChangeCurEntityID</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">next_vm_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">KernelToUser</span> <span class="id" title="var">next_vm_id</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_user_vcpu_index</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_regs</span>.(<span class="id" title="var">vcpu_regs</span>))::<span class="id" title="var">nil</span>} <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> <span class="id" title="var">new_st</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">triggerUB</span> "vcpu_restore_and_run__spec: inconsistency in vcpu number"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">triggerUB</span> "vcpu_restore_and_run__spec: wrong cur entity id".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span>  "vcpu_restore_and_run: cannot find vcpu index from kernel vm context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_kernel_vcpu_index</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">cur_vcpu_index</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span>  "vcpu_restore_and_run: cannot find vcpu index from user vm context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_user_vcpu_index</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">cur_vcpu_index</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "vcpu_restore_and_run: extract the curretnt vcpu context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_regs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">cur_kernel_vcpu_index</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "vcpu_restore_and_run: inconsistency between kernel vm context and user vm context" ,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">list_eq_dec</span> <span class="id" title="var">zeq</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">vcpus</span>)) &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">decide</span> (<span class="id" title="var">cur_kernel_vcpu_index</span> = <span class="id" title="var">cur_user_vcpu_index</span>) &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">decide</span> (<span class="id" title="var">cur_vcpu_regs</span>.(<span class="id" title="var">vm_id</span>) = <span class="id" title="var">Some</span> <span class="id" title="var">next_vm_id</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_userspace</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_userspace</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">client_vcpus_contexts</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZTree.set</span> <span class="id" title="var">cur_kernel_vcpu_index</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_regs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_userspace</span>.(<span class="id" title="var">vm_userspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)))} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vms_userspaces</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">next_vm_id</span> <span class="id" title="var">new_vm_userspace</span> <span class="id" title="var">st</span>.(<span class="id" title="var">vms_userspaces</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> := <span class="id" title="var">st</span> {<span class="id" title="var">is_hvc_mode</span>: <span class="id" title="var">false</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">cur_user_entity_id</span>: <span class="id" title="var">next_vm_id</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">hypervisor_context</span>/<span class="id" title="var">tpidr_el2</span>: <span class="id" title="var">None</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">vms_userspaces</span>: <span class="id" title="var">new_vms_userspaces</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span> : <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">ChangeCurEntityID</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">next_vm_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">KernelToUser</span> <span class="id" title="var">next_vm_id</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_user_vcpu_index</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_vcpu_regs</span>.(<span class="id" title="var">vcpu_regs</span>))::<span class="id" title="var">nil</span>} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> <span class="id" title="var">new_st</span>).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">vcpu_restore_and_run_call</span> (<span class="id" title="var">args</span> : <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
@@ -1065,11 +1130,20 @@ get vcpu register information
 </div>
 
 <div class="doc">
-<a name="lab127"></a><h2 class="section">FFA Dispatch</h2>
+<a name="lab133"></a><h2 class="section">FFA Dispatch</h2>
 
 </div>
 <div class="code">
 <span class="id" title="keyword">Section</span> <span class="id" title="var">FFADispatch</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Function dispatch. It dispatch the proper specification based on 
+      the value in the VCPU context 
+</div>
+<div class="code">
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Notation</span> <span class="id" title="var">HypervisorEE</span> := (<span class="id" title="var">CallExternalE</span> +' <span class="id" title="var">updateStateE</span> +' <span class="id" title="var">GlobalE</span> +' <span class="id" title="var">MemoryE</span> +' <span class="id" title="var">Event</span>).<br/>
@@ -1080,23 +1154,175 @@ get vcpu register information
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vid</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vals</span>: <span class="id" title="var">ZMap.t</span> <span class="id" title="var">Z</span>) (<span class="id" title="var">st</span> : <span class="id" title="var">AbstractState</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">ffa_function_type</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> FFA_MEM_DONATE gets four arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+<ul class="doclist">
+<li> Total length
+
+</li>
+<li> Fragment length
+
+</li>
+<li> Address
+
+</li>
+<li> Page count 
+</li>
+</ul>
+
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">FFA_MEM_DONATE</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="var">ffa_mem_donate_spec</span> <span class="id" title="var">vid</span> (<span class="id" title="var">ZMap.get</span> 1 <span class="id" title="var">vals</span>) (<span class="id" title="var">ZMap.get</span> 2 <span class="id" title="var">vals</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZMap.get</span> 3 <span class="id" title="var">vals</span>) (<span class="id" title="var">ZMap.get</span> 4 <span class="id" title="var">vals</span>) <span class="id" title="var">st</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> FFA_MEM_LEND gets four arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+<ul class="doclist">
+<li> Total length
+
+</li>
+<li> Fragment length
+
+</li>
+<li> Address
+
+</li>
+<li> Page count 
+</li>
+</ul>
+
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">FFA_MEM_LEND</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="var">ffa_mem_lend_spec</span> <span class="id" title="var">vid</span> (<span class="id" title="var">ZMap.get</span> 1 <span class="id" title="var">vals</span>) (<span class="id" title="var">ZMap.get</span> 2 <span class="id" title="var">vals</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZMap.get</span> 3 <span class="id" title="var">vals</span>) (<span class="id" title="var">ZMap.get</span> 4 <span class="id" title="var">vals</span>) <span class="id" title="var">st</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> FFA_MEM_SHARE gets four arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+<ul class="doclist">
+<li> Total length
+
+</li>
+<li> Fragment length
+
+</li>
+<li> Address
+
+</li>
+<li> Page count 
+</li>
+</ul>
+
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">FFA_MEM_SHARE</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="var">ffa_mem_share_spec</span> <span class="id" title="var">vid</span> (<span class="id" title="var">ZMap.get</span> 1 <span class="id" title="var">vals</span>) (<span class="id" title="var">ZMap.get</span> 2 <span class="id" title="var">vals</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZMap.get</span> 3 <span class="id" title="var">vals</span>) (<span class="id" title="var">ZMap.get</span> 4 <span class="id" title="var">vals</span>) <span class="id" title="var">st</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> FFA_MEM_RETREIVE_REQ gets four arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+<ul class="doclist">
+<li> Total length
+
+</li>
+<li> Fragment length
+
+</li>
+<li> Address
+
+</li>
+<li> Page count 
+</li>
+</ul>
+
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">FFA_MEM_RETREIVE_REQ</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="var">ffa_mem_retrieve_req_spec</span> <span class="id" title="var">vid</span> (<span class="id" title="var">ZMap.get</span> 1 <span class="id" title="var">vals</span>) (<span class="id" title="var">ZMap.get</span> 2 <span class="id" title="var">vals</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZMap.get</span> 3 <span class="id" title="var">vals</span>) (<span class="id" title="var">ZMap.get</span> 4 <span class="id" title="var">vals</span>) <span class="id" title="var">st</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> FFA_MEM_RETREIVE_RESP gets two arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+<ul class="doclist">
+<li> Total length
+
+</li>
+<li> Fragment length 
+</li>
+</ul>
+
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">FFA_MEM_RETREIVE_RESP</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="var">ffa_mem_retrieve_resp_spec</span> <span class="id" title="var">vid</span> (<span class="id" title="var">ZMap.get</span> 1 <span class="id" title="var">vals</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZMap.get</span> 2 <span class="id" title="var">vals</span>) <span class="id" title="var">st</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> FFA_MEM_RETREIVE_RESP doesn't have any arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details. 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">FFA_MEM_RELINQUISH</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="var">ffa_mem_relinquish_spec</span> <span class="id" title="var">vid</span> <span class="id" title="var">st</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> FFA_MEM_RECLAIM gets three arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+<ul class="doclist">
+<li> Handle (first half)
+
+</li>
+<li> Handle (second half)
+
+</li>
+<li> Falgs 
+</li>
+</ul>
+
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">FFA_MEM_RECLAIM</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="var">ffa_mem_reclaim_spec</span> <span class="id" title="var">vid</span> (<span class="id" title="var">ZMap.get</span> 1 <span class="id" title="var">vals</span>) (<span class="id" title="var">ZMap.get</span> 2 <span class="id" title="var">vals</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZMap.get</span> 3 <span class="id" title="var">vals</span>) <span class="id" title="var">st</span><br/>
@@ -1166,16 +1392,17 @@ In Hafnium: Defined in "inc/vmapi/hf/ffa.h"
 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">vcpu_regs</span> := <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">tpidr_el2</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">vcpu_regs</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">vcpu_regs'</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">vcpu_regs'</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkVCPU_struct</span> (<span class="id" title="var">Some</span> <span class="id" title="var">cid</span>) (<span class="id" title="var">Some</span> <span class="id" title="var">vid</span>) <span class="id" title="var">arch_regs</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">arch_regs</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkArchRegs</span> (<span class="id" title="var">mkFFA_value_type</span> <span class="id" title="var">func_type</span> <span class="id" title="var">vals</span>) =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">func_type</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">FFA_FUNCTION_IDENTIFIER</span> <span class="id" title="var">ffa_function_type</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "ffa_dispatch: vcpu value is not proper",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vcpu_regs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">tpidr_el2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">vcpu_regs</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkVCPU_struct</span> (<span class="id" title="var">Some</span> <span class="id" title="var">cid</span>) (<span class="id" title="var">Some</span> <span class="id" title="var">vid</span>) <span class="id" title="var">arch_regs</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">arch_regs</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkArchRegs</span> (<span class="id" title="var">mkFFA_value_type</span> <span class="id" title="var">func_type</span> <span class="id" title="var">vals</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">func_type</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">FFA_FUNCTION_IDENTIFIER</span> <span class="id" title="var">ffa_function_type</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
 <ul class="doclist">
@@ -1186,13 +1413,16 @@ In Hafnium: Defined in "inc/vmapi/hf/ffa.h"
 </div>
 <div class="code">
 <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> := <span class="id" title="var">st</span> {<span class="id" title="var">system_log</span>: <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">DispathFFAInterface</span> <span class="id" title="var">arch_regs</span>)::<span class="id" title="var">nil</span>} <span class="id" title="tactic">in</span>     <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">result</span> &lt;- <span class="id" title="var">function_dispatcher</span> <span class="id" title="var">ffa_function_type</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vid</span> <span class="id" title="var">vals</span> <span class="id" title="var">new_st</span> ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">result</span> <span class="id" title="keyword">with</span>                                <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id" title="var">updated_st</span>, <span class="id" title="var">ffa_result</span>) =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> := <span class="id" title="var">st</span> {<span class="id" title="var">system_log</span>: <span class="id" title="var">st</span>.(<span class="id" title="var">system_log</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">DispathFFAInterface</span> <span class="id" title="var">arch_regs</span>)::<span class="id" title="var">nil</span>} <span class="id" title="tactic">in</span>     <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "ffa_dispatch: error in function dispatch", <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">result</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">function_dispatcher</span> <span class="id" title="var">ffa_function_type</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vid</span> <span class="id" title="var">vals</span> <span class="id" title="var">new_st</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">result</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id" title="var">updated_st</span>, <span class="id" title="var">ffa_result</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
 <ul class="doclist">
@@ -1202,45 +1432,44 @@ In Hafnium: Defined in "inc/vmapi/hf/ffa.h"
 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vid</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">updated_st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>);;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">cur_kernel_vcpu_index</span> &lt;-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">cur_vcpu_index</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vcpu_reg</span> &lt;-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">cur_kernel_vcpu_index</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>);;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vcpu_reg</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkVCPU_struct</span> (<span class="id" title="var">vcpu_reg</span>.(<span class="id" title="var">cpu_id</span>)) (<span class="id" title="var">vcpu_reg</span>.(<span class="id" title="var">vm_id</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">mkArchRegs</span> (<span class="id" title="var">ffa_value_gen</span> <span class="id" title="var">ffa_result</span>)) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">vm_vcpus_contexts</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_kernel_vcpu_index</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_vcpu_reg</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)} <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">updated_st</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">vms_contexts</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">vid</span> <span class="id" title="var">new_vm_context</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">updated_st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))} <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> <span class="id" title="var">new_st</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>                                     <br/>
-<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerUB</span> "ffa_dispatch_spec: impossible case happens"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "ffa_dispatch: error in getting vm_context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vid</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">updated_st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "ffa_dispatch: error in getting vcpu index",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_kernel_vcpu_index</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">cur_vcpu_index</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "ffa_dispatch: error in getting saved vcpu index",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vcpu_reg</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">cur_kernel_vcpu_index</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="keyword">let</span> <span class="id" title="var">new_vcpu_reg</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkVCPU_struct</span> (<span class="id" title="var">vcpu_reg</span>.(<span class="id" title="var">cpu_id</span>)) (<span class="id" title="var">vcpu_reg</span>.(<span class="id" title="var">vm_id</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">mkArchRegs</span> (<span class="id" title="var">ffa_value_gen</span> <span class="id" title="var">ffa_result</span>)) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">vm_vcpus_contexts</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_kernel_vcpu_index</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_vcpu_reg</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_st</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">updated_st</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">vms_contexts</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">vid</span> <span class="id" title="var">new_vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">updated_st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> <span class="id" title="var">new_st</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>                                    <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerUB</span> "ffa_dispatch_spec: function identifier is not proper"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerUB</span> "ffa_dispatch_spec: impossible case happens"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">None</span> =&gt; <span class="id" title="var">triggerUB</span> "ffa_dispatch_spec: impossible case happens" <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerUB</span> "ffa_dispatch_spec: erros in vcpu struct value"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">ffa_dispatch_call</span> (<span class="id" title="var">args</span> : <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)  :=             <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)  :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">nil</span> =&gt; <span class="id" title="var">ffa_dispatch_spec</span>;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vnull</span>, <span class="id" title="var">args</span>)<br/>
@@ -1254,8 +1483,8 @@ In Hafnium: Defined in "inc/vmapi/hf/ffa.h"
 </div>
 
 <div class="doc">
-<a name="lab128"></a><h2 class="section">Client Setter and Getter</h2>
-<a name="lab129"></a><h3 class="section">FFA Interface Values</h3>
+<a name="lab134"></a><h2 class="section">Client Setter and Getter</h2>
+<a name="lab135"></a><h3 class="section">FFA Interface Values</h3>
  This section defines Z type interface values for FFA calls 
 </div>
 <div class="code">
@@ -1404,7 +1633,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab130"></a><h2 class="section">Client modeling</h2>
+<a name="lab136"></a><h2 class="section">Client modeling</h2>
 
 </div>
 <div class="code">
@@ -1421,23 +1650,19 @@ Memory load and store operations
 &nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">ffa_UUID_t</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">stage2_address_translation_table</span> <span class="id" title="var">addr</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">res</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">page_num</span> := <span class="id" title="var">Z.div</span> <span class="id" title="var">res</span> <span class="id" title="var">granuale</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">res</span> <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>).(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">page_num</span> <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>).(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">property</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">res</span> <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>).(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">property</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">property</span>.(<span class="id" title="var">accessible_by</span>) <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">accessor</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="keyword">if</span> (<span class="id" title="var">decide</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) = <span class="id" title="var">accessor</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Ret</span> (<span class="id" title="var">res</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">triggerNB</span> "stage2_address_translation_table error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">SharedAccess</span> <span class="id" title="var">accessors</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="keyword">if</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>)) <span class="id" title="var">accessors</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Ret</span> (<span class="id" title="var">res</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">triggerNB</span> "stage2_address_translation_table error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "stage2_address_translation_table error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">property</span>.(<span class="id" title="var">accessible_by</span>) <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">accessor</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="var">check</span> "stage2_address_translation_table error",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) = <span class="id" title="var">accessor</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">Ret</span> (<span class="id" title="var">res</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">SharedAccess</span> <span class="id" title="var">accessors</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="var">check</span> "stage2_address_translation_table error",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>)) <span class="id" title="var">accessors</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">Ret</span> (<span class="id" title="var">res</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "stage2_address_translation_table error"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "stage2_address_translation_table error"<br/>
@@ -1455,10 +1680,10 @@ Memory load and store operations
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">Ret</span> (<span class="id" title="var">addr</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="keyword">if</span> <span class="id" title="var">st</span>.(<span class="id" title="var">use_stage1_table</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">stage1_address_translation_table</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="var">addr</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">res'</span> =&gt; <span class="id" title="var">stage2_get_physical_address_spec</span> <span class="id" title="var">st</span> <span class="id" title="var">res'</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">None</span> =&gt; <span class="id" title="var">triggerNB</span> "stage1_address_translation_table error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "stage1_address_translation_table error",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res'</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">stage1_address_translation_table</span> <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="var">addr</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">stage2_get_physical_address_spec</span> <span class="id" title="var">st</span> <span class="id" title="var">res'</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">stage2_get_physical_address_spec</span> <span class="id" title="var">st</span> <span class="id" title="var">addr</span>.<br/>
 
 <br/>
@@ -1475,9 +1700,9 @@ Memory load and store operations
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_is_hvc_mode_spec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">triggerNB</span> "error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">is_hvc_mode</span> : <span class="id" title="var">true</span>})).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "set_is_hvc_mode: invalid mode",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">negb</span> <span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">is_hvc_mode</span> : <span class="id" title="var">true</span>})).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_is_hvc_mode_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
@@ -1492,9 +1717,9 @@ Memory load and store operations
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">unset_is_hvc_mode_spec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">is_hvc_mode</span> : <span class="id" title="var">false</span>}))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">triggerNB</span> "error".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "unset_is_hvc_mode: invalid mode",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">is_hvc_mode</span> : <span class="id" title="var">false</span>})).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">unset_is_hvc_mode_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
@@ -1509,9 +1734,9 @@ Memory load and store operations
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_use_stage1_table_spec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">st</span>.(<span class="id" title="var">use_stage1_table</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">triggerNB</span> "error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">use_stage1_table</span> : <span class="id" title="var">true</span>})).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "set_use_stage1_table: invalid mode",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">negb</span> <span class="id" title="var">st</span>.(<span class="id" title="var">use_stage1_table</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">use_stage1_table</span> : <span class="id" title="var">true</span>})).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_use_stage1_table_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
@@ -1526,9 +1751,9 @@ Memory load and store operations
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">unset_use_stage1_table_spec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">st</span>.(<span class="id" title="var">use_stage1_table</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">use_stage1_table</span> : <span class="id" title="var">false</span>}))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">triggerNB</span> "error".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "unset_use_stage1_table: invalid mode",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">st</span>.(<span class="id" title="var">use_stage1_table</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">use_stage1_table</span> : <span class="id" title="var">false</span>})).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">unset_use_stage1_table_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
@@ -1542,27 +1767,29 @@ Memory load and store operations
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">send_msg_spec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">receiver</span> <span class="id" title="var">size</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">ffa_mailbox_send_msg_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">ffa_mailbox_msg_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">recv_func</span> : <span class="id" title="var">FFA_FUNCTION_TYPE</span>) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">sender</span> := <span class="id" title="var">state</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mailbox_contents</span> := <span class="id" title="var">mkMAILBOX_struct</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">send</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">msg</span> (<span class="id" title="var">Some</span> <span class="id" title="var">sender</span>) <span class="id" title="var">size</span> (<span class="id" title="var">Some</span> <span class="id" title="var">recv_func</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_mailbox</span> : <span class="id" title="var">mailbox_contents</span>} <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">receiver</span> <span class="id" title="var">new_vm_context</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">state</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">vms_contexts</span> : <span class="id" title="var">new_vm_contexts</span>})).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "send_msg: error in getting vm_context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mailbox_contents</span> := <span class="id" title="var">mkMAILBOX_struct</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">msg</span> (<span class="id" title="var">Some</span> <span class="id" title="var">sender</span>) <span class="id" title="var">size</span> (<span class="id" title="var">Some</span> <span class="id" title="var">recv_func</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_mailbox</span> : <span class="id" title="var">mailbox_contents</span>} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">receiver</span> <span class="id" title="var">new_vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">state</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">vms_contexts</span> : <span class="id" title="var">new_vm_contexts</span>})).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">send_msg_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">receiver</span>)); (<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">size</span>)); (<span class="id" title="var">Vabs</span> <span class="id" title="var">mailbox_msg</span>); (<span class="id" title="var">Vabs</span> <span class="id" title="var">recv_func</span>)] =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">downcast</span> <span class="id" title="var">mailbox_msg</span> <span class="id" title="var">ffa_mailbox_send_msg_t</span>, <span class="id" title="var">downcast</span> <span class="id" title="var">recv_func</span> <span class="id" title="var">FFA_FUNCTION_TYPE</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">downcast</span> <span class="id" title="var">mailbox_msg</span> <span class="id" title="var">ffa_mailbox_msg_t</span>, <span class="id" title="var">downcast</span> <span class="id" title="var">recv_func</span> <span class="id" title="var">FFA_FUNCTION_TYPE</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">msg</span>, <span class="id" title="var">Some</span> <span class="id" title="var">func_type</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">send_msg_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">receiver</span>) (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">size</span>) <span class="id" title="var">msg</span> <span class="id" title="var">func_type</span> ;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vnull</span>, <span class="id" title="var">args</span>)<br/>
@@ -1573,11 +1800,13 @@ Memory load and store operations
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">recv_msg_spec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">ffa_mailbox_send_msg_t</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">FFAMemoryHypCallState.ffa_mailbox_msg_t</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">current_vm_id</span> := <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> <span class="id" title="var">vm_context</span> &lt;- <span class="id" title="var">ZTree.get</span> <span class="id" title="var">current_vm_id</span> <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) ;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">send</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "recv_msg: error in getting vm_context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">current_vm_id</span> <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">Ret</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">message</span>)).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">recv_msg_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
@@ -1596,7 +1825,7 @@ Memory load and store operations
 </div>
 
 <div class="doc">
-<a name="lab131"></a><h2 class="section">FFA Memory Management Interface Module</h2>
+<a name="lab137"></a><h2 class="section">FFA Memory Management Interface Module</h2>
 
 </div>
 <div class="code">
@@ -1604,43 +1833,46 @@ Memory load and store operations
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">global_properties_getter_spec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">addr</span>: <span class="id" title="var">ffa_address_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">page_num</span>: <span class="id" title="var">Z</span>)<br/>
 &nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">MemGlobalProperties</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">ZTree.get</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">addr</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">v</span> =&gt; <span class="id" title="var">Ret</span>(<span class="id" title="var">v</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "global_properties_getter: page number out of range",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">page_low</span> &lt;= <span class="id" title="var">page_num</span>)%<span class="id" title="var">Z</span> &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">page_num</span> &lt; <span class="id" title="var">page_high</span>)%<span class="id" title="var">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "global_properties_getter_spec: no properties in the map",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">v</span> &lt;- <span class="id" title="var">ZTree.get</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">page_num</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_global_properties</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">Ret</span> (<span class="id" title="var">v</span>).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">global_properties_getter_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">addr</span>))] =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">global_properties_getter_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">addr</span>) ;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">page_num</span>))] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">global_properties_getter_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">page_num</span>) ;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">res</span>), <span class="id" title="var">args</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "send_msg_call: wrong arguments"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">global_properties_setter_spec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">addr</span>: <span class="id" title="var">ffa_address_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">page_num</span>: <span class="id" title="var">Z</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">global_properties</span>: <span class="id" title="var">MemGlobalProperties</span>) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mem_props</span> := <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_mem_global_props_pool</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:= <span class="id" title="var">ZTree.set</span> <span class="id" title="var">addr</span> <span class="id" title="var">global_properties</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mem_props</span>.(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_mem_props</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_mem_global_props_pool</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mem_props</span>.(<span class="id" title="var">mem_local_properties</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ <span class="id" title="var">mem_properties</span>: <span class="id" title="var">new_mem_props</span>})).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span> ;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "global_properties_setter: page number out of range",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">page_low</span> &lt;= <span class="id" title="var">page_num</span>)%<span class="id" title="var">Z</span> &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">page_num</span> &lt; <span class="id" title="var">page_high</span>)%<span class="id" title="var">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="keyword">let</span> <span class="id" title="var">mem_props</span> := <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_mem_global_props_pool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:= <span class="id" title="var">ZTree.set</span> <span class="id" title="var">page_num</span> <span class="id" title="var">global_properties</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mem_props</span>.(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_mem_props</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_mem_global_props_pool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mem_props</span>.(<span class="id" title="var">mem_local_properties</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ <span class="id" title="var">mem_properties</span>: <span class="id" title="var">new_mem_props</span>})).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">global_properties_setter_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
@@ -1658,68 +1890,71 @@ Memory load and store operations
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">local_properties_getter_spec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">owner</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">addr</span>: <span class="id" title="var">ffa_address_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">owner</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">page_num</span>: <span class="id" title="var">Z</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">MemLocalProperties</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">ZTree.get</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owner</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_local_properties</span>) <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">local_props_pool</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">ZTree.get</span> <span class="id" title="var">addr</span> <span class="id" title="var">local_props_pool</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">v</span> =&gt; <span class="id" title="var">Ret</span>(<span class="id" title="var">v</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "local_properties_getter: page number out of range",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">page_low</span> &lt;= <span class="id" title="var">page_num</span>)%<span class="id" title="var">Z</span> &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">page_num</span> &lt; <span class="id" title="var">page_high</span>)%<span class="id" title="var">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "local_properties_getter: no local property pool in the map",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">local_props_pool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owner</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_local_properties</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "local_properties_getter: no properties in the map",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">page_num</span> <span class="id" title="var">local_props_pool</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">Ret</span>(<span class="id" title="var">value</span>).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">local_properties_getter_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">owner</span>)); (<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">addr</span>))] =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;-  <span class="id" title="var">local_properties_getter_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">owner</span>) (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">addr</span>) ;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">owner</span>)); (<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">page_num</span>))] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;-  <span class="id" title="var">local_properties_getter_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">owner</span>) (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">page_num</span>) ;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vnull</span>, <span class="id" title="var">args</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "send_msg_call: wrong arguments"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">local_properties_setter_spec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">owner</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">addr</span>: <span class="id" title="var">ffa_address_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">owner</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">page_num</span>: <span class="id" title="var">Z</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">local_properties</span>: <span class="id" title="var">MemLocalProperties</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">ZTree.get</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owner</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_local_properties</span>) <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">local_props_local_pool</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_local_props</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">addr</span> <span class="id" title="var">local_properties</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">local_props_local_pool</span> <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_local_props_pool</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">owner</span> <span class="id" title="var">new_local_props</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_local_properties</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_mem_props</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_global_properties</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_local_props_pool</span> <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ <span class="id" title="var">mem_properties</span>: <span class="id" title="var">new_mem_props</span>}))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "error"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "local_properties_setter: page number out of range",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">page_low</span> &lt;= <span class="id" title="var">page_num</span>)%<span class="id" title="var">Z</span> &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">page_num</span> &lt; <span class="id" title="var">page_high</span>)%<span class="id" title="var">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">get</span> "local_properties_setter: no local property pool in the map",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">local_props_local_pool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owner</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_local_properties</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;     <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_local_props</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">page_num</span> <span class="id" title="var">local_properties</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">local_props_local_pool</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_local_props_pool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">owner</span> <span class="id" title="var">new_local_props</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_local_properties</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_mem_props</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemProperties</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_global_properties</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_local_props_pool</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ <span class="id" title="var">mem_properties</span>: <span class="id" title="var">new_mem_props</span>})).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">local_properties_setter_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">owner</span>));(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">addr</span>)); (<span class="id" title="var">Vabs</span> <span class="id" title="var">local_properties</span>)] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">owner</span>));(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">page_num</span>)); (<span class="id" title="var">Vabs</span> <span class="id" title="var">local_properties</span>)] =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">downcast</span> <span class="id" title="var">local_properties</span> <span class="id" title="var">MemLocalProperties</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">local_props</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">local_properties_setter_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">owner</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">addr</span>) <span class="id" title="var">local_props</span>;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">page_num</span>) <span class="id" title="var">local_props</span>;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vnull</span>, <span class="id" title="var">args</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "send_msg_call: impossible conversion"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
@@ -1727,14 +1962,14 @@ Memory load and store operations
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_mem_dirty_spec</span> (<span class="id" title="var">writer</span>: <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">addr</span>: <span class="id" title="var">ffa_address_t</span>)<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_mem_dirty_spec</span> (<span class="id" title="var">writer</span>: <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">page_num</span>: <span class="id" title="var">Z</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">ZTree.get</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">addr</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">page_num</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> (<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owner</span> <span class="id" title="var">access</span> <span class="id" title="var">inst_access</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> (<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">is_ns</span> <span class="id" title="var">owner</span> <span class="id" title="var">access</span> <span class="id" title="var">inst_access</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">data_access</span> <span class="id" title="var">mem_attr</span> <span class="id" title="var">mem_dirty</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="keyword">let</span> <span class="id" title="var">new_mem_dirty</span> := <span class="id" title="keyword">match</span> <span class="id" title="var">mem_dirty</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">MemClean</span> =&gt; <span class="id" title="var">MemWritten</span> (<span class="id" title="var">writer</span>::<span class="id" title="var">nil</span>)<br/>
@@ -1744,12 +1979,12 @@ Memory load and store operations
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">MemWritten</span> (<span class="id" title="var">writer</span>::<span class="id" title="var">writers</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_prop</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owner</span> <span class="id" title="var">access</span> <span class="id" title="var">inst_access</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">is_ns</span> <span class="id" title="var">owner</span> <span class="id" title="var">access</span> <span class="id" title="var">inst_access</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">data_access</span> <span class="id" title="var">mem_attr</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_mem_dirty</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_props</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">addr</span> <span class="id" title="var">new_global_prop</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">page_num</span> <span class="id" title="var">new_global_prop</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_mem_props</span> :=<br/>
@@ -1759,7 +1994,7 @@ Memory load and store operations
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_local_properties</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ <span class="id" title="var">mem_properties</span>: <span class="id" title="var">new_mem_props</span>}))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "error"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "set_mem_dirty: cannot find property"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
@@ -1773,22 +2008,22 @@ Memory load and store operations
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">clean_mem_dirty_spec</span> (<span class="id" title="var">writer</span>: <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">addr</span>: <span class="id" title="var">ffa_address_t</span>)<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">clean_mem_dirty_spec</span> (<span class="id" title="var">writer</span>: <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">page_num</span>: <span class="id" title="var">Z</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">ZTree.get</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">addr</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">page_num</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> (<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owner</span> <span class="id" title="var">access</span> <span class="id" title="var">inst_access</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> (<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">is_ns</span> <span class="id" title="var">owner</span> <span class="id" title="var">access</span> <span class="id" title="var">inst_access</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">data_access</span> <span class="id" title="var">mem_attr</span> <span class="id" title="var">mem_dirty</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt; <span class="id" title="keyword">let</span> <span class="id" title="var">new_global_prop</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">owner</span> <span class="id" title="var">access</span> <span class="id" title="var">inst_access</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">is_ns</span> <span class="id" title="var">owner</span> <span class="id" title="var">access</span> <span class="id" title="var">inst_access</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">data_access</span> <span class="id" title="var">mem_attr</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">MemClean</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_global_props</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">addr</span> <span class="id" title="var">new_global_prop</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">page_num</span> <span class="id" title="var">new_global_prop</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">mem_properties</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_global_properties</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_mem_props</span> :=<br/>
@@ -1798,7 +2033,7 @@ Memory load and store operations
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.(<span class="id" title="var">mem_local_properties</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">st</span> {<span class="id" title="var">hypervisor_context</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ <span class="id" title="var">mem_properties</span>: <span class="id" title="var">new_mem_props</span>}))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "error"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "clean_mem_dirty: cannot find property"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
@@ -1815,7 +2050,7 @@ Memory load and store operations
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_current_entity_id_spec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">ffa_UUID_t</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>)) <span class="id" title="keyword">then</span> <span class="id" title="var">Ret</span> (<span class="id" title="var">hafnium_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">is_hvc_mode</span>)) <span class="id" title="keyword">then</span> <span class="id" title="var">Ret</span> (<span class="id" title="var">hypervisor_id</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">Ret</span> (<span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>)).<br/>
 
 <br/>
@@ -1837,7 +2072,7 @@ Memory load and store operations
 </div>
 
 <div class="doc">
-<a name="lab132"></a><h2 class="section">FFA Memory Management Interface Module</h2>
+<a name="lab138"></a><h2 class="section">FFA Memory Management Interface Module</h2>
 
 </div>
 <div class="code">
@@ -1846,8 +2081,8 @@ Memory load and store operations
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">funcs</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;[<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.save_regs_to_vcpu_call", <span class="id" title="var">save_regs_to_vcpu_call</span>) ;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.vcpu_restore_and_run_call", <span class="id" title="var">vcpu_restore_and_run_call</span>) ;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.save_regs_to_vcpu", <span class="id" title="var">save_regs_to_vcpu_call</span>) ;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.vcpu_restore_and_run", <span class="id" title="var">vcpu_restore_and_run_call</span>) ;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.ffa_dispatch_call", <span class="id" title="var">ffa_dispatch_call</span>) ;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.get_physical_address", <span class="id" title="var">get_physical_address_call</span>);<br/>
@@ -1910,7 +2145,7 @@ Memory load and store operations
 </div>
 
 <div class="doc">
-<a name="lab133"></a><h2 class="section">Hypervisor Call</h2>
+<a name="lab139"></a><h2 class="section">Hypervisor Call</h2>
 
 </div>
 <div class="code">
@@ -1918,9 +2153,14 @@ Memory load and store operations
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">hypervisor_call</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.set_is_hvc_mode" []) #;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Put</span> "set_is_hvc_mode done" <span class="id" title="var">Vnull</span>) #;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.save_regs_to_vcpu" []) #;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Put</span> "context changing is done" <span class="id" title="var">Vnull</span>) #;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.function_dispatcher" []) #;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.vcpu_restore_and_run_spec" []).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Put</span> "function_dispatcher has be invoked" <span class="id" title="var">Vnull</span>) #;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.vcpu_restore_and_run_spec" []) #;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.unset_is_hvc_mode" []).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">hypervisor_callF</span> : <span class="id" title="var">function</span>.<br/>
@@ -1934,7 +2174,7 @@ Memory load and store operations
 </div>
 
 <div class="doc">
-<a name="lab134"></a><h2 class="section">FFA Memory Management Interface Module With Mem Accessor</h2>
+<a name="lab140"></a><h2 class="section">FFA Memory Management Interface Module With Mem Accessor</h2>
 
 </div>
 <div class="code">
@@ -1953,7 +2193,7 @@ Arbitrarily assign the block number for users
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mem_store_spec</span> (<span class="id" title="var">addr</span> <span class="id" title="var">value</span> : <span class="id" title="var">var</span>) (<span class="id" title="var">entity_id</span> <span class="id" title="var">paddr</span> : <span class="id" title="var">var</span>) : <span class="id" title="var">stmt</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">entity_id</span> #= (<span class="id" title="var">Call</span> "HVCToplevel.get_current_entity_id" []) #;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">paddr</span> #= (<span class="id" title="var">Call</span> "HVCTopLevel.get_physical_address" [<span class="id" title="var">CBV</span> <span class="id" title="var">addr</span>]) #;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.set_mem_dirty" [<span class="id" title="var">CBV</span> <span class="id" title="var">entity_id</span>; <span class="id" title="var">CBV</span> <span class="id" title="var">addr</span>]) #;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.set_mem_dirty" [<span class="id" title="var">CBV</span> <span class="id" title="var">entity_id</span>; <span class="id" title="var">CBV</span> (<span class="id" title="var">addr</span> / (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">granuale</span>))]) #;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">flat_mem_block_ptr</span> @ <span class="id" title="var">paddr</span> #:= <span class="id" title="var">value</span>).<br/>
 
 <br/>
