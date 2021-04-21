@@ -224,7 +224,17 @@ Section DescriptorGenerator.
              (sender receiver: ffa_UUID_t)
              (address :ffa_address_t) (page: Z)
     := mailbox_memory_region (DonateDescriptorGenerator sender receiver address page).
-  
+
+
+  Definition donate_vcpu_struct (cpu_id : ffa_CPU_ID_t) (vm_id : ffa_UUID_t)  :=
+    (mkVCPU_struct
+       (Some cpu_id)
+       (Some vm_id)
+       (mkArchRegs
+          (mkFFA_value_type
+             (FFA_FUNCTION_IDENTIFIER FFA_MEM_DONATE)
+             (ZMap.init 0)))).
+
 End DescriptorGenerator.
 
 Module FFAMEMORYHYPCALLTESTING.
@@ -254,7 +264,89 @@ Module FFAMEMORYHYPCALLTESTING.
     
   End DUMMYTEST1.
 
-  Module DONATETEST1.
+  Module DUMMYTEST2.
+    
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCTopLevel.set_is_hvc_mode" [])
+        #; (Put "Succeeed in setting hvc mode" Vnull)
+        #; (Call "HVCTopLevel.unset_is_hvc_mode" [])
+        #; (Put "Succeeed in unsetting hvc mode" Vnull)
+        #; (Call "HVCTopLevel.set_use_stage1_table" [])
+        #; (Put "Succeeed in setting stage1 table" Vnull)
+        #; (Call "HVCTopLevel.unset_use_stage1_table" [])
+        #; (Put "Succeeed in unsetting stage1 table" Vnull).
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].
+
+  End DUMMYTEST2.
+
+  Module DUMMYTEST3.
+    
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 10)])
+        #; (Put "getter result: " (Call "HVCToplevel.userspace_vcpu_index_getter" [])).
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].
+
+  End DUMMYTEST3.
+
+
+  Module DUMMYTEST4.
+    
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Put "getter result: "
+                (Call "HVCToplevel.get_current_entity_id" [])).
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].
+
+  End DUMMYTEST4.
+
+  Module DUMMYTEST5.
     
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
       (initialize_owners cur_address initial_global_value initial_local_value)
@@ -263,17 +355,137 @@ Module FFAMEMORYHYPCALLTESTING.
                                         CBV (Vabs (upcast (mailbox_msg
                                                              primary_vm_id primary_vm_id
                                                              page_low 1)));
-                                        CBV (Vabs (upcast FFA_MEM_DONATE))])
+                                        CBV (Vabs (upcast (FFA_MEM_DONATE)))])
+        #; (Call "HVCTopLevel.recv_msg" []).
+        
+    
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
 
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].
+
+  End DUMMYTEST5.
+  
+  Module DUMMYTEST6.
+
+
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 1)])
+        #; (Call "HVCTopLevel.vcpu_struct_setter"
+                 [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
+        #; (Call "HVCTopLevel.vcpu_struct_getter" []).
+    
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].
+
+  End DUMMYTEST6.
+    
+  Module DUMMYTEST7.
+    
+    
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCTopLevel.local_properties_setter" [CBV (Vcomp (Vlong (Int64.repr primary_vm_id)));
+                                                       CBV (Vcomp (Vlong (Int64.repr 1)));
+                                                       CBV (Vabs (upcast InitialLocalAttributes))])
+        #; (Call "HVCTopLevel.local_properties_getter" [CBV (Vcomp (Vlong (Int64.repr primary_vm_id)));
+                                                       CBV (Vcomp (Vlong (Int64.repr 1)))])
+        #; (Call "HVCTopLevel.global_properties_setter" [CBV (Vcomp (Vlong (Int64.repr 1)));
+                                                        CBV (Vabs (upcast InitialGlobalAttributesForVMOne))])
+        #; (Call "HVCTopLevel.global_properties_getter" [CBV (Vcomp (Vlong (Int64.repr 1)))])
+        #; (Call "HVCTopLevel.set_mem_dirty" [CBV (Vcomp (Vlong (Int64.repr primary_vm_id)));
+                                             CBV (Vcomp (Vlong (Int64.repr 1)))])
+        #; (Call "HVCTopLevel.clean_mem_dirty" [CBV (Vcomp (Vlong (Int64.repr primary_vm_id)));
+                                               CBV (Vcomp (Vlong (Int64.repr 1)))]).
+    
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].
+
+  End DUMMYTEST7.
+  
+  
+  Module CONTEXTSWITCHINGTEST1.
+
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 1)])
+        #; (Call "HVCTopLevel.vcpu_struct_setter"
+                 [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
+        #; (Call "HVCTopLevel.set_is_hvc_mode" [])
+        #; (Call "HVCTopLevel.save_regs_to_vcpu" [])
+        #; (Call "HVCTopLevel.vcpu_restore_and_run" []).
+
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].        
+    
+  End CONTEXTSWITCHINGTEST1.
+    
+  Module DONATETEST1.
+
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCTopLevel.send_msg" [CBV (Int64.repr primary_vm_id);
+                                        CBV (Int64.repr 36);
+                                        CBV (Vabs (upcast (mailbox_msg
+                                                             primary_vm_id primary_vm_id
+                                                             page_low 1)));
+                                        CBV (Vabs (upcast (FFA_MEM_DONATE)))])
         #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 0)])
-        #; (Call "HVCToplevel.vcpu_struct_setter" [CBV (Vabs (upcast (mkVCPU_struct
-                                                                        (Some 0)
-                                                                        (Some primary_vm_id)
-                                                                        (mkArchRegs
-                                                                           (mkFFA_value_type
-                                                                              (FFA_FUNCTION_IDENTIFIER FFA_MEM_DONATE)
-                                                                              (ZMap.init 0))))))])
-        #; (Call "HVCTopLevel.hypervisor_call" []).    
+        #; (Call "HVCTopLevel.vcpu_struct_setter"
+                 [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
+        #; (Call "HVCTopLevel.hypervisor_call" []).
 
     Definition mainF: function.
       mk_function_tac main ([]: list var) (["cur_address";

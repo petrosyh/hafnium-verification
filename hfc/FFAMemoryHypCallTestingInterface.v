@@ -15,7 +15,7 @@
  *)
 From Coq Require Import
      Arith.PeanoNat
-     Lists.List
+     Lists.List  
      Strings.String
      Morphisms
      Setoid
@@ -256,7 +256,7 @@ Definition stage2_address_translation_table :=
        && decide (x < (page_high * granuale))%Z
     then Some x else None.
 
-Definition stage1_address_translation_table :=
+Definition  stage1_address_translation_table :=
   fun (vid : ffa_UUID_t) (x : ffa_address_t) =>
     let address_low := (page_low * granuale)%Z in
     let address_high := (page_high * granuale)%Z in
@@ -738,7 +738,7 @@ Section FFAContextSwitching.
 
     (** - Check validities *)
     (** - Check whether the current running entity is one of VMs *)
-    check "save_regs_to_vcpu: wrong cur entity id" ,
+    check "save_regs_to_vcpu: Wrong cur entity id" ,
     (decide (st.(is_hvc_mode) = true) && (in_dec zeq st.(cur_user_entity_id) vm_ids))
       
       (** - Extracts the VM userspace information with the given entity ID *)
@@ -750,13 +750,13 @@ Section FFAContextSwitching.
         ;;; get "save_regs_to_vcpu: cannot find vcpu_index information of the vm userspace",
     cur_vcpu_index
     <- (vm_userspace.(vm_userspace_context).(cur_vcpu_index))
-
-        (** - Copy the VCPU register information to the kernel to perform hypervisor calls *)
-        ;;; get "save_regs_to_vcpu: cannot find vcpu_context information",
-    cur_vcpu_regs
-    <- (ZTree.get cur_vcpu_index 
-                 (vm_userspace.(vm_userspace_context).(vcpus_contexts)))
         
+        (** - Copy the VCPU register information to the kernel to perform hypervisor calls *)
+        ;;; get (append_all ["save_regs_to_vcpu: cannot find vcpu information for ";
+                HexString.of_Z cur_vcpu_index]) ,
+    cur_vcpu_regs
+    <- (ZTree.get cur_vcpu_index
+                 (vm_userspace.(vm_userspace_context).(vcpus_contexts)))
         ;;; get "save_regs_to_vcpu: cannot find vm context",
     vm_context
     <- (ZTree.get st.(cur_user_entity_id) st.(hypervisor_context).(vms_contexts))
@@ -801,10 +801,12 @@ Section FFAContextSwitching.
     st <- trigger GetState;;
     (** find out the next vm to be scheduled *)
     (** - Since we do not have any scheduler implementations, we introduced abstract scheduler *)
-    let next_vm_id := scheduler st in
+    (* let next_vm_id := scheduler st in *)
+    
+    let next_vm_id := st.(cur_user_entity_id) in
     (** check whether the current running entity is Hafnium *)
     check "vcpu_restore_and_run: wrong cur entity id" ,
-    (decide (st.(is_hvc_mode) = true) && (in_dec zeq next_vm_id vm_ids))
+    ( (* (decide (st.(is_hvc_mode) = true) && *) (in_dec zeq next_vm_id vm_ids))
       ;;; (** get the userspace information *)
       get "vcpu_restore_and_run: Cannot find userspace information",
     vm_userspace
@@ -814,7 +816,7 @@ Section FFAContextSwitching.
     vm_context
     <- (ZTree.get next_vm_id st.(hypervisor_context).(vms_contexts))
         ;;;  (** get vcpu register information *)
-        get  "vcpu_restore_and_run: cannot find vcpu index from kernel vm context",
+        get  "vcpu_restore_and_run: Cannot find vcpu index from kernel vm context",
     cur_kernel_vcpu_index
     <- (vm_context.(vm_kernelspace_context).(cur_vcpu_index))
         ;;;
@@ -1155,7 +1157,7 @@ Section InterfaceFunctions.
     : itree HypervisorEE (ffa_UUID_t) := 
     st <- trigger GetState;;
     if st.(is_hvc_mode)
-    then Ret (addr)
+    then stage2_get_physical_address_spec st addr
     else if st.(use_stage1_table)
          then
            get "stage1_address_translation_table error",
@@ -1280,7 +1282,7 @@ Section InterfaceFunctions.
     | [] =>
       res <- recv_msg_spec;;  
       Ret (Vabs (upcast res), args)
-    | _ => triggerNB "send_msg_call: wrong arguments"
+    | _ => triggerNB "recv_msg_call: wrong arguments"
     end.
   
 End InterfaceFunctions.
@@ -1309,7 +1311,7 @@ Section MemSetterGetter.
     | [(Vcomp (Vlong page_num))] =>
       res <- global_properties_getter_spec (Int64.unsigned page_num) ;;
       Ret (Vabs (upcast res), args)
-    | _ => triggerNB "send_msg_call: wrong arguments"
+    | _ => triggerNB "global_properties_getter: wrong arguments"
     end.
   
   Definition global_properties_setter_spec
@@ -1338,9 +1340,9 @@ Section MemSetterGetter.
       | Some global_props =>
         global_properties_setter_spec (Int64.unsigned addr) global_props;;
         Ret (Vnull, args)
-      | _ => triggerNB "send_msg_call: impossible conversion"
+      | _ => triggerNB "global_properties_setter: impossible conversion"
       end
-    | _ => triggerNB "send_msg_call: wrong arguments"
+    | _ => triggerNB "global_properties_setter: wrong arguments"
     end.
   
   Definition local_properties_getter_spec
@@ -1366,7 +1368,7 @@ Section MemSetterGetter.
     | [(Vcomp (Vlong owner)); (Vcomp (Vlong page_num))] =>
       res <-  local_properties_getter_spec (Int64.unsigned owner) (Int64.unsigned page_num) ;;
       Ret (Vnull, args)
-    | _ => triggerNB "send_msg_call: wrong arguments"
+    | _ => triggerNB "local_properties_getter: wrong arguments"
     end.
 
   Definition local_properties_setter_spec
@@ -1407,9 +1409,9 @@ Section MemSetterGetter.
         local_properties_setter_spec (Int64.unsigned owner)
                                  (Int64.unsigned page_num) local_props;;
         Ret (Vnull, args)
-      | _ => triggerNB "send_msg_call: impossible conversion"
+      | _ => triggerNB "local_properties_setter: impossible conversion"
       end
-    | _ => triggerNB "send_msg_call: wrong arguments"
+    | _ => triggerNB "local_properties_setter: wrong arguments"
     end.
 
   Definition set_mem_dirty_spec (writer: ffa_UUID_t) (page_num: Z)
@@ -1603,42 +1605,42 @@ Section MemSetterGetter.
   
   Definition vcpu_struct_setter_spec (vcpu_values: VCPU_struct)
     : itree HypervisorEE (unit) :=
-      st <- trigger GetState;;
-      check "vcpu_struct_getter: invalid mode for this operation",
-      (negb st.(is_hvc_mode))
-        ;;;
-        let cur_user_entity_id :=
-            (st.(cur_user_entity_id)) in
-        get "vcpu_struct_getter: current user vm context does not exist",
-        cur_user_vm_context
-        <- (ZTree.get cur_user_entity_id
-                     st.(vms_userspaces))
-            ;;; get "vcpu_struct_getter: current user vcpu id is invalid",
-        cur_user_vcpu_id
-        <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
-            ;;;
-            let new_vcpu_contexts :=
-                (ZTree.set
-                   cur_user_vcpu_id
-                   vcpu_values
-                   (cur_user_vm_context.(vm_userspace_context).(vcpus_contexts))) in
-            let new_user_vm_context :=
-                mkVM_USERSPACE_struct
-                  (mkVM_COMMON_struct
-                     (Some cur_user_vcpu_id)
-                     (cur_user_vm_context.(vm_userspace_context).(vcpus))
-                     new_vcpu_contexts) in
-            let new_vm_contexts :=
-                (ZTree.set cur_user_entity_id 
-                           new_user_vm_context
-                           st.(vms_userspaces)) in
-            let new_state := st {vms_userspaces : new_vm_contexts} in
-            trigger (SetState (st)).
+    st <- trigger GetState;;
+    check "vcpu_struct_getter: invalid mode for this operation",
+    (negb st.(is_hvc_mode))
+      ;;;
+      let cur_user_entity_id :=
+          (st.(cur_user_entity_id)) in
+      get "vcpu_struct_getter: current user vm context does not exist",
+      cur_user_vm_context
+      <- (ZTree.get cur_user_entity_id
+                   st.(vms_userspaces))
+          ;;; get "vcpu_struct_getter: current user vcpu id is invalid",
+      cur_user_vcpu_id
+      <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
+          ;;;
+          let new_vcpu_contexts :=
+              (ZTree.set
+                 cur_user_vcpu_id
+                 vcpu_values
+                 (cur_user_vm_context.(vm_userspace_context).(vcpus_contexts))) in
+          let new_user_vm_contexts :=
+              mkVM_USERSPACE_struct
+                (mkVM_COMMON_struct
+                   (Some cur_user_vcpu_id)
+                   (cur_user_vm_context.(vm_userspace_context).(vcpus))
+                   new_vcpu_contexts) in
+          let new_vm_contexts :=
+              (ZTree.set cur_user_entity_id 
+                         new_user_vm_contexts
+                         st.(vms_userspaces)) in
+          let new_state := st {vms_userspaces : new_vm_contexts} in
+          trigger (SetState (new_state)).
   
   Definition vcpu_struct_setter_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
-    | [Vabs vcpu_struct_val ] =>
+    | [Vabs vcpu_struct_val] =>
         match downcast vcpu_struct_val VCPU_struct with
         | Some vcpu_val =>
           vcpu_struct_setter_spec vcpu_val ;;
@@ -1659,7 +1661,7 @@ Section FFAMemoryManagementInterfaceModule.
     [
       ("HVCTopLevel.save_regs_to_vcpu", save_regs_to_vcpu_call) ;
     ("HVCTopLevel.vcpu_restore_and_run", vcpu_restore_and_run_call) ;
-    ("HVCTopLevel.ffa_dispatch_call", ffa_dispatch_call) ;
+    ("HVCTopLevel.ffa_dispatch", ffa_dispatch_call) ;
     
     ("HVCTopLevel.get_physical_address", get_physical_address_call);
     ("HVCTopLevel.set_is_hvc_mode", set_is_hvc_mode_call);
@@ -1678,7 +1680,7 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.set_mem_dirty", set_mem_dirty_call);
     ("HVCTopLevel.clean_mem_dirty", clean_mem_dirty_call);
     ("HVCTopLevel.vcpu_struct_getter", vcpu_struct_getter_call);
-    ("HVCTopLevel.vcpu_struct_setter", vcpu_struct_getter_call);
+    ("HVCTopLevel.vcpu_struct_setter", vcpu_struct_setter_call);
     ("HVCToplevel.userspace_vcpu_index_getter", userspace_vcpu_index_getter_call);
     ("HVCToplevel.userspace_vcpu_index_setter", userspace_vcpu_index_setter_call)
       (* TODO: add more getter/setter functions for clients *)
@@ -1727,10 +1729,10 @@ Section HypervisorCall.
     (Put "set_is_hvc_mode done" Vnull) #;
     (Call "HVCTopLevel.save_regs_to_vcpu" []) #;
     (Put "context changing is done" Vnull) #;
-    (Call "HVCTopLevel.function_dispatcher" []) #;
+    (Call "HVCTopLevel.ffa_dispatch" []) #;
     (Put "function_dispatcher has be invoked" Vnull) #;
-    (Call "HVCTopLevel.vcpu_restore_and_run_spec" []) #;
-    (Call "HVCTopLevel.unset_is_hvc_mode" []).
+    (Call "HVCTopLevel.vcpu_restore_and_run" []) #;
+    (Call "HVCTopLevel.unset_is_hvc_mode" []). 
 
   Definition hypervisor_callF : function.
     mk_function_tac hypervisor_call ([]: list var) ([]: list var).

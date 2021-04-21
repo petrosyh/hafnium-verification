@@ -590,9 +590,9 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
       <- (ZTree.get page_number lender_properties_pool)
           ;;;
           (** - check memory properties :
-            - lender has to have onwership
-            - lender has to have exclusive access to the address
-            - borrower does not have the memory in its memory property pool 
+              - lender has to have onwership
+              - lender has to have exclusive access to the address
+              - borrower does not have the memory in its memory property pool 
            *)
           match global_property, lender_property,
                 ZTree.get page_number borrower_properties_pool  with

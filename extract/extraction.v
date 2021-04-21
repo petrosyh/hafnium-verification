@@ -114,8 +114,14 @@ Separate Extraction
          MemoryManagementTest.MMTEST.INITFINI.isem2
 
          FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST1.isem
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST2.isem
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST3.isem
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST4.isem
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST5.isem
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST6.isem
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST7.isem
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.CONTEXTSWITCHINGTEST1.isem
          FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST1.isem
-
          (* MMStageOne.MMTEST1.isem *)
          (* MMStageOne.MMTESTAUX.isem *)
          (* MMStageOne.MMTEST3.isem *)

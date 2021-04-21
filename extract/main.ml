@@ -337,6 +337,20 @@ let main =
   print_endline "----------------------Top-level testing-----------------------" ;
   print_endline "--------------------Simple mem load/store---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST1.isem) ;
+  print_endline "--------------------Flag value setting---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST2.isem) ;
+  print_endline "--------------------vcpu index setter/getter---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST3.isem) ;
+  print_endline "--------------------cur entity id getter---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST4.isem) ;
+  print_endline "--------------------send/recv messages---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST5.isem) ;
+  print_endline "--------------------vcpu getter/setter---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST6.isem) ;
+  print_endline "--------------------mem prop getter/setter---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST7.isem) ;
+  print_endline "--------------------Simple context switching-------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.CONTEXTSWITCHINGTEST1.isem) ;
   print_endline "--------------------Simple donate setting---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST1.isem) ;
   ()
