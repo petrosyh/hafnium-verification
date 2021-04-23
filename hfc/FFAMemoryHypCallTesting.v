@@ -485,7 +485,10 @@ Module FFAMEMORYHYPCALLTESTING.
         #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 0)])
         #; (Call "HVCTopLevel.vcpu_struct_setter"
                  [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
-        #; (Call "HVCTopLevel.hypervisor_call" []).
+        #; (Call "HVCTopLevel.hypervisor_call" [])
+        #; (Put "current state print" (Call "HVCToplevel.state_getter" []))
+        (*
+        #; (Put "current state print" (Call "HVCToplevel.system_log_getter" [])) *) .
 
     Definition mainF: function.
       mk_function_tac main ([]: list var) (["cur_address";

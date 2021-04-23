@@ -19,7 +19,9 @@ From Coq Require Import
      Strings.String
      Morphisms
      Setoid
-     RelationClasses.
+     RelationClasses
+     HexString
+     String.
 
 From ExtLib Require Import
      RelDec
@@ -59,6 +61,52 @@ Notation " 'check' A ;;; B" :=
 Local Open Scope ffa_monad_scope.
 
 (* end hide *)
+
+(***********************************************************************)
+(** *    Auxiliary Functions for Print                                 *)
+(***********************************************************************)
+Section PRINT_AUXILIARY_FUNCTIONS.
+
+  Definition newline :=
+    "
+".
+
+  Definition tabspace := "    ".
+  
+  Fixpoint append_all (cls: list string) :=
+    match cls with
+    | nil => ""
+    | hd::tl =>
+      let res := append_all tl in
+      append hd res
+    end.
+
+  Fixpoint list_z_to_string (vals : list Z) :=
+    match vals with
+    | nil => ""
+    | hd::nil =>
+      HexString.of_Z hd
+    | hd::tl =>
+      append_all [HexString.of_Z hd; ", "; list_z_to_string tl]
+    end.
+
+  Fixpoint print_vals (position : nat) (vals :ZMap.t Z) :=
+    let print_val_fun :=
+        fun (x : nat) =>
+          append_all ["["; HexString.of_Z (Z.of_nat position); ": ";
+                     HexString.of_Z (ZMap.get (Z.of_nat position) vals); "]"] in
+    match position with
+    | O => print_val_fun position
+    | S position' =>
+      let res := print_vals position' vals in
+      append (print_val_fun position) res
+    end.
+
+  Definition print_ffa_vals (vals :ZMap.t Z) :=
+    print_vals 7 vals.
+  
+
+End PRINT_AUXILIARY_FUNCTIONS.
 
 (***********************************************************************)
 (** *    Auxiliary Functions for additional transition Rules           *)

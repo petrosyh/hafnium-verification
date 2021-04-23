@@ -179,7 +179,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               descriptor_data_access
               descriptor_attributes
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS)
+        | _, _ => Some (FFA_INVALID_PARAMETERS
+                         (append_all ["donate_checks_per_page with ";
+                                     HexString.of_Z hd]))
         end
       end.
 
@@ -224,7 +226,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               .(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor))
              (Zlength info_tuple))
         end
-      | _, _, _ => Some (FFA_INVALID_PARAMETERS)
+      | _, _, _ => Some (FFA_INVALID_PARAMETERS "donate_check")
+                          
       end.
     
     (** - Change memory ownership and accessibilities for all pages. 
@@ -276,8 +279,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                    (memory_region_descriptor
                                     .(FFA_memory_region_struct_composite)
                                     .(FFA_composite_memory_region_struct_constituents)))) in
-                      if decide ((state.(hypervisor_context).(api_page_pool_size)
-                                  < region_size)%Z)
+                      if decide ((region_size < state.(hypervisor_context).(api_page_pool_size))%Z)
                       then
                         match info_tuple with
                         | (receiver, receiver_id, cur_addresses)::nil =>
@@ -309,17 +311,30 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                                       st'')
                                         ;;;
                                         Some (res_st, FFA_SUCCESS handle_value)
-                                  | _ => Some (st, FFA_ERROR FFA_DENIED)
+                                  | _ => Some (st, FFA_ERROR
+                                                    (FFA_DENIED
+                                                       "ffa_mem_general_check_arguments"))
                                   end
-                                | (_, false) => Some (st, FFA_ERROR FFA_DENIED)
+                                | (_, false) =>
+                                  Some (st, FFA_ERROR
+                                              (FFA_DENIED
+                                                 "apply_ffa_mem_donate_core_transition_spec"))
                                 end
                           | Some res => Some (st, FFA_ERROR res)
                           end
-                        | _ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+                        | _ => Some (st, FFA_ERROR
+                                          (FFA_INVALID_PARAMETERS
+                                             "info_tuple invalid"))
                         end
-                      else Some (st, FFA_ERROR FFA_NO_MEMORY)
-                    else Some (st, FFA_ERROR FFA_DENIED)
-      else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS).
+                      else Some (st, FFA_ERROR
+                                       (FFA_NO_MEMORY
+                                          "mpool size is too small"))
+                    else Some (st, FFA_ERROR
+                                     (FFA_DENIED
+                                        "wrong receiver number"))
+      else Some (st, FFA_ERROR
+                       (FFA_INVALID_PARAMETERS
+                          "ffa_mem_general_check_arguments")).
     
   End FFA_MEM_DONATE_ADDITIONAL_STEPS.
 
@@ -389,7 +404,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                   receiver_number
               end
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS)
+        | _, _ => Some (FFA_INVALID_PARAMETERS
+                         (append_all ["lend_checks_per_page with ";
+                                     HexString.of_Z hd]))                         
         end
       end.
 
@@ -453,7 +470,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                 info_tuple (Zlength info_tuple)
         | Some res => Some res
         end
-      else Some (FFA_INVALID_PARAMETERS).
+      else Some (FFA_INVALID_PARAMETERS
+                   "lend_check").
     
     (** - Change memory ownership and accessibilities for all addresses. 
           If it encouter errors, it will revert the change and return the original state *)
@@ -501,8 +519,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                    (memory_region_descriptor
                                     .(FFA_memory_region_struct_composite)
                                     .(FFA_composite_memory_region_struct_constituents)))) in
-                      if decide ((state.(hypervisor_context).(api_page_pool_size)
-                                  < region_size)%Z)
+                      if decide ((region_size <
+                                  state.(hypervisor_context).(api_page_pool_size))%Z)
                       then
                         match (lend_check
                                  caller
@@ -535,15 +553,27 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                            st'')
                                           ;;;
                                           Some (res_st, FFA_SUCCESS handle_value)
-                                    | _ => Some (st, FFA_ERROR FFA_DENIED)
+                                    | _ => Some (st,
+                                                FFA_ERROR
+                                                  (FFA_DENIED
+                                                     "set_memory_region_in_shared_state"))
                                     end
-                                  | (_, false) => Some (st, FFA_ERROR FFA_DENIED)
+                                  | (_, false) =>
+                                    Some (st, FFA_ERROR
+                                                (FFA_DENIED
+                                                   "apply_ffa_mem_lend_core_transition_spec"))
                                   end
                         | Some res => Some (st, FFA_ERROR res)
                         end
-                      else Some (st, FFA_ERROR FFA_NO_MEMORY)
-                    else Some (st, FFA_ERROR FFA_DENIED)
-      else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS).
+                      else Some (st, FFA_ERROR
+                                       (FFA_NO_MEMORY
+                                          "mpool size is too small"))
+                    else Some (st, FFA_ERROR
+                                     (FFA_DENIED
+                                        "wrong receiver number"))
+      else Some (st, FFA_ERROR
+                       (FFA_INVALID_PARAMETERS
+                          "ffa_mem_general_check_arguments")).
     
   End FFA_MEM_LEND_ADDITIONAL_STEPS.
   
@@ -585,7 +615,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               tl descriptor_inst_access descriptor_data_access descriptor_attributes
               receiver_number
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS)
+        | _, _ => Some (FFA_INVALID_PARAMETERS
+                         (append_all ["share_checks_per_page with ";
+                                     HexString.of_Z hd]))
         end
       end.
 
@@ -650,11 +682,11 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
             share_check_iterations vid time_slice_enabled
                                    mem_properties memory_region_descriptor
                                    info_tuple (Zlength info_tuple)
-          | _ => Some (FFA_INVALID_PARAMETERS)
+          | _ => Some (FFA_INVALID_PARAMETERS "share_check")
           end
         | Some res => Some res
         end
-      else Some (FFA_INVALID_PARAMETERS).
+      else Some (FFA_INVALID_PARAMETERS "share_check").
 
     (** - Change memory ownership and accessibilities for all addresses. 
           If it encouter errors, it will revert the change and return the original state *)
@@ -702,8 +734,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                    (memory_region_descriptor
                                     .(FFA_memory_region_struct_composite)
                                     .(FFA_composite_memory_region_struct_constituents)))) in
-                      if decide ((state.(hypervisor_context).(api_page_pool_size)
-                                  < region_size)%Z)
+                      if decide ((region_size <
+                                  state.(hypervisor_context).(api_page_pool_size))%Z)
                       then
                         match (share_check
                                  caller
@@ -736,15 +768,29 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                            st'')
                                           ;;;
                                           Some (res_st, FFA_SUCCESS handle_value)
-                                    | _ => Some (st, FFA_ERROR FFA_DENIED) 
+                                    | _ => Some (st, FFA_ERROR
+                                                      (FFA_DENIED
+                                                         "set_memory_region_in_shared_state"))
                                     end
-                                  | (_, false) => Some (st, FFA_ERROR FFA_DENIED)
+                                  | (_, false) =>
+                                    Some (st, FFA_ERROR
+                                                (FFA_DENIED
+                                                   "apply_ffa_mem_share_core_transition_spec"))
                                   end
-                        | _ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+                        | _ => Some (st, FFA_ERROR
+                                          (FFA_INVALID_PARAMETERS
+                                             "share_check"))
                         end
-                      else Some (st, FFA_ERROR FFA_NO_MEMORY)
-                    else Some (st, FFA_ERROR FFA_DENIED)
-      else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS).
+                      else Some (st, FFA_ERROR
+                                       (FFA_NO_MEMORY
+                                          "not enough mpool size"))
+                    else Some (st, FFA_ERROR
+                                     (FFA_DENIED
+                                        "invalid number of receivers"))
+      else
+        Some (st, FFA_ERROR
+                    (FFA_INVALID_PARAMETERS
+                       "ffa_mem_general_check_arguments")).
     
   End FFA_MEM_SHARE_ADDITIONAL_STEPS.
 
@@ -834,10 +880,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               descriptor_data_access
               descriptor_attributes
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS)
+        | _, _ => Some (FFA_INVALID_PARAMETERS
+                         (append_all
+                            ["donate_retrieve_req_checks_per_page ";
+                            HexString.of_Z hd]))
         end
       end.
-
+    
     (** There are some redundancies, but we do not car  e it *)
     (** check additional properties *)
     Definition donate_retrieve_req_check
@@ -877,7 +926,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               .(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor))
              receiver_num)
         end
-      | _, _, _ => Some (FFA_INVALID_PARAMETERS)
+      | _, _, _ =>
+        Some (FFA_INVALID_PARAMETERS
+                "donate_retrieve_req_check")
       end.
 
     (** - Change memory ownership and accessibilities for all addresses. 
@@ -954,15 +1005,24 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                                region_size handle_value FFA_MEM_RETREIVE_RESP
                                                st'')
                                 ;;; Some (res_st, FFA_SUCCESS value)
-                          | None => Some (st, FFA_ERROR FFA_DENIED)
+                          | None => Some (st, FFA_ERROR
+                                               (FFA_DENIED
+                                                  "set_memory_region_in_shared_state"))
                           end
-                        | (_, false) => Some (st, FFA_ERROR FFA_DENIED)
+                        | (_, false) =>
+                          Some (st, FFA_ERROR
+                                      (FFA_DENIED
+                                         "apply_ffa_mem_donate_core_transition_spec"))
                         end
                   | Some res => Some (st, FFA_ERROR res)
                   end
-                | _ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+                | _ => Some (st, FFA_ERROR
+                                  (FFA_INVALID_PARAMETERS
+                                     "donate_retrieve_req_check"))
                 end
-              else Some (st, FFA_ERROR FFA_DENIED).
+              else Some (st, FFA_ERROR
+                               (FFA_DENIED
+                                  "invalid receiver number")).
 
     Fixpoint lend_retrieve_req_checks_per_page
              (vid : ffa_UUID_t)
@@ -1028,7 +1088,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                   borrower_number
               end
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS)
+        | _, _ => Some (FFA_INVALID_PARAMETERS
+                         "lend_retrieve_req_checks_per_page")
         end
       end.
 
@@ -1072,7 +1133,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               .(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor))
              receiver_num)
         end
-      | _, _, _ => Some (FFA_INVALID_PARAMETERS)
+      | _, _, _ => Some (FFA_INVALID_PARAMETERS
+                          "lend_retrieve_req_check")
       end.
          
     Fixpoint apply_ffa_mem_lend_retrieve_req_core_transition_spec
@@ -1156,9 +1218,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                                  region_size handle_value FFA_MEM_RETREIVE_RESP
                                                  st'') ;;;
                                                        Some (res_st, FFA_SUCCESS value)
-                            | None => Some (st, FFA_ERROR FFA_DENIED)
+                            | None => Some (st, FFA_ERROR
+                                                 (FFA_DENIED
+                                                    "set_memory_region_in_shared_state"))
                             end
-                          | (_, false) => Some (st, FFA_ERROR FFA_DENIED)
+                          | (_, false) =>
+                            Some (st, FFA_ERROR
+                                        (FFA_DENIED
+                                           "apply_ffa_mem_lend_retrieve_req_core_transition_spec"))
                           end
                     | Some res => Some (st, FFA_ERROR res)
                     end
@@ -1206,7 +1273,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               descriptor_data_access
               descriptor_attributes
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS)
+        | _, _ => Some (FFA_INVALID_PARAMETERS
+                         "share_retrieve_req_checks_per_page")
         end
       end.
 
@@ -1249,7 +1317,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               .(FFA_endpoint_memory_access_descriptor_struct_memory_access_permissions_descriptor))
              receiver_num)
         end
-      | _, _, _ => Some (FFA_INVALID_PARAMETERS)
+      | _, _, _ => Some (FFA_INVALID_PARAMETERS
+                          "share_retrieve_req_check")
       end.
                 
     Fixpoint apply_ffa_mem_share_retrieve_req_core_transition_spec
@@ -1329,9 +1398,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                                      region_size handle_value FFA_MEM_RETREIVE_RESP
                                                      st'')
                                       ;;;  Some (res_st, FFA_SUCCESS value)
-                                | None => Some (st, FFA_ERROR FFA_DENIED)
+                                | None => Some (st, FFA_ERROR
+                                                     (FFA_DENIED
+                                                        "set_memory_region_in_shared_state"))
                                 end
-                              | (_, false) => Some (st, FFA_ERROR FFA_DENIED)
+                              | (_, false) =>
+                                Some (st, FFA_ERROR
+                                            (FFA_DENIED
+                                               "apply_ffa_mem_share_retrieve_req_core_transition_spec"))
                               end
                     | Some res => Some (st, FFA_ERROR res)
                     end
@@ -1356,7 +1430,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                             (** TODO: need to add retrieve_count and relinquished later *)
                             | Some is_retrieved =>
                               if is_retrieved
-                              then Some (st, FFA_ERROR FFA_DENIED)
+                              then Some (st, FFA_ERROR
+                                               (FFA_DENIED
+                                                  "already retrieved"))
                               else match share_func with
                                    | FFA_MEM_DONATE
                                      => ffa_mem_retrieve_req_donate_spec
@@ -1370,12 +1446,18 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                      => ffa_mem_retrieve_req_share_spec
                                          caller total_length fragment_length address count
                                          memory_region st                                              
-                                   | _ => Some (st, FFA_ERROR FFA_DENIED)
+                                   | _ => Some (st, FFA_ERROR
+                                                     (FFA_DENIED
+                                                        "invalid share function"))
                                    end
-                            | _ => Some (st, FFA_ERROR FFA_DENIED)
+                            | _ => Some (st, FFA_ERROR
+                                              (FFA_DENIED
+                                                 "invalid share state"))
                             end
                         end
-      else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS).
+      else Some (st, FFA_ERROR
+                       (FFA_INVALID_PARAMETERS
+                          "ffa_mem_general_check_arguments")).
     
   End FFA_MEM_RETRIEVE_REQ_ARGUMENT_CHECKS.
 
@@ -1426,7 +1508,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
       if ffa_mem_retrieve_resp_check_arguments total_length fragment_length 
       then Some (st, FFA_SUCCESS 0)
-      else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS).
+      else Some (st, FFA_ERROR
+                       (FFA_INVALID_PARAMETERS " ")).
     
   End FFA_MEM_RETRIEVE_RESP_ARGUMENT_CHECKS.
 
@@ -1591,7 +1674,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                         | None, None => None
                                         end
                                     | FFA_MEM_SHARE => FFA_mem_relinquish_req_zero_flags_for_share_check flags 
-                                    | _ => Some FFA_INVALID_PARAMETERS
+                                    | _ => Some
+                                            (FFA_INVALID_PARAMETERS
+                                               "share_func")
                                     end
                                   end in
                               match check_res with
@@ -1606,16 +1691,28 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                     ;;;
                                     match st' with
                                     | (st'', true) => Some (st'', FFA_SUCCESS 0)
-                                    | (_, false) => Some (st, FFA_ERROR FFA_DENIED)
+                                    | (_, false) =>
+                                      Some (st, FFA_ERROR
+                                                  (FFA_DENIED
+                                                     "apply_ffa_mem_relinquish_core_transition_spec"))
                                     end
                               end
-                            | _, _ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+                            | _, _ =>
+                              Some (st, FFA_ERROR
+                                          (FFA_INVALID_PARAMETERS
+                                             "invalid receiver"))
                             end
                       end                                 
-                    else Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
-                  | _ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+                    else Some (st, FFA_ERROR
+                                     (FFA_INVALID_PARAMETERS
+                                        "already retrieved"))
+                  | _ => Some (st, FFA_ERROR
+                                    (FFA_INVALID_PARAMETERS
+                                       "cannot find retrieved info"))
                   end
-              | _,_ => Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+              | _,_ => Some (st, FFA_ERROR
+                                  (FFA_INVALID_PARAMETERS
+                                     "share_state"))
               end.
                       
   End FFA_MEM_RELINQUISH_ARGUMENT_CHECKS.
@@ -1672,7 +1769,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         | None =>  
           match ZTree.get hd receiver_retrieved_map with
           | Some false => None
-          | _ => Some (FFA_DENIED)
+          | _ => Some (FFA_DENIED
+                        " ")
           end
         | Some res => Some res
         end
@@ -1690,7 +1788,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           match ZTree.get receiver_id retrieved_map with
           | Some receiver_retrieved_map =>
             mem_reclaim_check_per_page pages receiver_retrieved_map
-          | None => Some (FFA_DENIED)
+          | None => Some (FFA_DENIED
+                           "mem_reclaim_check")
           end
         | Some res => Some res
         end
@@ -1796,7 +1895,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       | mkFFA_memory_share_state_struct
           memory_region share_func retrieved relinquished retrieve_count =>
         if decide (memory_region.(FFA_memory_region_struct_sender) <> caller)
-        then Some (st, FFA_ERROR FFA_INVALID_PARAMETERS)
+        then Some (st, FFA_ERROR
+                         (FFA_INVALID_PARAMETERS
+                            " "))
         else
           get ipa_info_tuple
           <- (get_recievers_receiver_ids_and_addresses_tuple memory_region)
@@ -1813,9 +1914,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                     | Some st' =>
                       match remove_share_state (get_value handle) st' with
                       | Some st'' => Some (st'', FFA_SUCCESS 0)
-                      | None => Some (st, FFA_ERROR FFA_DENIED)
+                      | None => Some (st, FFA_ERROR
+                                           (FFA_DENIED
+                                              "remove_share_state "))
                       end
-                    | None => Some (st, FFA_ERROR FFA_DENIED)
+                    | None => Some (st, FFA_ERROR
+                                         (FFA_DENIED
+                                            "mem_reclaim_check"))
                     end
                   | Some res => Some (st, FFA_ERROR res)
                   end

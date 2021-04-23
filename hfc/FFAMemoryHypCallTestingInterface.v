@@ -299,7 +299,7 @@ Fixpoint cal_init_cpus (cpu_nums : nat) :=
 
 Definition init_cpus := cal_init_cpus (Z.to_nat (num_of_cpus - 1)).
 
-Definition init_api_page_pool_size_shift := 4.
+Definition init_api_page_pool_size_shift := 32.
 
 Definition init_mem_global_properties :=
   mkMemGlobalProperties
@@ -456,37 +456,6 @@ Global Instance abstract_state_context :
 (***********************************************************************)
 (** *                 Showable function for the log                    *)
 (***********************************************************************)
-Fixpoint append_all (cls: list string) :=
-  match cls with
-  | nil => ""
-  | hd::tl =>
-    let res := append_all tl in
-    append hd res
-  end.
-
-Fixpoint list_z_to_string (vals : list Z) :=
-  match vals with
-  | nil => ""
-  | hd::nil =>
-    HexString.of_Z hd
-  | hd::tl =>
-    append_all [HexString.of_Z hd; ", "; list_z_to_string tl]
-  end.
-
-Fixpoint print_vals (position : nat) (vals :ZMap.t Z) :=
-  let print_val_fun :=
-      fun (x : nat) =>
-        append_all ["["; HexString.of_Z (Z.of_nat position); ": ";
-                   HexString.of_Z (ZMap.get (Z.of_nat position) vals); "]"] in
-  match position with
-  | O => print_val_fun position
-  | S position' =>
-    let res := print_vals position' vals in
-    append (print_val_fun position) res
-  end.
-
-Definition print_ffa_vals (vals :ZMap.t Z) :=
-  print_vals 7 vals.
 
 Definition FFA_value_type_to_string (ffa_value: FFA_value_type) :=
   match ffa_value with
@@ -510,14 +479,14 @@ Definition FFA_value_type_to_string (ffa_value: FFA_value_type) :=
           match result_name with
           | FFA_ERROR error_type =>
             match error_type with
-            | FFA_NOT_SUPPORTED => " FFA_NOT_SUPPROTED"
-            | FFA_INVALID_PARAMETERS => " FFA_INVALID_PARAMETERS " 
-            | FFA_NO_MEMORY => " FFA_NO_MEMORY "
-            | FFA_BUSY => " FFA_BUSY "
-            | FFA_INTERRUPTED => " FFA_INTERRUPTED " 
-            | FFA_DENIED => " FFA_DENIED "
-            | FFA_RETRY => " FFA_RETRY "
-            | FFA_ABORTED => " FFA_ABORTED " 
+            | FFA_NOT_SUPPORTED res => append_all [" FFA_NOT_SUPPROTED" ; " (" ; res; ")"]
+            | FFA_INVALID_PARAMETERS res => append_all [" FFA_INVALID_PARAMETERS"; " ("; res; ")"]
+            | FFA_NO_MEMORY res => append_all [" FFA_NO_MEMORY "; " ("; res; ")"]
+            | FFA_BUSY res => append_all [" FFA_BUSY "; " ("; res; ")"]
+            | FFA_INTERRUPTED res => append_all [" FFA_INTERRUPTED "; " ("; res; ")"]
+            | FFA_DENIED res => append_all [" FFA_DENIED "; " ("; res; ")"]
+            | FFA_RETRY res => append_all [" FFA_RETRY "; " ("; res; ")"]
+            | FFA_ABORTED res => append_all [" FFA_ABORTED "; " ("; res; ")"] 
             end
           | FFA_SUCCESS value =>
             (append_all [" FFA_SUCCESS (" ; HexString.of_Z value; ") "])
@@ -605,67 +574,187 @@ Definition print_mailbox_msg (mailbox : MAILBOX_struct) :=
 Definition system_log_entity_showable (log_entity : log_type) :=
   match log_entity with
   | ChangeCurEntityID from_id to_id
-    => append_all ["(change from "; HexString.of_Z from_id; " ";
-                 HexString.of_Z to_id; ")\n"]
+    => append_all [newline;
+                 "(change from ";
+                 HexString.of_Z from_id;
+                 " ";
+                 HexString.of_Z to_id;
+                 ")"]
+                 
   | UserToKernel vid vcpu_id reg_vals
-    => append_all ["(From User to Kernel:\n";
-                 "    vm id: "; HexString.of_Z vid; "\n";
-                 "    vcpu id: "; HexString.of_Z vcpu_id; "\n";
-                 "    reg_vals: "; FFA_value_type_to_string reg_vals.(regs); ")\n"]
+    => append_all [newline;
+                 "(From User to Kernel:";
+                 newline;
+                 tabspace;
+                 "vm id: ";
+                 HexString.of_Z vid;
+                 newline;
+                 tabspace;
+                 "vcpu id: ";
+                 HexString.of_Z vcpu_id;
+                 newline;
+                 tabspace;
+                 "reg_vals: ";
+                 FFA_value_type_to_string reg_vals.(regs);
+                 ")"]
+                 
   | KernelToUser vid vcpu_id reg_vals
-    => append_all ["(From Kernel to User:\n";
-                 "    vm id: "; HexString.of_Z vid; "\n";
-                 "    vcpu id: "; HexString.of_Z vcpu_id; "\n";
-                 "    reg_vals: "; FFA_value_type_to_string reg_vals.(regs); ")\n"]
+    => append_all [newline;
+                 "(From Kernel to User:";
+                 newline;
+                 tabspace;
+                 "vm id: ";
+                 HexString.of_Z vid;
+                 newline;
+                 tabspace;
+                 "vcpu id: ";
+                 HexString.of_Z vcpu_id;
+                 newline;
+                 tabspace;
+                 "reg_vals: ";
+                 FFA_value_type_to_string reg_vals.(regs);
+                 ")"]
+                 
   | DispathFFAInterface reg_vals
-    => append_all ["(Dispatch hyp call:\n";
-                 "    reg_vals: "; FFA_value_type_to_string reg_vals.(regs); ")\n"]
+    => append_all [newline;
+                 "(Dispatch hyp call:";
+                 newline;
+                 tabspace;
+                 "reg_vals: ";
+                 FFA_value_type_to_string reg_vals.(regs);
+                 ")"]
+                 
   | SetOwner entity_id address owner 
-    => append_all ["(SetOwner:\n";
-                 "    vm_id: "; HexString.of_Z entity_id; "\n";
-                 "    address: "; HexString.of_Z address; "\n";
-                 "    onwership: "; onwership_state_type_to_string owner; ")\n"]
+    => append_all [newline;
+                 "(SetOwner:";
+                 newline;
+                 tabspace;
+                 "vm_id: ";
+                 HexString.of_Z entity_id;
+                 newline;
+                 tabspace;
+                 "address: ";
+                 HexString.of_Z address;
+                 newline;
+                 tabspace;
+                 "onwership: ";
+                 onwership_state_type_to_string owner;
+                 ")"]
                  
   | SetAccessible vm_id address access
-    => append_all ["(SetAccessibility:\n";
-                 "    vm_id: "; HexString.of_Z vm_id; "\n";
-                 "    address: "; HexString.of_Z address; "\n";
-                 "    access: "; access_state_type_to_string access; ")\n"]
+    => append_all [newline;
+                 "(SetAccessibility:";
+                 newline;
+                 tabspace;                 
+                 "vm_id: ";
+                 HexString.of_Z vm_id;
+                 newline;
+                 tabspace;                 
+                 "address: ";
+                 HexString.of_Z address;
+                 newline;
+                 tabspace;                 
+                 "access: ";
+                 access_state_type_to_string access;
+                 ")"]
 
   | SetInstructionAccess vm_id address access
-    => append_all ["(SetInstructionAccess:\n";
-                 "    vm_id: "; HexString.of_Z vm_id; "\n";
-                 "    address: "; HexString.of_Z address; "\n";
-                 "    access: "; ffa_instruction_access_type_to_string access; ")\n"]
+    => append_all [newline;
+                 "(SetInstructionAccess:";
+                 newline;
+                 tabspace;                 
+                 "vm_id: ";
+                 HexString.of_Z vm_id;
+                 newline;
+                 tabspace;                 
+                 "address: ";
+                 HexString.of_Z address;
+                 newline;
+                 tabspace;                 
+                 "access: ";
+                 ffa_instruction_access_type_to_string access;
+                 ")"]
 
   | SetDataAccess vm_id address access
-    => append_all ["(SetDataAccess:\n";
-                 "    vm_id: "; HexString.of_Z vm_id; "\n";
-                 "    address: "; HexString.of_Z address; "\n";
-                 "    access: "; ffa_data_access_type_to_string access; ")\n"]
+    => append_all [newline;
+                 "(SetDataAccess:";
+                 newline;
+                 tabspace;                 
+                 "vm_id: ";
+                 HexString.of_Z vm_id;
+                 newline;
+                 tabspace;                 
+                 "address: ";
+                 HexString.of_Z address;
+                 newline;
+                 tabspace;                 
+                 "access: ";
+                 ffa_data_access_type_to_string access;
+                 ")"]
 
   | SetDirty vm_id address dirty
-    => append_all ["(SetDirty:\n";
-                 "    vm_id: "; HexString.of_Z vm_id; "\n";
-                 "    address: "; HexString.of_Z address; "\n";
-                 "    dirty: "; mem_dirty_type_to_string dirty; ")\n"]
+    => append_all [newline;
+                 "(SetDirty:";
+                 newline;
+                 tabspace;
+                 "vm_id: ";
+                 HexString.of_Z vm_id;
+                 newline;
+                 tabspace;
+                 "address: ";
+                 HexString.of_Z address;
+                 newline;
+                 tabspace;
+                 "dirty: ";
+                 mem_dirty_type_to_string dirty;
+                 ")"]
 
   | SetAttributes vm_id address attributes
-    => append_all ["(SetAttributes:\n";
-                 "    vm_id: "; HexString.of_Z vm_id; "\n";
-                 "    address: "; HexString.of_Z address; "\n";
-                 "    attributes: "; ffa_memory_type_to_string attributes; ")\n"]
+    => append_all [newline;
+                 "(SetAttributes:";
+                 newline;
+                 tabspace;                 
+                 "vm_id: ";
+                 HexString.of_Z vm_id;
+                 newline;
+                 tabspace;                 
+                 "address: ";
+                 HexString.of_Z address;
+                 newline;
+                 tabspace;                 
+                 "attributes: ";
+                 ffa_memory_type_to_string attributes;
+                 ")"]
 
   | SendMsg sender receiver msg
-    => append_all ["(SendMsg:\n";
-                 "    sender: "; HexString.of_Z sender; "\n";
-                 "    receiver: "; HexString.of_Z receiver; "\n";
-                 "    msg: "; print_mailbox_msg msg; ")\n"]
-
+    => append_all [newline;
+                 "(SendMsg:";
+                 newline;
+                 tabspace;
+                 "sender: ";
+                 HexString.of_Z sender;
+                 newline;
+                 tabspace;                 
+                 "receiver: ";
+                 HexString.of_Z receiver;
+                 newline;
+                 tabspace;
+                 "msg: ";
+                 print_mailbox_msg msg;
+                 ")"]
+                 
   | RecvMsg receiver msg 
-    => append_all ["(RecvMsg:\n";
-                 "    receiver: "; HexString.of_Z receiver; "\n";
-                 "    msg: "; print_mailbox_msg msg; ")\n"]
+    => append_all [newline;
+                 "(RecvMsg:";
+                 newline;
+                 tabspace;
+                 "receiver: ";
+                 HexString.of_Z receiver;
+                 newline;
+                 tabspace;
+                 "msg: ";
+                 print_mailbox_msg msg;
+                 ")"]
   end.
                   
 Fixpoint system_log_showable (system_log: list log_type) :=
@@ -675,6 +764,11 @@ Fixpoint system_log_showable (system_log: list log_type) :=
     append (system_log_entity_showable hd)
            (system_log_showable tl)
   end.
+
+Definition system_log_type := list log_type.
+
+Instance system_log_Showable:
+  Showable  system_log_type := { show := system_log_showable }.
 
 Definition abstract_state_showable (st : AbstractState) : string :=
   system_log_showable st.(system_log).
@@ -942,14 +1036,14 @@ Section FFADispatch.
   Definition ffa_error (ffa_error_code: FFA_ERROR_CODE_TYPE) : FFA_value_type :=
     let error_z_value := 
         match ffa_error_code with
-        | FFA_NOT_SUPPORTED => -1
-        | FFA_INVALID_PARAMETERS => -2 
-        | FFA_NO_MEMORY => -3
-        | FFA_BUSY => -4
-        | FFA_INTERRUPTED => -5
-        | FFA_DENIED => -6
-        | FFA_RETRY => -7
-        | FFA_ABORTED => -8
+        | FFA_NOT_SUPPORTED _ => -1
+        | FFA_INVALID_PARAMETERS _ => -2 
+        | FFA_NO_MEMORY _ => -3
+        | FFA_BUSY _ => -4
+        | FFA_INTERRUPTED _ => -5
+        | FFA_DENIED _ => -6
+        | FFA_RETRY _ => -7
+        | FFA_ABORTED _ => -8
         end in
     (mkFFA_value_type (FFA_RESULT_CODE_IDENTIFIER (FFA_ERROR ffa_error_code))
                       (ZMap.set 1 error_z_value (ZMap.init 0))). 
@@ -1652,6 +1746,40 @@ Section MemSetterGetter.
 
 End MemSetterGetter.
 
+Section StateAndLogGetter.
+
+  Definition state_getter_spec
+  : itree HypervisorEE (AbstractState) :=
+    st <- trigger GetState;;
+    Ret (st).
+
+  Definition state_getter_call (args : list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [] =>
+      st <- state_getter_spec;;
+      Ret (Vabs (upcast st), args)
+    | _ => triggerNB "state_getter_call: wrong arguments"
+    end.
+             
+
+  Definition system_log_getter_spec
+  : itree HypervisorEE (system_log_type) :=
+    st <- trigger GetState;;
+    Ret (st.(system_log)).
+
+  Definition system_log_getter_call (args : list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [] =>
+      system_log <- system_log_getter_spec;;
+      Ret (Vabs (upcast system_log), args)
+    | _ => triggerNB "state_getter_call: wrong arguments"
+    end.
+  
+
+End StateAndLogGetter.
+
 (***********************************************************************)
 (** **    FFA Memory Management Interface Module                       *)
 (***********************************************************************)
@@ -1682,7 +1810,10 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.vcpu_struct_getter", vcpu_struct_getter_call);
     ("HVCTopLevel.vcpu_struct_setter", vcpu_struct_setter_call);
     ("HVCToplevel.userspace_vcpu_index_getter", userspace_vcpu_index_getter_call);
-    ("HVCToplevel.userspace_vcpu_index_setter", userspace_vcpu_index_setter_call)
+    ("HVCToplevel.userspace_vcpu_index_setter", userspace_vcpu_index_setter_call);
+
+    ("HVCToplevel.state_getter", state_getter_call); 
+    ("HVCToplevel.system_log_getter", system_log_getter_call)
       (* TODO: add more getter/setter functions for clients *)
     ].
 
