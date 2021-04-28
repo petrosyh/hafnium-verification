@@ -139,6 +139,15 @@ Section FFAMemoryHypCallInitialization.
                              FFA_MEMORY_CACHE_NON_CACHEABLE
                              FFA_MEMORY_OUTER_SHAREABLE).
 
+  Definition initial_vcpu_struct (cpu_id : ffa_CPU_ID_t) (vm_id : ffa_UUID_t) :=
+    (mkVCPU_struct
+       (Some cpu_id)
+       (Some vm_id)
+       (mkArchRegs
+          (mkFFA_value_type
+             FFA_IDENTIFIER_DEFAULT
+             (ZMap.init 0)))).
+  
   Definition initialize_owners (cur_address initial_global_value initial_local_value : var): stmt :=
     Put "start initializaiton" (Vnull) #;
         cur_address #= page_low_int #;
@@ -149,7 +158,11 @@ Section FFAMemoryHypCallInitialization.
               #; (Call "HVCTopLevel.global_properties_setter"
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
-                       [CBV (Int64.repr primary_vm_id); CBV cur_address; CBV initial_local_value])              
+                       [CBV (Int64.repr primary_vm_id); CBV cur_address; CBV initial_local_value])
+              #; (Call "HVCToplevel.userspace_vcpu_index_setter_with_entity_id"
+                       [CBV (Int64.repr primary_vm_id); CBV (Int64.repr primary_vm_id)])              
+              #; (Call "HVCTopLevel.vcpu_struct_setter_with_entity_id"
+                       [CBV (Int64.repr primary_vm_id); CBV (Vabs (upcast (initial_vcpu_struct 1 primary_vm_id)))])              
               #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
         #while (cur_address < page_2nd_quater_int)
         do (
@@ -157,7 +170,11 @@ Section FFAMemoryHypCallInitialization.
               #; (Call "HVCTopLevel.global_properties_setter"
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
-                       [CBV (Int64.repr 2); CBV cur_address; CBV initial_local_value])              
+                       [CBV (Int64.repr 2); CBV cur_address; CBV initial_local_value])
+              #; (Call "HVCToplevel.userspace_vcpu_index_setter_with_entity_id"
+                       [CBV (Int64.repr 2); CBV (Int64.repr 2)])              
+              #; (Call "HVCTopLevel.vcpu_struct_setter_with_entity_id"
+                       [CBV (Int64.repr 2); CBV (Vabs (upcast (initial_vcpu_struct 2 2)))])                            
               #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
         #while (cur_address < page_3rd_quater_int)
         do (
@@ -165,7 +182,11 @@ Section FFAMemoryHypCallInitialization.
               #; (Call "HVCTopLevel.global_properties_setter"
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
-                       [CBV (Int64.repr 3); CBV cur_address; CBV initial_local_value])              
+                       [CBV (Int64.repr 3); CBV cur_address; CBV initial_local_value])
+              #; (Call "HVCToplevel.userspace_vcpu_index_setter_with_entity_id"
+                       [CBV (Int64.repr 3); CBV (Int64.repr 3)])              
+              #; (Call "HVCTopLevel.vcpu_struct_setter_with_entity_id"
+                       [CBV (Int64.repr 3); CBV (Vabs (upcast (initial_vcpu_struct 3 3)))])              
               #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
         #while (cur_address < page_high_int)
         do (
@@ -173,7 +194,11 @@ Section FFAMemoryHypCallInitialization.
               #; (Call "HVCTopLevel.global_properties_setter"
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
-                       [CBV (Int64.repr 4); CBV cur_address; CBV initial_local_value])              
+                       [CBV (Int64.repr 4); CBV cur_address; CBV initial_local_value])
+              #; (Call "HVCToplevel.userspace_vcpu_index_setter_with_entity_id"
+                       [CBV (Int64.repr 4); CBV (Int64.repr 4)])                            
+              #; (Call "HVCTopLevel.vcpu_struct_setter_with_entity_id"
+                       [CBV (Int64.repr 4); CBV (Vabs (upcast (initial_vcpu_struct 4 4)))])              
               #; cur_address #= cur_address + (Int64.repr alignment_value)).
 
 End  FFAMemoryHypCallInitialization.
@@ -235,10 +260,35 @@ Section DescriptorGenerator.
              (FFA_FUNCTION_IDENTIFIER FFA_MEM_DONATE)
              (ZMap.init 0)))).
 
+  
 End DescriptorGenerator.
 
 Module FFAMEMORYHYPCALLTESTING.
 
+  Module INITIALIZATION.
+
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value).
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].        
+    
+  End INITIALIZATION.
+
+  
   Module DUMMYTEST1.
     
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=

@@ -335,6 +335,8 @@ let main =
   *)
 
   print_endline "----------------------Top-level testing-----------------------" ;
+  print_endline "--------------------Initiailization---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.INITIALIZATION.isem) ;
   print_endline "--------------------Simple mem load/store---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST1.isem) ;
   print_endline "--------------------Flag value setting---------------------" ;

@@ -113,6 +113,7 @@ Separate Extraction
          MemoryManagementTest.MMTEST.INITFINI.isem
          MemoryManagementTest.MMTEST.INITFINI.isem2
 
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.INITIALIZATION.isem
          FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST1.isem
          FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST2.isem
          FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST3.isem
