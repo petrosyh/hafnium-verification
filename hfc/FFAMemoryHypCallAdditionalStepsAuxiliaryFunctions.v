@@ -93,8 +93,8 @@ Section PRINT_AUXILIARY_FUNCTIONS.
   Fixpoint print_vals (position : nat) (vals :ZMap.t Z) :=
     let print_val_fun :=
         fun (x : nat) =>
-          append_all ["["; HexString.of_Z (Z.of_nat position); ": ";
-                     HexString.of_Z (ZMap.get (Z.of_nat position) vals); "]"] in
+          append_all ["("; HexString.of_Z (Z.of_nat position); ": ";
+                     HexString.of_Z (ZMap.get (Z.of_nat position) vals); ")"] in
     match position with
     | O => print_val_fun position
     | S position' =>

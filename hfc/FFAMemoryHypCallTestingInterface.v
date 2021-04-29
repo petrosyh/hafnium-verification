@@ -353,9 +353,9 @@ Definition init_mem_properties :=
     init_mem_global_properties_pool
     init_mem_local_properties_global_pool.
 
-Definition init_VM_COMMON_struct (vcpu_ids: list Z) 
+Definition init_VM_COMMON_struct (vcpu_index : Z) (vcpu_ids: list Z) 
   := mkVM_COMMON_struct
-       None
+       (Some vcpu_index)
        vcpu_ids 
        (ZTree.empty VCPU_struct).
 
@@ -367,9 +367,9 @@ Definition init_MAILBOX_struct :=
     None (* recv func *)
 .
 
-Definition init_VM_KERNEL_context (vcpu_ids: list Z) :=
+Definition init_VM_KERNEL_context (vcpu_index : Z) (vcpu_ids: list Z) :=
  mkVM_KERNEL_struct 
-   (init_VM_COMMON_struct vcpu_ids)
+   (init_VM_COMMON_struct vcpu_index vcpu_ids)
    init_MAILBOX_struct.
 
 Fixpoint cal_init_VM_KERNEL_contexts (vm_ids: list Z) := 
@@ -377,7 +377,7 @@ Fixpoint cal_init_VM_KERNEL_contexts (vm_ids: list Z) :=
   | nil =>  (ZTree.empty VM_KERNEL_struct)
   | hd::tl =>
     let res :=  cal_init_VM_KERNEL_contexts tl in
-    ZTree.set hd (init_VM_KERNEL_context (hd::nil)) res
+    ZTree.set hd (init_VM_KERNEL_context hd (hd::nil)) res
   end.
 
 Definition init_VM_KERNEL_contexts :=
@@ -388,7 +388,7 @@ Fixpoint cal_init_VM_USERSPACE_contexts (vm_ids: list Z) :=
   | nil =>  (ZTree.empty VM_USERSPACE_struct)
   | hd::tl =>
     let res :=  cal_init_VM_USERSPACE_contexts tl in
-    ZTree.set hd (mkVM_USERSPACE_struct (init_VM_COMMON_struct (hd::nil))) res
+    ZTree.set hd (mkVM_USERSPACE_struct (init_VM_COMMON_struct hd (hd::nil))) res
   end.
 
 Definition init_VM_USERSPACE_contexts :=
@@ -435,15 +435,9 @@ Fixpoint find_next_entity (vm_ids : list ffa_UUID_t)
     else find_next_entity tl current_entity_id
   end.
 
-(*
 Definition scheduler (st: AbstractState) : ffa_UUID_t :=
   let cur_entity_id := st.(cur_user_entity_id) in
   find_next_entity vm_ids cur_entity_id.
- *)
-
-Definition scheduler (st: AbstractState) : ffa_UUID_t :=
-  primary_vm_id.
-
 
 Global Instance abstract_state_context :
   AbstractStateContext
@@ -783,6 +777,190 @@ Instance abstract_state_Showable:
   Showable AbstractState := { show := abstract_state_showable }.
 
 (***********************************************************************)
+(** *   Showable function for other abstract values                    *)
+(***********************************************************************)
+
+(***********************************************************************)
+(** **   Showable function for global memory property                  *)
+(***********************************************************************)
+
+Definition OWNERSHIP_STATE_TYPE_to_string
+           (ownership: OWNERSHIP_STATE_TYPE) :=
+  match ownership with
+  | Owned id => append_all ["owned by "; HexString.of_Z id]
+  | NotOwned => "not owned by anyone"
+  end.
+
+Definition ACCESS_STATE_TYPE_to_string
+           (access_state: ACCESS_STATE_TYPE) :=
+  match access_state with
+  | NoAccess => "no accessibility"
+  | ExclusiveAccess accessor =>
+    append_all ["exclusive access by "; HexString.of_Z accessor]
+  | SharedAccess accessors =>
+    append_all ["shared access by ";
+               append_all (List.map (fun x => append_all [HexString.of_Z x; " "])
+                                    accessors)]
+  end.
+
+Definition FFA_INSTRUCTION_ACCESS_TYPE_to_string
+           (instruction_access_type: FFA_INSTRUCTION_ACCESS_TYPE) :=
+  match instruction_access_type with
+  | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => "not specified"
+  | FFA_INSTRUCTION_ACCESS_NX => "nx"
+  | FFA_INSTRUCTION_ACCESS_X => "x" 
+  | FFA_INSTRUCTION_ACCESS_RESERVED => "reserved"
+  end.
+
+Definition FFA_DATA_ACCESS_TYPE_to_string
+           (data_access_type: FFA_DATA_ACCESS_TYPE) :=
+  match data_access_type with
+  | FFA_DATA_ACCESS_NOT_SPECIFIED => "not specified"
+  | FFA_DATA_ACCESS_RO => "ro"
+  | FFA_DATA_ACCESS_RW => "rw"
+  | FFA_DATA_ACCESS_RESERVED => "reserved"
+  end.
+
+Definition FFA_MEMORY_CACHEABILITY_TYPE_1_to_string
+           (cacheability: FFA_MEMORY_CACHEABILITY_TYPE_1) :=
+  match cacheability with
+  | FFA_MEMORY_CACHE_RESERVED => "reserved"
+  | FFA_MEMORY_CACHE_NON_CACHEABLE => "non_cacheable"
+  | FFA_MEMORY_CACHE_RESERVED_1 => "reserved1"
+  | FFA_MEMORY_CACHE_WRITE_BACK => "write back"
+  end.
+
+Definition FFA_MEMORY_CACHEABILITY_TYPE_2_to_string
+           (cacheability: FFA_MEMORY_CACHEABILITY_TYPE_2) :=
+  match cacheability with
+  | FFA_MEMORY_DEV_NGNRNE => "nGnRnE"
+  | FFA_MEMORY_DEV_NGNRE => "nGnRE"
+  | FFA_MEMORY_DEV_NGRE => "nGRE"
+  | FFA_MEMORY_DEV_GRE => "GRE"
+  end.
+
+Definition FFA_MEMORY_SHAREABILITY_to_string
+           (shareability: FFA_MEMORY_SHAREABILITY) :=
+  match shareability with 
+  | FFA_MEMORY_SHARE_NON_SHAREABLE => "non shareable"
+  | FFA_MEMORY_SHARE_RESERVED => "reserved"
+  | FFA_MEMORY_OUTER_SHAREABLE => "outer shareable"
+  | FFA_MEMORY_INNER_SHAREABLE => "inner shareable"
+  end.
+
+Definition FFA_MEMORY_TYPE_to_string
+           (memory_type: FFA_MEMORY_TYPE) :=
+  match memory_type with
+  | FFA_MEMORY_NOT_SPECIFIED_MEM => "not specified"
+  | FFA_MEMORY_DEVICE_MEM cacheability =>
+    append_all ["device mem ("; 
+               FFA_MEMORY_CACHEABILITY_TYPE_2_to_string 
+                 cacheability;
+               ")"]
+  | FFA_MEMORY_NORMAL_MEM cacheability shareability =>
+    append_all ["device mem ("; 
+               FFA_MEMORY_CACHEABILITY_TYPE_1_to_string 
+                 cacheability;
+               " ";
+               FFA_MEMORY_SHAREABILITY_to_string
+                 shareability;
+                 ")"]
+  | FFA_MEMORY_MEM_RESERVED =>
+    "reserved"
+  end.
+
+Definition MEM_DIRTY_TYPE_to_string
+           (mem_dirty: MEM_DIRTY_TYPE) :=
+  match mem_dirty with
+  | MemClean => "mem clean"
+  | MemWritten writers =>
+    append_all ["mem written by ";
+               append_all (List.map
+                             (fun x => append_all [HexString.of_Z x; " "])
+                             writers)]
+  end.
+  
+Definition mem_global_properties_showable
+           (mem_global_prop: MemGlobalProperties) :=
+  match mem_global_prop with
+  | mkMemGlobalProperties ns owned accessible instr_access
+                          data_access mem_attr dirty
+    => let ns_str := if ns then "true" else "false" in
+      let owned_str := OWNERSHIP_STATE_TYPE_to_string owned in
+      let accessible_str := ACCESS_STATE_TYPE_to_string accessible in
+      let instr_access_str := FFA_INSTRUCTION_ACCESS_TYPE_to_string instr_access in
+      let data_access_str := FFA_DATA_ACCESS_TYPE_to_string data_access in
+      let mem_attr_str := FFA_MEMORY_TYPE_to_string mem_attr in
+      let dirty_str := MEM_DIRTY_TYPE_to_string dirty in
+      append_all
+        [newline;
+        "Global Prop:"; newline;
+        tabspace; "NSecure: "; ns_str; newline;
+        tabspace; "Owned: "; owned_str; newline;
+        tabspace; "Accessible: "; accessible_str; newline;
+        tabspace; "InstrAccess: "; instr_access_str; newline;
+        tabspace; "DataAccess: "; data_access_str; newline;
+        tabspace; "MemAttr: "; mem_attr_str; newline;
+        tabspace; "MemDirty: "; dirty_str]
+  end.
+
+Instance mem_global_properties_Showable:
+  Showable MemGlobalProperties := { show := mem_global_properties_showable }.
+
+(***********************************************************************)
+(** **   Showable function for local memory property                   *)
+(***********************************************************************)
+
+Definition mem_local_properties_showable
+           (mem_local_prop: MemLocalProperties) :=
+  match mem_local_prop with
+  | mkMemLocalProperties local_owned instr_access data_access mem_attr
+    => let local_owned_str := "" in
+      let instr_access_str := FFA_INSTRUCTION_ACCESS_TYPE_to_string instr_access in
+      let data_access_str := FFA_DATA_ACCESS_TYPE_to_string data_access in
+      let mem_attr_str := FFA_MEMORY_TYPE_to_string mem_attr in
+      append_all
+        [newline;
+        "Local Prop:"; newline;
+        tabspace; "Owned: "; local_owned_str; newline;
+        tabspace; "InstrAccess: "; instr_access_str; newline;
+        tabspace; "DataAccess: "; data_access_str; newline;
+        tabspace; "MemAttr: "; mem_attr_str; newline]        
+  end.
+     
+Instance mem_local_properties_Showable:
+  Showable MemLocalProperties := { show := mem_local_properties_showable }.
+
+(***********************************************************************)
+(** **   Showable function for vcpu structure                          *)
+(***********************************************************************)
+
+Definition vcpu_struct_showable
+           (vcpu_struct: VCPU_struct) :=
+  match vcpu_struct with
+  | mkVCPU_struct cpu_id vm_id vcpu_regs
+    => let cpu_id_str := match cpu_id with
+                        | None => "No CPU Connected"
+                        | Some cpu_id' => HexString.of_Z  cpu_id'
+                        end in
+      let vm_id_str := match vm_id with
+                       | None => "No VM Connected"
+                       | Some vm_id' => HexString.of_Z vm_id'
+                       end in
+      let vcpu_regs_str :=
+          FFA_value_type_to_string vcpu_regs.(regs) in
+      append_all
+        [newline;
+        "VCPU value:"; newline;
+        tabspace; "CPU ID: "; cpu_id_str; newline;
+        tabspace; "VM ID: "; vm_id_str; newline;
+        tabspace; "Reg value: "; vcpu_regs_str; newline]
+  end.
+
+Instance vcpu_struct_Showable:
+  Showable VCPU_struct := { show := vcpu_struct_showable }.
+
+(***********************************************************************)
 (** *      Additional  Specifications for testing                      *)
 (***********************************************************************)
 (***********************************************************************)
@@ -904,7 +1082,7 @@ Section FFAContextSwitching.
     let next_vm_id := scheduler st in
     (** check whether the current running entity is Hafnium *)
     check "vcpu_restore_and_run: wrong cur entity id" ,
-    ( (* (decide (st.(is_hvc_mode) = true) && *) (in_dec zeq next_vm_id vm_ids))
+    ((*decide (st.(is_hvc_mode) = true) &&*) (in_dec zeq next_vm_id vm_ids))
       ;;; (** get the userspace information *)
       get "vcpu_restore_and_run: Cannot find userspace information",
     vm_userspace
@@ -917,13 +1095,16 @@ Section FFAContextSwitching.
         get  "vcpu_restore_and_run: Cannot find vcpu index from kernel vm context",
     cur_kernel_vcpu_index
     <- (vm_context.(vm_kernelspace_context).(cur_vcpu_index))
-        ;;;
-        get  "vcpu_restore_and_run: cannot find vcpu index from user vm context",
+        ;;; get  "vcpu_restore_and_run: cannot find vcpu index from user vm context",
     cur_user_vcpu_index
-    <- (vm_userspace.(vm_userspace_context).(cur_vcpu_index))
-        ;;; get "vcpu_restore_and_run: extract the curretnt vcpu context",
+    <- (vm_userspace.(vm_userspace_context).(cur_vcpu_index))        
+        ;;; get
+        (append_all ["vcpu_restore_and_run: Extract the curretnt vcpu context ";
+                    HexString.of_Z next_vm_id; " ";
+                    HexString.of_Z cur_kernel_vcpu_index; " ";
+                    HexString.of_Z cur_user_vcpu_index; " "]),
     cur_vcpu_regs
-    <- (ZTree.get cur_kernel_vcpu_index
+    <- (ZTree.get cur_user_vcpu_index
                  (vm_context.(vm_kernelspace_context).(vcpus_contexts)))
         ;;;
         check "vcpu_restore_and_run: inconsistency between kernel vm context and user vm context" ,
@@ -1065,7 +1246,7 @@ Section FFADispatch.
     end.
   
   Definition ffa_dispatch_spec :  itree HypervisorEE (unit) := 
-    (** - Extract the curretnt vcpu *)
+    (** - Extract the current vcpu *)
     st <- trigger GetState;;
     (** - Get the information in tpidr_el2 register to find out the current VM to be served *)
     get "ffa_dispatch: vcpu value is not proper",
@@ -1224,7 +1405,11 @@ End FFA_DATATYPES.
 (** **      Client modeling                                            *)
 (***********************************************************************)
 Section InterfaceFunctions.
-  
+
+
+  (***********************************************************************)
+  (** ***      Address translation                                       *)
+  (***********************************************************************)  
   (** Memory load and store operations *)
   Definition stage2_get_physical_address_spec (st: AbstractState) (addr : ffa_address_t)
   : itree HypervisorEE (ffa_UUID_t) := 
@@ -1249,7 +1434,6 @@ Section InterfaceFunctions.
       end
     | _ => triggerNB "stage2_address_translation_table error"
     end.
-
     
   Definition get_physical_address_spec (addr : ffa_address_t)
     : itree HypervisorEE (ffa_UUID_t) := 
@@ -1272,6 +1456,10 @@ Section InterfaceFunctions.
       Ret (Vcomp (Vlong (Int64.repr res)), args)
     | _ => triggerNB "get_current_entity_id_call: wrong arguments"
     end.
+
+  (***********************************************************************)
+  (** ***      Logical flag changes                                      *)
+  (***********************************************************************)  
 
   Definition set_is_hvc_mode_spec
     : itree HypervisorEE (unit) := 
@@ -1332,6 +1520,10 @@ Section InterfaceFunctions.
             Ret (Vnull, args)
     | _ => triggerNB "unset_use_stage2_table_call: wrong arguments"
     end.
+
+  (***********************************************************************)
+  (** ***      Send / Receive messages                                   *)
+  (***********************************************************************)
   
   Definition send_msg_spec
              (receiver: ffa_UUID_t)
@@ -1386,8 +1578,12 @@ Section InterfaceFunctions.
       Ret (Vabs (upcast res), args)
     | _ => triggerNB "recv_msg_call: wrong arguments"
     end.
+  
+  (***********************************************************************)
+  (** ***      Send / Receive messages with ID                           *)
+  (***********************************************************************)
 
-  Definition send_msg_with_sender_spec
+  Definition send_msg_with_sender_id_spec
              (sender: ffa_UUID_t)
              (receiver: ffa_UUID_t)
              (size : Z)
@@ -1410,7 +1606,7 @@ Section InterfaceFunctions.
                             state.(hypervisor_context).(vms_contexts) in
               trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts})).
     
-  Definition send_msg_with_sender_call (args: list Lang.val)
+  Definition send_msg_with_sender_id_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [(Vcomp (Vlong sender)); (Vcomp (Vlong receiver)); (Vcomp (Vlong size));
@@ -1418,7 +1614,7 @@ Section InterfaceFunctions.
       match downcast mailbox_msg ffa_mailbox_msg_t,
             downcast recv_func FFA_FUNCTION_TYPE with
         | Some msg, Some func_type =>
-          res <- send_msg_with_sender_spec
+          res <- send_msg_with_sender_id_spec
                   (Int64.unsigned sender)
                   (Int64.unsigned receiver)
                   (Int64.unsigned size) msg func_type ;;
@@ -1428,7 +1624,7 @@ Section InterfaceFunctions.
     | _ => triggerNB "send_msg_with_sender_call: wrong arguments"
     end.
 
-  Definition recv_msg_with_receiver_spec (receiver: ffa_UUID_t)
+  Definition recv_msg_with_receiver_id_spec (receiver: ffa_UUID_t)
     : itree HypervisorEE (FFAMemoryHypCallState.ffa_mailbox_msg_t) :=
     st <- trigger GetState;;
     check "send_msg: invalid receiver",
@@ -1439,11 +1635,11 @@ Section InterfaceFunctions.
     <- (ZTree.get receiver st.(hypervisor_context).(vms_contexts))
         ;;; Ret (vm_context.(mailbox).(message)).
   
-  Definition recv_msg_with_receiver_call (args: list Lang.val)
+  Definition recv_msg_with_receiver_id_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [(Vcomp (Vlong receiver))] =>
-      res <- recv_msg_with_receiver_spec (Int64.unsigned receiver);;  
+      res <- recv_msg_with_receiver_id_spec (Int64.unsigned receiver);;  
       Ret (Vabs (upcast res), args)
     | _ => triggerNB "recv_msg_call: wrong arguments"
     end.
@@ -1454,7 +1650,10 @@ End InterfaceFunctions.
 (** **    FFA Memory Management Interface Module                       *)
 (***********************************************************************)
 Section MemSetterGetter.
-  
+
+  (***********************************************************************)
+  (** ***    Global property getter / setter                             *)
+  (***********************************************************************)
   Definition global_properties_getter_spec
              (page_num: Z)
   : itree HypervisorEE (MemGlobalProperties) :=
@@ -1507,7 +1706,10 @@ Section MemSetterGetter.
       end
     | _ => triggerNB "global_properties_setter: wrong arguments"
     end.
-  
+
+  (***********************************************************************)
+  (** ***    Local property getter / setter                              *)
+  (***********************************************************************)  
   Definition local_properties_getter_spec
              (owner : ffa_UUID_t) (page_num: Z)
     : itree HypervisorEE (MemLocalProperties) :=
@@ -1576,6 +1778,10 @@ Section MemSetterGetter.
       end
     | _ => triggerNB "local_properties_setter: wrong arguments"
     end.
+
+  (***********************************************************************)
+  (** ***  Set / clean mem dirty + mem dirty getter                      *)
+  (***********************************************************************)
   
   Definition set_mem_dirty_spec (writer: ffa_UUID_t) (page_num: Z)
     : itree HypervisorEE (unit) :=
@@ -1658,21 +1864,74 @@ Section MemSetterGetter.
     | _ => triggerNB "set_mem_dirty_call: wrong arguments"
     end.
 
-  Definition get_current_entity_id_spec
+  Definition mem_dirty_getter_spec (writer: ffa_UUID_t) (page_num: Z)
+    : itree HypervisorEE (MEM_DIRTY_TYPE) :=
+    st <- trigger GetState;;
+    match ZTree.get
+            page_num
+            st.(hypervisor_context).(mem_properties)
+          .(mem_global_properties) with
+    | Some (mkMemGlobalProperties is_ns owner access inst_access
+                                  data_access mem_attr mem_dirty)
+      => Ret (mem_dirty)
+    | _ => triggerNB "clean_mem_dirty: cannot find property"
+    end.
+
+  Definition mem_dirty_getter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong writer)); (Vcomp (Vlong addr))] =>
+      res <- mem_dirty_getter_spec (Int64.unsigned writer) (Int64.unsigned addr) ;;
+      Ret (Vabs (upcast res), args)
+    | _ => triggerNB "set_mem_dirty_call: wrong arguments"
+    end.
+
+End MemSetterGetter.
+  
+Section EntityIDSetterGetter.
+  (***********************************************************************)
+  (** *** current entity id getter / setter                              *)
+  (***********************************************************************)
+  
+  Definition current_entity_id_getter_spec
     : itree HypervisorEE (ffa_UUID_t) :=
     st <- trigger GetState;;
     if (st.(is_hvc_mode)) then Ret (hypervisor_id)
     else Ret (st.(cur_user_entity_id)).
 
-  Definition get_current_entity_id_call (args: list Lang.val)
+  Definition  current_entity_id_getter_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [] =>
-      entity_id <- get_current_entity_id_spec;;
+      entity_id <- current_entity_id_getter_spec;;
       Ret (Vcomp (Vlong (Int64.repr entity_id)), args)
     | _ => triggerNB "get_current_entity_id_call: wrong arguments"
     end.
   
+  Definition current_entity_id_setter_spec
+             (entity_id : ffa_UUID_t)
+    : itree HypervisorEE (unit) :=
+    st <- trigger GetState;;
+    check "current_entity_id_setter_spec: invalid input",
+    (decide (in_dec zeq entity_id vm_ids))
+      ;;; trigger (SetState (st {cur_user_entity_id: entity_id})).
+
+  Definition current_entity_id_setter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [Vcomp (Vlong entity_id)] =>
+      current_entity_id_setter_spec (Int64.unsigned entity_id);;
+      Ret (Vnull, args)
+    | _ => triggerNB "get_current_entity_id_call: wrong arguments"
+    end.
+  
+End EntityIDSetterGetter.
+  
+Section VCPUSetterGetter.
+
+  (***********************************************************************)
+  (** ***  userspace vcpu index getter / setter                          *)
+  (***********************************************************************)
   Definition userspace_vcpu_index_getter_spec
     : itree HypervisorEE (ffa_VCPU_ID_t) :=
     st <- trigger GetState;;
@@ -1699,36 +1958,6 @@ Section MemSetterGetter.
     | _ => triggerNB "userspace_vcpu_index_getter_call: wrong arguments"
     end.
 
-  
-  Definition userspace_vcpu_index_getter_with_entity_id_spec
-             (cur_user_entity_id : ffa_UUID_t)
-    : itree HypervisorEE (ffa_VCPU_ID_t) :=
-    st <- trigger GetState;;
-    check "userspace_vcpu_index_getter_with_entity_id: invalid mode for this operation",
-    (negb st.(is_hvc_mode))
-      ;;;
-      check "userspace_vcpu_index_getter_with_entity_id: invalid entity ID",
-    (decide (in_dec zeq cur_user_entity_id vm_ids))
-      ;;;
-      get "userspace_vcpu_index_getter_with_entity_id: current user vm context does not exist",
-    cur_user_vm_context
-    <- (ZTree.get cur_user_entity_id
-                 st.(vms_userspaces))
-        ;;; get "userspace_vcpu_index_getter_with_entity_id: current user vcpu id is invalid",
-    cur_user_vcpu_id
-    <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
-        ;;; Ret (cur_user_vcpu_id).
-
-  Definition userspace_vcpu_index_getter_with_entity_id_call (args: list Lang.val)
-    : itree HypervisorEE (Lang.val * list Lang.val) :=
-    match args with
-    | [(Vcomp (Vlong entity_id))] =>
-      vcpu_index <- userspace_vcpu_index_getter_with_entity_id_spec
-                     (Int64.unsigned entity_id);;
-      Ret (Vcomp (Vlong (Int64.repr vcpu_index)), args)
-    | _ => triggerNB "userspace_vcpu_index_getter_with_entity_id_call: wrong arguments"
-    end.
-  
   Definition userspace_vcpu_index_setter_spec
              (vcpu_index : ffa_VCPU_ID_t) 
     : itree HypervisorEE (unit) :=
@@ -1763,6 +1992,39 @@ Section MemSetterGetter.
       userspace_vcpu_index_setter_spec (Int64.unsigned value);;
       Ret (Vnull, args)
     | _ => triggerNB "userspace_vcpu_index_setter_call: wrong arguments"
+    end.
+  
+
+  (***********************************************************************)
+  (** **   userspace vcpu index getter / setter with entity id           *)
+  (***********************************************************************)
+  Definition userspace_vcpu_index_getter_with_entity_id_spec
+             (cur_user_entity_id : ffa_UUID_t)
+    : itree HypervisorEE (ffa_VCPU_ID_t) :=
+    st <- trigger GetState;;
+    check "userspace_vcpu_index_getter_with_entity_id: invalid mode for this operation",
+    (negb st.(is_hvc_mode))
+      ;;;
+      check "userspace_vcpu_index_getter_with_entity_id: invalid entity ID",
+    (decide (in_dec zeq cur_user_entity_id vm_ids))
+      ;;;
+      get "userspace_vcpu_index_getter_with_entity_id: current user vm context does not exist",
+    cur_user_vm_context
+    <- (ZTree.get cur_user_entity_id
+                 st.(vms_userspaces))
+        ;;; get "userspace_vcpu_index_getter_with_entity_id: current user vcpu id is invalid",
+    cur_user_vcpu_id
+    <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
+        ;;; Ret (cur_user_vcpu_id).
+
+  Definition userspace_vcpu_index_getter_with_entity_id_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong entity_id))] =>
+      vcpu_index <- userspace_vcpu_index_getter_with_entity_id_spec
+                     (Int64.unsigned entity_id);;
+      Ret (Vcomp (Vlong (Int64.repr vcpu_index)), args)
+    | _ => triggerNB "userspace_vcpu_index_getter_with_entity_id_call: wrong arguments"
     end.
 
   Definition userspace_vcpu_index_setter_with_entity_id_spec
@@ -1803,59 +2065,180 @@ Section MemSetterGetter.
         (Int64.unsigned entity_id) (Int64.unsigned value);;
       Ret (Vnull, args)
     | _ => triggerNB "userspace_vcpu_index_setter_with_entity_id_call: wrong arguments"
+    end.  
+  
+  (***********************************************************************)
+  (** **   kernel vcpu index getter / setter with entity id              *)
+  (***********************************************************************)
+  Definition kernel_vcpu_index_getter_with_entity_id_spec
+             (cur_user_entity_id : ffa_UUID_t)
+    : itree HypervisorEE (ffa_VCPU_ID_t) :=
+    st <- trigger GetState;;
+    check "kernel_vcpu_index_getter_with_entity_id: invalid entity ID",
+    (decide (in_dec zeq cur_user_entity_id vm_ids))
+      ;;;
+      get "kernel_vcpu_index_getter_with_entity_id: current user vm context does not exist",
+    cur_kernel_vm_context
+    <- (ZTree.get cur_user_entity_id
+                 st.(hypervisor_context).(vms_contexts))
+        ;;; get "kernel_vcpu_index_getter_with_entity_id: current user vcpu id is invalid",
+    cur_kernel_vcpu_id
+    <- (cur_kernel_vm_context.(vm_kernelspace_context).(cur_vcpu_index))
+        ;;; Ret (cur_kernel_vcpu_id).
+
+  Definition kernel_vcpu_index_getter_with_entity_id_call
+             (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [(Vcomp (Vlong entity_id))] =>
+      vcpu_index <- kernel_vcpu_index_getter_with_entity_id_spec
+                     (Int64.unsigned entity_id);;
+      Ret (Vcomp (Vlong (Int64.repr vcpu_index)), args)
+    | _ => triggerNB "kernel_vcpu_index_getter_with_entity_id_call: wrong arguments"
+    end.
+
+  Definition kernel_vcpu_index_setter_with_entity_id_spec
+             (cur_user_entity_id: ffa_UUID_t)
+             (vcpu_index : ffa_VCPU_ID_t) 
+    : itree HypervisorEE (unit) :=
+    st <- trigger GetState;;
+    check "kernel_vcpu_index_setter_with_entity_id: invalid entity ID",
+    (decide (in_dec zeq cur_user_entity_id vm_ids))
+      ;;;
+      get "kernel_vcpu_index_setter_with_entity_id: current user vm context does not exist",
+    cur_kernel_vm_context
+    <- (ZTree.get cur_user_entity_id
+                 st.(hypervisor_context).(vms_contexts))
+        ;;;
+        let new_kernel_vm_context :=
+            mkVM_KERNEL_struct
+              (mkVM_COMMON_struct
+                 (Some vcpu_index)
+                 (cur_kernel_vm_context.(vm_kernelspace_context).(vcpus))
+                 (cur_kernel_vm_context.(vm_kernelspace_context).(vcpus_contexts)))
+              cur_kernel_vm_context.(mailbox) in
+        let new_vm_contexts :=
+            (ZTree.set cur_user_entity_id 
+                       new_kernel_vm_context
+                       st.(hypervisor_context).(vms_contexts)) in
+        let new_state := st {hypervisor_context / vms_contexts : new_vm_contexts} in
+        trigger (SetState (new_state)).
+
+  Definition kernel_vcpu_index_setter_with_entity_id_call
+             (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [Vcomp (Vlong entity_id); Vcomp (Vlong value)] =>
+      kernel_vcpu_index_setter_with_entity_id_spec
+        (Int64.unsigned entity_id) (Int64.unsigned value);;
+      Ret (Vnull, args)
+    | _ => triggerNB "kernel_vcpu_index_setter_with_entity_id_call: wrong arguments"
     end.
   
-  Definition vcpu_struct_getter_spec
+  (***********************************************************************)
+  (** **   userspace vcpu getter / setter                                *)
+  (***********************************************************************)
+  Definition userspace_vcpu_struct_getter_spec
     : itree HypervisorEE (VCPU_struct) :=
       st <- trigger GetState;;
-      check "vcpu_struct_getter: invalid mode for this operation",
+      check "userspace_vcpu_struct_getter: invalid mode for this operation",
       (negb st.(is_hvc_mode))
         ;;;
         let cur_user_entity_id :=
             (st.(cur_user_entity_id)) in
-        get "vcpu_struct_getter: current user vm context does not exist",
+        get "userspace_vcpu_struct_getter: current user vm context does not exist",
         cur_user_vm_context
         <- (ZTree.get cur_user_entity_id
                      st.(vms_userspaces))
-            ;;; get "vcpu_struct_getter: current user vcpu id is invalid",
+            ;;; get "userspace_vcpu_struct_getter: current user vcpu id is invalid",
         cur_user_vcpu_id
         <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
-            ;;; get "vcpu_struct_getter: does not have vcpu values",
+            ;;; get "userspace_vcpu_struct_getter: does not have vcpu values",
         cur_vcpu_values 
         <- (ZTree.get
              cur_user_vcpu_id
              (cur_user_vm_context.(vm_userspace_context).(vcpus_contexts)))
             ;;; Ret (cur_vcpu_values).
   
-  Definition vcpu_struct_getter_call (args: list Lang.val)
+  Definition userspace_vcpu_struct_getter_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [] =>
-      vcpu_values<- vcpu_struct_getter_spec;;
+      vcpu_values<- userspace_vcpu_struct_getter_spec;;
       Ret (Vabs (upcast vcpu_values), args)
-    | _ => triggerNB "vcpu_struct_getter_call: wrong arguments"
+    | _ => triggerNB "userspace_vcpu_struct_getter_call: wrong arguments"
     end.
+  
+  Definition userspace_vcpu_struct_setter_spec (vcpu_values: VCPU_struct)
+    : itree HypervisorEE (unit) :=
+    st <- trigger GetState;;
+    check "userspace_vcpu_struct_setter: invalid mode for this operation",
+    (negb st.(is_hvc_mode))
+      ;;;
+      let cur_user_entity_id :=
+          (st.(cur_user_entity_id)) in
+      get "userspace_vcpu_struct_setter: current user vm context does not exist",
+      cur_user_vm_context
+      <- (ZTree.get cur_user_entity_id
+                   st.(vms_userspaces))
+          ;;; get "userspace_vcpu_struct_setter: current user vcpu id is invalid",
+      cur_user_vcpu_id
+      <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
+          ;;;
+          let new_vcpu_contexts :=
+              (ZTree.set
+                 cur_user_vcpu_id
+                 vcpu_values
+                 (cur_user_vm_context.(vm_userspace_context).(vcpus_contexts))) in
+          let new_user_vm_contexts :=
+              mkVM_USERSPACE_struct
+                (mkVM_COMMON_struct
+                   (Some cur_user_vcpu_id)
+                   (cur_user_vm_context.(vm_userspace_context).(vcpus))
+                   new_vcpu_contexts) in
+          let new_vm_contexts :=
+              (ZTree.set cur_user_entity_id 
+                         new_user_vm_contexts
+                         st.(vms_userspaces)) in
+          let new_state := st {vms_userspaces : new_vm_contexts} in
+          trigger (SetState (new_state)).
+  
+  Definition userspace_vcpu_struct_setter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [Vabs vcpu_struct_val] =>
+        match downcast vcpu_struct_val VCPU_struct with
+        | Some vcpu_val =>
+          userspace_vcpu_struct_setter_spec vcpu_val ;;
+          Ret (Vnull, args)
+        | _ => triggerNB "userspace_vcpu_struct_setter_call: impossible conversion"
+        end
+    | _ => triggerNB "userspace_vcpu_struct_setter_call: wrong arguments"
+    end.  
 
-  Definition vcpu_struct_getter_with_entity_id_spec
+  (***********************************************************************)
+  (** **   userspace vcpu getter / setter with entity ID                 *)
+  (***********************************************************************)  
+  Definition userspace_vcpu_struct_getter_with_entity_id_spec
              (cur_user_entity_id : ffa_UUID_t)
     : itree HypervisorEE (VCPU_struct) :=
     st <- trigger GetState;;
-    check "vcpu_struct_getter_with_entity_id: invalid mode for this operation",
+    check "userspace_vcpu_struct_getter_with_entity_id: invalid mode for this operation",
     (negb st.(is_hvc_mode))
       ;;;
       check "userspace_vcpu_getter_with_entity_id: invalid entity ID",
     (decide (in_dec zeq cur_user_entity_id vm_ids))
       ;;;      
-      get "vcpu_struct_getter_with_entity_id: 
+      get "userspace_vcpu_struct_getter_with_entity_id: 
       current user vm context does not exist",
     cur_user_vm_context
     <- (ZTree.get cur_user_entity_id
                  st.(vms_userspaces))
-        ;;; get "vcpu_struct_getter_with_entity_id: 
+        ;;; get "userspace_vcpu_struct_getter_with_entity_id: 
         current user vcpu id is invalid",
     cur_user_vcpu_id
     <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
-        ;;; get "vcpu_struct_getter_with_entity_id: 
+        ;;; get "userspace_vcpu_struct_getter_with_entity_id: 
         does not have vcpu values",
     cur_vcpu_values 
     <- (ZTree.get
@@ -1863,78 +2246,32 @@ Section MemSetterGetter.
          (cur_user_vm_context.(vm_userspace_context).(vcpus_contexts)))
         ;;; Ret (cur_vcpu_values).
   
-  Definition vcpu_struct_getter_with_entity_id_call (args: list Lang.val)
+  Definition userspace_vcpu_struct_getter_with_entity_id_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [Vcomp (Vlong entity_id)] =>
-      vcpu_values<- vcpu_struct_getter_with_entity_id_spec
+      vcpu_values<- userspace_vcpu_struct_getter_with_entity_id_spec
                      (Int64.unsigned entity_id);;
       Ret (Vabs (upcast vcpu_values), args)
-    | _ => triggerNB "vcpu_struct_getter_with_entity_id_call: wrong arguments"
-    end.
-  
-  Definition vcpu_struct_setter_spec (vcpu_values: VCPU_struct)
-    : itree HypervisorEE (unit) :=
-    st <- trigger GetState;;
-    check "vcpu_struct_setter: invalid mode for this operation",
-    (negb st.(is_hvc_mode))
-      ;;;
-      let cur_user_entity_id :=
-          (st.(cur_user_entity_id)) in
-      get "vcpu_struct_setter: current user vm context does not exist",
-      cur_user_vm_context
-      <- (ZTree.get cur_user_entity_id
-                   st.(vms_userspaces))
-          ;;; get "vcpu_struct_setter: current user vcpu id is invalid",
-      cur_user_vcpu_id
-      <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
-          ;;;
-          let new_vcpu_contexts :=
-              (ZTree.set
-                 cur_user_vcpu_id
-                 vcpu_values
-                 (cur_user_vm_context.(vm_userspace_context).(vcpus_contexts))) in
-          let new_user_vm_contexts :=
-              mkVM_USERSPACE_struct
-                (mkVM_COMMON_struct
-                   (Some cur_user_vcpu_id)
-                   (cur_user_vm_context.(vm_userspace_context).(vcpus))
-                   new_vcpu_contexts) in
-          let new_vm_contexts :=
-              (ZTree.set cur_user_entity_id 
-                         new_user_vm_contexts
-                         st.(vms_userspaces)) in
-          let new_state := st {vms_userspaces : new_vm_contexts} in
-          trigger (SetState (new_state)).
-  
-  Definition vcpu_struct_setter_call (args: list Lang.val)
-    : itree HypervisorEE (Lang.val * list Lang.val) :=
-    match args with
-    | [Vabs vcpu_struct_val] =>
-        match downcast vcpu_struct_val VCPU_struct with
-        | Some vcpu_val =>
-          vcpu_struct_setter_spec vcpu_val ;;
-          Ret (Vnull, args)
-        | _ => triggerNB "vcpu_struct_setter_call: impossible conversion"
-        end
-    | _ => triggerNB "vcpu_struct_setter_call: wrong arguments"
+    | _ => triggerNB "userspace_vcpu_struct_getter_with_entity_id_call: wrong arguments"
     end.
 
-  Definition vcpu_struct_setter_with_entity_id_spec
+  
+  Definition userspace_vcpu_struct_setter_with_entity_id_spec
              (cur_user_entity_id: ffa_UUID_t) (vcpu_values: VCPU_struct)
     : itree HypervisorEE (unit) :=
     st <- trigger GetState;;
-    check "vcpu_struct_setter_with_entity_id: invalid mode for this operation",
+    check "userspace_vcpu_struct_setter_with_entity_id: invalid mode for this operation",
     (negb st.(is_hvc_mode))
       ;;;
-      check "vcpu_struct_setter_with_entity_id: invalid entity ID",
+      check "userspace_vcpu_struct_setter_with_entity_id: invalid entity ID",
     (decide (in_dec zeq cur_user_entity_id vm_ids))
       ;;;      
-      get "vcpu_struct_setter: current user vm context does not exist",
+      get "userspace_vcpu_struct_setter: current user vm context does not exist",
       cur_user_vm_context
       <- (ZTree.get cur_user_entity_id
                    st.(vms_userspaces))
-          ;;; get "vcpu_struct_setter_with_entity_id: current user vcpu id is invalid",
+          ;;; get "userspace_vcpu_struct_setter_with_entity_id: current user vcpu id is invalid",
       cur_user_vcpu_id
       <- (cur_user_vm_context.(vm_userspace_context).(cur_vcpu_index))
           ;;;
@@ -1956,20 +2293,106 @@ Section MemSetterGetter.
           let new_state := st {vms_userspaces : new_vm_contexts} in
           trigger (SetState (new_state)).
   
-  Definition vcpu_struct_setter_with_entity_id_call (args: list Lang.val)
+  Definition userspace_vcpu_struct_setter_with_entity_id_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [Vcomp (Vlong entity_id); Vabs vcpu_struct_val] =>
         match downcast vcpu_struct_val VCPU_struct with
         | Some vcpu_val =>
-          vcpu_struct_setter_with_entity_id_spec (Int64.unsigned entity_id) vcpu_val ;;
+          userspace_vcpu_struct_setter_with_entity_id_spec
+            (Int64.unsigned entity_id) vcpu_val ;;
           Ret (Vnull, args)
-        | _ => triggerNB "vcpu_struct_setter_with_entity_id_call: impossible conversion"
+        | _ => triggerNB "userspace_vcpu_struct_setter_with_entity_id_call: impossible conversion"
         end
-    | _ => triggerNB "vcpu_struct_setter_with_entity_id_call: wrong arguments"
+    | _ => triggerNB "userspace_vcpu_struct_setter_with_entity_id_call: wrong arguments"
+    end.
+
+  (***********************************************************************)
+  (** **      kernel vcpu getter / setter with entity ID                 *)
+  (***********************************************************************)  
+  Definition kernel_vcpu_struct_getter_with_entity_id_spec
+             (cur_user_entity_id : ffa_UUID_t)
+    : itree HypervisorEE (VCPU_struct) :=
+    st <- trigger GetState;;
+    check "kernel_vcpu_getter_with_entity_id: invalid entity ID",
+    (decide (in_dec zeq cur_user_entity_id vm_ids))
+      ;;;      
+      get "kernel_vcpu_struct_getter_with_entity_id: 
+      current user vm context does not exist",
+    cur_kernel_vm_context
+    <- (ZTree.get cur_user_entity_id
+                 st.(hypervisor_context).(vms_contexts))
+        ;;; get "kernel_vcpu_struct_getter_with_entity_id: 
+        current user vcpu id is invalid",
+    cur_kernel_vcpu_id
+    <- (cur_kernel_vm_context.(vm_kernelspace_context).(cur_vcpu_index))
+        ;;; get "kernel_vcpu_struct_getter_with_entity_id: 
+        does not have vcpu values",
+    cur_vcpu_values 
+    <- (ZTree.get
+         cur_kernel_vcpu_id
+         (cur_kernel_vm_context.(vm_kernelspace_context).(vcpus_contexts)))
+        ;;; Ret (cur_vcpu_values).
+  
+  Definition kernel_vcpu_struct_getter_with_entity_id_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [Vcomp (Vlong entity_id)] =>
+      vcpu_values<- kernel_vcpu_struct_getter_with_entity_id_spec
+                     (Int64.unsigned entity_id);;
+      Ret (Vabs (upcast vcpu_values), args)
+    | _ => triggerNB "kernel_vcpu_struct_getter_with_entity_id_call: wrong arguments"
     end.
   
-End MemSetterGetter.
+  Definition kernel_vcpu_struct_setter_with_entity_id_spec
+             (cur_user_entity_id: ffa_UUID_t) (vcpu_values: VCPU_struct)
+    : itree HypervisorEE (unit) :=
+    st <- trigger GetState;;
+    check "userspace_vcpu_struct_setter_with_entity_id: invalid entity ID",
+    (decide (in_dec zeq cur_user_entity_id vm_ids))
+      ;;;      
+      get "kernel_vcpu_struct_setter: current user vm context does not exist",
+      cur_kernel_vm_context
+      <- (ZTree.get cur_user_entity_id
+                   st.(hypervisor_context).(vms_contexts))
+          ;;; get "kernel_vcpu_struct_setter_with_entity_id: current user vcpu id is invalid",
+      cur_kernel_vcpu_id
+      <- (cur_kernel_vm_context.(vm_kernelspace_context).(cur_vcpu_index))
+          ;;;
+          let new_vcpu_contexts :=
+              (ZTree.set
+                 cur_kernel_vcpu_id
+                 vcpu_values
+                 (cur_kernel_vm_context.(vm_kernelspace_context).(vcpus_contexts))) in
+          let new_kernel_vm_contexts :=
+              mkVM_KERNEL_struct
+                (mkVM_COMMON_struct
+                   (Some cur_kernel_vcpu_id)
+                   (cur_kernel_vm_context.(vm_kernelspace_context).(vcpus))
+                   new_vcpu_contexts)
+                cur_kernel_vm_context.(mailbox) in
+          let new_vm_contexts :=
+              (ZTree.set cur_user_entity_id 
+                         new_kernel_vm_contexts
+                         st.(hypervisor_context).(vms_contexts)) in
+          let new_state := st {hypervisor_context / vms_contexts : new_vm_contexts} in
+          trigger (SetState (new_state)).
+  
+  Definition kernel_vcpu_struct_setter_with_entity_id_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | [Vcomp (Vlong entity_id); Vabs vcpu_struct_val] =>
+        match downcast vcpu_struct_val VCPU_struct with
+        | Some vcpu_val =>
+          kernel_vcpu_struct_setter_with_entity_id_spec
+            (Int64.unsigned entity_id) vcpu_val ;;
+          Ret (Vnull, args)
+        | _ => triggerNB "kernel_vcpu_struct_setter_with_entity_id_call: impossible conversion"
+        end
+    | _ => triggerNB "kernel_vcpu_struct_setter_with_entity_id_call: wrong arguments"
+    end.
+
+End VCPUSetterGetter.
 
 Section StateAndLogGetter.
 
@@ -2022,13 +2445,13 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.set_use_stage1_table", set_use_stage1_table_call);
     ("HVCTopLevel.unset_use_stage1_table", unset_use_stage1_table_call);
 
-    ("HVCToplevel.get_current_entity_id", get_current_entity_id_call);
+    ("HVCToplevel.current_entity_id_getter", current_entity_id_getter_call);
+    ("HVCToplevel.current_entity_id_setter", current_entity_id_setter_call);
     
     ("HVCTopLevel.send_msg", send_msg_call);
     ("HVCTopLevel.recv_msg", recv_msg_call);
-    ("HVCTopLevel.send_msg_with_sender", send_msg_with_sender_call);
-    ("HVCTopLevel.recv_msg_with_receiver", recv_msg_with_receiver_call);
-
+    ("HVCTopLevel.send_msg_with_sender_id", send_msg_with_sender_id_call);
+    ("HVCTopLevel.recv_msg_with_receiver_id", recv_msg_with_receiver_id_call);
     
     ("HVCTopLevel.global_properties_getter", global_properties_getter_call);
     ("HVCTopLevel.global_properties_setter", global_properties_setter_call);
@@ -2036,14 +2459,24 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.local_properties_setter", local_properties_setter_call);
     ("HVCTopLevel.set_mem_dirty", set_mem_dirty_call);
     ("HVCTopLevel.clean_mem_dirty", clean_mem_dirty_call);
-    ("HVCTopLevel.vcpu_struct_getter", vcpu_struct_getter_call);
-    ("HVCTopLevel.vcpu_struct_getter_with_entity_id", vcpu_struct_getter_with_entity_id_call);
-    ("HVCTopLevel.vcpu_struct_setter", vcpu_struct_setter_call);
-    ("HVCTopLevel.vcpu_struct_setter_with_entity_id", vcpu_struct_setter_with_entity_id_call);
+
     ("HVCToplevel.userspace_vcpu_index_getter", userspace_vcpu_index_getter_call);
-    ("HVCToplevel.userspace_vcpu_index_getter_with_entity_id", userspace_vcpu_index_getter_with_entity_id_call);
     ("HVCToplevel.userspace_vcpu_index_setter", userspace_vcpu_index_setter_call);
+
+    ("HVCToplevel.userspace_vcpu_index_getter_with_entity_id", userspace_vcpu_index_getter_with_entity_id_call);
     ("HVCToplevel.userspace_vcpu_index_setter_with_entity_id", userspace_vcpu_index_setter_with_entity_id_call);
+
+    ("HVCToplevel.kernel_vcpu_index_getter_with_entity_id", kernel_vcpu_index_getter_with_entity_id_call);
+    ("HVCToplevel.kernel_vcpu_index_setter_with_entity_id", kernel_vcpu_index_setter_with_entity_id_call);
+    
+    ("HVCTopLevel.userspace_vcpu_struct_getter", userspace_vcpu_struct_getter_call);
+    ("HVCTopLevel.userspace_vcpu_struct_setter", userspace_vcpu_struct_setter_call);
+
+    ("HVCTopLevel.userspace_vcpu_struct_getter_with_entity_id", userspace_vcpu_struct_getter_with_entity_id_call);
+    ("HVCTopLevel.userspace_vcpu_struct_setter_with_entity_id", userspace_vcpu_struct_setter_with_entity_id_call);
+
+    ("HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id", kernel_vcpu_struct_getter_with_entity_id_call);
+    ("HVCTopLevel.kernel_vcpu_struct_setter_with_entity_id", kernel_vcpu_struct_setter_with_entity_id_call);
 
     ("HVCToplevel.state_getter", state_getter_call); 
     ("HVCToplevel.system_log_getter", system_log_getter_call)
@@ -2113,7 +2546,7 @@ Section FFAMemoryManagementInterfaceWithMemAccessorModule.
   Definition flat_mem_block_ptr := (Vptr 2%positive (Ptrofs.repr 0)).
 
   Definition mem_store_spec (addr value : var) (entity_id paddr : var) : stmt :=
-    entity_id #= (Call "HVCToplevel.get_current_entity_id" []) #;
+    entity_id #= (Call "HVCToplevel.current_entity_id_getter" []) #;
               paddr #= (Call "HVCTopLevel.get_physical_address" [CBV addr]) #;
               (Call "HVCTopLevel.set_mem_dirty" [CBV entity_id; CBV (addr / (Int64.repr granuale))]) #;
               (flat_mem_block_ptr @ paddr #:= value).
@@ -2140,4 +2573,5 @@ Section FFAMemoryManagementInterfaceWithMemAccessorModule.
   Definition top_level_accessor_modsem : ModSem := program_to_ModSem mem_funcs.
   
 End FFAMemoryManagementInterfaceWithMemAccessorModule.
+
 

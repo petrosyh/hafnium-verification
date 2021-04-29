@@ -350,12 +350,10 @@ Inductive expr : Type :=
 | BNot   (_ : expr)
 | ShiftL  (_ _ : expr)
 | ShiftR  (_ _ : expr)
-(* JIEUNG: Where is store? *)
 | Load (_: expr)
 | CoqCode (_: list (var + expr)) (P: list val -> (val * list val))
 | Put (msg: string) (e: expr)
 | Debug (msg: string) (e: expr)
-(* JIEUNG: What's this definition? Is it different from normal function calls? Syscall seems quite specific function call.  *)
 (* Do we need to distinguish this one with Call? *)
 | Syscall (code: string) (msg: string) (e: expr)
 | Get
@@ -385,9 +383,6 @@ Inductive expr : Type :=
 (* | SubPointerFrom (_: expr) (from: expr) *)
 (* | SubPointerTo (_: expr) (to: expr) *)
 
-(* JIEUNG: It seeems the following two things are flushing values and getting values from heap.  *)
-(*    It seems quite similar to push/pull operations in CertiKOS. Is this true? Or is it related to other specific things?  *)
-(*    PutOwnedHeap does not have any message message lie Put.. *)
 | PutOwnedHeap (_: expr)
 | GetOwnedHeap
 | Cast (_:expr) (_:type)
