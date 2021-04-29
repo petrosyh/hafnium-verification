@@ -521,13 +521,13 @@ Module FFAMEMORYHYPCALLTESTING.
         #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 1)])
         #; (Call "HVCTopLevel.userspace_vcpu_struct_setter"
                  [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
-        #; (Call "HVCTopLevel.set_is_hvc_mode" [])
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
         #; (Call "HVCTopLevel.save_regs_to_vcpu" [])
-        #; (Put "vcpu values for 1" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
+        #; (Put "kernel vcpu values for 1" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
                                           [CBV (Int64.repr 1)]))
-        #; (Put "vcpu values for 2" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
+        #; (Put "kernel vcpu values for 2" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
                                           [CBV (Int64.repr 2)]))
-        #; (Put "vcpu values for 3" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
+        #; (Put "kernel vcpu values for 3" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
                                           [CBV (Int64.repr 3)]))
         #; (Call "HVCTopLevel.vcpu_restore_and_run" []).
 
@@ -563,9 +563,14 @@ Module FFAMEMORYHYPCALLTESTING.
         #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 0)])
         #; (Call "HVCTopLevel.userspace_vcpu_struct_setter"
                  [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
         #; (Call "HVCTopLevel.hypervisor_call" [])
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))        
+        #; (Call "HVCTopLevel.scheduling" []) 
         #; (Put "current state print" (Call "HVCToplevel.state_getter" []))
-        (*
+        #; (Put "kernel vcpu values for 1" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
+                                                 [CBV (Int64.repr 1)]))
+    (*
         #; (Put "current state print" (Call "HVCToplevel.system_log_getter" [])) *) .
 
     Definition mainF: function.

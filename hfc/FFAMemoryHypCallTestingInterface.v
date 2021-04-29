@@ -1017,7 +1017,7 @@ Section FFAContextSwitching.
     (** - Check validities *)
     (** - Check whether the current running entity is one of VMs *)
     check "save_regs_to_vcpu: Wrong cur entity id" ,
-    (decide (st.(is_hvc_mode) = true) && (in_dec zeq st.(cur_user_entity_id) vm_ids))
+    (decide (st.(is_hvc_mode) = false) && (in_dec zeq st.(cur_user_entity_id) vm_ids))
       
       (** - Extracts the VM userspace information with the given entity ID *)
       ;;; get "save_regs_to_vcpu: cannot find vm_userspace for the entity id",
@@ -1082,7 +1082,7 @@ Section FFAContextSwitching.
     let next_vm_id := scheduler st in
     (** check whether the current running entity is Hafnium *)
     check "vcpu_restore_and_run: wrong cur entity id" ,
-    ((*decide (st.(is_hvc_mode) = true) &&*) (in_dec zeq next_vm_id vm_ids))
+    (decide (st.(is_hvc_mode) = true) && (in_dec zeq next_vm_id vm_ids))
       ;;; (** get the userspace information *)
       get "vcpu_restore_and_run: Cannot find userspace information",
     vm_userspace
@@ -1134,7 +1134,7 @@ Section FFAContextSwitching.
                                                          cur_user_vcpu_index
                                                          cur_vcpu_regs.(vcpu_regs))::nil} in
       trigger (SetState new_st). 
-    
+  
   Definition vcpu_restore_and_run_call (args : list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val)  :=             
     match args with
@@ -1454,7 +1454,7 @@ Section InterfaceFunctions.
     | [(Vcomp (Vlong addr))]  =>
       res <- get_physical_address_spec (Int64.unsigned addr) ;;
       Ret (Vcomp (Vlong (Int64.repr res)), args)
-    | _ => triggerNB "get_current_entity_id_call: wrong arguments"
+    | _ => triggerNB "get_physical_address_call: wrong arguments"
     end.
 
   (***********************************************************************)
@@ -1488,9 +1488,23 @@ Section InterfaceFunctions.
     match args with
     | []  => unset_is_hvc_mode_spec;;
             Ret (Vnull, args)
-    | _ => triggerNB "unset_use_stage2_table_call: wrong arguments"
+    | _ => triggerNB "unset_is_hvc_mode_call: wrong arguments"
     end.
 
+  Definition is_hvc_mode_getter_spec
+    : itree HypervisorEE (Z) := 
+    st <- trigger GetState;;
+    if (st.(is_hvc_mode)) then Ret (1) else Ret (0).
+                                              
+  Definition is_hvc_mode_getter_call (args: list Lang.val)
+    : itree HypervisorEE (Lang.val * list Lang.val) :=
+    match args with
+    | []  =>
+      res <- is_hvc_mode_getter_spec;;
+      Ret (Vcomp (Vlong (Int64.repr res)), args)
+    | _ => triggerNB "unset_is_hvc_mode_call: wrong arguments"
+    end.
+  
   Definition set_use_stage1_table_spec
     : itree HypervisorEE (unit) := 
     st <- trigger GetState;;
@@ -2442,6 +2456,7 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCTopLevel.get_physical_address", get_physical_address_call);
     ("HVCTopLevel.set_is_hvc_mode", set_is_hvc_mode_call);
     ("HVCTopLevel.unset_is_hvc_mode", unset_is_hvc_mode_call);
+    ("HVCTopLevel.is_hvc_mode_getter", is_hvc_mode_getter_call);
     ("HVCTopLevel.set_use_stage1_table", set_use_stage1_table_call);
     ("HVCTopLevel.unset_use_stage1_table", unset_use_stage1_table_call);
 
@@ -2522,17 +2537,27 @@ Import Int64.
 Section HypervisorCall.
   
   Definition hypervisor_call :=
-    (Call "HVCTopLevel.set_is_hvc_mode" []) #;
-    (Put "set_is_hvc_mode done" Vnull) #;
-    (Call "HVCTopLevel.save_regs_to_vcpu" []) #;
-    (Put "context changing is done" Vnull) #;
-    (Call "HVCTopLevel.ffa_dispatch" []) #;
-    (Put "function_dispatcher has be invoked" Vnull) #;
-    (Call "HVCTopLevel.vcpu_restore_and_run" []) #;
-    (Call "HVCTopLevel.unset_is_hvc_mode" []). 
+    (Call "HVCTopLevel.save_regs_to_vcpu" [])
+      #; (Put "hyp mode after entering kernel" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+      #; (Call "HVCTopLevel.ffa_dispatch" [])
+      #; (Put "function_dispatcher has be invoked" Vnull) 
+      (** Jieung: I do not figure out the reason, but it is required *)
+      #; (Put "hyp mode after dispatching" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+      #; (Call "HVCTopLevel.set_is_hvc_mode" []) 
+      #; (Call "HVCTopLevel.vcpu_restore_and_run" [])
+      #; (Call "HVCTopLevel.unset_is_hvc_mode" []).
 
+
+  Definition scheduling :=
+    (Call "HVCTopLevel.save_regs_to_vcpu" [])
+      #; (Call "HVCTopLevel.vcpu_restore_and_run" []).
+  
   Definition hypervisor_callF : function.
     mk_function_tac hypervisor_call ([]: list var) ([]: list var).
+  Defined.
+  
+  Definition schedulingF : function.
+    mk_function_tac scheduling ([]: list var) ([]: list var).
   Defined.  
   
 End HypervisorCall.
@@ -2550,7 +2575,7 @@ Section FFAMemoryManagementInterfaceWithMemAccessorModule.
               paddr #= (Call "HVCTopLevel.get_physical_address" [CBV addr]) #;
               (Call "HVCTopLevel.set_mem_dirty" [CBV entity_id; CBV (addr / (Int64.repr granuale))]) #;
               (flat_mem_block_ptr @ paddr #:= value).
-              
+  
   Definition mem_load_spec (addr : var) (paddr: var): stmt :=
     paddr #= (Call "HVCTopLevel.get_physical_address" [CBV addr]) #;    
     Return (flat_mem_block_ptr  #@ paddr).
@@ -2558,20 +2583,20 @@ Section FFAMemoryManagementInterfaceWithMemAccessorModule.
   Definition mem_store_specF: function.
     mk_function_tac mem_store_spec ["addr"; "value"] ["entity_id "; "paddr"].
   Defined.
-
+  
   Definition mem_load_specF: function.
     mk_function_tac mem_load_spec ["addr"] ["paddr"].
   Defined.
-
+  
   Definition mem_funcs :=
     [
       ("HVCTopLevel.mem_store", mem_store_specF) ;
     ("HVCTopLevel.mem_load", mem_load_specF);
-    ("HVCTopLevel.hypervisor_call", hypervisor_callF)
+    ("HVCTopLevel.hypervisor_call", hypervisor_callF);
+    ("HVCTopLevel.scheduling", schedulingF)
     ].
   
   Definition top_level_accessor_modsem : ModSem := program_to_ModSem mem_funcs.
   
 End FFAMemoryManagementInterfaceWithMemAccessorModule.
-
 
