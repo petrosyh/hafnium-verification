@@ -886,17 +886,20 @@ Section AbstractStateUpdate.
   Definition update_hypervisor_context (a : AbstractState) b :=
     mkAbstractState
       (a.(FFA_version_number))
-      (a.(use_stage1_table))
       (a.(is_hvc_mode))
+      (a.(use_stage1_table))
       (a.(cur_user_entity_id))
-      b (a.(vms_userspaces))
+      b
+      (a.(vms_userspaces))
       (a.(system_log)).
 
   Definition update_hypervisor_current_cpu_id
              (a: AbstractState) b :=
+    let new_hypervisor_context :=
+        update_current_cpu_id_in_hafnium_context
+          a.(hypervisor_context) b in
     update_hypervisor_context
-      a (update_current_cpu_id_in_hafnium_context
-           a.(hypervisor_context) b).
+      a new_hypervisor_context.
 
   Definition update_hypervisor_cpu_num (a: AbstractState) b :=
     update_hypervisor_context
@@ -909,9 +912,11 @@ Section AbstractStateUpdate.
            a.(hypervisor_context) b).
   
   Definition update_hypervisor_tpidr_el2 (a: AbstractState) b :=
+    let new_hypervisor_context :=
+        update_tpidr_el2_in_hafnium_context
+          a.(hypervisor_context) b in
     update_hypervisor_context
-      a (update_tpidr_el2_in_hafnium_context
-           a.(hypervisor_context) b).
+      a new_hypervisor_context.
 
   Definition update_hypervisor_api_page_pool_size (a: AbstractState) b :=
     update_hypervisor_context

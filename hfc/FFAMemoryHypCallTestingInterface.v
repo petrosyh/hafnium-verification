@@ -568,9 +568,68 @@ Definition ffa_memory_type_to_string
   end.
 
 (* TODO: need to add more things *)
-Definition print_mailbox_msg (mailbox : MAILBOX_struct) :=
-  "omitted at this moment".
+Definition print_memory_region_descriptor
+           (region_desc: FFA_memory_region_struct)
+  :=
+    match region_desc with
+    | mkFFA_memory_region_struct
+        sender
+        attributes
+        flags
+        handle
+        tag
+        receivers
+        composite  =>  " "
+    end.
 
+Definition print_relinquish_region_descriptor
+           (relinquish_desc: FFA_memory_relinquish_struct)
+  := " ".
+
+Definition print_mailbox_msg (mailbox : MAILBOX_struct) :=
+  match mailbox with
+  | mkMAILBOX_struct message sender size func =>
+    let intro_str := append_all [newline;"MAILBOX: "] in
+    let message_str :=        
+    match message with
+    | mailbox_memory_init_value
+      => append_all [newline; tabspace; "init value"]
+    | mailbox_memory_region region_desc =>
+      append_all [newline; tabspace;
+                 "region_desc: ";
+                  print_memory_region_descriptor region_desc]
+    | mailbox_memory_relinquish relinquish_desc =>
+      append_all [newline; tabspace;
+                 "relinquish_desc: ";
+                 print_relinquish_region_descriptor relinquish_desc]
+    | mailbox_z value => append_all [newline; tabspace; "z value: "; HexString.of_Z value]
+    end in
+    let sender_str :=
+        append_all [newline; tabspace; "Sender: "; 
+                   match sender with
+                   | Some sender' => HexString.of_Z sender'
+                   | None => "none"
+                   end] in
+    let size_str := 
+        append_all [newline; tabspace; "Size: "; HexString.of_Z size] in
+    let func_str := 
+        append_all [newline; tabspace; "Function: ";
+                   match func with
+                   | Some func' =>
+                     match func' with
+                     | FFA_MEM_DONATE => " FFA_MEM_DONATE "
+                     | FFA_MEM_LEND => " FFA_MEM_LEND "
+                     | FFA_MEM_SHARE => " FFA_MEM_SHARE "
+                     | FFA_MEM_RETREIVE_REQ => " FFA_MEM_RETRIEVE_REQ "
+                     | FFA_MEM_RETREIVE_RESP => " FFA_MEM_RETRIEVE_RESP "
+                     | FFA_MEM_RELINQUISH => " FFA_MEM_RELINQUISH "
+                     | FFA_MEM_RECLAIM => " FFA_MEM_RECLAIM "
+                     end 
+                   | None => "none"
+                   end] in    
+    append_all [intro_str; message_str; sender_str; size_str; func_str]
+  end.
+  
 Definition system_log_entity_showable (log_entity : log_type) :=
   match log_entity with
   | ChangeCurEntityID from_id to_id
@@ -1062,7 +1121,7 @@ Section FFAContextSwitching.
                                                               cur_vcpu_regs.(vcpu_regs)::nil)} in
           
           trigger (SetState new_st).
-
+ 
   Definition save_regs_to_vcpu_call (args : list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val)  :=
     match args with
@@ -1155,7 +1214,7 @@ Section FFADispatch.
       
   Notation HypervisorEE := (CallExternalE +' updateStateE +' GlobalE +' MemoryE +' Event).
   
-  Definition function_dispatcher
+  Definition dispatch_ffa_function
              (ffa_function_type: FFA_FUNCTION_TYPE)
              (vid: ffa_UUID_t)
              (vals: ZMap.t Z) (st : AbstractState) :=
@@ -1245,7 +1304,7 @@ Section FFADispatch.
     | FFA_SUCCESS handle => ffa_success handle
     end.
   
-  Definition ffa_dispatch_spec :  itree HypervisorEE (unit) := 
+  Definition ffa_dispatch_spec :  itree HypervisorEE (bool) := 
     (** - Extract the current vcpu *)
     st <- trigger GetState;;
     (** - Get the information in tpidr_el2 register to find out the current VM to be served *)
@@ -1265,8 +1324,8 @@ Section FFADispatch.
                                                  ++(DispathFFAInterface arch_regs)::nil} in     
               get "ffa_dispatch: error in function dispatch", 
               result
-              <- (function_dispatcher ffa_function_type
-                                     vid vals new_st)
+              <- dispatch_ffa_function ffa_function_type
+                                      vid vals new_st
                   ;;;
                   match result with
                   | (updated_st, ffa_result) =>
@@ -1293,24 +1352,41 @@ Section FFADispatch.
                                        cur_kernel_vcpu_index
                                        new_vcpu_reg 
                                        vm_context.(vm_kernelspace_context).(vcpus_contexts)} in
+                            let new_vms_contexts :=
+                                ZTree.set vid new_vm_context
+                                          (updated_st.(hypervisor_context).(vms_contexts)) in
+                            let new_hypervisor_context :=
+                                update_vms_contexts_in_hafnium_context
+                                  updated_st.(hypervisor_context) new_vms_contexts in
+                            let new_st :=
+                                updated_st 
+                                  {hypervisor_context: new_hypervisor_context} in
+                            (*
                             let new_st :=
                                 updated_st
                                   {hypervisor_context / vms_contexts:
                                      ZTree.set vid new_vm_context
                                                (updated_st.(hypervisor_context).(vms_contexts))} in
-                            trigger (SetState new_st)
+                             *)
+                            trigger (SetState new_st);;
+                            Ret (new_st.(is_hvc_mode))
                   end                                    
             | _ => triggerUB "ffa_dispatch_spec: function identifier is not proper"
             end
           end
         | _ => triggerUB "ffa_dispatch_spec: erros in vcpu struct value"
         end.
-                        
+  
   Definition ffa_dispatch_call (args : list Lang.val) 
     : itree HypervisorEE (Lang.val * list Lang.val)  :=
     match args with
-    | nil => ffa_dispatch_spec;;
-            Ret (Vnull, args)
+    | nil =>
+      result <- ffa_dispatch_spec;;
+      let val := match result with 
+                 | true => Vcomp (Vlong (Int64.repr 1))
+                 | _ => Vcomp (Vlong (Int64.repr 0))
+                 end in
+      Ret (val, args)
     | _ => triggerUB "ffa_dispatch_call: wrong arguments"
     end.
       
@@ -1560,7 +1636,9 @@ Section InterfaceFunctions.
           let new_vm_contexts :=
               ZTree.set receiver new_vm_context
                         state.(hypervisor_context).(vms_contexts) in
-          trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts})).
+          trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts}
+                                   {system_log: (SendMsg sender receiver mailbox_contents)
+                                                  ::(state.(system_log))})).
     
   Definition send_msg_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
@@ -1618,7 +1696,9 @@ Section InterfaceFunctions.
               let new_vm_contexts :=
                   ZTree.set receiver new_vm_context
                             state.(hypervisor_context).(vms_contexts) in
-              trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts})).
+              trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts}
+                                       {system_log: (SendMsg sender receiver mailbox_contents)
+                                                      ::(state.(system_log))})).
     
   Definition send_msg_with_sender_id_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
@@ -1998,7 +2078,7 @@ Section VCPUSetterGetter.
                          st.(vms_userspaces)) in
           let new_state := st {vms_userspaces : new_vm_contexts} in
           trigger (SetState (new_state)).
-  
+
   Definition userspace_vcpu_index_setter_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
@@ -2007,7 +2087,6 @@ Section VCPUSetterGetter.
       Ret (Vnull, args)
     | _ => triggerNB "userspace_vcpu_index_setter_call: wrong arguments"
     end.
-  
 
   (***********************************************************************)
   (** **   userspace vcpu index getter / setter with entity id           *)
@@ -2539,13 +2618,12 @@ Section HypervisorCall.
   Definition hypervisor_call :=
     (Call "HVCTopLevel.save_regs_to_vcpu" [])
       #; (Put "hyp mode after entering kernel" (Call "HVCTopLevel.is_hvc_mode_getter" []))
-      #; (Call "HVCTopLevel.ffa_dispatch" [])
+      #; (Put "result" (Call "HVCTopLevel.ffa_dispatch" []))
       #; (Put "function_dispatcher has be invoked" Vnull) 
       (** Jieung: I do not figure out the reason, but it is required *)
       #; (Put "hyp mode after dispatching" (Call "HVCTopLevel.is_hvc_mode_getter" []))
-      #; (Call "HVCTopLevel.set_is_hvc_mode" []) 
       #; (Call "HVCTopLevel.vcpu_restore_and_run" [])
-      #; (Call "HVCTopLevel.unset_is_hvc_mode" []).
+      #; (Put "hyp mode after restore" (Call "HVCTopLevel.is_hvc_mode_getter" [])).
 
 
   Definition scheduling :=
