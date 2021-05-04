@@ -567,7 +567,83 @@ Definition ffa_memory_type_to_string
   | FFA_MEMORY_MEM_RESERVED => "RESERVED"
   end.
 
-(* TODO: need to add more things *)
+
+
+Definition print_permissions_descriptor_struct
+           (permissions_descriptor: FFA_memory_access_permissions_descriptor_struct) :=
+  match permissions_descriptor with
+    mkFFA_memory_access_permissions_descriptor_struct
+      receiver instruction_access data_access flags =>
+    append_all ["Reciever: "; HexString.of_Z receiver;
+               tabspace;
+               "Instruction Perm: ";
+               ffa_instruction_access_type_to_string instruction_access;
+               tabspace;
+               "Data Perm: ";
+               ffa_data_access_type_to_string data_access]
+  end.
+
+Definition print_endpoint_memory_access_descriptor_struct
+           (endpoint: FFA_endpoint_memory_access_descriptor_struct) :=
+  match endpoint with
+    mkFFA_endpoint_memory_access_descriptor_struct permissions offset
+    => 
+    append_all ["(End-Permissions: ";
+               print_permissions_descriptor_struct  permissions;
+               tabspace;
+               "Offset: "; HexString.of_nat offset; ")"]
+  end.
+                
+Fixpoint print_endpoints
+           (endpoints: list FFA_endpoint_memory_access_descriptor_struct) :=
+  match endpoints with
+  | nil => ""
+  | hd::nil =>
+    append_all ["<"; HexString.of_nat (length endpoints); ">: ";
+               print_endpoint_memory_access_descriptor_struct hd]    
+  | hd::tl =>
+    let res := print_endpoints tl in
+    append_all
+      ["<"; HexString.of_nat (length endpoints); ">: ";
+      print_endpoint_memory_access_descriptor_struct hd;
+      tabspace;
+      res]
+  end.
+
+Definition print_constituent_struct
+           (constituent: FFA_memory_region_constituent_struct) :=
+  match constituent with
+  | mkFFA_memory_region_constituent_struct
+      address page_count =>
+    append_all ["("; "Address: "; HexString.of_Z address;
+               tabspace; "PageCount "; HexString.of_Z page_count ; ")"]
+  end.
+
+Fixpoint print_constituents
+         (constituents: list FFA_memory_region_constituent_struct) :=
+  match constituents with
+  | nil => ""
+  | hd::nil =>
+    append_all ["<"; HexString.of_nat (length constituents); ">: ";
+               print_constituent_struct hd]
+  | hd::tl =>
+    let res := print_constituents tl in
+    append_all ["<"; HexString.of_nat (length constituents); ">: ";
+               print_constituent_struct hd; tabspace;
+               res]
+  end.
+
+Definition print_composite_memory_region_struct
+           (composite: FFA_composite_memory_region_struct) :=
+  match composite with
+  | mkFFA_composite_memory_region_struct page_count constituents
+    => 
+    append_all ["PageCount: "; HexString.of_Z page_count;
+               tabspace;
+               "Composite: "; "[";
+               print_constituents constituents; "]"]
+  end.
+  
 Definition print_memory_region_descriptor
            (region_desc: FFA_memory_region_struct)
   :=
@@ -579,9 +655,24 @@ Definition print_memory_region_descriptor
         handle
         tag
         receivers
-        composite  =>  " "
+        composite  =>
+      append_all ["Region Descriptor:";
+                 newline; tabspace;
+                 "Sender: "; HexString.of_Z sender;
+                 newline; tabspace;
+                 "Attributes: ";
+                 ffa_memory_type_to_string
+                   attributes
+                 .(FFA_memory_region_attributes_descriptor_struct_memory_type);
+                 newline; tabspace;
+                 "Receivers: "; "["; print_endpoints receivers; "]";
+                 newline; tabspace;                 
+                 "Composite: ";
+                 print_composite_memory_region_struct composite
+                 ]
     end.
 
+(* TODO: need to add more things *)
 Definition print_relinquish_region_descriptor
            (relinquish_desc: FFA_memory_relinquish_struct)
   := " ".
@@ -1352,22 +1443,11 @@ Section FFADispatch.
                                        cur_kernel_vcpu_index
                                        new_vcpu_reg 
                                        vm_context.(vm_kernelspace_context).(vcpus_contexts)} in
-                            let new_vms_contexts :=
-                                ZTree.set vid new_vm_context
-                                          (updated_st.(hypervisor_context).(vms_contexts)) in
-                            let new_hypervisor_context :=
-                                update_vms_contexts_in_hafnium_context
-                                  updated_st.(hypervisor_context) new_vms_contexts in
-                            let new_st :=
-                                updated_st 
-                                  {hypervisor_context: new_hypervisor_context} in
-                            (*
                             let new_st :=
                                 updated_st
                                   {hypervisor_context / vms_contexts:
                                      ZTree.set vid new_vm_context
                                                (updated_st.(hypervisor_context).(vms_contexts))} in
-                             *)
                             trigger (SetState new_st);;
                             Ret (new_st.(is_hvc_mode))
                   end                                    
