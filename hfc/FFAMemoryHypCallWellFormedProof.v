@@ -265,7 +265,7 @@ Section WELLFORMED.
     forall st caller total_length fragment_length address count st' res
       (Hspec: ffa_mem_donate_spec
                 caller total_length fragment_length address count st
-              = Some (st', res))
+              = SUCCESS (st', res))
       (Hwell_formed: well_formed st),
     well_formed st'.
   Proof.

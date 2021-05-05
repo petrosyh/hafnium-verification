@@ -47,14 +47,20 @@ Require Export FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.
 
 (* begin hide *)
 
-Notation "'get' X <- A ;;; B" :=
+Notation "'get' T ',' E ',' X <- A ';;;' B" :=
   (match A with Some X => B |
-           None => None
-   end)
-    (at level 200, X ident, A at level 100, B at level 200) : ffa_monad_scope.
- 
-Notation " 'check' A ;;; B" :=
-  (if A then B else None)
+           None => FAIL T E end)
+    (at level 200, X ident, A at level 100, B at level 200)
+  : ffa_monad_scope.
+
+Notation "'get_r' T ',' X <- A ';;;' B" :=
+  (match A with SUCCESS X => B |
+           FAIL E => FAIL T E end)
+    (at level 200, X ident, A at level 100, B at level 200)
+  : ffa_monad_scope.
+
+Notation " 'check' T ',' E ',' A ';;;' B" :=
+  (if A then B else FAIL T E)
     (at level 200, A at level 100, B at level 200) : ffa_monad_scope.
 
 Local Open Scope ffa_monad_scope.
@@ -154,7 +160,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         (** - Exctract properties and accessibilities for the page *)
         match get_permissions_and_attributes vid hd mem_properties,
               memory_region_descriptor.(FFA_memory_region_struct_flags)with
-        | Some (local_inst_access, local_data_access, local_attributes,
+        | SUCCESS (local_inst_access, local_data_access, local_attributes,
                 global_inst_access, global_data_access,  global_attributes),
           MEMORY_REGION_FLAG_NORMAL flags =>
           (** - Check descriptor's values are valid with page properties and accessibilities *)
@@ -179,9 +185,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               descriptor_data_access
               descriptor_attributes
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS
-                         (append_all ["donate_checks_per_page with ";
-                                     HexString.of_Z hd]))
+        | SUCCESS _, _ => Some (FFA_INVALID_PARAMETERS
+                        (append_all ["donate_checks_per_page with ";
+                                    HexString.of_Z hd; " due to invalid flag"]))
+        | FAIL msg, _ =>  Some (FFA_INVALID_PARAMETERS
+                        (append_all ["donate_checks_per_page with ";
+                                    HexString.of_Z hd; " due to "; msg]))
         end
       end.
 
@@ -234,16 +243,16 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           If it encouter errors, it will revert the change and return the original state *)
     Fixpoint apply_ffa_mem_donate_core_transition_spec
              (caller receiver_id : ffa_UUID_t) (page_numbers : list Z)
-             (st : AbstractState) :=
+             (st : AbstractState) : RESULT (AbstractState * bool) :=
       match page_numbers with
-      | nil => Some (st, true)
+      | nil => SUCCESS (st, true)
       | hd::tl =>
         match apply_ffa_mem_donate_core_transition_spec
                 caller receiver_id tl st with
-        | Some st'' =>
+        | SUCCESS st'' =>
           ffa_mem_donate_core_transition_spec
             caller receiver_id hd (fst st'') 
-        | None => None
+        | FAIL msg => FAIL (AbstractState * bool) msg
         end
       end.
 
@@ -251,90 +260,96 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (caller : ffa_UUID_t)
                (total_length fragment_length address count : Z)
                (st: AbstractState)
-      : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
       (** - Check the arguments *)
       if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         (** - Get the current memory region descriptor *)
-        get state_and_memory_region_descriptor
+        get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+        state_and_memory_region_descriptor
         <- (get_send_memory_region_descriptor caller st)
             ;;;
             let (state, memory_region_descriptor)
                 := state_and_memory_region_descriptor in
             (** - Extract information from the descriptor  *) 
-            get ipa_info_tuple <-
+            get_r (AbstractState *FFA_RESULT_CODE_TYPE),
+            ipa_info_tuple <-
             (get_recievers_receiver_ids_and_addresses_tuple
                memory_region_descriptor)
-              ;;; get pa_info_tuple
-            <- (SubstIPAsIntoPAs ipa_info_tuple)
-                ;;; let info_tuple
-                        := convert_addresses_in_info_tuple_to_page_numbers              
-                             pa_info_tuple in
-                    (** - Check the well_formed conditions of the memory region descriptor *)
-                    if decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
-                    then
-                      let region_size
-                          := (FFA_memory_region_struct_size
-                                (Zlength
-                                   (memory_region_descriptor
-                                    .(FFA_memory_region_struct_composite)
-                                    .(FFA_composite_memory_region_struct_constituents)))) in
-                      if decide ((region_size < state.(hypervisor_context).(api_page_pool_size))%Z)
+              ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+              pa_info_tuple
+              <- (SubstIPAsIntoPAs ipa_info_tuple)
+                  ;;; let info_tuple
+                          := convert_addresses_in_info_tuple_to_page_numbers              
+                               pa_info_tuple in
+                      (** - Check the well_formed conditions of the memory region descriptor *)
+                      if decide ((length (get_receivers memory_region_descriptor) = 1)%nat)
                       then
-                        match info_tuple with
-                        | (receiver, receiver_id, cur_addresses)::nil =>
-                          (* TODO: add cases to handle multiple address transfer *)
-                          match (donate_check
-                                   caller
-                                   (state.(hypervisor_context).(time_slice_enabled))
-                                   (state.(hypervisor_context).(mem_properties))
-                                   memory_region_descriptor info_tuple) with 
-                          | None =>
-                            get res
-                            <- (apply_ffa_mem_donate_core_transition_spec
-                                 caller receiver_id cur_addresses state)
-                                ;;;
-                                match res with  
-                                (* TODO: need to creage handle! - 0 is the wrong value  *)
-                                (* TODO: need to reduce mpool size *) 
-                                | (st', true) =>
-                                  match set_memory_region_in_shared_state
-                                          caller
-                                          region_size FFA_MEM_DONATE
-                                          ((receiver_id, cur_addresses)::nil)
-                                          None false
-                                          memory_region_descriptor st' with
-                                  | Some (st'', handle_value) =>
-                                    get res_st
-                                    <- (set_send_handle caller receiver_id
-                                                      region_size handle_value FFA_MEM_DONATE
-                                                      st'')
-                                        ;;;
-                                        Some (res_st, FFA_SUCCESS handle_value)
-                                  | _ => Some (st, FFA_ERROR
-                                                    (FFA_DENIED
-                                                       "ffa_mem_general_check_arguments"))
+                        let region_size
+                            := (FFA_memory_region_struct_size
+                                  (Zlength
+                                     (memory_region_descriptor
+                                      .(FFA_memory_region_struct_composite)
+                                      .(FFA_composite_memory_region_struct_constituents)))) in
+                        if decide ((region_size < state.(hypervisor_context).(api_page_pool_size))%Z)
+                        then
+                          match info_tuple with
+                          | (receiver, receiver_id, cur_addresses)::nil =>
+                            (* TODO: add cases to handle multiple address transfer *)
+                            match (donate_check
+                                     caller
+                                     (state.(hypervisor_context).(time_slice_enabled))
+                                     (state.(hypervisor_context).(mem_properties))
+                                     memory_region_descriptor info_tuple) with 
+                            | None =>
+                              get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                              res
+                              <- (apply_ffa_mem_donate_core_transition_spec
+                                   caller receiver_id cur_addresses state)
+                                  ;;;
+                                  match res with  
+                                  (* TODO: need to creage handle! - 0 is the wrong value  *)
+                                  (* TODO: need to reduce mpool size *) 
+                                  | (st', true) =>
+                                    match set_memory_region_in_shared_state
+                                            caller
+                                            region_size FFA_MEM_DONATE
+                                            ((receiver_id, cur_addresses)::nil)
+                                            None false
+                                            memory_region_descriptor st' with
+                                    | SUCCESS (st'', handle_value) =>
+                                      get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                                      res_st
+                                      <- (set_send_handle caller receiver_id
+                                                         region_size handle_value FFA_MEM_DONATE
+                                                         st'')
+                                          ;;;
+                                          SUCCESS (res_st, FFA_SUCCESS handle_value)
+                                    | FAIL msg => SUCCESS (st, FFA_ERROR
+                                                                (FFA_DENIED
+                                                                   ("ffa_mem_general_check_arguments: "
+                                                                      ++ msg)))
+                                    end
+                                  | (_, false) =>
+                                    SUCCESS (st, FFA_ERROR
+                                                (FFA_DENIED
+                                                   "apply_ffa_mem_donate_core_transition_spec"))
                                   end
-                                | (_, false) =>
-                                  Some (st, FFA_ERROR
-                                              (FFA_DENIED
-                                                 "apply_ffa_mem_donate_core_transition_spec"))
-                                end
-                          | Some res => Some (st, FFA_ERROR res)
+                            | Some res => SUCCESS (st, FFA_ERROR res)
+                            end
+                          | _ => SUCCESS (st, FFA_ERROR
+                                            (FFA_INVALID_PARAMETERS
+                                               "info_tuple invalid"))
                           end
-                        | _ => Some (st, FFA_ERROR
-                                          (FFA_INVALID_PARAMETERS
-                                             "info_tuple invalid"))
-                        end
-                      else Some (st, FFA_ERROR
-                                       (FFA_NO_MEMORY
-                                          "mpool size is too small"))
-                    else Some (st, FFA_ERROR
-                                     (FFA_DENIED
-                                        "wrong receiver number"))
-      else Some (st, FFA_ERROR
-                       (FFA_INVALID_PARAMETERS
-                          "ffa_mem_general_check_arguments")).
+                        else SUCCESS (st, FFA_ERROR
+                                         (FFA_NO_MEMORY
+                                            "mpool size is too small"))
+                      else SUCCESS (st, FFA_ERROR
+                                       (FFA_DENIED
+                                          "wrong receiver number"))
+      else SUCCESS (st, FFA_ERROR
+                          (FFA_INVALID_PARAMETERS
+                             "ffa_mem_general_check_arguments")).
     
   End FFA_MEM_DONATE_ADDITIONAL_STEPS.
 
@@ -361,7 +376,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         (** - Check properties that are not relevant to the number of receivers *)
         match get_permissions_and_attributes vid hd mem_properties,
               memory_region_descriptor.(FFA_memory_region_struct_flags) with        
-        | Some (local_inst_access, local_data_access, local_attributes,
+        | SUCCESS (local_inst_access, local_data_access, local_attributes,
                 global_inst_access, global_data_access,  global_attributes),
           MEMORY_REGION_FLAG_NORMAL flags =>
           match data_permissions_lend_and_share_lender_check
@@ -404,9 +419,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                   receiver_number
               end
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS
-                         (append_all ["lend_checks_per_page with ";
-                                     HexString.of_Z hd]))                         
+        | SUCCESS _, _ => Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["lend_checks_per_page with ";
+                                             HexString.of_Z hd; " due to invalid flag"]))
+        | FAIL msg, _ =>  Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["lend_checks_per_page with ";
+                                             HexString.of_Z hd; " due to "; msg]))
         end
       end.
 
@@ -479,14 +497,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
              (caller : ffa_UUID_t) (receivers: list ffa_UUID_t) (pages : list Z)
              (st : AbstractState) :=
       match pages with
-      | nil => Some (st, true)
+      | nil => SUCCESS (st, true)
       | hd::tl =>
         match apply_ffa_mem_lend_core_transition_spec
                 caller receivers tl st with
-        | Some st'' =>
+        | SUCCESS st'' =>
           ffa_mem_lend_core_transition_spec
             caller receivers hd (fst st'') 
-        | None => None
+        | FAIL msg => FAIL (AbstractState * bool) msg
         end
       end.
     
@@ -494,18 +512,21 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (caller : ffa_UUID_t)
                (total_length fragment_length address count : Z)
                (st: AbstractState)
-      : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
       (** - Check the arguments *)
       if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         (** - Get the current memory region descriptor *)
-        get state_and_memory_region_descriptor
+        get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+        state_and_memory_region_descriptor
         <- (get_send_memory_region_descriptor caller st)
             ;;; let (state, memory_region_descriptor) := state_and_memory_region_descriptor in
-                get ipa_info_tuple
+                get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                ipa_info_tuple
                 <- (get_recievers_receiver_ids_and_addresses_tuple
                      memory_region_descriptor)
-                    ;;; get pa_info_tuple
+                    ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                pa_info_tuple
                 <- (SubstIPAsIntoPAs ipa_info_tuple)
                     ;;;
                     let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
@@ -529,7 +550,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                  memory_region_descriptor info_tuple) with 
                         | None =>
                           (* TODO: add cases to handle multiple address transfer *)
-                          get res
+                          get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                          res
                           <- (apply_ffa_mem_lend_core_transition_spec
                                caller (get_receiver_ids info_tuple)
                                (get_all_addresses memory_region_descriptor)
@@ -544,36 +566,38 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                             (get_receiver_id_addrs_pair info_tuple)
                                             None false
                                             memory_region_descriptor st' with
-                                    | Some (st'', handle_value) =>
-                                      get res_st
+                                    | SUCCESS (st'', handle_value) =>
+                                      get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                                      res_st
                                       <- (set_send_handle_for_multiple_receivers
                                            (get_receiver_ids info_tuple)
                                            caller
                                            region_size handle_value FFA_MEM_LEND
                                            st'')
                                           ;;;
-                                          Some (res_st, FFA_SUCCESS handle_value)
-                                    | _ => Some (st,
-                                                FFA_ERROR
-                                                  (FFA_DENIED
-                                                     "set_memory_region_in_shared_state"))
+                                          SUCCESS (res_st, FFA_SUCCESS handle_value)
+                                    | FAIL msg => SUCCESS (st,
+                                                   FFA_ERROR
+                                                     (FFA_DENIED
+                                                        ("set_memory_region_in_shared_state"
+                                                           ++ msg)))
                                     end
                                   | (_, false) =>
-                                    Some (st, FFA_ERROR
-                                                (FFA_DENIED
-                                                   "apply_ffa_mem_lend_core_transition_spec"))
+                                    SUCCESS (st, FFA_ERROR
+                                                   (FFA_DENIED
+                                                      "apply_ffa_mem_lend_core_transition_spec"))
                                   end
-                        | Some res => Some (st, FFA_ERROR res)
+                        | Some res => SUCCESS (st, FFA_ERROR res)
                         end
-                      else Some (st, FFA_ERROR
-                                       (FFA_NO_MEMORY
-                                          "mpool size is too small"))
-                    else Some (st, FFA_ERROR
-                                     (FFA_DENIED
-                                        "wrong receiver number"))
-      else Some (st, FFA_ERROR
-                       (FFA_INVALID_PARAMETERS
-                          "ffa_mem_general_check_arguments")).
+                      else SUCCESS (st, FFA_ERROR
+                                          (FFA_NO_MEMORY
+                                             "mpool size is too small"))
+                    else SUCCESS (st, FFA_ERROR
+                                        (FFA_DENIED
+                                           "wrong receiver number"))
+      else SUCCESS (st, FFA_ERROR
+                          (FFA_INVALID_PARAMETERS
+                             "ffa_mem_general_check_arguments")).
     
   End FFA_MEM_LEND_ADDITIONAL_STEPS.
   
@@ -595,7 +619,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
       | hd::tl =>
         match get_permissions_and_attributes vid hd mem_properties,
               memory_region_descriptor.(FFA_memory_region_struct_flags)with
-        | Some (local_inst_access, local_data_access, local_attributes,
+        | SUCCESS (local_inst_access, local_data_access, local_attributes,
                 global_inst_access, global_data_access,  global_attributes),
           MEMORY_REGION_FLAG_NORMAL flags =>
           match data_permissions_lend_and_share_lender_check
@@ -615,9 +639,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               tl descriptor_inst_access descriptor_data_access descriptor_attributes
               receiver_number
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS
-                         (append_all ["share_checks_per_page with ";
-                                     HexString.of_Z hd]))
+        | SUCCESS _, _ => Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["share_checks_per_page with ";
+                                             HexString.of_Z hd; " due to invalid flag"]))
+        | FAIL msg, _ =>  Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["share_checks_per_page with ";
+                                             HexString.of_Z hd; " due to "; msg]))
+
         end
       end.
 
@@ -694,14 +722,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
              (caller : ffa_UUID_t) (receivers: list ffa_UUID_t) (pages : list Z)
              (st : AbstractState) :=
       match pages with
-      | nil => Some (st, true)
+      | nil => SUCCESS (st, true)
       | hd::tl =>
         match apply_ffa_mem_share_core_transition_spec
                 caller receivers tl st with
-        | Some st'' =>
+        | SUCCESS st'' =>
           ffa_mem_share_core_transition_spec
             caller receivers hd (fst st'') 
-        | None => None
+        | FAIL msg => FAIL (AbstractState * bool) msg
         end
       end.
    
@@ -709,18 +737,21 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (caller : ffa_UUID_t)
                (total_length fragment_length address count : Z)
                (st: AbstractState)
-      : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
       (** - Check the arguments *)
       if ffa_mem_general_check_arguments total_length fragment_length address count
       then
         (** - Get the current memory region descriptor *)
-        get state_and_memory_region_descriptor
+        get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+        state_and_memory_region_descriptor
         <- (get_send_memory_region_descriptor caller st)
             ;;; let '(state, memory_region_descriptor) := state_and_memory_region_descriptor in
-                get ipa_info_tuple
+                get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                ipa_info_tuple
                 <- (get_recievers_receiver_ids_and_addresses_tuple
                      memory_region_descriptor)
-                    ;;; get pa_info_tuple
+                    ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                pa_info_tuple
                 <- (SubstIPAsIntoPAs ipa_info_tuple)
                     ;;;
                     let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
@@ -744,7 +775,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                  memory_region_descriptor info_tuple) with 
                         | None =>
                           (* TODO: add cases to handle multiple address transfer *)
-                          get res
+                          get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                          res
                           <- (apply_ffa_mem_share_core_transition_spec
                                caller (get_receiver_ids info_tuple)
                                (get_all_addresses memory_region_descriptor)
@@ -759,38 +791,40 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                             (get_receiver_id_addrs_pair info_tuple)
                                             None false
                                             memory_region_descriptor st' with
-                                    | Some (st'', handle_value) =>
-                                      get res_st
+                                    | SUCCESS (st'', handle_value) =>
+                                      get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                                      res_st
                                       <- (set_send_handle_for_multiple_receivers
                                            (get_receiver_ids info_tuple)
                                            caller
                                            region_size handle_value FFA_MEM_SHARE
                                            st'')
                                           ;;;
-                                          Some (res_st, FFA_SUCCESS handle_value)
-                                    | _ => Some (st, FFA_ERROR
-                                                      (FFA_DENIED
-                                                         "set_memory_region_in_shared_state"))
+                                          SUCCESS (res_st, FFA_SUCCESS handle_value)
+                                    | FAIL msg => SUCCESS (st, FFA_ERROR
+                                                                (FFA_DENIED
+                                                                   ("set_memory_region_in_shared_state: "
+                                                                      ++ msg)))
                                     end
                                   | (_, false) =>
-                                    Some (st, FFA_ERROR
-                                                (FFA_DENIED
-                                                   "apply_ffa_mem_share_core_transition_spec"))
+                                    SUCCESS (st, FFA_ERROR
+                                                   (FFA_DENIED
+                                                      "apply_ffa_mem_share_core_transition_spec"))
                                   end
-                        | _ => Some (st, FFA_ERROR
-                                          (FFA_INVALID_PARAMETERS
-                                             "share_check"))
+                        | _ => SUCCESS (st, FFA_ERROR
+                                             (FFA_INVALID_PARAMETERS
+                                                "share_check"))
                         end
-                      else Some (st, FFA_ERROR
-                                       (FFA_NO_MEMORY
-                                          "not enough mpool size"))
-                    else Some (st, FFA_ERROR
-                                     (FFA_DENIED
-                                        "invalid number of receivers"))
+                      else SUCCESS (st, FFA_ERROR
+                                          (FFA_NO_MEMORY
+                                             "not enough mpool size"))
+                    else SUCCESS (st, FFA_ERROR
+                                        (FFA_DENIED
+                                           "invalid number of receivers"))
       else
-        Some (st, FFA_ERROR
-                    (FFA_INVALID_PARAMETERS
-                       "ffa_mem_general_check_arguments")).
+        SUCCESS (st, FFA_ERROR
+                       (FFA_INVALID_PARAMETERS
+                          "ffa_mem_general_check_arguments")).
     
   End FFA_MEM_SHARE_ADDITIONAL_STEPS.
 
@@ -855,8 +889,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         (** - Exctract memory properties and accessibilities *)
         match get_permissions_and_attributes vid hd mem_properties,
               memory_region_descriptor.(FFA_memory_region_struct_flags) with
-        | Some (local_inst_access, local_data_access, local_attributes,
-                global_inst_access, global_data_access,  global_attributes),
+        | SUCCESS (local_inst_access, local_data_access, local_attributes,
+                   global_inst_access, global_data_access,  global_attributes),
           MEMORY_REGION_FLAG_NORMAL flags =>
           (** - Check descriptor's values are valid with memory properties and accessibilities *)
           match data_permissions_borrower_check
@@ -880,10 +914,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               descriptor_data_access
               descriptor_attributes
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS
-                         (append_all
-                            ["donate_retrieve_req_checks_per_page ";
-                            HexString.of_Z hd]))
+        | SUCCESS _, _ => Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["donate_retrieve_req_checks_per_page with";
+                                             HexString.of_Z hd; " due to invalid flag"]))
+        | FAIL msg, _ =>  Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["donate_retrieve_req_checks_per_page with ";
+                                             HexString.of_Z hd; " due to "; msg]))
+                      
         end
       end.
     
@@ -937,14 +974,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
              (lender borrower : ffa_UUID_t) (pages : list Z) (clean : bool)
              (st : AbstractState) :=
       match pages with
-      | nil => Some (st, true)
+      | nil => SUCCESS (st, true)
       | hd::tl =>
         match apply_ffa_mem_donate_retrieve_req_core_transition_spec
                 lender borrower tl clean st with
-        | Some st' =>
+        | SUCCESS st' =>
           ffa_mem_donate_retrieve_req_core_transition_spec
             lender borrower hd clean (fst st')
-        | None => None
+        | FAIL msg => FAIL (AbstractState * bool) msg
         end
       end.
     
@@ -953,12 +990,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (total_length fragment_length address count : Z)
                (region_descriptor : FFA_memory_region_struct)
                (st : AbstractState)
-      : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
         (** - Get the current memory region descriptor *)
-      get ipa_info_tuple
+      get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+      ipa_info_tuple
       <- (get_recievers_receiver_ids_and_addresses_tuple
            region_descriptor)
-          ;;; get pa_info_tuple
+          ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+      pa_info_tuple
       <- (SubstIPAsIntoPAs ipa_info_tuple)
           ;;; let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
                                   pa_info_tuple in
@@ -977,7 +1016,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                            (receiver, receiver_id, cur_addresses)
                            (Zlength (get_receivers region_descriptor))) with 
                   | None =>
-                    get res
+                    get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                    res
                     <- (apply_ffa_mem_donate_core_transition_spec
                          caller receiver_id cur_addresses st)
                         ;;;
@@ -997,32 +1037,37 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                   ((receiver_id, cur_addresses)::nil)
                                   None true
                                   region_descriptor st' with                    
-                          | Some (st'', value) =>
-                            get handle_value
+                          | SUCCESS (st'', value) =>
+                            get (AbstractState * FFA_RESULT_CODE_TYPE),
+                            "fail to make handle",
+                            handle_value
                             <- (make_handle caller value)
-                                ;;; get res_st
+                                ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                            res_st
                             <- (set_send_handle caller receiver_id
                                                region_size handle_value FFA_MEM_RETREIVE_RESP
                                                st'')
-                                ;;; Some (res_st, FFA_SUCCESS value)
-                          | None => Some (st, FFA_ERROR
-                                               (FFA_DENIED
-                                                  "set_memory_region_in_shared_state"))
+                                ;;; SUCCESS (res_st, FFA_SUCCESS value)
+                          | FAIL msg => SUCCESS (st, FFA_ERROR
+                                                      (FFA_DENIED
+                                                         ("set_memory_region_in_shared_state"
+                                                            ++
+                                                            msg)))
                           end
                         | (_, false) =>
-                          Some (st, FFA_ERROR
-                                      (FFA_DENIED
-                                         "apply_ffa_mem_donate_core_transition_spec"))
+                          SUCCESS (st, FFA_ERROR
+                                         (FFA_DENIED
+                                            "apply_ffa_mem_donate_core_transition_spec"))
                         end
-                  | Some res => Some (st, FFA_ERROR res)
+                  | Some res => SUCCESS (st, FFA_ERROR res)
                   end
-                | _ => Some (st, FFA_ERROR
-                                  (FFA_INVALID_PARAMETERS
-                                     "donate_retrieve_req_check"))
+                | _ => SUCCESS (st, FFA_ERROR
+                                     (FFA_INVALID_PARAMETERS
+                                        "donate_retrieve_req_check"))
                 end
-              else Some (st, FFA_ERROR
-                               (FFA_DENIED
-                                  "invalid receiver number")).
+              else SUCCESS (st, FFA_ERROR
+                                  (FFA_DENIED
+                                     "invalid receiver number")).
 
     Fixpoint lend_retrieve_req_checks_per_page
              (vid : ffa_UUID_t)
@@ -1041,7 +1086,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         (** - Exctract memory properties and accessibilities *)
         match get_permissions_and_attributes vid hd mem_properties,
               memory_region_descriptor.(FFA_memory_region_struct_flags) with
-        | Some (local_inst_access, local_data_access, local_attributes,
+        | SUCCESS (local_inst_access, local_data_access, local_attributes,
                 global_inst_access, global_data_access,  global_attributes),
           MEMORY_REGION_FLAG_NORMAL flags =>
           (** - Check descriptor's values are valid with memory properties and accessibilities *)
@@ -1088,8 +1133,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                   borrower_number
               end
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS
-                         "lend_retrieve_req_checks_per_page")
+        | SUCCESS _, _ => Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["lend_retrieve_req_checks_per_page with";
+                                             HexString.of_Z hd; " due to invalid flag"]))
+        | FAIL msg, _ =>  Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["lend_retrieve_req_checks_per_page with ";
+                                             HexString.of_Z hd; " due to "; msg]))
         end
       end.
 
@@ -1141,14 +1190,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
              (lender borrower : ffa_UUID_t) (borrower_num : Z) (pages : list Z) (clean : bool)
              (st : AbstractState) :=
       match pages  with
-      | nil => Some (st, true)
+      | nil => SUCCESS (st, true)
       | hd::tl =>
         match apply_ffa_mem_lend_retrieve_req_core_transition_spec
                 lender borrower borrower_num tl clean st with
-        | Some st' =>
+        | SUCCESS st' =>
           ffa_mem_lend_retrieve_req_core_transition_spec
             lender borrower borrower_num hd clean (fst st')
-        | None => None
+        | FAIL msg => FAIL (AbstractState * bool) msg
         end
       end.
     
@@ -1157,18 +1206,22 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (total_length fragment_length address count : Z)
                (region_descriptor : FFA_memory_region_struct)
                (st : AbstractState)
-    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+    : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
         (** - Get the current memory region descriptor *)
-      get ipa_info_tuple
+      get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+      ipa_info_tuple
       <- (get_recievers_receiver_ids_and_addresses_tuple
            region_descriptor)
-          ;;; get info_tuple
+          ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+      info_tuple
       <- (SubstIPAsIntoPAs ipa_info_tuple)
-          ;;; get pa_info_tuple
+          ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+      pa_info_tuple
       <- (SubstIPAsIntoPAs ipa_info_tuple)
           ;;; let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
                                   pa_info_tuple in
-              get receiver_info
+              get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+              receiver_info
               <- (get_receiver_tuple caller region_descriptor)
                   ;;;
                   (** - Check the well_formed conditions of the memory region descriptor *)
@@ -1184,9 +1237,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                              (receiver, receiver_id, cur_addresses)
                              (Zlength (get_receivers region_descriptor))) with 
                     | None =>
-                      get zero_flag_value
+                      get (AbstractState * FFA_RESULT_CODE_TYPE),
+                      "fail to ge zero flag value",
+                      zero_flag_value
                       <- (get_zero_flag_value region_descriptor)
-                          ;;; get res
+                          ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                      res
                       <- (apply_ffa_mem_lend_retrieve_req_core_transition_spec
                            caller receiver_id
                            (Zlength (get_receivers region_descriptor))
@@ -1210,24 +1266,28 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                     ((receiver_id, cur_addresses)::nil)
                                     None true
                                     region_descriptor st' with                    
-                            | Some (st'', value) =>
-                              get handle_value
+                            | SUCCESS (st'', value) =>
+                              get (AbstractState * FFA_RESULT_CODE_TYPE),
+                              "fail to get handle value",
+                              handle_value
                               <- (make_handle caller value)
-                                  ;;; get res_st
+                                  ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                              res_st
                               <- (set_send_handle caller receiver_id
                                                  region_size handle_value FFA_MEM_RETREIVE_RESP
-                                                 st'') ;;;
-                                                       Some (res_st, FFA_SUCCESS value)
-                            | None => Some (st, FFA_ERROR
+                                                 st'')
+                                  ;;; SUCCESS (res_st, FFA_SUCCESS value)
+                            | FAIL msg => SUCCESS (st, FFA_ERROR
                                                  (FFA_DENIED
-                                                    "set_memory_region_in_shared_state"))
+                                                    ("set_memory_region_in_shared_state"
+                                                 ++msg)))
                             end
                           | (_, false) =>
-                            Some (st, FFA_ERROR
+                            SUCCESS (st, FFA_ERROR
                                         (FFA_DENIED
                                            "apply_ffa_mem_lend_retrieve_req_core_transition_spec"))
                           end
-                    | Some res => Some (st, FFA_ERROR res)
+                    | Some res => SUCCESS (st, FFA_ERROR res)
                     end
                   end. 
 
@@ -1248,8 +1308,8 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         (** - Exctract memory properties and accessibilities *)
         match get_permissions_and_attributes vid hd mem_properties,
               memory_region_descriptor.(FFA_memory_region_struct_flags) with
-        | Some (local_inst_access, local_data_access, local_attributes,
-                global_inst_access, global_data_access,  global_attributes),
+        | SUCCESS (local_inst_access, local_data_access, local_attributes,
+                   global_inst_access, global_data_access,  global_attributes),
           MEMORY_REGION_FLAG_NORMAL flags =>
           (** - Check descriptor's values are valid with memory properties and accessibilities *)
           match data_permissions_borrower_check
@@ -1273,8 +1333,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               descriptor_data_access
               descriptor_attributes
           end
-        | _, _ => Some (FFA_INVALID_PARAMETERS
-                         "share_retrieve_req_checks_per_page")
+        | SUCCESS _, _ => Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["share_retrieve_req_checks_per_page with";
+                                             HexString.of_Z hd; " due to invalid flag"]))
+        | FAIL msg, _ =>  Some (FFA_INVALID_PARAMETERS
+                                 (append_all ["share_retrieve_req_checks_per_page with ";
+                                             HexString.of_Z hd; " due to "; msg]))
         end
       end.
 
@@ -1325,14 +1389,14 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
              (lender borrower : ffa_UUID_t) (pages : list Z) (clean : bool)
              (st : AbstractState) :=
       match pages with
-      | nil => Some (st, true)
+      | nil => SUCCESS (st, true)
       | hd::tl =>
         match apply_ffa_mem_share_retrieve_req_core_transition_spec
                 lender borrower tl clean st with
-        | Some st' =>
+        | SUCCESS st' =>
           ffa_mem_share_retrieve_req_core_transition_spec
             lender borrower hd clean (fst st')
-        | None => None
+        | FAIL msg => FAIL (AbstractState * bool) msg
         end
       end.
     
@@ -1341,16 +1405,19 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (total_length fragment_length address count : Z)
                (region_descriptor : FFA_memory_region_struct)
                (st : AbstractState)
-      : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
-        (** - Get the current memory region descriptor *)
-      get ipa_info_tuple
+      : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      (** - Get the current memory region descriptor *)
+      get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+      ipa_info_tuple
       <- (get_recievers_receiver_ids_and_addresses_tuple
            region_descriptor)
-          ;;; get pa_info_tuple
+          ;;; get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+      pa_info_tuple
       <- (SubstIPAsIntoPAs ipa_info_tuple)
           ;;; let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
                                   pa_info_tuple in
-              get receiver_info
+              get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+              receiver_info
               <- (get_receiver_tuple caller region_descriptor)
                   ;;;
                   (** - Check the well_formed conditions of the memory region descriptor *)
@@ -1366,9 +1433,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                              (receiver, receiver_id, cur_addresses)
                              (Zlength (get_receivers region_descriptor))) with 
                     | None =>
-                      get zero_flag_value
+                      get  (AbstractState * FFA_RESULT_CODE_TYPE),
+                      "fail to get zero flag value",
+                      zero_flag_value
                       <- (get_zero_flag_value region_descriptor)
-                          ;;; get res
+                          ;;; get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+                      res
                       <- (apply_ffa_mem_share_retrieve_req_core_transition_spec
                            caller receiver_id
                            cur_addresses
@@ -1390,24 +1460,28 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                         ((receiver_id, cur_addresses)::nil)
                                         None true
                                         region_descriptor st' with                    
-                                | Some (st'', value) =>
-                                  get handle_value
+                                | SUCCESS (st'', value) =>
+                                  get (AbstractState * FFA_RESULT_CODE_TYPE),
+                                  "fail to get handle value",
+                                  handle_value
                                   <- (make_handle caller value)
-                                      ;;; get res_st
+                                      ;;; get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+                                  res_st
                                   <- (set_send_handle caller receiver_id
                                                      region_size handle_value FFA_MEM_RETREIVE_RESP
                                                      st'')
-                                      ;;;  Some (res_st, FFA_SUCCESS value)
-                                | None => Some (st, FFA_ERROR
-                                                     (FFA_DENIED
-                                                        "set_memory_region_in_shared_state"))
+                                      ;;;  SUCCESS (res_st, FFA_SUCCESS value)
+                                | FAIL msg => SUCCESS (st, FFA_ERROR
+                                                            (FFA_DENIED
+                                                               ("set_memory_region_in_shared_state"
+                                                                  ++ msg)))
                                 end
                               | (_, false) =>
-                                Some (st, FFA_ERROR
-                                            (FFA_DENIED
-                                               "apply_ffa_mem_share_retrieve_req_core_transition_spec"))
+                                SUCCESS (st, FFA_ERROR
+                                               (FFA_DENIED
+                                                  "apply_ffa_mem_share_retrieve_req_core_transition_spec"))
                               end
-                    | Some res => Some (st, FFA_ERROR res)
+                    | Some res => SUCCESS (st, FFA_ERROR res)
                     end
                   end. 
     
@@ -1415,13 +1489,15 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (caller : ffa_UUID_t)
                (total_length fragment_length address count : Z)
                (st : AbstractState)
-    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
       if ffa_mem_general_check_arguments total_length fragment_length address count
       then
-        get state_and_handle
+        get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+        state_and_handle
         <- (get_send_handle_value caller st)
             ;;; let '(state, handle) := state_and_handle in
-                get share_state
+                get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+                share_state
                 <- (get_handle_information handle state)
                     ;;; match share_state with 
                         | mkFFA_memory_share_state_struct
@@ -1430,9 +1506,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                             (** TODO: need to add retrieve_count and relinquished later *)
                             | Some is_retrieved =>
                               if is_retrieved
-                              then Some (st, FFA_ERROR
-                                               (FFA_DENIED
-                                                  "already retrieved"))
+                              then SUCCESS (st, FFA_ERROR
+                                                  (FFA_DENIED
+                                                     "already retrieved"))
                               else match share_func with
                                    | FFA_MEM_DONATE
                                      => ffa_mem_retrieve_req_donate_spec
@@ -1446,18 +1522,18 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                      => ffa_mem_retrieve_req_share_spec
                                          caller total_length fragment_length address count
                                          memory_region st                                              
-                                   | _ => Some (st, FFA_ERROR
-                                                     (FFA_DENIED
-                                                        "invalid share function"))
+                                   | _ => SUCCESS (st, FFA_ERROR
+                                                        (FFA_DENIED
+                                                           "invalid share function"))
                                    end
-                            | _ => Some (st, FFA_ERROR
-                                              (FFA_DENIED
-                                                 "invalid share state"))
+                            | _ => SUCCESS (st, FFA_ERROR
+                                                 (FFA_DENIED
+                                                    "invalid share state"))
                             end
                         end
-      else Some (st, FFA_ERROR
-                       (FFA_INVALID_PARAMETERS
-                          "ffa_mem_general_check_arguments")).
+      else SUCCESS (st, FFA_ERROR
+                          (FFA_INVALID_PARAMETERS
+                             "ffa_mem_general_check_arguments")).
     
   End FFA_MEM_RETRIEVE_REQ_ARGUMENT_CHECKS.
 
@@ -1505,11 +1581,11 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (caller : ffa_UUID_t)               
                (total_length fragment_length : Z)
                (st : AbstractState)
-    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+    : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
       if ffa_mem_retrieve_resp_check_arguments total_length fragment_length 
-      then Some (st, FFA_SUCCESS 0)
-      else Some (st, FFA_ERROR
-                       (FFA_INVALID_PARAMETERS " ")).
+      then SUCCESS (st, FFA_SUCCESS 0)
+      else SUCCESS (st, FFA_ERROR
+                          (FFA_INVALID_PARAMETERS " ")).
     
   End FFA_MEM_RETRIEVE_RESP_ARGUMENT_CHECKS.
 
@@ -1542,21 +1618,20 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
              (pages : list Z) (clean : bool)
              (st : AbstractState) :=
       match pages  with
-      | nil => Some (st, true)
+      | nil => SUCCESS (st, true)
       | hd::tl =>
         match apply_ffa_mem_relinquish_core_transition_spec
                 index lender borrower tl clean st with
-        | Some st' =>
-          get st''
+        | SUCCESS st' =>
+          get_r (AbstractState * bool),
+          st''
           <- (unset_retrieve index borrower hd (fst st'))
               ;;;
               ffa_mem_relinquish_core_transition_spec
               lender borrower hd clean st''
-        | None => None
+        | FAIL msg => FAIL (AbstractState * bool) msg
         end
       end.
-
-
     Fixpoint FFA_mem_relinquish_req_alignment_hint_check_iter 
              (relinquish_flag: FFA_mem_relinquish_req_flags_struct)
              (addrs  : list Z) :=
@@ -1583,12 +1658,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         match FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check_per_page
                 relinquish_flag mem_properties sender tl time_slice_enabled with
         | None =>
-          get sender_data_access
-          <- (get_data_access_from_global_local_pool_props
-               sender hd mem_properties.(mem_local_properties))
-              ;;;
-              FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check
+          match get_data_access_from_global_local_pool_props
+                  sender hd mem_properties.(mem_local_properties) with
+          | FAIL msg => Some (FFA_INVALID_PARAMETERS msg)
+          | SUCCESS sender_data_access =>
+            FFA_mem_relinquish_req_zero_flags_for_donate_and_lend_check
               relinquish_flag sender_data_access time_slice_enabled
+          end
         | Some res => Some res
         end
       end. 
@@ -1604,12 +1680,13 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         match FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check_per_page
                 relinquish_flag mem_properties receiver tl with
         | None =>
-          get receiver_data_access
-          <- (get_data_access_from_global_local_pool_props
-               receiver hd mem_properties.(mem_local_properties))
-              ;;;
-              FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check
+          match get_data_access_from_global_local_pool_props
+                  receiver hd mem_properties.(mem_local_properties) with
+          | FAIL msg => Some (FFA_INVALID_PARAMETERS msg)
+          | SUCCESS receiver_data_access =>
+            FFA_mem_relinquish_req_zero_after_flags_for_donate_and_lend_check
               relinquish_flag receiver_data_access
+          end
         | Some res => Some res
         end
       end. 
@@ -1617,15 +1694,17 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     Definition ffa_mem_relinquish_spec
                (caller : ffa_UUID_t)
                (st : AbstractState)
-      : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
-      get state_and_relinquish_descriptor
+      : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+      state_and_relinquish_descriptor
       <- (get_send_relinquish_descriptor caller st)
           ;;;
           let '(state, relinquish_descriptor) := state_and_relinquish_descriptor in
           let handle_value := relinquish_descriptor.(FFA_memory_relinquish_struct_handle) in
           let flags := relinquish_descriptor.(FFA_memory_relinquish_struct_flags ) in
           let receivers := relinquish_descriptor.(FFA_memory_relinquish_struct_endpoints) in
-          get share_state
+          get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+          share_state
           <- (get_handle_information handle_value state)
               ;;;
               match share_state, flags with
@@ -1640,13 +1719,15 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                       match FFA_mem_relinquish_req_zero_after_flags_for_share_check flags,
                             FFA_mem_relinquish_req_transaction_type_check flags (Some share_func) with
                       | Some res, _
-                      | None, Some res =>  Some (st, FFA_ERROR res)
+                      | None, Some res =>  SUCCESS (st, FFA_ERROR res)
                       | None, None =>
                         let sender := memory_region.(FFA_memory_region_struct_sender) in
-                        get ipa_info_tuple
+                        get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+                        ipa_info_tuple
                         <- (get_recievers_receiver_ids_and_addresses_tuple memory_region)
                             ;;;
-                            get info_tuple
+                            get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+                        info_tuple
                         <- (SubstIPAsIntoPAs ipa_info_tuple)
                             ;;;
                             let receiver_tuple :=
@@ -1655,7 +1736,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                             let receiver_ids_in_region_des :=
                                 get_receiver_ids info_tuple in
                             match decide (list_eq_dec zeq receiver_ids_in_region_des receivers), receiver_tuple with
-                            | left _, Some (receiver, receiver_id, addrs) =>
+                            | left _, SUCCESS (receiver, receiver_id, addrs) =>
                               let check_res :=
                                   match FFA_mem_relinquish_req_alignment_hint_check_iter flags addrs with
                                   | Some res => Some res
@@ -1680,9 +1761,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                     end
                                   end in
                               match check_res with
-                              | Some res => Some (st, FFA_ERROR res)
+                              | Some res => SUCCESS (st, FFA_ERROR res)
                               | None =>
-                                get st'
+                                get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+                                st'
                                 <- (apply_ffa_mem_relinquish_core_transition_spec
                                      (get_value handle_value) sender caller
                                      (convert_addresses_to_page_numbers addrs)
@@ -1690,31 +1772,31 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                      st)
                                     ;;;
                                     match st' with
-                                    | (st'', true) => Some (st'', FFA_SUCCESS 0)
+                                    | (st'', true) => SUCCESS (st'', FFA_SUCCESS 0)
                                     | (_, false) =>
-                                      Some (st, FFA_ERROR
-                                                  (FFA_DENIED
-                                                     "apply_ffa_mem_relinquish_core_transition_spec"))
+                                      SUCCESS (st, FFA_ERROR
+                                                     (FFA_DENIED
+                                                        "apply_ffa_mem_relinquish_core_transition_spec"))
                                     end
                               end
                             | _, _ =>
-                              Some (st, FFA_ERROR
-                                          (FFA_INVALID_PARAMETERS
-                                             "invalid receiver"))
+                              SUCCESS (st, FFA_ERROR
+                                             (FFA_INVALID_PARAMETERS
+                                                "invalid receiver"))
                             end
                       end                                 
-                    else Some (st, FFA_ERROR
-                                     (FFA_INVALID_PARAMETERS
-                                        "already retrieved"))
-                  | _ => Some (st, FFA_ERROR
-                                    (FFA_INVALID_PARAMETERS
-                                       "cannot find retrieved info"))
+                    else SUCCESS (st, FFA_ERROR
+                                        (FFA_INVALID_PARAMETERS
+                                           "already retrieved"))
+                  | _ => SUCCESS (st, FFA_ERROR
+                                       (FFA_INVALID_PARAMETERS
+                                          "cannot find retrieved info"))
                   end
-              | _,_ => Some (st, FFA_ERROR
-                                  (FFA_INVALID_PARAMETERS
-                                     "share_state"))
+              | _,_ => SUCCESS (st, FFA_ERROR
+                                     (FFA_INVALID_PARAMETERS
+                                        "share_state"))
               end.
-                      
+    
   End FFA_MEM_RELINQUISH_ARGUMENT_CHECKS.
     
   Section FFA_MEM_RECLAIM_ARGUMENT_CHECKS.
@@ -1770,7 +1852,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           match ZTree.get hd receiver_retrieved_map with
           | Some false => None
           | _ => Some (FFA_DENIED
-                        " ")
+                        "denied")
           end
         | Some res => Some res
         end
@@ -1833,14 +1915,20 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (receivers : list ffa_UUID_t) 
                (page : Z) 
                (clean: bool)
-               (st : AbstractState) : option AbstractState :=
+               (st : AbstractState) : RESULT AbstractState :=
       let new_st := remove_local_memory_property_for_receivers
                       receivers page st in
-      get global_property
+      get  AbstractState,
+      "cannot get global property",
+      global_property
       <- (ZTree.get page (hyp_mem_global_props st))
-          ;;; get sender_properties_pool
+          ;;; get  AbstractState,
+      "cannot get sender properties",
+      sender_properties_pool
       <- (ZTree.get sender (hyp_mem_local_props st))
-          ;;; get sender_property
+          ;;; get  AbstractState,
+      "cannot gett sender property",
+      sender_property
       <- (ZTree.get page sender_properties_pool)
           ;;;
           let new_global_properties :=
@@ -1863,22 +1951,22 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               st {hypervisor_context / mem_properties :
                     mkMemProperties new_global_properties
                                     new_local_properties_global_pool} in
-          Some new_st.
+          SUCCESS new_st.
                
     Fixpoint apply_ffa_mem_reclaim_core_transition
                (sender :ffa_UUID_t)
                (receivers : list ffa_UUID_t) 
                (pages : list Z) 
                (clean: bool)
-               (st : AbstractState) : option AbstractState :=
+               (st : AbstractState) : RESULT AbstractState :=
       match pages with
-      | nil => Some st
+      | nil => SUCCESS st
       | hd::tl =>
         match  apply_ffa_mem_reclaim_core_transition
                  sender receivers tl clean st with
-        | Some st' => ffa_mem_reclaim_core_transition
+        | SUCCESS st' => ffa_mem_reclaim_core_transition
                        sender receivers hd clean st'
-        | None => None
+        | FAIL msg => FAIL AbstractState msg
         end
       end.
     
@@ -1886,44 +1974,51 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                (caller : ffa_UUID_t)
                (handle_high handle_low flags : Z)
                (st : AbstractState)
-    : option (AbstractState * FFA_RESULT_CODE_TYPE) :=
+    : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
       let handle := (Z.lor (Z.shiftl handle_high 32) handle_low) in
       let zero_flag := if decide ((Z.land flags 0) <> 0) then true else false in
       let time_slice_flags := if decide ((Z.land flags 1) <> 0) then true else false in
-      get share_state <- get_handle_information handle st ;;;
+      get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+      share_state <-
+      (get_handle_information handle st)
+        ;;;
       match share_state with
       | mkFFA_memory_share_state_struct
           memory_region share_func retrieved relinquished retrieve_count =>
         if decide (memory_region.(FFA_memory_region_struct_sender) <> caller)
-        then Some (st, FFA_ERROR
+        then SUCCESS (st, FFA_ERROR
                          (FFA_INVALID_PARAMETERS
                             " "))
         else
-          get ipa_info_tuple
-          <- (get_recievers_receiver_ids_and_addresses_tuple memory_region)
-              ;;; get pa_info_tuple
-          <- (SubstIPAsIntoPAs ipa_info_tuple)
-              ;;; let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
-                                      pa_info_tuple in
-                  match mem_reclaim_check info_tuple retrieved with
-                  | None =>
-                    match apply_ffa_mem_reclaim_core_transition
-                            caller (get_receiver_ids info_tuple)
-                            (get_all_addresses memory_region)
-                            zero_flag st with
-                    | Some st' =>
-                      match remove_share_state (get_value handle) st' with
-                      | Some st'' => Some (st'', FFA_SUCCESS 0)
-                      | None => Some (st, FFA_ERROR
-                                           (FFA_DENIED
-                                              "remove_share_state "))
-                      end
-                    | None => Some (st, FFA_ERROR
-                                         (FFA_DENIED
-                                            "mem_reclaim_check"))
+          get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+        ipa_info_tuple
+        <- (get_recievers_receiver_ids_and_addresses_tuple memory_region)
+            ;;; get_r  (AbstractState * FFA_RESULT_CODE_TYPE),
+        pa_info_tuple
+        <- (SubstIPAsIntoPAs ipa_info_tuple)
+            ;;; let info_tuple := convert_addresses_in_info_tuple_to_page_numbers              
+                                    pa_info_tuple in
+                match mem_reclaim_check info_tuple retrieved with
+                | None =>
+                  match apply_ffa_mem_reclaim_core_transition
+                          caller (get_receiver_ids info_tuple)
+                          (get_all_addresses memory_region)
+                          zero_flag st with
+                  | SUCCESS st' =>
+                    match remove_share_state (get_value handle) st' with
+                    | SUCCESS st'' => SUCCESS (st'', FFA_SUCCESS 0)
+                    | FAIL msg => SUCCESS (st, FFA_ERROR
+                                                (FFA_DENIED
+                                                   ("remove_share_state due to "
+                                                      ++msg)))
                     end
-                  | Some res => Some (st, FFA_ERROR res)
+                  | FAIL msg => SUCCESS (st, FFA_ERROR
+                                       (FFA_DENIED
+                                          ("mem_reclaim_check due to "
+                                             ++msg)))
                   end
+                | Some res => SUCCESS (st, FFA_ERROR res)
+                end
       end.
     
   End FFA_MEM_RECLAIM_ARGUMENT_CHECKS.

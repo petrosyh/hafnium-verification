@@ -119,7 +119,6 @@ Section FFAMemoryHypCallInitialization.
                              FFA_MEMORY_OUTER_SHAREABLE)
                           MemClean.
 
-
   Definition InitialGlobalAttributesForVMFour :=
     mkMemGlobalProperties false
                           (Owned 4)
@@ -242,7 +241,7 @@ Section DescriptorGenerator.
       receiver
        FFA_INSTRUCTION_ACCESS_NX
        FFA_DATA_ACCESS_RW
-       false.
+       true.
 
   Definition EndpointMemoryAccessDescriptorGeneratorForDonate
              (receiver : ffa_UUID_t) := 
@@ -425,7 +424,7 @@ Module FFAMEMORYHYPCALLTESTING.
         #; (Call "HVCTopLevel.send_msg" [CBV (Int64.repr primary_vm_id);
                                         CBV (Int64.repr 36);
                                         CBV (Vabs (upcast (mailbox_msg
-                                                             primary_vm_id primary_vm_id
+                                                             primary_vm_id 2
                                                              page_low 1)));
                                         CBV (Vabs (upcast (FFA_MEM_DONATE)))])
         #; (Call "HVCTopLevel.recv_msg" []).
@@ -557,7 +556,7 @@ Module FFAMEMORYHYPCALLTESTING.
         #; (Call "HVCTopLevel.send_msg" [CBV (Int64.repr primary_vm_id);
                                         CBV (Int64.repr 36);
                                         CBV (Vabs (upcast (mailbox_msg
-                                                             primary_vm_id primary_vm_id
+                                                             primary_vm_id 2
                                                              page_low 1)));
                                         CBV (Vabs (upcast (FFA_MEM_DONATE)))])
         #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 0)])

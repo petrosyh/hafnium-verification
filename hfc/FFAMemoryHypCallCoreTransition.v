@@ -49,23 +49,40 @@ Require Export FFAMemoryHypCallState.
 (** This file defines the core step rules of FFA memory management 
     interfaces *)
 
+Inductive RESULT (A : Type) :=
+| SUCCESS (res : A)
+| FAIL (error: string).          
+
 (* begin hide *)
 
-Notation "'get' X <- A ;;; B" :=
+Notation "'get' T ',' E ',' X <- A ';;;' B" :=
   (match A with Some X => B |
-           None => None
-   end)
+           None => FAIL T E end)
     (at level 200, X ident, A at level 100, B at level 200)
   : ffa_monad_scope.
 
-Notation " 'check' A ;;; B" :=
-  (if A then B else None)
-    (at level 200, A at level 100, B at level 200)
+Notation "'get_r' T ',' X <- A ';;;' B" :=
+  (match A with SUCCESS X => B |
+           FAIL E => FAIL T E end)
+    (at level 200, X ident, A at level 100, B at level 200)
   : ffa_monad_scope.
+
+Notation " 'check' T ',' E ',' A ';;;' B" :=
+  (if A then B else FAIL T E)
+    (at level 200, A at level 100, B at level 200) : ffa_monad_scope.
 
 Local Open Scope ffa_monad_scope.
 
 (* end hide *)
+
+Definition GET_TEST : RESULT Z :=
+  get Z, "error", a <- (Some 1)
+    ;;; SUCCESS a.
+
+Definition CHECK_TEST : RESULT (Z * bool) :=
+  check (Z * bool), "error",
+  (decide (1 = 1))
+    ;;; SUCCESS (1, true).
 
 (** Three roles in the FFA_XXX communications, and endpoints in the communications 
 
@@ -273,15 +290,23 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
     
     Definition ffa_mem_donate_core_transition_spec
                (lender borrower : ffa_UUID_t) (page_number: Z) (st: AbstractState)
-    : option (AbstractState * bool) :=
+    : RESULT (AbstractState * bool) :=
       (** - Find out memory properties *) 
-      get global_property
+      get (AbstractState * bool),
+      "cannot get global property",
+      global_property
       <- (ZTree.get page_number (hyp_mem_global_props st))
-          ;;; get lender_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get lender_properties_pool",
+      lender_properties_pool
       <- (ZTree.get lender (hyp_mem_local_props st))
-          ;;; get borrower_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get borrower_properties_pool",
+      borrower_properties_pool
       <- (ZTree.get borrower (hyp_mem_local_props st))
-          ;;; get lender_property
+          ;;; get (AbstractState * bool),
+      "lender_property",      
+      lender_property
       <- (ZTree.get page_number lender_properties_pool)
           ;;;
           (** - check memory properties :
@@ -309,11 +334,11 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                           mkMemProperties new_global_props (hyp_mem_local_props st)}
                        {system_log: st.(system_log)
                                          ++(SetAccessible lender page_number NoAccess)::nil} in
-                Some (new_st, true)
-              else Some (st, false)
-            | _, _, _, _, _ => Some (st, false)
+                SUCCESS (new_st, true)
+              else SUCCESS (st, false)
+            | _, _, _, _, _ => SUCCESS (st, false)
             end
-          | _, _, _ => Some (st, false)
+          | _, _, _ => SUCCESS (st, false)
           end.
     
   End FFA_MEM_DONATE_CORE_STEPS.
@@ -326,44 +351,53 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
     Definition check_mem_states_valid_combination
                (lender : ffa_UUID_t) (borrower : ffa_UUID_t)
                (page_number: Z) (st : AbstractState) :=
-      get global_property
+      get bool,
+      "cannot get global_property",
+      global_property
       <- (ZTree.get page_number (hyp_mem_global_props st))
-          ;;; get lender_properties_pool
+          ;;; get bool,
+      "cannot get lender_properties_pool",
+      lender_properties_pool
       <- (ZTree.get lender (hyp_mem_local_props st))
-          ;;; get borrower_properties_pool
+          ;;; get bool,
+      "cannot get borrower_properties_pool",
+      borrower_properties_pool
       <- (ZTree.get borrower (hyp_mem_local_props st))
-          ;;; get lender_property
+          ;;; get bool,
+      "cannot get lender_property",
+      lender_property
       <- (ZTree.get page_number lender_properties_pool)
           ;;; match global_property, lender_property,
                     ZTree.get page_number borrower_properties_pool with
               | mkMemGlobalProperties _ owned accessible _ _ _ dirty,
                 mkMemLocalProperties local_owned _ _ _, None =>
                 (** - Check the valid onwership and accessibility combination for lender and borrower *)        
-                Some (mem_states_valid_combination lender borrower owned accessible)
-              | _, _, _ => None
+                SUCCESS (mem_states_valid_combination lender borrower owned accessible)
+              | _, _, _ => FAIL bool "invalid properties"
               end.
 
     Fixpoint check_mem_states_valid_combination_for_borrowers
              (lender : ffa_UUID_t) (borrowers : list ffa_UUID_t)
              (page_number: Z) (st : AbstractState) :=
       match borrowers with
-      | nil => Some true
+      | nil => SUCCESS true
       | hd::tl =>
-        get res
+        get_r bool, res
         <- check_mem_states_valid_combination_for_borrowers
             lender tl page_number st
             ;;; check_mem_states_valid_combination
             lender hd page_number st
       end.
-    
+
+    (** TODO: need to use RESULT type instead of bool *)
     Definition check_mem_states_valid_combination_for_borrowers_unwrapper
              (lender : ffa_UUID_t) (borrowers : list ffa_UUID_t)
              (page_number: Z) (st : AbstractState) :=
       (decide (length borrowers >= 1)%nat) && 
       match check_mem_states_valid_combination_for_borrowers
               lender borrowers page_number st with
-      | Some res => res
-      | Non => false
+      | SUCCESS res => res
+      | FAIL _ => false
       end.
            
   End FFA_MEM_LEND_AND_SHARE_AUX_FUNCTIONS.
@@ -410,13 +444,19 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
     Definition ffa_mem_lend_core_transition_spec
                (lender : ffa_UUID_t) (borrowers : list ffa_UUID_t)
                (page_number: Z) (st : AbstractState)
-    : option (AbstractState * bool) :=
-      (** - Find out memory properties *) 
-      get global_property
+    : RESULT (AbstractState * bool) :=
+      (** - Find out memory properties *)
+      get (AbstractState * bool),
+      "cannot get global property",
+      global_property
       <- (ZTree.get page_number (hyp_mem_global_props st))
-          ;;; get lender_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get lender_properties_pool",
+      lender_properties_pool
       <- (ZTree.get lender (hyp_mem_local_props st))
-          ;;; get lender_property
+          ;;; get (AbstractState * bool),
+      "lender_property",      
+      lender_property
       <- (ZTree.get page_number lender_properties_pool)
           ;;;
           (** - check memory properties :
@@ -444,11 +484,11 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                           mkMemProperties new_global_props (hyp_mem_local_props st)}
                        {system_log: st.(system_log)
                                          ++(SetAccessible lender page_number NoAccess)::nil} in                      
-                Some (new_st, true)
-              else Some (st, false)
-            | _, _, _, _ => Some (st, false)
+                SUCCESS (new_st, true)
+              else SUCCESS (st, false)
+            | _, _, _, _ => SUCCESS (st, false)
             end
-          | _, _, _ => Some (st, false)
+          | _, _, _ => SUCCESS (st, false)
           end.
     
   End FFA_MEM_LEND_CORE_STEPS.
@@ -493,15 +533,21 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
      *)
     Definition ffa_mem_share_core_transition_spec
                (lender : ffa_UUID_t) (borrowers : list ffa_UUID_t) (page_number: Z) (st : AbstractState)
-    : option (AbstractState * bool) :=
-      (** - Find out memory properties *) 
-      get global_property
+    : RESULT (AbstractState * bool) :=
+      (** - Find out memory properties *)
+      get (AbstractState * bool),
+      "cannot get global property",
+      global_property
       <- (ZTree.get page_number (hyp_mem_global_props st))
-          ;;; get lender_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get lender_properties_pool",
+      lender_properties_pool
       <- (ZTree.get lender (hyp_mem_local_props st))
-          ;;; get lender_property
+          ;;; get (AbstractState * bool),
+      "lender_property",      
+      lender_property
       <- (ZTree.get page_number lender_properties_pool)
-          ;;;
+          ;;; 
           (** - check memory properties :
             - lender has to have onwership
             - lender has to have exclusive access to the address
@@ -528,11 +574,11 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                           mkMemProperties new_global_props (hyp_mem_local_props st)}
                        {system_log: st.(system_log)
                                          ++(SetAccessible lender page_number NoAccess)::nil} in                      
-                Some (new_st, true)
-              else Some (st, false)
-            | _, _, _, _ => Some (st, false)
+                SUCCESS (new_st, true)
+              else SUCCESS (st, false)
+            | _, _, _, _ => SUCCESS (st, false)
             end
-          | _, _, _ => Some (st, false)
+          | _, _, _ => SUCCESS (st, false)
           end.
 
   End FFA_MEM_SHARE_CORE_STEPS.
@@ -578,15 +624,23 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
 
     Definition ffa_mem_donate_retrieve_req_core_transition_spec
                (lender borrower : ffa_UUID_t) (page_number: Z) (clean: bool) (st: AbstractState)
-    : option (AbstractState * bool) :=
-      (** - Find out memory properties *) 
-      get global_property
+    : RESULT (AbstractState * bool) :=
+      (** - Find out memory properties *)
+      get (AbstractState * bool),
+      "cannot get global property",
+      global_property
       <- (ZTree.get page_number (hyp_mem_global_props st))
-          ;;; get lender_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get lender_properties_pool",
+      lender_properties_pool
       <- (ZTree.get lender (hyp_mem_local_props st))
-          ;;; get borrower_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get borrower_properties_pool",
+      borrower_properties_pool
       <- (ZTree.get borrower (hyp_mem_local_props st))
-          ;;; get lender_property
+          ;;; get (AbstractState * bool),
+      "lender_property",      
+      lender_property
       <- (ZTree.get page_number lender_properties_pool)
           ;;;
           (** - check memory properties :
@@ -638,11 +692,11 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                                                  ::(SetAccessible lender page_number
                                                                  (ExclusiveAccess borrower))
                                                  ::(SetDirty lender page_number new_dirty)::nil)} in
-                   Some (new_st, true)
-              else Some (st, false)
-            | _, _, _, _, _ => Some (st, false)
+                   SUCCESS (new_st, true)
+              else SUCCESS (st, false)
+            | _, _, _, _, _ => SUCCESS (st, false)
             end
-          | _, _, _ => Some (st, false)
+          | _, _, _ => SUCCESS (st, false)
           end.
 
     (*************************************************************)
@@ -665,15 +719,23 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
     Definition ffa_mem_lend_retrieve_req_core_transition_spec
                (lender borrower : ffa_UUID_t) (borrower_num : Z)
                (page_number: Z) (clean: bool) (st: AbstractState)
-    : option (AbstractState * bool) :=
+    : RESULT (AbstractState * bool) :=
       (** - Find out memory properties *) 
-      get global_property
+      get (AbstractState * bool),
+      "cannot get global property",
+      global_property
       <- (ZTree.get page_number (hyp_mem_global_props st))
-          ;;; get lender_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get lender_properties_pool",
+      lender_properties_pool
       <- (ZTree.get lender (hyp_mem_local_props st))
-          ;;; get borrower_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get borrower_properties_pool",
+      borrower_properties_pool
       <- (ZTree.get borrower (hyp_mem_local_props st))
-          ;;; get lender_property
+          ;;; get (AbstractState * bool),
+      "lender_property",      
+      lender_property
       <- (ZTree.get page_number lender_properties_pool)
           ;;;
           (** - check memory properties :
@@ -723,11 +785,11 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                                                  ::(SetAccessible lender page_number
                                                                  (ExclusiveAccess borrower))
                                                  ::(SetDirty lender page_number new_dirty)::nil)} in
-                   Some (new_st, true)
-              else Some (st, false)
-            | _, _, _, _, _ => Some (st, false)
+                   SUCCESS (new_st, true)
+              else SUCCESS (st, false)
+            | _, _, _, _, _ => SUCCESS (st, false)
             end
-          | _, _, _, _ => Some (st, false)
+          | _, _, _, _ => SUCCESS (st, false)
           end.
 
     (*************************************************************)
@@ -736,18 +798,26 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
          
     Definition ffa_mem_share_retrieve_req_core_transition_spec
                (lender borrower : ffa_UUID_t) (page_number: Z) (clean: bool) (st : AbstractState)
-      : option (AbstractState * bool) :=
-      (** - Find out memory properties *) 
-      get global_property
+      : RESULT (AbstractState * bool) :=
+      (** - Find out memory properties *)
+      get (AbstractState * bool),
+      "cannot get global property",
+      global_property
       <- (ZTree.get page_number (hyp_mem_global_props st))
-          ;;; get lender_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get lender_properties_pool",
+      lender_properties_pool
       <- (ZTree.get lender (hyp_mem_local_props st))
-          ;;; get borrower_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get borrower_properties_pool",
+      borrower_properties_pool
       <- (ZTree.get borrower (hyp_mem_local_props st))
-          ;;; get lender_property
+          ;;; get (AbstractState * bool),
+      "lender_property",      
+      lender_property
       <- (ZTree.get page_number lender_properties_pool)
           ;;;
-          (** - check memory properties :
+      (** - check memory properties :
             - lender has to have onwership
             - lender has to have exclusive access to the address
             - borrower does not have the memory in its memory property pool 
@@ -791,11 +861,11 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                                                  ::(SetAccessible lender page_number
                                                                  (SharedAccess (borrower::accessors)))
                                                  ::(SetDirty lender page_number new_dirty)::nil)} in
-                   Some (new_st, true)
-              else Some (st, false)
-            | _, _, _, _, _ => Some (st, false)
+                   SUCCESS (new_st, true)
+              else SUCCESS (st, false)
+            | _, _, _, _, _ => SUCCESS (st, false)
             end
-          | _, _, _ => Some (st, false)
+          | _, _, _ => SUCCESS (st, false)
           end.
 
   End FFA_MEM_RETRIEVE_REQ_CORE_STEP.
@@ -878,16 +948,25 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
 
     Definition ffa_mem_relinquish_core_transition_spec
                (lender borrower : ffa_UUID_t) (page_number: Z) (clean: bool) (st: AbstractState)
-      : option (AbstractState * bool) :=
+      : RESULT (AbstractState * bool) :=
       (** - Find out memory properties *)
-      get global_property
+      get (AbstractState * bool),
+      "cannot get global property",
+      global_property
       <- (ZTree.get page_number (hyp_mem_global_props st))
-          ;;; get lender_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get lender_properties_pool",
+      lender_properties_pool
       <- (ZTree.get lender (hyp_mem_local_props st))
-          ;;; get borrower_properties_pool
+          ;;; get (AbstractState * bool),
+      "cannot get borrower_properties_pool",
+      borrower_properties_pool
       <- (ZTree.get borrower (hyp_mem_local_props st))
-          ;;; get lender_property
-      <- (ZTree.get page_number lender_properties_pool) ;;;
+          ;;; get (AbstractState * bool),
+      "lender_property",      
+      lender_property
+      <- (ZTree.get page_number lender_properties_pool)
+          ;;;
       (** - check memory properties :
             - lender has to have onwership
             - lender has to have exclusive access to the address
@@ -928,11 +1007,11 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                                              ::(SetAccessible lender page_number new_accessibility)
                                              ::(SetDirty lender page_number new_dirty)::nil)} in
                       
-               Some (new_st, true)
-          else Some (st, false)
-        | _, _, _, _, _ => Some (st, false)
+               SUCCESS (new_st, true)
+          else SUCCESS (st, false)
+        | _, _, _, _, _ => SUCCESS (st, false)
         end
-      | _, _, _ => Some (st, false)
+      | _, _, _ => SUCCESS (st, false)
       end.
 
   End FFA_MEM_RELINQUISH_CORE_STEPS.

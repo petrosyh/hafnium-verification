@@ -1413,44 +1413,43 @@ Section FFADispatch.
 
               let new_st := st {system_log: st.(system_log)
                                                  ++(DispathFFAInterface arch_regs)::nil} in     
-              get "ffa_dispatch: error in function dispatch", 
-              result
-              <- dispatch_ffa_function ffa_function_type
-                                      vid vals new_st
-                  ;;;
-                  match result with
-                  | (updated_st, ffa_result) =>
-                    (** - Set the result inside the updated state *)
-                    get "ffa_dispatch: error in getting vm_context",
-                    vm_context
-                    <- (ZTree.get
-                         vid
-                         updated_st.(hypervisor_context).(vms_contexts))
-                        ;;; get "ffa_dispatch: error in getting vcpu index",
-                    cur_kernel_vcpu_index
-                    <- (vm_context.(vm_kernelspace_context).(cur_vcpu_index))
-                        ;;; get "ffa_dispatch: error in getting saved vcpu index",
-                    vcpu_reg
-                    <- (ZTree.get cur_kernel_vcpu_index 
-                                 vm_context.(vm_kernelspace_context).(vcpus_contexts))
-                        ;;; let new_vcpu_reg :=
-                                mkVCPU_struct (vcpu_reg.(cpu_id)) (vcpu_reg.(vm_id))
-                                              (mkArchRegs (ffa_value_gen ffa_result)) in
-                            let new_vm_context := 
-                                vm_context
-                                  {vm_vcpus_contexts:
-                                     ZTree.set
-                                       cur_kernel_vcpu_index
-                                       new_vcpu_reg 
-                                       vm_context.(vm_kernelspace_context).(vcpus_contexts)} in
-                            let new_st :=
-                                updated_st
-                                  {hypervisor_context / vms_contexts:
-                                     ZTree.set vid new_vm_context
-                                               (updated_st.(hypervisor_context).(vms_contexts))} in
-                            trigger (SetState new_st);;
-                            Ret (new_st.(is_hvc_mode))
-                  end                                    
+              match dispatch_ffa_function ffa_function_type vid vals new_st with
+              | SUCCESS result =>
+                match result with
+                | (updated_st, ffa_result) =>
+                  (** - Set the result inside the updated state *)
+                  get "ffa_dispatch: error in getting vm_context",
+                  vm_context
+                  <- (ZTree.get
+                       vid
+                       updated_st.(hypervisor_context).(vms_contexts))
+                      ;;; get "ffa_dispatch: error in getting vcpu index",
+                  cur_kernel_vcpu_index
+                  <- (vm_context.(vm_kernelspace_context).(cur_vcpu_index))
+                      ;;; get "ffa_dispatch: error in getting saved vcpu index",
+                  vcpu_reg
+                  <- (ZTree.get cur_kernel_vcpu_index 
+                               vm_context.(vm_kernelspace_context).(vcpus_contexts))
+                      ;;; let new_vcpu_reg :=
+                              mkVCPU_struct (vcpu_reg.(cpu_id)) (vcpu_reg.(vm_id))
+                                            (mkArchRegs (ffa_value_gen ffa_result)) in
+                          let new_vm_context := 
+                              vm_context
+                                {vm_vcpus_contexts:
+                                   ZTree.set
+                                     cur_kernel_vcpu_index
+                                     new_vcpu_reg 
+                                     vm_context.(vm_kernelspace_context).(vcpus_contexts)} in
+                          let new_st :=
+                              updated_st
+                                {hypervisor_context / vms_contexts:
+                                   ZTree.set vid new_vm_context
+                                             (updated_st.(hypervisor_context).(vms_contexts))} in
+                          trigger (SetState new_st);;
+                          Ret (new_st.(is_hvc_mode))
+                end
+              | FAIL msg => triggerUB msg
+              end
             | _ => triggerUB "ffa_dispatch_spec: function identifier is not proper"
             end
           end
