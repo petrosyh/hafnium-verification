@@ -386,41 +386,33 @@ Section FFA_DESCRIPTIONS.
 
   (** **** Well formed conditions *)
   (** Check addresses in multiple constituents to see whether they are disjoint *)
-  Fixpoint check_overlap_in_ranges
-    (ranges : list (Z * Z)) (range : (Z * Z)) :=
+  Definition check_overlap_in_ranges
+             (ranges : list (Z * Z)) (range : (Z * Z)) :=
+    List.forallb
+      (fun x => decide ((fst x) > (snd range)) || decide ((fst range) > (snd x)))
+      ranges.
+
+  Fixpoint check_overlap_of_constituents_aux (ranges : list (Z * Z)) :=
     match ranges with
     | nil => true
     | hd::tl =>
-      check_overlap_in_ranges tl range &&
-      (decide ((fst hd) > (snd range)) || decide ((fst range) > snd (hd)))
+      check_overlap_of_constituents_aux tl &&
+      check_overlap_in_ranges tl hd
     end.
-  
-  Fixpoint check_overlap_of_constituents_aux
-           (constituents : list FFA_memory_region_constituent_struct)
-           (ranges : list (Z * Z)) : option (list (Z * Z)) :=
-    match constituents with
-    | nil => Some ranges
-    | hd::tl =>
-      match check_overlap_of_constituents_aux tl ranges with
-      | Some ranges' =>
-        let first_addr := hd.(FFA_memory_region_constituent_struct_address) in
-        let last_addr :=
-            (first_addr +
-            granuale *
-            hd.(FFA_memory_region_constituent_struct_page_count))%Z in
-        if check_overlap_in_ranges ranges' (first_addr, last_addr)
-        then Some ((first_addr, last_addr)::ranges')
-        else None
-      | _ => None
-      end
-    end.
-      
+
+  Definition addr_range_from_constituent
+             (c : FFA_memory_region_constituent_struct) :=
+    let first_addr := c.(FFA_memory_region_constituent_struct_address) in
+    let last_addr :=
+        (first_addr +
+         granuale *
+         c.(FFA_memory_region_constituent_struct_page_count))%Z in
+    (first_addr, last_addr).
+
   Definition check_overlap_of_constituents
              (constituents : list FFA_memory_region_constituent_struct) :=
-    match check_overlap_of_constituents_aux constituents nil with
-    | Some _ => true
-    | _ => false
-    end.
+    check_overlap_of_constituents_aux
+      (List.map addr_range_from_constituent constituents).
 
   (** Check well formed conditions 
       - Page count needs to be consistent
@@ -515,7 +507,7 @@ Section FFA_DESCRIPTIONS.
   (** **** FFA Instruction Access Coq Definition *)    
   Inductive FFA_INSTRUCTION_ACCESS_TYPE :=
   | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED
-  | FFA_INSTRUCTION_ACCESS_NX (*[SF: XN? see 5.11.3]*)
+  | FFA_INSTRUCTION_ACCESS_XN
   | FFA_INSTRUCTION_ACCESS_X
   | FFA_INSTRUCTION_ACCESS_RESERVED.
   
@@ -558,44 +550,27 @@ Section FFA_DESCRIPTIONS.
   Definition instruction_access_permissive
              (a b: FFA_INSTRUCTION_ACCESS_TYPE) : bool :=
     match a, b with
-    | FFA_INSTRUCTION_ACCESS_X,
-      FFA_INSTRUCTION_ACCESS_X
-    | FFA_INSTRUCTION_ACCESS_X,
-      FFA_INSTRUCTION_ACCESS_NX
-    | FFA_INSTRUCTION_ACCESS_NX,
-      FFA_INSTRUCTION_ACCESS_NX => true
-    | FFA_INSTRUCTION_ACCESS_NX,
-      FFA_INSTRUCTION_ACCESS_X => false
-    | FFA_INSTRUCTION_ACCESS_NX,
-      FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => true
-    | FFA_INSTRUCTION_ACCESS_X,
-      FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => true
+    | FFA_INSTRUCTION_ACCESS_RESERVED, _
+    | _, FFA_INSTRUCTION_ACCESS_RESERVED => false
+    | FFA_INSTRUCTION_ACCESS_X, _ => true
+    | _, FFA_INSTRUCTION_ACCESS_X => false
+    | FFA_INSTRUCTION_ACCESS_XN, _ => true
+    | _, FFA_INSTRUCTION_ACCESS_XN => false
     | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED,
       FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => true
-    (** invalid pairs *)
-    | _, _ => false
     end.
 
   Definition data_access_permissive (a b: FFA_DATA_ACCESS_TYPE) : bool :=
     match a, b with
-    | FFA_DATA_ACCESS_RW,
-      FFA_DATA_ACCESS_RW
-    | FFA_DATA_ACCESS_RW,
-      FFA_DATA_ACCESS_RO
-    | FFA_DATA_ACCESS_RO,
-      FFA_DATA_ACCESS_RO => true
-    | FFA_DATA_ACCESS_RO,
-      FFA_DATA_ACCESS_RW => false
-    | FFA_DATA_ACCESS_RW,
-      FFA_DATA_ACCESS_NOT_SPECIFIED => true                                                 
-    | FFA_DATA_ACCESS_RO,
-      FFA_DATA_ACCESS_NOT_SPECIFIED => true                                                 
+    | FFA_DATA_ACCESS_RESERVED, _
+    | _, FFA_DATA_ACCESS_RESERVED => false
+    | FFA_DATA_ACCESS_RW, _ => true
+    | _, FFA_DATA_ACCESS_RW => false
+    | FFA_DATA_ACCESS_RO, _ => true
+    | _, FFA_DATA_ACCESS_RO => false
     | FFA_DATA_ACCESS_NOT_SPECIFIED,
-      FFA_DATA_ACCESS_NOT_SPECIFIED => true                                                 
-    (** invalid pairs *)
-    | _, _ => false
+      FFA_DATA_ACCESS_NOT_SPECIFIED => true
     end.
-
   
   (* Table 5.15: Memory access permissions descriptor 
      Field       Byte length   Byte offset            Description
@@ -989,7 +964,7 @@ Section FFA_DESCRIPTIONS.
   Definition instruction_permissions_share_and_lend_multiple_borrower_lender_check
              (global lender: FFA_INSTRUCTION_ACCESS_TYPE) :=
     match lender with
-    | FFA_INSTRUCTION_ACCESS_NX =>
+    | FFA_INSTRUCTION_ACCESS_XN =>
       if instruction_access_permissive global lender
       then None
       else Some (FFA_DENIED
@@ -1017,7 +992,7 @@ Section FFA_DESCRIPTIONS.
   Definition instruction_permissions_share_and_lend_multiple_borrower_resp_check
              (descriptor: FFA_INSTRUCTION_ACCESS_TYPE) :=
     match descriptor with
-    | FFA_INSTRUCTION_ACCESS_NX => None
+    | FFA_INSTRUCTION_ACCESS_XN => None
     | _ =>
       Some (FFA_INVALID_PARAMETERS
               "instruction_permissions_share_and_lend_multiple_borrower_resp_check")
@@ -1097,8 +1072,8 @@ Section FFA_DESCRIPTIONS.
   Definition instruction_permissions_donate_and_lend_single_borrower_resp_check
              (global descriptor borrower: FFA_INSTRUCTION_ACCESS_TYPE) :=
     match borrower, descriptor with
-    | FFA_INSTRUCTION_ACCESS_NX,
-      FFA_INSTRUCTION_ACCESS_NX 
+    | FFA_INSTRUCTION_ACCESS_XN,
+      FFA_INSTRUCTION_ACCESS_XN
     | FFA_INSTRUCTION_ACCESS_X,
       FFA_INSTRUCTION_ACCESS_X =>
       if (instruction_access_permissive global borrower)

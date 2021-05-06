@@ -524,7 +524,7 @@ Definition print_ffa_instruction_access_type
            (ffa_instruction_access_type : FFA_INSTRUCTION_ACCESS_TYPE) :=
   match ffa_instruction_access_type with
   | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => "ACCESS_NOT_SPECIFIED" 
-  | FFA_INSTRUCTION_ACCESS_NX => "ACCESS_NX"
+  | FFA_INSTRUCTION_ACCESS_XN => "ACCESS_XN"
   | FFA_INSTRUCTION_ACCESS_X => "ACCESS_X"
   | FFA_INSTRUCTION_ACCESS_RESERVED => "ACCESS_RESERVED"
   end.
@@ -959,7 +959,7 @@ Definition print_FFA_INSTRUCTION_ACCESS_TYPE
            (instruction_access_type: FFA_INSTRUCTION_ACCESS_TYPE) :=
   match instruction_access_type with
   | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => "not specified"
-  | FFA_INSTRUCTION_ACCESS_NX => "nx"
+  | FFA_INSTRUCTION_ACCESS_XN => "xn"
   | FFA_INSTRUCTION_ACCESS_X => "x" 
   | FFA_INSTRUCTION_ACCESS_RESERVED => "reserved"
   end.
