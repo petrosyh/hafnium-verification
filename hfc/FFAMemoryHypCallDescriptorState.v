@@ -166,7 +166,14 @@ Section FFA_DATATYPES.
   | FFA_DENIED (reason: string)
   | FFA_RETRY (reason: string)
   | FFA_ABORTED (reason: string).
-  
+
+  (*[SF: Consider adding
+  Inductive FFA_RESULT_TYPE (* T *) :=
+  | FFA_OK (* (result: T) *)
+  | FFA_ERR (error: FFA_ERROR_CODE_TYPE).
+  and use this instead of `option FFA_ERROR_CODE_TYPE`
+  ]*)
+
   (** The following numbers are also defined in Chapter 7
       - [FFA_ERROR]
         - Defined in Table 7.4: FFA_ERROR function syntax
@@ -508,7 +515,7 @@ Section FFA_DESCRIPTIONS.
   (** **** FFA Instruction Access Coq Definition *)    
   Inductive FFA_INSTRUCTION_ACCESS_TYPE :=
   | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED
-  | FFA_INSTRUCTION_ACCESS_NX
+  | FFA_INSTRUCTION_ACCESS_NX (*[SF: XN? see 5.11.3]*)
   | FFA_INSTRUCTION_ACCESS_X
   | FFA_INSTRUCTION_ACCESS_RESERVED.
   
@@ -547,7 +554,7 @@ Section FFA_DESCRIPTIONS.
         - When a or b has an invalid value. 
           [JIEUNG: We can easily add option type when it is required later, but handling them
                    as false might be good at this moment] *)
-  
+
   Definition instruction_access_permissive
              (a b: FFA_INSTRUCTION_ACCESS_TYPE) : bool :=
     match a, b with
