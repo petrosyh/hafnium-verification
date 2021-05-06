@@ -171,7 +171,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                 attributes_donate_and_single_borrower_lender_check
                   descriptor_attributes local_attributes global_attributes,
                 check_FFA_mem_default_flags_struct_for_donate_and_lend
-                  flags  local_data_access time_slice_enabled with 
+                  flags local_data_access time_slice_enabled with 
           | Some res, _, _, _ 
           | None, Some res, _, _
           | None, None, Some res, _

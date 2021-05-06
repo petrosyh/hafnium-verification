@@ -138,6 +138,22 @@ Section FFAMemoryHypCallInitialization.
                              FFA_MEMORY_CACHE_NON_CACHEABLE
                              FFA_MEMORY_OUTER_SHAREABLE).
 
+  Definition InitialGlobalAttributesForVMOneDonate :=
+    mkMemGlobalProperties false
+                          (Owned primary_vm_id)
+                          (ExclusiveAccess primary_vm_id)
+                          (FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED)
+                          (FFA_DATA_ACCESS_NOT_SPECIFIED)
+                          (FFA_MEMORY_NOT_SPECIFIED_MEM)
+                          MemClean.               
+
+  Definition InitialLocalAttributesForDonate :=
+    mkMemLocalProperties (LocalOwned)
+                         (FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED)
+                         (FFA_DATA_ACCESS_NOT_SPECIFIED)
+                         (FFA_MEMORY_NOT_SPECIFIED_MEM).
+
+  
   Definition initial_vcpu_struct (cpu_id : ffa_CPU_ID_t) (vm_id : ffa_UUID_t) :=
     (mkVCPU_struct
        (Some cpu_id)
@@ -149,8 +165,7 @@ Section FFAMemoryHypCallInitialization.
   
   Definition initialize_owners (cur_address initial_global_value initial_local_value : var): stmt :=
     Put "start initializaiton" (Vnull) #;
-        cur_address #= page_low_int #;
-        (initial_local_value #= (Vabs (upcast InitialLocalAttributes)))
+        cur_address #= page_low_int
         #; (Call "HVCToplevel.kernel_vcpu_index_setter_with_entity_id"
                  [CBV (Int64.repr primary_vm_id); CBV (Int64.repr primary_vm_id)])              
         #; (Call "HVCTopLevel.kernel_vcpu_struct_setter_with_entity_id"
@@ -186,43 +201,50 @@ Section FFAMemoryHypCallInitialization.
                  [CBV (Int64.repr 4); CBV (Int64.repr 4)])                            
         #; (Call "HVCTopLevel.userspace_vcpu_struct_setter_with_entity_id"
                  [CBV (Int64.repr 4); CBV (Vabs (upcast (initial_vcpu_struct 4 4)))])                      
+        #; (initial_local_value #= (Vabs (upcast InitialLocalAttributesForDonate)))
         #;
         #while (cur_address < page_1st_quater_int)
         do (
-            (initial_global_value #= (Vabs (upcast InitialGlobalAttributesForVMOne)))
+            (initial_global_value #= (Vabs (upcast InitialGlobalAttributesForVMOneDonate)))
               #; (Call "HVCTopLevel.global_properties_setter"
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr primary_vm_id); CBV cur_address; CBV initial_local_value])
               #; (Put "initialization for" cur_address) 
-              #; cur_address #= cur_address + (Int64.repr 1)) #;
-        #while (cur_address < page_2nd_quater_int)
-        do (
-            (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMTwo)))
+              #; cur_address #= cur_address + (Int64.repr 1))
+             #; (initial_local_value #= (Vabs (upcast InitialLocalAttributes)))
+             #;
+             #while (cur_address < page_2nd_quater_int)
+             do (
+                 (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMTwo)))
               #; (Call "HVCTopLevel.global_properties_setter"
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr 2); CBV cur_address; CBV initial_local_value])
               #; (Put "initialization for" cur_address) 
-              #; cur_address #= cur_address + (Int64.repr 1)) #;
-        #while (cur_address < page_3rd_quater_int)
-        do (
-            (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMThree)))
-              #; (Call "HVCTopLevel.global_properties_setter"
-                       [CBV cur_address; CBV initial_global_value])
-              #; (Call "HVCTopLevel.local_properties_setter"
-                       [CBV (Int64.repr 3); CBV cur_address; CBV initial_local_value])
-              #; (Put "initialization for" cur_address) 
-              #; cur_address #= cur_address + (Int64.repr 1)) #;
-        #while (cur_address < page_high_int)
-        do (
-            (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMFour)))
-              #; (Call "HVCTopLevel.global_properties_setter"
-                       [CBV cur_address; CBV initial_global_value])
-              #; (Call "HVCTopLevel.local_properties_setter"
-                       [CBV (Int64.repr 4); CBV cur_address; CBV initial_local_value])
-              #; (Put "initialization for" cur_address) 
-              #; cur_address #= cur_address + (Int64.repr 1)).
+              #; cur_address #= cur_address + (Int64.repr 1))
+             #; (initial_local_value #= (Vabs (upcast InitialLocalAttributes)))
+             #;                  
+             #while (cur_address < page_3rd_quater_int)
+             do (
+                 (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMThree)))
+                   #; (Call "HVCTopLevel.global_properties_setter"
+                            [CBV cur_address; CBV initial_global_value])
+                   #; (Call "HVCTopLevel.local_properties_setter"
+                            [CBV (Int64.repr 3); CBV cur_address; CBV initial_local_value])
+                   #; (Put "initialization for" cur_address) 
+                   #; cur_address #= cur_address + (Int64.repr 1))
+                  #; (initial_local_value #= (Vabs (upcast InitialLocalAttributes)))
+                  #;
+                  #while (cur_address < page_high_int)
+                  do (
+                      (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMFour)))
+                        #; (Call "HVCTopLevel.global_properties_setter"
+                                 [CBV cur_address; CBV initial_global_value])
+                        #; (Call "HVCTopLevel.local_properties_setter"
+                                 [CBV (Int64.repr 4); CBV cur_address; CBV initial_local_value])
+                        #; (Put "initialization for" cur_address) 
+                        #; cur_address #= cur_address + (Int64.repr 1)).
 
 End  FFAMemoryHypCallInitialization.
 
@@ -243,9 +265,9 @@ Section DescriptorGenerator.
              (receiver : ffa_UUID_t) := 
     mkFFA_memory_access_permissions_descriptor_struct
       receiver
-       FFA_INSTRUCTION_ACCESS_NX
-       FFA_DATA_ACCESS_RW
-       true.
+       FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED
+       FFA_DATA_ACCESS_NOT_SPECIFIED
+       false.
 
   Definition EndpointMemoryAccessDescriptorGeneratorForDonate
              (receiver : ffa_UUID_t) := 
@@ -258,9 +280,7 @@ Section DescriptorGenerator.
       (* sender *)
       sender 
       (mkFFA_memory_region_attributes_descriptor_struct 
-         (FFA_MEMORY_NORMAL_MEM
-            FFA_MEMORY_CACHE_NON_CACHEABLE
-            FFA_MEMORY_OUTER_SHAREABLE))
+         (FFA_MEMORY_NOT_SPECIFIED_MEM))
       (MEMORY_REGION_FLAG_NORMAL
          (mkFFA_mem_default_flags_struct false false))
       0
