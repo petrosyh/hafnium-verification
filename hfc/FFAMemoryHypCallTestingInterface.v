@@ -454,10 +454,10 @@ Global Instance abstract_state_context :
   }.
 
 (***********************************************************************)
-(** *                 Showable function for the log                    *)
+(** *                 Showable functions for system log                *)
 (***********************************************************************)
 
-Definition FFA_value_type_to_string (ffa_value: FFA_value_type) :=
+Definition print_FFA_value_type (ffa_value: FFA_value_type) :=
   match ffa_value with
   | mkFFA_value_type ffa_type vals =>
     let ffa_value_string :=
@@ -495,14 +495,14 @@ Definition FFA_value_type_to_string (ffa_value: FFA_value_type) :=
     append ffa_value_string (print_ffa_vals vals)
   end.
 
-Definition onwership_state_type_to_string
+Definition print_onwership_state_type
            (ownership_state_type : OWNERSHIP_STATE_TYPE) :=
   match ownership_state_type with
   | Owned id => append_all ["(Owned by "; HexString.of_Z id; ")"]
   | NotOwned => "(Not Owned)"
   end.
 
-Definition access_state_type_to_string 
+Definition print_access_state_type
            (access_state_type : ACCESS_STATE_TYPE) :=
   match access_state_type with
   | NoAccess => "(NoAccess)"
@@ -512,7 +512,7 @@ Definition access_state_type_to_string
     => append_all ["(ExclusiveAccess "; list_z_to_string accessors; ")"]
   end.
 
-Definition mem_dirty_type_to_string 
+Definition print_mem_dirty_type
            (mem_dirty_type :  MEM_DIRTY_TYPE) :=
   match mem_dirty_type with
   | MemClean => "(MemClean)"
@@ -520,7 +520,7 @@ Definition mem_dirty_type_to_string
     => append_all ["(MemWritten "; list_z_to_string writers; ")"]
   end.
 
-Definition ffa_instruction_access_type_to_string
+Definition print_ffa_instruction_access_type
            (ffa_instruction_access_type : FFA_INSTRUCTION_ACCESS_TYPE) :=
   match ffa_instruction_access_type with
   | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => "ACCESS_NOT_SPECIFIED" 
@@ -529,7 +529,7 @@ Definition ffa_instruction_access_type_to_string
   | FFA_INSTRUCTION_ACCESS_RESERVED => "ACCESS_RESERVED"
   end.
 
-Definition ffa_data_access_type_to_string 
+Definition print_ffa_data_access_type
            (ffa_data_access_type: FFA_DATA_ACCESS_TYPE) :=
   match ffa_data_access_type with 
   | FFA_DATA_ACCESS_NOT_SPECIFIED => "ACCESS_NOT_SPECIFIED"
@@ -538,7 +538,7 @@ Definition ffa_data_access_type_to_string
   | FFA_DATA_ACCESS_RESERVED => "ACCESS_RESERVED"
   end.
 
-Definition ffa_memory_type_to_string
+Definition print_ffa_memory_type
            (ffa_memory_type: FFA_MEMORY_TYPE) :=
   match ffa_memory_type with
   | FFA_MEMORY_NOT_SPECIFIED_MEM => "NOT_SPECIFIED_MEM"
@@ -577,10 +577,12 @@ Definition print_permissions_descriptor_struct
     append_all ["Reciever: "; HexString.of_Z receiver;
                tabspace;
                "Instruction Perm: ";
-               ffa_instruction_access_type_to_string instruction_access;
+               print_ffa_instruction_access_type instruction_access;
                tabspace;
                "Data Perm: ";
-               ffa_data_access_type_to_string data_access]
+               print_ffa_data_access_type data_access;
+               tabspace;
+               "Flag: "; match flags with true => "true" | false => "false" end]
   end.
 
 Definition print_endpoint_memory_access_descriptor_struct
@@ -661,7 +663,7 @@ Definition print_memory_region_descriptor
                  "Sender: "; HexString.of_Z sender;
                  newline; tabspace;
                  "Attributes: ";
-                 ffa_memory_type_to_string
+                 print_ffa_memory_type
                    attributes
                  .(FFA_memory_region_attributes_descriptor_struct_memory_type);
                  newline; tabspace;
@@ -721,7 +723,7 @@ Definition print_mailbox_msg (mailbox : MAILBOX_struct) :=
     append_all [intro_str; message_str; sender_str; size_str; func_str]
   end.
   
-Definition system_log_entity_showable (log_entity : log_type) :=
+Definition print_system_log_entity (log_entity : log_type) :=
   match log_entity with
   | ChangeCurEntityID from_id to_id
     => append_all [newline;
@@ -745,7 +747,7 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  newline;
                  tabspace;
                  "reg_vals: ";
-                 FFA_value_type_to_string reg_vals.(regs);
+                 print_FFA_value_type reg_vals.(regs);
                  ")"]
                  
   | KernelToUser vid vcpu_id reg_vals
@@ -762,7 +764,7 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  newline;
                  tabspace;
                  "reg_vals: ";
-                 FFA_value_type_to_string reg_vals.(regs);
+                 print_FFA_value_type reg_vals.(regs);
                  ")"]
                  
   | DispathFFAInterface reg_vals
@@ -771,7 +773,7 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  newline;
                  tabspace;
                  "reg_vals: ";
-                 FFA_value_type_to_string reg_vals.(regs);
+                 print_FFA_value_type reg_vals.(regs);
                  ")"]
                  
   | SetOwner entity_id address owner 
@@ -788,7 +790,7 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  newline;
                  tabspace;
                  "onwership: ";
-                 onwership_state_type_to_string owner;
+                 print_onwership_state_type owner;
                  ")"]
                  
   | SetAccessible vm_id address access
@@ -805,7 +807,7 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  newline;
                  tabspace;                 
                  "access: ";
-                 access_state_type_to_string access;
+                 print_access_state_type access;
                  ")"]
 
   | SetInstructionAccess vm_id address access
@@ -822,7 +824,7 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  newline;
                  tabspace;                 
                  "access: ";
-                 ffa_instruction_access_type_to_string access;
+                 print_ffa_instruction_access_type access;
                  ")"]
 
   | SetDataAccess vm_id address access
@@ -839,7 +841,7 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  newline;
                  tabspace;                 
                  "access: ";
-                 ffa_data_access_type_to_string access;
+                 print_ffa_data_access_type access;
                  ")"]
 
   | SetDirty vm_id address dirty
@@ -856,7 +858,7 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  newline;
                  tabspace;
                  "dirty: ";
-                 mem_dirty_type_to_string dirty;
+                 print_mem_dirty_type dirty;
                  ")"]
 
   | SetAttributes vm_id address attributes
@@ -873,7 +875,7 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  newline;
                  tabspace;                 
                  "attributes: ";
-                 ffa_memory_type_to_string attributes;
+                 print_ffa_memory_type attributes;
                  ")"]
 
   | SendMsg sender receiver msg
@@ -907,24 +909,24 @@ Definition system_log_entity_showable (log_entity : log_type) :=
                  ")"]
   end.
                   
-Fixpoint system_log_showable (system_log: list log_type) :=
+Fixpoint print_system_log (system_log: list log_type) :=
   match system_log with
   | nil => " "
   | hd::tl =>
-    append (system_log_entity_showable hd)
-           (system_log_showable tl)
+    append (print_system_log_entity hd)
+           (print_system_log tl)
   end.
 
-Definition system_log_type := list log_type.
+Notation system_log_type := (list log_type)%type.
 
 Instance system_log_Showable:
-  Showable  system_log_type := { show := system_log_showable }.
+  Showable  system_log_type := { show := print_system_log }.
 
-Definition abstract_state_showable (st : AbstractState) : string :=
-  system_log_showable st.(system_log).
+Definition print_abstract_state (st : AbstractState) : string :=
+  print_system_log st.(system_log).
 
 Instance abstract_state_Showable:
-  Showable AbstractState := { show := abstract_state_showable }.
+  Showable AbstractState := { show := print_abstract_state }.
 
 (***********************************************************************)
 (** *   Showable function for other abstract values                    *)
@@ -934,14 +936,14 @@ Instance abstract_state_Showable:
 (** **   Showable function for global memory property                  *)
 (***********************************************************************)
 
-Definition OWNERSHIP_STATE_TYPE_to_string
+Definition print_OWNERSHIP_STATE_TYPE
            (ownership: OWNERSHIP_STATE_TYPE) :=
   match ownership with
   | Owned id => append_all ["owned by "; HexString.of_Z id]
   | NotOwned => "not owned by anyone"
   end.
 
-Definition ACCESS_STATE_TYPE_to_string
+Definition print_ACCESS_STATE_TYPE
            (access_state: ACCESS_STATE_TYPE) :=
   match access_state with
   | NoAccess => "no accessibility"
@@ -953,7 +955,7 @@ Definition ACCESS_STATE_TYPE_to_string
                                     accessors)]
   end.
 
-Definition FFA_INSTRUCTION_ACCESS_TYPE_to_string
+Definition print_FFA_INSTRUCTION_ACCESS_TYPE
            (instruction_access_type: FFA_INSTRUCTION_ACCESS_TYPE) :=
   match instruction_access_type with
   | FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED => "not specified"
@@ -962,7 +964,7 @@ Definition FFA_INSTRUCTION_ACCESS_TYPE_to_string
   | FFA_INSTRUCTION_ACCESS_RESERVED => "reserved"
   end.
 
-Definition FFA_DATA_ACCESS_TYPE_to_string
+Definition print_FFA_DATA_ACCESS_TYPE
            (data_access_type: FFA_DATA_ACCESS_TYPE) :=
   match data_access_type with
   | FFA_DATA_ACCESS_NOT_SPECIFIED => "not specified"
@@ -971,7 +973,7 @@ Definition FFA_DATA_ACCESS_TYPE_to_string
   | FFA_DATA_ACCESS_RESERVED => "reserved"
   end.
 
-Definition FFA_MEMORY_CACHEABILITY_TYPE_1_to_string
+Definition print_FFA_MEMORY_CACHEABILITY_TYPE_1
            (cacheability: FFA_MEMORY_CACHEABILITY_TYPE_1) :=
   match cacheability with
   | FFA_MEMORY_CACHE_RESERVED => "reserved"
@@ -980,7 +982,7 @@ Definition FFA_MEMORY_CACHEABILITY_TYPE_1_to_string
   | FFA_MEMORY_CACHE_WRITE_BACK => "write back"
   end.
 
-Definition FFA_MEMORY_CACHEABILITY_TYPE_2_to_string
+Definition print_FFA_MEMORY_CACHEABILITY_TYPE_2
            (cacheability: FFA_MEMORY_CACHEABILITY_TYPE_2) :=
   match cacheability with
   | FFA_MEMORY_DEV_NGNRNE => "nGnRnE"
@@ -989,7 +991,7 @@ Definition FFA_MEMORY_CACHEABILITY_TYPE_2_to_string
   | FFA_MEMORY_DEV_GRE => "GRE"
   end.
 
-Definition FFA_MEMORY_SHAREABILITY_to_string
+Definition print_FFA_MEMORY_SHAREABILITY
            (shareability: FFA_MEMORY_SHAREABILITY) :=
   match shareability with 
   | FFA_MEMORY_SHARE_NON_SHAREABLE => "non shareable"
@@ -998,28 +1000,28 @@ Definition FFA_MEMORY_SHAREABILITY_to_string
   | FFA_MEMORY_INNER_SHAREABLE => "inner shareable"
   end.
 
-Definition FFA_MEMORY_TYPE_to_string
+Definition print_FFA_MEMORY_TYPE
            (memory_type: FFA_MEMORY_TYPE) :=
   match memory_type with
   | FFA_MEMORY_NOT_SPECIFIED_MEM => "not specified"
   | FFA_MEMORY_DEVICE_MEM cacheability =>
     append_all ["device mem ("; 
-               FFA_MEMORY_CACHEABILITY_TYPE_2_to_string 
+               print_FFA_MEMORY_CACHEABILITY_TYPE_2 
                  cacheability;
                ")"]
   | FFA_MEMORY_NORMAL_MEM cacheability shareability =>
     append_all ["device mem ("; 
-               FFA_MEMORY_CACHEABILITY_TYPE_1_to_string 
+               print_FFA_MEMORY_CACHEABILITY_TYPE_1 
                  cacheability;
                " ";
-               FFA_MEMORY_SHAREABILITY_to_string
+               print_FFA_MEMORY_SHAREABILITY
                  shareability;
                  ")"]
   | FFA_MEMORY_MEM_RESERVED =>
     "reserved"
   end.
 
-Definition MEM_DIRTY_TYPE_to_string
+Definition print_MEM_DIRTY_TYPE
            (mem_dirty: MEM_DIRTY_TYPE) :=
   match mem_dirty with
   | MemClean => "mem clean"
@@ -1030,18 +1032,18 @@ Definition MEM_DIRTY_TYPE_to_string
                              writers)]
   end.
   
-Definition mem_global_properties_showable
+Definition print_mem_global_properties
            (mem_global_prop: MemGlobalProperties) :=
   match mem_global_prop with
   | mkMemGlobalProperties ns owned accessible instr_access
                           data_access mem_attr dirty
     => let ns_str := if ns then "true" else "false" in
-      let owned_str := OWNERSHIP_STATE_TYPE_to_string owned in
-      let accessible_str := ACCESS_STATE_TYPE_to_string accessible in
-      let instr_access_str := FFA_INSTRUCTION_ACCESS_TYPE_to_string instr_access in
-      let data_access_str := FFA_DATA_ACCESS_TYPE_to_string data_access in
-      let mem_attr_str := FFA_MEMORY_TYPE_to_string mem_attr in
-      let dirty_str := MEM_DIRTY_TYPE_to_string dirty in
+      let owned_str := print_OWNERSHIP_STATE_TYPE owned in
+      let accessible_str := print_ACCESS_STATE_TYPE accessible in
+      let instr_access_str := print_FFA_INSTRUCTION_ACCESS_TYPE instr_access in
+      let data_access_str := print_FFA_DATA_ACCESS_TYPE data_access in
+      let mem_attr_str := print_FFA_MEMORY_TYPE mem_attr in
+      let dirty_str := print_MEM_DIRTY_TYPE dirty in
       append_all
         [newline;
         "Global Prop:"; newline;
@@ -1055,20 +1057,20 @@ Definition mem_global_properties_showable
   end.
 
 Instance mem_global_properties_Showable:
-  Showable MemGlobalProperties := { show := mem_global_properties_showable }.
+  Showable MemGlobalProperties := { show := print_mem_global_properties }.
 
 (***********************************************************************)
 (** **   Showable function for local memory property                   *)
 (***********************************************************************)
 
-Definition mem_local_properties_showable
+Definition print_mem_local_properties
            (mem_local_prop: MemLocalProperties) :=
   match mem_local_prop with
   | mkMemLocalProperties local_owned instr_access data_access mem_attr
     => let local_owned_str := "" in
-      let instr_access_str := FFA_INSTRUCTION_ACCESS_TYPE_to_string instr_access in
-      let data_access_str := FFA_DATA_ACCESS_TYPE_to_string data_access in
-      let mem_attr_str := FFA_MEMORY_TYPE_to_string mem_attr in
+      let instr_access_str := print_FFA_INSTRUCTION_ACCESS_TYPE instr_access in
+      let data_access_str := print_FFA_DATA_ACCESS_TYPE data_access in
+      let mem_attr_str := print_FFA_MEMORY_TYPE mem_attr in
       append_all
         [newline;
         "Local Prop:"; newline;
@@ -1079,13 +1081,13 @@ Definition mem_local_properties_showable
   end.
      
 Instance mem_local_properties_Showable:
-  Showable MemLocalProperties := { show := mem_local_properties_showable }.
+  Showable MemLocalProperties := { show := print_mem_local_properties }.
 
 (***********************************************************************)
 (** **   Showable function for vcpu structure                          *)
 (***********************************************************************)
 
-Definition vcpu_struct_showable
+Definition print_vcpu_struct
            (vcpu_struct: VCPU_struct) :=
   match vcpu_struct with
   | mkVCPU_struct cpu_id vm_id vcpu_regs
@@ -1098,7 +1100,7 @@ Definition vcpu_struct_showable
                        | Some vm_id' => HexString.of_Z vm_id'
                        end in
       let vcpu_regs_str :=
-          FFA_value_type_to_string vcpu_regs.(regs) in
+          print_FFA_value_type vcpu_regs.(regs) in
       append_all
         [newline;
         "VCPU value:"; newline;
@@ -1108,7 +1110,7 @@ Definition vcpu_struct_showable
   end.
 
 Instance vcpu_struct_Showable:
-  Showable VCPU_struct := { show := vcpu_struct_showable }.
+  Showable VCPU_struct := { show := print_vcpu_struct }.
 
 (***********************************************************************)
 (** *      Additional  Specifications for testing                      *)
