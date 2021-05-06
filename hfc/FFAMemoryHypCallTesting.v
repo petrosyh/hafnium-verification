@@ -194,7 +194,8 @@ Section FFAMemoryHypCallInitialization.
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr primary_vm_id); CBV cur_address; CBV initial_local_value])
-              #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
+              #; (Put "initialization for" cur_address) 
+              #; cur_address #= cur_address + (Int64.repr 1)) #;
         #while (cur_address < page_2nd_quater_int)
         do (
             (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMTwo)))
@@ -202,7 +203,8 @@ Section FFAMemoryHypCallInitialization.
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr 2); CBV cur_address; CBV initial_local_value])
-              #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
+              #; (Put "initialization for" cur_address) 
+              #; cur_address #= cur_address + (Int64.repr 1)) #;
         #while (cur_address < page_3rd_quater_int)
         do (
             (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMThree)))
@@ -210,7 +212,8 @@ Section FFAMemoryHypCallInitialization.
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr 3); CBV cur_address; CBV initial_local_value])
-              #; cur_address #= cur_address + (Int64.repr alignment_value)) #;
+              #; (Put "initialization for" cur_address) 
+              #; cur_address #= cur_address + (Int64.repr 1)) #;
         #while (cur_address < page_high_int)
         do (
             (initial_global_value #=  (Vabs (upcast InitialGlobalAttributesForVMFour)))
@@ -218,7 +221,8 @@ Section FFAMemoryHypCallInitialization.
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr 4); CBV cur_address; CBV initial_local_value])
-              #; cur_address #= cur_address + (Int64.repr alignment_value)).
+              #; (Put "initialization for" cur_address) 
+              #; cur_address #= cur_address + (Int64.repr 1)).
 
 End  FFAMemoryHypCallInitialization.
 

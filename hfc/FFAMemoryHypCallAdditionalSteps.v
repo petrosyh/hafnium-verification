@@ -236,7 +236,6 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
              (Zlength info_tuple))
         end
       | _, _, _ => Some (FFA_INVALID_PARAMETERS "donate_check")
-                          
       end.
     
     (** - Change memory ownership and accessibilities for all pages. 
