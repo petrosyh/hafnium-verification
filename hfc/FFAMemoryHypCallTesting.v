@@ -588,7 +588,9 @@ Module FFAMEMORYHYPCALLTESTING.
                  [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
         #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
         #; (Call "HVCTopLevel.hypervisor_call" [])
-        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))        
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+        #; (Call "HVCTopLevel.scheduling" []) 
+        #; (Call "HVCTopLevel.scheduling" []) 
         #; (Call "HVCTopLevel.scheduling" []) 
         #; (Put "current state print" (Call "HVCToplevel.state_getter" []))
         #; (Put "kernel vcpu values for 1" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
