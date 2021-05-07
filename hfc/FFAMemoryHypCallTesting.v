@@ -90,7 +90,7 @@ Section FFAMemoryHypCallInitialization.
     mkMemGlobalProperties false
                           (Owned primary_vm_id)
                           (ExclusiveAccess primary_vm_id)
-                          (FFA_INSTRUCTION_ACCESS_NX)
+                          (FFA_INSTRUCTION_ACCESS_XN)
                           (FFA_DATA_ACCESS_RW)
                           (FFA_MEMORY_NORMAL_MEM
                              FFA_MEMORY_CACHE_NON_CACHEABLE
@@ -101,7 +101,7 @@ Section FFAMemoryHypCallInitialization.
     mkMemGlobalProperties false
                           (Owned 2)
                           (ExclusiveAccess 2)
-                          (FFA_INSTRUCTION_ACCESS_NX)
+                          (FFA_INSTRUCTION_ACCESS_XN)
                           (FFA_DATA_ACCESS_RW)
                           (FFA_MEMORY_NORMAL_MEM
                              FFA_MEMORY_CACHE_NON_CACHEABLE
@@ -112,7 +112,7 @@ Section FFAMemoryHypCallInitialization.
     mkMemGlobalProperties false
                           (Owned 3)
                           (ExclusiveAccess 3)
-                          (FFA_INSTRUCTION_ACCESS_NX)
+                          (FFA_INSTRUCTION_ACCESS_XN)
                           (FFA_DATA_ACCESS_RW)
                           (FFA_MEMORY_NORMAL_MEM
                              FFA_MEMORY_CACHE_NON_CACHEABLE
@@ -123,7 +123,7 @@ Section FFAMemoryHypCallInitialization.
     mkMemGlobalProperties false
                           (Owned 4)
                           (ExclusiveAccess 4)
-                          (FFA_INSTRUCTION_ACCESS_NX)
+                          (FFA_INSTRUCTION_ACCESS_XN)
                           (FFA_DATA_ACCESS_RW)
                           (FFA_MEMORY_NORMAL_MEM
                              FFA_MEMORY_CACHE_NON_CACHEABLE
@@ -132,7 +132,7 @@ Section FFAMemoryHypCallInitialization.
   
   Definition InitialLocalAttributes :=
     mkMemLocalProperties (LocalOwned)
-                         (FFA_INSTRUCTION_ACCESS_NX)
+                         (FFA_INSTRUCTION_ACCESS_XN)
                          (FFA_DATA_ACCESS_RW)
                           (FFA_MEMORY_NORMAL_MEM
                              FFA_MEMORY_CACHE_NON_CACHEABLE

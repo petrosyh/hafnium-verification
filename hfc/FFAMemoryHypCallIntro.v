@@ -20,7 +20,7 @@ Require Import FFAMemoryHypCall.
 (** * Introduction *)
 
 (**
-   This file introduces several relavant concepts that are necessary in the FF-A memory 
+   This file introduces several relevant concepts that are necessary for the FF-A memory
    management interface formalization. Those things include "FFA version number", "FF-A instances", 
    "Memory types", "Memory granularity and alignment", "Partition identification and discovery", "execution context",
    "System resource management", "Partition setup", and "FFA memory management interface introduction". 
@@ -28,13 +28,13 @@ Require Import FFAMemoryHypCall.
    Other files that contain formal definitions rely on concepts that this file describes. Therefore, 
    looking at this file may help readers understand our formal definitions. 
 
-   Explanations in this file are mostly copied from the FF-A document. If there are something that we hope 
-   to mention except the original ones, we add [JIEUNG:...] to distinguish them with the original texts.
+   Explanations in this file are mostly copied from the FF-A document. Our comments are prefixed with `[JIEUNG:...]`
+   to distinguish them from the original text.
 *)
 
 Section BasicConcepts.
 
-  (** This section provides several basic concepts that are necessary to model FFA memory management interfaces *) 
+  (** This section provides several basic concepts that are necessary to model the FFA memory management interfaces *)
   
   (** ** FFA Version number - Parts of Section 8.1
 
@@ -151,10 +151,10 @@ Section BasicConcepts.
   (** ** System resource management - Parts of Section 2.10
  
       [JIEUNG: Among them, "memory regions" and "devices" are closely related to our draft. 
-      But, among two things, we only focus on "memory regions" parts. Our draft excludes memory management
+      But, from those two things, we only focus on "memory regions" parts. Our draft excludes memory management
       interface transitions for device related parts (SMMU, MMIO, independent peripheral and dependent peripheral).
       Even though we ignore them, our memory attributes divides memory into normal and device
-      memories for the future extension]
+      memories for a future extension]
   
      Components in the Firmware Framework require access to the following system resources.
      - Memory regions.
@@ -207,8 +207,8 @@ Section BasicConcepts.
      [JIEUNG: Among the entire things, we focus on Table 3.2. and Table 3.3. 
      The following parts need to be reflected in our state definition, but with some modifications.
      For example. we model that each page in the entire memory has its own ownership, accessibility, and attributes. 
-     If they are in the same region, our spec requires sonsistency check. The check is basically figure out whether
-     the entire pages in the region have the same attributes or not.] 
+     If they are in the same region, our spec requires consistency check. The check is basically figure out whether
+     all pages in the region have the same attributes or not.]
 
      Coq source file contains Table 3.2. and Table 3.3., but they are omitted in the generated file due to 
      format issues *)
@@ -321,12 +321,12 @@ Section MemoryManagementIntro.
 
        [JIEUNG: At this moment, we ignore the following parts
        
-       - In this section, and the folloiwng related parts, this document describes memory managements
+       - In this section, and the following related parts, this document describes memory managements
        for device related memory regions. However, most of them will be ignored in our draft. We do not 
        include Stream ID, SEPID, ownership transfers, and access controls when the page region is related 
        to the direct access on devices. 
        
-       - This implies that we try to focus on communications between two PEs. In addition that, we try to
+       - This implies that we try to focus on communications between two PEs. In addition, we try to
        ignore other FFA interfaces. For example, our modeling is related to getting a ID for each PE by
        using "FFA_ID_GET". However, we will ignore that in our current version]
      *)
@@ -463,8 +463,8 @@ Section MemoryManagementIntro.
   Section OwnershipAndAccessAttributes.
   (** ** Ownership and access attributes - Section 5.4.
 
-     [JIEUNG: This section is one of the most important section to provides abstract view of memory ownership and 
-     attributes. And, descriptions in this section has to be reflected in our formalized version. Please look at the MemProperties 
+     [JIEUNG: This section is one of the most important sections regarding abstract view of memory ownership and
+     attributes. And, descriptions in this section have to be reflected in our formalized version. Please look at the MemProperties
      definition (MemProperties) and valid_combination definitions (mem_states_valid_combination)]
 
     The Hypervisor, SPM, and all endpoints have access and ownership attributes associated with every memory 
