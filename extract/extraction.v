@@ -123,6 +123,7 @@ Separate Extraction
          FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST7.isem
          FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.CONTEXTSWITCHINGTEST1.isem
          FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST1.isem
+         FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST2.isem
          (* MMStageOne.MMTEST1.isem *)
          (* MMStageOne.MMTESTAUX.isem *)
          (* MMStageOne.MMTEST3.isem *)

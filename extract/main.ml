@@ -355,6 +355,8 @@ let main =
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.CONTEXTSWITCHINGTEST1.isem) ;
   print_endline "--------------------Simple donate setting---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST1.isem) ;
+  print_endline "--------------------Concurrent donate setting---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST2.isem) ;
   ()
 
 let main t =

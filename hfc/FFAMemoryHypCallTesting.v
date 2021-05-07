@@ -82,6 +82,15 @@ Definition page_3rd_quater_int :=
   Int64.repr page_low + (page_quater_value * (Int64.repr 3)).
 Definition page_high_int := Int64.repr page_high.
 
+Fixpoint INSERT_YIELD (s: stmt): stmt :=
+  match s with
+  | Seq s0 s1 => Seq (INSERT_YIELD s0) (INSERT_YIELD s1)
+  | If c s0 s1 => If c (INSERT_YIELD s0) (INSERT_YIELD s1)
+  | While c s => While c (INSERT_YIELD s)
+  | _ => Yield #; s
+  end
+.
+
 Section FFAMemoryHypCallInitialization.
 
   (** address low differs from address low in the memory context. 
@@ -210,7 +219,7 @@ Section FFAMemoryHypCallInitialization.
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr primary_vm_id); CBV cur_address; CBV initial_local_value])
-              #; (Put "initialization for" cur_address) 
+              (* #; (Put "initialization for" cur_address) *)
               #; cur_address #= cur_address + (Int64.repr 1))
              #; (initial_local_value #= (Vabs (upcast InitialLocalAttributes)))
              #;
@@ -221,7 +230,7 @@ Section FFAMemoryHypCallInitialization.
                        [CBV cur_address; CBV initial_global_value])
               #; (Call "HVCTopLevel.local_properties_setter"
                        [CBV (Int64.repr 2); CBV cur_address; CBV initial_local_value])
-              #; (Put "initialization for" cur_address) 
+              (* #; (Put "initialization for" cur_address) *) 
               #; cur_address #= cur_address + (Int64.repr 1))
              #; (initial_local_value #= (Vabs (upcast InitialLocalAttributes)))
              #;                  
@@ -232,7 +241,7 @@ Section FFAMemoryHypCallInitialization.
                             [CBV cur_address; CBV initial_global_value])
                    #; (Call "HVCTopLevel.local_properties_setter"
                             [CBV (Int64.repr 3); CBV cur_address; CBV initial_local_value])
-                   #; (Put "initialization for" cur_address) 
+                   (* #; (Put "initialization for" cur_address) *) 
                    #; cur_address #= cur_address + (Int64.repr 1))
                   #; (initial_local_value #= (Vabs (upcast InitialLocalAttributes)))
                   #;
@@ -243,7 +252,7 @@ Section FFAMemoryHypCallInitialization.
                                  [CBV cur_address; CBV initial_global_value])
                         #; (Call "HVCTopLevel.local_properties_setter"
                                  [CBV (Int64.repr 4); CBV cur_address; CBV initial_local_value])
-                        #; (Put "initialization for" cur_address) 
+                        (* #; (Put "initialization for" cur_address)  *)
                         #; cur_address #= cur_address + (Int64.repr 1)).
 
 End  FFAMemoryHypCallInitialization.
@@ -615,6 +624,125 @@ Module FFAMEMORYHYPCALLTESTING.
                        top_level_modsem].        
     
   End DONATETEST1.
+
   
+  Module DONATETEST2.
+
+    Definition GLOBAL_START := "GLOBAL_START".
+    Definition SIGNAL := "SIGNAL".
+    Definition CNT := "CNT".
+    
+    Definition LIMIT := Int64.repr 4.
+    
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      Eval compute in
+        INSERT_YIELD (
+            GLOBAL_START #= (Int64.zero)
+                         #; SIGNAL #= (Int64.one)
+                         #; (initialize_owners cur_address initial_global_value initial_local_value)
+                         #; GLOBAL_START #= (Int64.one)
+                         #;
+                         #while (SIGNAL < LIMIT) 
+                         do ( Skip )
+                              #; (Put "current state print" (Call "HVCToplevel.state_getter" []))
+          ).
+                      
+    Definition primary_vm_main :=
+      Eval compute in
+        INSERT_YIELD (
+            CNT #= Int64.zero
+                #;
+                #while (GLOBAL_START == Int64.zero)
+                do ( Skip )
+                     #;
+                     #while (SIGNAL < LIMIT)
+                     do (
+                         #if ((Call "HVCToplevel.current_entity_id_getter" []) ==
+                              Int64.one)
+                          then
+                            #if (CNT == Int64.zero) then
+                               SIGNAL #= (SIGNAL + Int64.one)                               
+                                      #; (Call "HVCTopLevel.send_msg" [CBV (Int64.repr primary_vm_id);
+                                                                      CBV (Int64.repr 36);
+                                                                      CBV (Vabs (upcast (mailbox_msg
+                                                                                           primary_vm_id 2
+                                                                                           page_low
+                                                                                           1)));
+                                                                      CBV (Vabs (upcast (FFA_MEM_DONATE)))])
+                                      #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 1)])
+                                      #; (Call "HVCTopLevel.userspace_vcpu_struct_setter"
+                                               [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
+                                      #; (Call "HVCTopLevel.hypervisor_call" [])
+                                      #; CNT #= CNT + Int64.one
+                             else
+                               SIGNAL #= SIGNAL + Int64.one
+                                                    #; (Call "HVCTopLevel.scheduling" [])                               
+                          else
+                            SIGNAL #= SIGNAL + Int64.one
+                                                 #; (Call "HVCTopLevel.scheduling" []) 
+                                                 
+                       )
+          ).
+    
+    Definition  vms_main (tid: Z) :=
+      Eval compute in
+        INSERT_YIELD (
+            #while (GLOBAL_START == Int64.zero)
+             do ( Skip )
+                  #;
+                  #while (SIGNAL < LIMIT)
+                  do (
+                      #if ((Call "HVCToplevel.current_entity_id_getter" []) ==
+                           (Int64.repr tid))
+                       then
+                         SIGNAL #= (SIGNAL + Int64.one)
+                                #; (Call "HVCTopLevel.scheduling" [])
+                       else Skip
+                    )
+          ).
+
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+
+    Definition primary_vm_mainF: function.
+      mk_function_tac primary_vm_main ([]: list var)  ([]: list var).
+    Defined.
+
+    Definition vm_2_mainF: function.
+      mk_function_tac (vms_main 2) ([]: list var)  ([]: list var).
+    Defined.
+
+    Definition vm_3_mainF: function.
+      mk_function_tac (vms_main 3) ([]: list var)  ([]: list var).
+    Defined.
+    
+    Definition vm_4_mainF: function.
+      mk_function_tac (vms_main 4) ([]: list var)  ([]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF) ;
+        ("primary_vm_main", primary_vm_mainF) ;
+      ("vm_2_main", vm_2_mainF) ;
+      ("vm_3_main", vm_3_mainF) ;
+      ("vm_4_main", vm_4_mainF) 
+      ].
+
+    Definition modsems: list ModSem :=
+      [program_to_ModSem main_program ;top_level_accessor_modsem ;
+      top_level_modsem]. 
+
+    Definition isem: itree Event unit :=
+      eval_multimodule_multicore
+        modsems [ "main" ; "primary_vm_main" ; "vm_2_main";
+                "vm_3_main"; "vm_4_main"].
+    
+  End DONATETEST2.
+
 End FFAMEMORYHYPCALLTESTING.
 
