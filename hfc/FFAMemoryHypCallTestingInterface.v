@@ -1369,6 +1369,24 @@ Section FFADispatch.
                              (ZMap.get 3 vals) st
     end.
 
+  Definition wrong_dispatch_ffa_function
+             (ffa_function_type: FFA_FUNCTION_TYPE)
+             (vid: ffa_UUID_t)
+             (vals: ZMap.t Z) (st : AbstractState) :=
+    match ffa_function_type with
+      (**  - FFA_MEM_DONATE gets four arguments.
+             See FFAMemoryHypCallAdditionalSteps.v for more details.
+             - Total length
+             - Fragment length
+             - Address
+             - Page count *)
+    | FFA_MEM_DONATE 
+      => ffa_mem_donate_wrong_spec vid (ZMap.get 1 vals) (ZMap.get 2 vals)
+                                  (ZMap.get 3 vals) (ZMap.get 4 vals) st
+    | _ => dispatch_ffa_function ffa_function_type vid vals st
+    end.
+  
+
   (** In Hafnium: Defined in "inc/hf/ffa_internal.h" *)
   Definition ffa_error (ffa_error_code: FFA_ERROR_CODE_TYPE) : FFA_value_type :=
     let error_z_value := 
@@ -1396,8 +1414,13 @@ Section FFADispatch.
     | FFA_ERROR ffa_error_code => ffa_error ffa_error_code
     | FFA_SUCCESS handle => ffa_success handle
     end.
+
+
+  Notation dispatch_ffa_function_type :=
+    (FFA_FUNCTION_TYPE -> ffa_UUID_t -> ZMap.t Z -> AbstractState -> RESULT (AbstractState * FFA_RESULT_CODE_TYPE))%type.
   
-  Definition ffa_dispatch_spec :  itree HypervisorEE (bool) := 
+  Definition ffa_dispatch_spec (dispatch_func : dispatch_ffa_function_type)
+    :  itree HypervisorEE (bool) := 
     (** - Extract the current vcpu *)
     st <- trigger GetState;;
     (** - Get the information in tpidr_el2 register to find out the current VM to be served *)
@@ -1415,7 +1438,7 @@ Section FFADispatch.
 
               let new_st := st {system_log: st.(system_log)
                                                  ++(DispathFFAInterface arch_regs)::nil} in     
-              match dispatch_ffa_function ffa_function_type vid vals new_st with
+              match dispatch_func ffa_function_type vid vals new_st with
               | SUCCESS result =>
                 match result with
                 | (updated_st, ffa_result) =>
@@ -1462,7 +1485,7 @@ Section FFADispatch.
     : itree HypervisorEE (Lang.val * list Lang.val)  :=
     match args with
     | nil =>
-      result <- ffa_dispatch_spec;;
+      result <- (ffa_dispatch_spec dispatch_ffa_function);;
       let val := match result with 
                  | true => Vcomp (Vlong (Int64.repr 1))
                  | _ => Vcomp (Vlong (Int64.repr 0))
@@ -1470,7 +1493,20 @@ Section FFADispatch.
       Ret (val, args)
     | _ => triggerUB "ffa_dispatch_call: wrong arguments"
     end.
-      
+
+  Definition wrong_ffa_dispatch_call (args : list Lang.val) 
+    : itree HypervisorEE (Lang.val * list Lang.val)  :=
+    match args with
+    | nil =>
+      result <- (ffa_dispatch_spec wrong_dispatch_ffa_function);;
+      let val := match result with 
+                 | true => Vcomp (Vlong (Int64.repr 1))
+                 | _ => Vcomp (Vlong (Int64.repr 0))
+                 end in
+      Ret (val, args)
+    | _ => triggerUB "wrong_ffa_dispatch_call: wrong arguments"
+    end.
+  
 End FFADispatch.  
 
 (***********************************************************************)
@@ -2612,6 +2648,7 @@ Section FFAMemoryManagementInterfaceModule.
       ("HVCTopLevel.save_regs_to_vcpu", save_regs_to_vcpu_call) ;
     ("HVCTopLevel.vcpu_restore_and_run", vcpu_restore_and_run_call) ;
     ("HVCTopLevel.ffa_dispatch", ffa_dispatch_call) ;
+    ("HVCTopLevel.wrong_ffa_dispatch", wrong_ffa_dispatch_call) ;
     
     ("HVCTopLevel.get_physical_address", get_physical_address_call);
     ("HVCTopLevel.set_is_hvc_mode", set_is_hvc_mode_call);
@@ -2706,6 +2743,15 @@ Section HypervisorCall.
       #; (Call "HVCTopLevel.vcpu_restore_and_run" [])
       #; (Put "hyp mode after restore" (Call "HVCTopLevel.is_hvc_mode_getter" [])).
 
+  Definition wrong_hypervisor_call :=
+    (Call "HVCTopLevel.save_regs_to_vcpu" [])
+      #; (Put "hyp mode after entering kernel" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+      #; (Put "result" (Call "HVCTopLevel.wrong_ffa_dispatch" []))
+      #; (Put "function_dispatcher has be invoked" Vnull) 
+      (** Jieung: I do not figure out the reason, but it is required *)
+      #; (Put "hyp mode after dispatching" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+      #; (Call "HVCTopLevel.vcpu_restore_and_run" [])
+      #; (Put "hyp mode after restore" (Call "HVCTopLevel.is_hvc_mode_getter" [])).
 
   Definition scheduling :=
     (Call "HVCTopLevel.save_regs_to_vcpu" [])
@@ -2713,6 +2759,10 @@ Section HypervisorCall.
   
   Definition hypervisor_callF : function.
     mk_function_tac hypervisor_call ([]: list var) ([]: list var).
+  Defined.
+
+  Definition wrong_hypervisor_callF : function.
+    mk_function_tac wrong_hypervisor_call ([]: list var) ([]: list var).
   Defined.
   
   Definition schedulingF : function.
@@ -2752,6 +2802,7 @@ Section FFAMemoryManagementInterfaceWithMemAccessorModule.
       ("HVCTopLevel.mem_store", mem_store_specF) ;
     ("HVCTopLevel.mem_load", mem_load_specF);
     ("HVCTopLevel.hypervisor_call", hypervisor_callF);
+    ("HVCTopLevel.wrong_hypervisor_call", wrong_hypervisor_callF);
     ("HVCTopLevel.scheduling", schedulingF)
     ].
   

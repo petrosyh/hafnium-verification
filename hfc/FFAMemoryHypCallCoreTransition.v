@@ -51,7 +51,7 @@ Require Export FFAMemoryHypCallState.
 
 Inductive RESULT (A : Type) :=
 | SUCCESS (res : A)
-| FAIL (error: string).          
+| FAIL (error: string).
 
 (* begin hide *)
 

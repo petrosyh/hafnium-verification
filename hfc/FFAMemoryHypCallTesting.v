@@ -297,11 +297,32 @@ Section DescriptorGenerator.
       ((EndpointMemoryAccessDescriptorGeneratorForDonate receiver)::nil)
       (MemoryRegionCompositeGeneratorForDonate address page).
 
+
+  Definition WrongDonateDescriptorGenerator (sender receiver: ffa_UUID_t)
+             (address :ffa_address_t) (page: Z):=
+    mkFFA_memory_region_struct
+      (* sender *)
+      sender 
+      (mkFFA_memory_region_attributes_descriptor_struct 
+         (FFA_MEMORY_NORMAL_MEM
+            FFA_MEMORY_CACHE_WRITE_BACK FFA_MEMORY_INNER_SHAREABLE))
+      (MEMORY_REGION_FLAG_NORMAL
+         (mkFFA_mem_default_flags_struct false false))
+      0
+      0
+      ((EndpointMemoryAccessDescriptorGeneratorForDonate receiver)::nil)
+      (MemoryRegionCompositeGeneratorForDonate address page).
+  
+
   Definition mailbox_msg
              (sender receiver: ffa_UUID_t)
              (address :ffa_address_t) (page: Z)
     := mailbox_memory_region (DonateDescriptorGenerator sender receiver address page).
 
+  Definition wrong_mailbox_msg
+             (sender receiver: ffa_UUID_t)
+             (address :ffa_address_t) (page: Z)
+    := mailbox_memory_region (WrongDonateDescriptorGenerator sender receiver address page).
 
   Definition donate_vcpu_struct (cpu_id : ffa_CPU_ID_t) (vm_id : ffa_UUID_t)  :=
     (mkVCPU_struct
@@ -590,7 +611,7 @@ Module FFAMEMORYHYPCALLTESTING.
                                         CBV (Int64.repr 36);
                                         CBV (Vabs (upcast (mailbox_msg
                                                              primary_vm_id 2
-                                                             page_low 1)));
+                                                             1 1)));
                                         CBV (Vabs (upcast (FFA_MEM_DONATE)))])
         #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 0)])
         #; (Call "HVCTopLevel.userspace_vcpu_struct_setter"
@@ -602,9 +623,9 @@ Module FFAMEMORYHYPCALLTESTING.
         #; (Call "HVCTopLevel.scheduling" []) 
         #; (Call "HVCTopLevel.scheduling" []) 
         #; (Put "current state print" (Call "HVCToplevel.state_getter" []))
+    (*
         #; (Put "kernel vcpu values for 1" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
                                                  [CBV (Int64.repr 1)]))
-    (*
         #; (Put "current state print" (Call "HVCToplevel.system_log_getter" [])) *) .
 
     Definition mainF: function.
@@ -666,7 +687,7 @@ Module FFAMEMORYHYPCALLTESTING.
                                                                       CBV (Int64.repr 36);
                                                                       CBV (Vabs (upcast (mailbox_msg
                                                                                            primary_vm_id 2
-                                                                                           page_low
+                                                                                           9065
                                                                                            1)));
                                                                       CBV (Vabs (upcast (FFA_MEM_DONATE)))])
                                       #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 1)])
@@ -744,5 +765,137 @@ Module FFAMEMORYHYPCALLTESTING.
     
   End DONATETEST2.
 
+  Module DONATETEST3.
+
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCTopLevel.send_msg" [CBV (Int64.repr primary_vm_id);
+                                        CBV (Int64.repr 36);
+                                        CBV (Vabs (upcast (wrong_mailbox_msg
+                                                             primary_vm_id 2
+                                                             1 1)));
+                                        CBV (Vabs (upcast (FFA_MEM_DONATE)))])
+        #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 0)])
+        #; (Call "HVCTopLevel.userspace_vcpu_struct_setter"
+                 [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+        #; (Call "HVCTopLevel.hypervisor_call" [])
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+        (*
+        #; (Call "HVCTopLevel.scheduling" []) 
+        #; (Call "HVCTopLevel.scheduling" []) 
+        #; (Call "HVCTopLevel.scheduling" []) 
+        #; (Put "current state print" (Call "HVCToplevel.state_getter" [])) *)
+        #; (Put "kernel vcpu values for 1" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
+                                                 [CBV (Int64.repr 1)]))
+    (*
+        #; (Put "current state print" (Call "HVCToplevel.system_log_getter" [])) *) .
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].
+    
+  End DONATETEST3.
+
+  Module DONATETEST4.
+
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCTopLevel.scheduling" []) 
+        #; (Call "HVCTopLevel.send_msg" [CBV (Int64.repr 2);
+                                        CBV (Int64.repr 36);
+                                        CBV (Vabs (upcast (mailbox_msg
+                                                             2 3
+                                                             1 1)));
+                                        CBV (Vabs (upcast (FFA_MEM_DONATE)))])
+        #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 0)])
+        #; (Call "HVCTopLevel.userspace_vcpu_struct_setter"
+                 [CBV (Vabs (upcast (donate_vcpu_struct 1 2)))])
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+        #; (Call "HVCTopLevel.hypervisor_call" [])
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+        (*
+        #; (Call "HVCTopLevel.scheduling" []) 
+        #; (Call "HVCTopLevel.scheduling" []) 
+        #; (Put "current state print" (Call "HVCToplevel.state_getter" [])) *)
+        #; (Put "kernel vcpu values for 2" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
+                                                 [CBV (Int64.repr 2)]))
+    (*
+        #; (Put "current state print" (Call "HVCToplevel.system_log_getter" [])) *) .
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].
+    
+  End DONATETEST4.
+  
+  Module DONATETEST5.
+
+    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
+      (initialize_owners cur_address initial_global_value initial_local_value)
+        #; (Call "HVCTopLevel.send_msg" [CBV (Int64.repr primary_vm_id);
+                                        CBV (Int64.repr 36);
+                                        CBV (Vabs (upcast (mailbox_msg
+                                                             primary_vm_id 2
+                                                             1 1)));
+                                        CBV (Vabs (upcast (FFA_MEM_DONATE)))])
+        #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 0)])
+        #; (Call "HVCTopLevel.userspace_vcpu_struct_setter"
+                 [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+        #; (Call "HVCTopLevel.wrong_hypervisor_call" [])
+        #; (Put "hyp mode" (Call "HVCTopLevel.is_hvc_mode_getter" []))
+        #; (Call "HVCTopLevel.scheduling" []) 
+        #; (Call "HVCTopLevel.scheduling" []) 
+        #; (Call "HVCTopLevel.scheduling" [])
+        (* 
+        #; (Put "current state print" (Call "HVCToplevel.state_getter" [])) *)
+        #; (Put "kernel vcpu values for 1" (Call "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"
+                                                 [CBV (Int64.repr 1)]))
+        (*
+        #; (Put "current state print" (Call "HVCToplevel.system_log_getter" [])) *) .
+
+    Definition mainF: function.
+      mk_function_tac main ([]: list var) (["cur_address";
+                                            "initial_global_value";
+                                            "initial_local_value"]: list var).
+    Defined.
+    
+    Definition main_program: program :=
+      [
+        ("main", mainF)
+      ].
+
+    Definition isem: itree Event unit :=
+      eval_multimodule [program_to_ModSem main_program ;
+                       top_level_accessor_modsem ;
+                       top_level_modsem].        
+    
+  End DONATETEST5.
+  
 End FFAMEMORYHYPCALLTESTING.
 

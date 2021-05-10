@@ -357,6 +357,12 @@ let main =
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST1.isem) ;
   print_endline "--------------------Concurrent donate setting---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST2.isem) ;
+  print_endline "-------------------donate invalid descriptor------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST3.isem) ;
+  print_endline "---------------------donate wrong address---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST4.isem) ;
+  print_endline "---------------------- donate wrong spec ---------------------" ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DONATETEST5.isem) ;
   ()
 
 let main t =

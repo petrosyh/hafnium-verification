@@ -137,6 +137,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
   (** [JIEUNG: From Section 11.1 to Section 11.3 describe roles of sender and relayer. 
       Those things are captured in the below, so we ignore those texts in here] *)
 
+  (***********************************************************************)
+  (** ***             FFA_MEM_DONATE                                     *)
+  (***********************************************************************)  
   Section FFA_MEM_DONATE_ADDITIONAL_STEPS.
 
     (** - Check each page in constituents to see whether 
@@ -352,6 +355,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     
   End FFA_MEM_DONATE_ADDITIONAL_STEPS.
 
+  (***********************************************************************)
+  (** ***             FFA_LEND_DONATE                                    *)
+  (***********************************************************************)    
   Section FFA_MEM_LEND_ADDITIONAL_STEPS.
 
     (** - Check each page in constituents to see whether 
@@ -599,7 +605,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                              "ffa_mem_general_check_arguments")).
     
   End FFA_MEM_LEND_ADDITIONAL_STEPS.
-  
+
+  (***********************************************************************)
+  (** ***             FFA_SHARE_DONATE                                   *)
+  (***********************************************************************)      
   Section FFA_MEM_SHARE_ADDITIONAL_STEPS.
     
     Fixpoint share_checks_per_page
@@ -827,10 +836,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     
   End FFA_MEM_SHARE_ADDITIONAL_STEPS.
 
+  (***********************************************************************)
+  (** **   11.4 FFA_MEM_RETRIEVE_REQ                                     *)
+  (***********************************************************************)  
   Section FFA_MEM_RETRIEVE_REQ_ARGUMENT_CHECKS.
-    (***********************************************************************)
-    (** ***  11.4 FFA_MEM_RETRIEVE_REQ                                     *)
-    (***********************************************************************)
     (** 
       - Structure
         - paramemter
@@ -871,7 +880,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
           - w2
           - INVALID_PARAMETERS / DENIED / NO_MEMORY / BUSY / ABORTED
      *)
-
+      
+    (***********************************************************************)
+    (** ***      FFA_MEM_RETRIEVE_REQ - DONATE                             *)
+    (***********************************************************************)  
     Fixpoint donate_retrieve_req_checks_per_page
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
@@ -1068,6 +1080,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                                   (FFA_DENIED
                                      "invalid receiver number")).
 
+    (***********************************************************************)
+    (** ***      FFA_MEM_RETRIEVE_REQ - LEND                               *)
+    (***********************************************************************)    
     Fixpoint lend_retrieve_req_checks_per_page
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
@@ -1290,7 +1305,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                     end
                   end. 
 
-
+    (***********************************************************************)
+    (** ***      FFA_MEM_RETRIEVE_REQ - SHARE                              *)
+    (***********************************************************************)
     Fixpoint share_retrieve_req_checks_per_page
              (vid : ffa_UUID_t)
              (time_slice_enabled: bool)
@@ -1483,7 +1500,11 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                     | Some res => SUCCESS (st, FFA_ERROR res)
                     end
                   end. 
-    
+
+
+    (***********************************************************************)
+    (** ***      FFA_MEM_RETRIEVE_REQ - MERGED                             *)
+    (***********************************************************************)    
     Definition ffa_mem_retrieve_req_spec
                (caller : ffa_UUID_t)
                (total_length fragment_length address count : Z)
@@ -1536,10 +1557,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     
   End FFA_MEM_RETRIEVE_REQ_ARGUMENT_CHECKS.
 
+  (***********************************************************************)
+  (** **  11.5 FFA_MEM_RETRIEVE_RESP                                    *)
+  (***********************************************************************)
   Section FFA_MEM_RETRIEVE_RESP_ARGUMENT_CHECKS.
-    (***********************************************************************)
-    (** ***  11.5 FFA_MEM_RETRIEVE_RESP                                    *)
-    (***********************************************************************)
     (** 
       - Structure
         - paramemter
@@ -1588,10 +1609,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     
   End FFA_MEM_RETRIEVE_RESP_ARGUMENT_CHECKS.
 
+  (***********************************************************************)
+  (** **   11.6 FFA_MEM_RELINQUISH                                       *)
+  (***********************************************************************)
   Section FFA_MEM_RELINQUISH_ARGUMENT_CHECKS.
-    (***********************************************************************)
-    (** ***  11.6 FFA_MEM_RELINQUISH                                       *)
-    (***********************************************************************)
     (** 
       - Structure
         - paramemter
@@ -1798,10 +1819,10 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     
   End FFA_MEM_RELINQUISH_ARGUMENT_CHECKS.
     
+  (***********************************************************************)
+  (** **   11.7 FFA_MEM_RECLAIM                                          *)
+  (***********************************************************************)
   Section FFA_MEM_RECLAIM_ARGUMENT_CHECKS.
-    (***********************************************************************)
-    (** ***  11.7 FFA_MEM_RECLAIM                                          *)
-    (***********************************************************************)
     (** 
       - Structure
         - paramemter
@@ -2024,3 +2045,116 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
     
 End FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
 
+(***********************************************************************)
+(** *  Wrong Step Rules for Memory Management                          *)
+(***********************************************************************)
+Section FFA_MEMORY_INTERFACE_ADDITIONA_STEPS_ERROR_TESTING.
+
+  Context `{abstract_state_context: AbstractStateContext}.
+
+  Section FFA_MEM_DONATE_ADDITIONAL_STEPS_ERROR.
+  
+    Definition ffa_mem_donate_wrong_spec
+               (caller : ffa_UUID_t)
+               (total_length fragment_length address count : Z)
+               (st: AbstractState)
+      : RESULT (AbstractState * FFA_RESULT_CODE_TYPE) :=
+      (** - Check the arguments *)
+      if ffa_mem_general_check_arguments total_length fragment_length address count
+      then
+        (** - Get the current memory region descriptor *)
+        get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+        state_and_memory_region_descriptor
+        <- (get_send_memory_region_descriptor caller st)
+            ;;;
+            let (state, memory_region_descriptor)
+                := state_and_memory_region_descriptor in
+            (** - Extract information from the descriptor  *) 
+            get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+            ipa_info_tuple <-
+            (get_recievers_receiver_ids_and_addresses_tuple
+               memory_region_descriptor)
+              ;;; get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+              pa_info_tuple
+              <- (SubstIPAsIntoPAs ipa_info_tuple)
+                  ;;; let info_tuple
+                          := convert_addresses_in_info_tuple_to_page_numbers              
+                               pa_info_tuple in
+                      (** - Check the well_formed conditions of the memory region descriptor *)
+                      (***********************************************************************)
+                      (** This part is wrong - num. of receivers should be 1 *)                      
+                      (***********************************************************************)                                
+                      if decide ((length (get_receivers memory_region_descriptor) = 2)%nat)
+                      then
+                        let region_size
+                            := (FFA_memory_region_struct_size
+                                  (Zlength
+                                     (memory_region_descriptor
+                                      .(FFA_memory_region_struct_composite)
+                                      .(FFA_composite_memory_region_struct_constituents)))) in
+                        if decide ((region_size < state.(hypervisor_context).(api_page_pool_size))%Z)
+                        then
+                          match info_tuple with
+                          | (receiver, receiver_id, cur_addresses)::nil =>
+                            (* TODO: add cases to handle multiple address transfer *)
+                            (***********************************************************************)
+                            (** This part is wrong - it uses lend_check instead of donate_check *)
+                            (***********************************************************************)
+                            match (lend_check
+                                     caller
+                                     (state.(hypervisor_context).(time_slice_enabled))
+                                     (state.(hypervisor_context).(mem_properties))
+                                     memory_region_descriptor info_tuple) with 
+                            | None =>
+                              get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                              res
+                              <- (apply_ffa_mem_donate_core_transition_spec
+                                   caller receiver_id cur_addresses state)
+                                  ;;;
+                                  match res with  
+                                  (* TODO: need to creage handle! - 0 is the wrong value  *)
+                                  (* TODO: need to reduce mpool size *) 
+                                  | (st', true) =>
+                                    match set_memory_region_in_shared_state
+                                            caller
+                                            region_size FFA_MEM_DONATE
+                                            ((receiver_id, cur_addresses)::nil)
+                                            None false
+                                            memory_region_descriptor st' with
+                                    | SUCCESS (st'', handle_value) =>
+                                      get_r (AbstractState * FFA_RESULT_CODE_TYPE),
+                                      res_st
+                                      <- (set_send_handle caller receiver_id
+                                                         region_size handle_value FFA_MEM_DONATE
+                                                         st'')
+                                          ;;;
+                                          SUCCESS (res_st, FFA_SUCCESS handle_value)
+                                    | FAIL msg => SUCCESS (st, FFA_ERROR
+                                                                (FFA_DENIED
+                                                                   ("ffa_mem_general_check_arguments: "
+                                                                      ++ msg)))
+                                    end
+                                  | (_, false) =>
+                                    SUCCESS (st, FFA_ERROR
+                                                (FFA_DENIED
+                                                   "apply_ffa_mem_donate_core_transition_spec"))
+                                  end
+                            | Some res => SUCCESS (st, FFA_ERROR res)
+                            end
+                          | _ => SUCCESS (st, FFA_ERROR
+                                            (FFA_INVALID_PARAMETERS
+                                               "info_tuple invalid"))
+                          end
+                        else SUCCESS (st, FFA_ERROR
+                                         (FFA_NO_MEMORY
+                                            "mpool size is too small"))
+                      else SUCCESS (st, FFA_ERROR
+                                       (FFA_DENIED
+                                          "wrong receiver number"))
+      else SUCCESS (st, FFA_ERROR
+                          (FFA_INVALID_PARAMETERS
+                             "ffa_mem_general_check_arguments")).
+    
+  End FFA_MEM_DONATE_ADDITIONAL_STEPS_ERROR.
+
+End FFA_MEMORY_INTERFACE_ADDITIONA_STEPS_ERROR_TESTING.
