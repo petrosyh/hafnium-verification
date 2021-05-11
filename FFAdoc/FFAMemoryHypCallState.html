@@ -54,11 +54,11 @@
 </div>
 
 <div class="doc">
-<a name="lab109"></a><h1 class="section">Introduction - state definition</h1>
+<a name="lab118"></a><h1 class="section">Introduction - state definition</h1>
  This file provides a state definition for FF-A memory management interfaces. 
 <div class="paragraph"> </div>
 
-<a name="lab110"></a><h2 class="section">VM CONTEXT</h2>
+<a name="lab119"></a><h2 class="section">VM CONTEXT</h2>
  This one is necessary to model context saving/restoring of FFA ABI.  
     To model these parts, we refer Hafnium. However, the following model 
     should be quite general enough to use them in other hypervisor implementations. 
@@ -90,7 +90,7 @@
 </div>
 
 <div class="doc">
-<a name="lab111"></a><h3 class="section">Abstract definitions</h3>
+<a name="lab120"></a><h3 class="section">Abstract definitions</h3>
 
 </div>
 <div class="code">
@@ -221,7 +221,7 @@
 </div>
 
 <div class="doc">
-<a name="lab112"></a><h3 class="section">VCPU</h3>
+<a name="lab121"></a><h3 class="section">VCPU</h3>
  Simplified VCPU context 
 <ul class="doclist">
 <li> We only include a small set of registers
@@ -256,7 +256,7 @@ The vm that is currently associated with this vcpu
 </div>
 
 <div class="doc">
-<a name="lab113"></a><h3 class="section">Mailbox</h3>
+<a name="lab122"></a><h3 class="section">Mailbox</h3>
  Mailbox definition. Each mailbox is assigned into each VM 
 </div>
 <div class="code">
@@ -272,7 +272,7 @@ The vm that is currently associated with this vcpu
 </div>
 
 <div class="doc">
-<a name="lab114"></a><h3 class="section">VM modeling</h3>
+<a name="lab123"></a><h3 class="section">VM modeling</h3>
  The common data structure for VM userspace modeling and VM context modeling in the hypervisor 
 </div>
 <div class="code">
@@ -355,7 +355,7 @@ all other parts are ignored
 </div>
 
 <div class="doc">
-<a name="lab115"></a><h2 class="section">memory and ptable</h2>
+<a name="lab124"></a><h2 class="section">memory and ptable</h2>
 
 </div>
 <div class="code">
@@ -389,7 +389,7 @@ memory states on memory addresses
    
 <div class="paragraph"> </div>
 
-<a name="lab116"></a><h3 class="section">Global properties</h3>
+<a name="lab125"></a><h3 class="section">Global properties</h3>
  Indicates who is the owner of the memory 
 </div>
 <div class="code">
@@ -540,7 +540,7 @@ key is a page number (address / granuale) of the memory region
 </div>
 
 <div class="doc">
-<a name="lab117"></a><h3 class="section">Local properties</h3>
+<a name="lab126"></a><h3 class="section">Local properties</h3>
  It indicates the owned infromation in memory local properties.
       This needs to be consistent with OwnershipState. 
 </div>
@@ -619,7 +619,7 @@ key is a entity id of the system
 </div>
 
 <div class="doc">
-<a name="lab118"></a><h3 class="section">Memory properties</h3>
+<a name="lab127"></a><h3 class="section">Memory properties</h3>
  There are relations between mem_global_properties and mem_local_properties.
       For example, if a certain address in access_state of MemGlobalProperties is mapped with 
       SharedAccess 1, then there should be a valid element for the address in the mem local properties pool for entity 1.
@@ -650,7 +650,7 @@ key is a entity id of the system
 </div>
 
 <div class="doc">
-<a name="lab119"></a><h2 class="section">Page Table</h2>
+<a name="lab128"></a><h2 class="section">Page Table</h2>
 
 </div>
 <div class="code">
@@ -765,7 +765,7 @@ This address translation won't be used in the current setting.
 </div>
 
 <div class="doc">
-<a name="lab120"></a><h2 class="section">AbstractState for FFA modeling</h2>
+<a name="lab129"></a><h2 class="section">AbstractState for FFA modeling</h2>
 
 </div>
 <div class="code">
@@ -1127,7 +1127,7 @@ Log file to print out the history of system changes.
 </div>
 
 <div class="doc">
-<a name="lab121"></a><h2 class="section">Several abstract definitions and invariants</h2>
+<a name="lab130"></a><h2 class="section">Several abstract definitions and invariants</h2>
 
 </div>
 <div class="code">

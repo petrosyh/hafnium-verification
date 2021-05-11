@@ -313,13 +313,13 @@ let rec my_rr q =
 
 let main =
   Random.self_init();
+  (*
   print_endline "-----------------------MPOOL TEST------------------------------" ;
   print_endline "-------------------------TEST 1--------------------------------" ;
   print_endline "------------------------LOW SPEC-------------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem1) ;
   print_endline "----------------------LOW + 1 SPEC-----------------------------" ;
   run (MpoolTest.MPOOLTEST.MPOOLTEST_ONE.isem2) ;
-  (*
   print_endline "-------------------   MM ptable init  ------------------------" ;
   run (MemoryManagementTest.MMTEST.INITFINI.isem) ;
   print_endline "--------------------------------------------------------------" ;
@@ -347,10 +347,8 @@ let main =
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST4.isem) ;
   print_endline "--------------------send/recv messages---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST5.isem) ;
-  print_endline "--------------------vcpu getter/setter---------------------" ;
-  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST6.isem) ;
   print_endline "--------------------mem prop getter/setter---------------------" ;
-  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST7.isem) ;
+  run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST6.isem) ;
   print_endline "--------------------Simple context switching-------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.CONTEXTSWITCHINGTEST1.isem) ;
   print_endline "--------------------Simple donate setting---------------------" ;

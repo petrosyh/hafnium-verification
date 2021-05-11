@@ -27,14 +27,14 @@
 </div>
 
 <div class="doc">
-<a name="lab91"></a><h1 class="section">Introduction</h1>
+<a name="lab100"></a><h1 class="section">Introduction</h1>
 
 <div class="paragraph"> </div>
 
 
 <div class="paragraph"> </div>
 
-   This file introduces several relavant concepts that are necessary in the FF-A memory 
+   This file introduces several relevant concepts that are necessary for the FF-A memory
    management interface formalization. Those things include "FFA version number", "FF-A instances", 
    "Memory types", "Memory granularity and alignment", "Partition identification and discovery", "execution context",
    "System resource management", "Partition setup", and "FFA memory management interface introduction". 
@@ -46,8 +46,8 @@
 
 <div class="paragraph"> </div>
 
-   Explanations in this file are mostly copied from the FF-A document. If there are something that we hope 
-   to mention except the original ones, we add <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:...</span> to distinguish them with the original texts.
+   Explanations in this file are mostly copied from the FF-A document. Our comments are prefixed with `<span class="inlinecode"><span class="id" title="var">JIEUNG</span>:...</span>`
+   to distinguish them from the original text.
 
 </div>
 <div class="code">
@@ -59,10 +59,10 @@
 </div>
 
 <div class="doc">
-This section provides several basic concepts that are necessary to model FFA memory management interfaces 
+This section provides several basic concepts that are necessary to model the FFA memory management interfaces 
 <div class="paragraph"> </div>
 
-<a name="lab92"></a><h2 class="section">FFA Version number - Parts of Section 8.1</h2>
+<a name="lab101"></a><h2 class="section">FFA Version number - Parts of Section 8.1</h2>
 
 
 <div class="paragraph"> </div>
@@ -125,7 +125,7 @@ This section provides several basic concepts that are necessary to model FFA mem
    
 <div class="paragraph"> </div>
 
-<a name="lab93"></a><h2 class="section">FF-A instances - Parts of Section 2.3</h2>
+<a name="lab102"></a><h2 class="section">FF-A instances - Parts of Section 2.3</h2>
 
 
 <div class="paragraph"> </div>
@@ -170,7 +170,7 @@ This section provides several basic concepts that are necessary to model FFA mem
    
 <div class="paragraph"> </div>
 
-<a name="lab94"></a><h2 class="section">Memory types - Parts of Section 2.6</h2>
+<a name="lab103"></a><h2 class="section">Memory types - Parts of Section 2.6</h2>
 
 
 <div class="paragraph"> </div>
@@ -195,7 +195,7 @@ This section provides several basic concepts that are necessary to model FFA mem
    
 <div class="paragraph"> </div>
 
-<a name="lab95"></a><h2 class="section">Memory granularity and alignment - Parts of Section 2.7</h2>
+<a name="lab104"></a><h2 class="section">Memory granularity and alignment - Parts of Section 2.7</h2>
 
 
 <div class="paragraph"> </div>
@@ -217,7 +217,7 @@ This section provides several basic concepts that are necessary to model FFA mem
    
 <div class="paragraph"> </div>
 
-<a name="lab96"></a><h2 class="section">Partition identification and discovery - Parts of Section 2.8</h2>
+<a name="lab105"></a><h2 class="section">Partition identification and discovery - Parts of Section 2.8</h2>
 
 
 <div class="paragraph"> </div>
@@ -229,7 +229,7 @@ This section provides several basic concepts that are necessary to model FFA mem
    
 <div class="paragraph"> </div>
 
-<a name="lab97"></a><h2 class="section">Execution Context - Parts of Section 2.9</h2>
+<a name="lab106"></a><h2 class="section">Execution Context - Parts of Section 2.9</h2>
 
 
 <div class="paragraph"> </div>
@@ -290,16 +290,16 @@ This section provides several basic concepts that are necessary to model FFA mem
    
 <div class="paragraph"> </div>
 
-<a name="lab98"></a><h2 class="section">System resource management - Parts of Section 2.10</h2>
+<a name="lab107"></a><h2 class="section">System resource management - Parts of Section 2.10</h2>
 
 
 <div class="paragraph"> </div>
 
       <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">Among</span></span> <span class="inlinecode"><span class="id" title="var">them</span>,</span> <span class="inlinecode">&quot;<span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">regions</span>&quot;</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode">&quot;<span class="id" title="var">devices</span>&quot;</span> <span class="inlinecode"><span class="id" title="var">are</span></span> <span class="inlinecode"><span class="id" title="var">closely</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">draft</span>.</span> 
-      <span class="inlinecode"><span class="id" title="var">But</span>,</span> <span class="inlinecode"><span class="id" title="var">among</span></span> <span class="inlinecode"><span class="id" title="var">two</span></span> <span class="inlinecode"><span class="id" title="var">things</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">only</span></span> <span class="inlinecode"><span class="id" title="var">focus</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode">&quot;<span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">regions</span>&quot;</span> <span class="inlinecode"><span class="id" title="var">parts</span>.</span> <span class="inlinecode"><span class="id" title="var">Our</span></span> <span class="inlinecode"><span class="id" title="var">draft</span></span> <span class="inlinecode"><span class="id" title="var">excludes</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">management</span></span>
+      <span class="inlinecode"><span class="id" title="var">But</span>,</span> <span class="inlinecode"><span class="id" title="var">from</span></span> <span class="inlinecode"><span class="id" title="var">those</span></span> <span class="inlinecode"><span class="id" title="var">two</span></span> <span class="inlinecode"><span class="id" title="var">things</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">only</span></span> <span class="inlinecode"><span class="id" title="var">focus</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode">&quot;<span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">regions</span>&quot;</span> <span class="inlinecode"><span class="id" title="var">parts</span>.</span> <span class="inlinecode"><span class="id" title="var">Our</span></span> <span class="inlinecode"><span class="id" title="var">draft</span></span> <span class="inlinecode"><span class="id" title="var">excludes</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">management</span></span>
       <span class="inlinecode"><span class="id" title="var">interface</span></span> <span class="inlinecode"><span class="id" title="var">transitions</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">device</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">parts</span></span> <span class="inlinecode">(<span class="id" title="var">SMMU</span>,</span> <span class="inlinecode"><span class="id" title="var">MMIO</span>,</span> <span class="inlinecode"><span class="id" title="var">independent</span></span> <span class="inlinecode"><span class="id" title="var">peripheral</span></span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="tactic">dependent</span></span> <span class="inlinecode"><span class="id" title="var">peripheral</span>).</span>
       <span class="inlinecode"><span class="id" title="var">Even</span></span> <span class="inlinecode"><span class="id" title="var">though</span></span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">ignore</span></span> <span class="inlinecode"><span class="id" title="var">them</span>,</span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">attributes</span></span> <span class="inlinecode"><span class="id" title="var">divides</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">into</span></span> <span class="inlinecode"><span class="id" title="var">normal</span></span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">device</span></span>
-      <span class="inlinecode"><span class="id" title="var">memories</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">future</span></span> <span class="inlinecode"><span class="id" title="var">extension</span></span>
+      <span class="inlinecode"><span class="id" title="var">memories</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">future</span></span> <span class="inlinecode"><span class="id" title="var">extension</span></span>
 
 <div class="paragraph"> </div>
 
@@ -379,7 +379,7 @@ This section provides several basic concepts that are necessary to model FFA mem
    
 <div class="paragraph"> </div>
 
-<a name="lab99"></a><h2 class="section">Partition setup - Parts of Section 3.</h2>
+<a name="lab108"></a><h2 class="section">Partition setup - Parts of Section 3.</h2>
 
 
 <div class="paragraph"> </div>
@@ -410,8 +410,8 @@ This section provides several basic concepts that are necessary to model FFA mem
      <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">Among</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">entire</span></span> <span class="inlinecode"><span class="id" title="var">things</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">focus</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">Table</span></span> <span class="inlinecode">3.2.</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">Table</span></span> <span class="inlinecode">3.3.</span> 
      <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">parts</span></span> <span class="inlinecode"><span class="id" title="var">need</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">reflected</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">state</span></span> <span class="inlinecode"><span class="id" title="var">definition</span>,</span> <span class="inlinecode"><span class="id" title="var">but</span></span> <span class="inlinecode"><span class="id" title="keyword">with</span></span> <span class="inlinecode"><span class="id" title="var">some</span></span> <span class="inlinecode"><span class="id" title="var">modifications</span>.</span>
      <span class="inlinecode"><span class="id" title="var">For</span></span> <span class="inlinecode"><span class="id" title="var">example</span>.</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">model</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="var">each</span></span> <span class="inlinecode"><span class="id" title="var">page</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">entire</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">has</span></span> <span class="inlinecode"><span class="id" title="var">its</span></span> <span class="inlinecode"><span class="id" title="var">own</span></span> <span class="inlinecode"><span class="id" title="var">ownership</span>,</span> <span class="inlinecode"><span class="id" title="var">accessibility</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">attributes</span>.</span> 
-     <span class="inlinecode"><span class="id" title="var">If</span></span> <span class="inlinecode"><span class="id" title="var">they</span></span> <span class="inlinecode"><span class="id" title="var">are</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">same</span></span> <span class="inlinecode"><span class="id" title="var">region</span>,</span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">spec</span></span> <span class="inlinecode"><span class="id" title="var">requires</span></span> <span class="inlinecode"><span class="id" title="var">sonsistency</span></span> <span class="inlinecode"><span class="id" title="var">check</span>.</span> <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="var">check</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">basically</span></span> <span class="inlinecode"><span class="id" title="var">figure</span></span> <span class="inlinecode"><span class="id" title="var">out</span></span> <span class="inlinecode"><span class="id" title="var">whether</span></span>
-     <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">entire</span></span> <span class="inlinecode"><span class="id" title="var">pages</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">region</span></span> <span class="inlinecode"><span class="id" title="var">have</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">same</span></span> <span class="inlinecode"><span class="id" title="var">attributes</span></span> <span class="inlinecode"><span class="id" title="var">or</span></span> <span class="inlinecode"><span class="id" title="var">not</span>.</span> 
+     <span class="inlinecode"><span class="id" title="var">If</span></span> <span class="inlinecode"><span class="id" title="var">they</span></span> <span class="inlinecode"><span class="id" title="var">are</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">same</span></span> <span class="inlinecode"><span class="id" title="var">region</span>,</span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">spec</span></span> <span class="inlinecode"><span class="id" title="var">requires</span></span> <span class="inlinecode"><span class="id" title="var">consistency</span></span> <span class="inlinecode"><span class="id" title="var">check</span>.</span> <span class="inlinecode"><span class="id" title="var">The</span></span> <span class="inlinecode"><span class="id" title="var">check</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">basically</span></span> <span class="inlinecode"><span class="id" title="var">figure</span></span> <span class="inlinecode"><span class="id" title="var">out</span></span> <span class="inlinecode"><span class="id" title="var">whether</span></span>
+     <span class="inlinecode"><span class="id" title="var">all</span></span> <span class="inlinecode"><span class="id" title="var">pages</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">region</span></span> <span class="inlinecode"><span class="id" title="var">have</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">same</span></span> <span class="inlinecode"><span class="id" title="var">attributes</span></span> <span class="inlinecode"><span class="id" title="var">or</span></span> <span class="inlinecode"><span class="id" title="var">not</span>.</span>
 
 <div class="paragraph"> </div>
 
@@ -429,7 +429,7 @@ This section provides several basic concepts that are necessary to model FFA mem
 </div>
 
 <div class="doc">
-<a name="lab100"></a><h1 class="section">Memory Management - Chapter 5.</h1>
+<a name="lab109"></a><h1 class="section">Memory Management - Chapter 5.</h1>
  <span class="inlinecode"><span class="id" title="var">JIEUNG</span></span> For Chapter 5, I copied and pasted all comments 
     even though they are not totally related to our implementation. This is due to 
     I hope to make the following specs as self-contained ones as much as possible.]
@@ -445,7 +445,7 @@ This section provides several basic concepts that are necessary to model FFA mem
 </div>
 
 <div class="doc">
-<a name="lab101"></a><h2 class="section">Overview - Section 5.1.</h2>
+<a name="lab110"></a><h2 class="section">Overview - Section 5.1.</h2>
 
 
 <div class="paragraph"> </div>
@@ -497,19 +497,19 @@ This section provides several basic concepts that are necessary to model FFA mem
 </div>
 
 <div class="doc">
-<a name="lab102"></a><h2 class="section">Direct memory access - Section 5.2.</h2>
+<a name="lab111"></a><h2 class="section">Direct memory access - Section 5.2.</h2>
 
 
 <div class="paragraph"> </div>
 
        <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">At</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">moment</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">ignore</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">parts</span></span>
        
-       <span class="inlinecode">-</span> <span class="inlinecode"><span class="id" title="var">In</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">section</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">folloiwng</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">parts</span>,</span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">document</span></span> <span class="inlinecode"><span class="id" title="var">describes</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">managements</span></span>
+       <span class="inlinecode">-</span> <span class="inlinecode"><span class="id" title="var">In</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">section</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">following</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">parts</span>,</span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">document</span></span> <span class="inlinecode"><span class="id" title="var">describes</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">managements</span></span>
        <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">device</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">regions</span>.</span> <span class="inlinecode"><span class="id" title="var">However</span>,</span> <span class="inlinecode"><span class="id" title="var">most</span></span> <span class="inlinecode"><span class="id" title="keyword">of</span></span> <span class="inlinecode"><span class="id" title="var">them</span></span> <span class="inlinecode"><span class="id" title="var">will</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">ignored</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">draft</span>.</span> <span class="inlinecode"><span class="id" title="var">We</span></span> <span class="inlinecode"><span class="id" title="tactic">do</span></span> <span class="inlinecode"><span class="id" title="var">not</span></span> 
        <span class="inlinecode"><span class="id" title="var">include</span></span> <span class="inlinecode"><span class="id" title="var">Stream</span></span> <span class="inlinecode"><span class="id" title="var">ID</span>,</span> <span class="inlinecode"><span class="id" title="var">SEPID</span>,</span> <span class="inlinecode"><span class="id" title="var">ownership</span></span> <span class="inlinecode"><span class="id" title="var">transfers</span>,</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">access</span></span> <span class="inlinecode"><span class="id" title="var">controls</span></span> <span class="inlinecode"><span class="id" title="var">when</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">page</span></span> <span class="inlinecode"><span class="id" title="var">region</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> 
        <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">direct</span></span> <span class="inlinecode"><span class="id" title="var">access</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">devices</span>.</span> 
        
-       <span class="inlinecode">-</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">implies</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="tactic">try</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">focus</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">communications</span></span> <span class="inlinecode"><span class="id" title="var">between</span></span> <span class="inlinecode"><span class="id" title="var">two</span></span> <span class="inlinecode"><span class="id" title="var">PEs</span>.</span> <span class="inlinecode"><span class="id" title="var">In</span></span> <span class="inlinecode"><span class="id" title="var">addition</span></span> <span class="inlinecode"><span class="id" title="var">that</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="tactic">try</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span>
+       <span class="inlinecode">-</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">implies</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="tactic">try</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">focus</span></span> <span class="inlinecode"><span class="id" title="var">on</span></span> <span class="inlinecode"><span class="id" title="var">communications</span></span> <span class="inlinecode"><span class="id" title="var">between</span></span> <span class="inlinecode"><span class="id" title="var">two</span></span> <span class="inlinecode"><span class="id" title="var">PEs</span>.</span> <span class="inlinecode"><span class="id" title="var">In</span></span> <span class="inlinecode"><span class="id" title="var">addition</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="tactic">try</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span>
        <span class="inlinecode"><span class="id" title="var">ignore</span></span> <span class="inlinecode"><span class="id" title="var">other</span></span> <span class="inlinecode"><span class="id" title="var">FFA</span></span> <span class="inlinecode"><span class="id" title="var">interfaces</span>.</span> <span class="inlinecode"><span class="id" title="var">For</span></span> <span class="inlinecode"><span class="id" title="var">example</span>,</span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">modeling</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">related</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">getting</span></span> <span class="inlinecode"><span class="id" title="var">a</span></span> <span class="inlinecode"><span class="id" title="var">ID</span></span> <span class="inlinecode"><span class="id" title="keyword">for</span></span> <span class="inlinecode"><span class="id" title="var">each</span></span> <span class="inlinecode"><span class="id" title="var">PE</span></span> <span class="inlinecode"><span class="id" title="tactic">by</span></span>
        <span class="inlinecode"><span class="id" title="keyword">using</span></span> <span class="inlinecode">&quot;<span class="id" title="var">FFA_ID_GET</span>&quot;.</span> <span class="inlinecode"><span class="id" title="var">However</span>,</span> <span class="inlinecode"><span class="id" title="var">we</span></span> <span class="inlinecode"><span class="id" title="var">will</span></span> <span class="inlinecode"><span class="id" title="var">ignore</span></span> <span class="inlinecode"><span class="id" title="var">that</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">current</span></span> <span class="inlinecode"><span class="id" title="var">version</span></span>
      
@@ -553,7 +553,7 @@ This section provides several basic concepts that are necessary to model FFA mem
      
 <div class="paragraph"> </div>
 
-<a name="lab103"></a><h3 class="section">Stream endpoint - Section 5.2.1</h3>
+<a name="lab112"></a><h3 class="section">Stream endpoint - Section 5.2.1</h3>
 
 
 <div class="paragraph"> </div>
@@ -712,7 +712,7 @@ This section provides several basic concepts that are necessary to model FFA mem
 </div>
 
 <div class="doc">
-<a name="lab104"></a><h2 class="section">Address translation regimes - Section 5.3.</h2>
+<a name="lab113"></a><h2 class="section">Address translation regimes - Section 5.3.</h2>
 
 
 <div class="paragraph"> </div>
@@ -762,13 +762,13 @@ This section provides several basic concepts that are necessary to model FFA mem
 </div>
 
 <div class="doc">
-<a name="lab105"></a><h2 class="section">Ownership and access attributes - Section 5.4.</h2>
+<a name="lab114"></a><h2 class="section">Ownership and access attributes - Section 5.4.</h2>
 
 
 <div class="paragraph"> </div>
 
-     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">one</span></span> <span class="inlinecode"><span class="id" title="keyword">of</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">most</span></span> <span class="inlinecode"><span class="id" title="var">important</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">provides</span></span> <span class="inlinecode"><span class="id" title="tactic">abstract</span></span> <span class="inlinecode"><span class="id" title="var">view</span></span> <span class="inlinecode"><span class="id" title="keyword">of</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">ownership</span></span> <span class="inlinecode"><span class="id" title="var">and</span></span> 
-     <span class="inlinecode"><span class="id" title="var">attributes</span>.</span> <span class="inlinecode"><span class="id" title="var">And</span>,</span> <span class="inlinecode"><span class="id" title="var">descriptions</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="var">has</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">reflected</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">formalized</span></span> <span class="inlinecode"><span class="id" title="var">version</span>.</span> <span class="inlinecode"><span class="id" title="var">Please</span></span> <span class="inlinecode"><span class="id" title="var">look</span></span> <span class="inlinecode"><span class="id" title="tactic">at</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">MemProperties</span></span> 
+     <span class="inlinecode"><span class="id" title="var">JIEUNG</span>:</span> <span class="inlinecode"><span class="id" title="var">This</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="keyword">is</span></span> <span class="inlinecode"><span class="id" title="var">one</span></span> <span class="inlinecode"><span class="id" title="keyword">of</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">most</span></span> <span class="inlinecode"><span class="id" title="var">important</span></span> <span class="inlinecode"><span class="id" title="var">sections</span></span> <span class="inlinecode"><span class="id" title="var">regarding</span></span> <span class="inlinecode"><span class="id" title="tactic">abstract</span></span> <span class="inlinecode"><span class="id" title="var">view</span></span> <span class="inlinecode"><span class="id" title="keyword">of</span></span> <span class="inlinecode"><span class="id" title="var">memory</span></span> <span class="inlinecode"><span class="id" title="var">ownership</span></span> <span class="inlinecode"><span class="id" title="var">and</span></span>
+     <span class="inlinecode"><span class="id" title="var">attributes</span>.</span> <span class="inlinecode"><span class="id" title="var">And</span>,</span> <span class="inlinecode"><span class="id" title="var">descriptions</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">this</span></span> <span class="inlinecode"><span class="id" title="var">section</span></span> <span class="inlinecode"><span class="id" title="var">have</span></span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode"><span class="id" title="var">be</span></span> <span class="inlinecode"><span class="id" title="var">reflected</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">our</span></span> <span class="inlinecode"><span class="id" title="var">formalized</span></span> <span class="inlinecode"><span class="id" title="var">version</span>.</span> <span class="inlinecode"><span class="id" title="var">Please</span></span> <span class="inlinecode"><span class="id" title="var">look</span></span> <span class="inlinecode"><span class="id" title="tactic">at</span></span> <span class="inlinecode"><span class="id" title="var">the</span></span> <span class="inlinecode"><span class="id" title="var">MemProperties</span></span>
      <span class="inlinecode"><span class="id" title="var">definition</span></span> <span class="inlinecode">(<span class="id" title="var">MemProperties</span>)</span> <span class="inlinecode"><span class="id" title="var">and</span></span> <span class="inlinecode"><span class="id" title="var">valid_combination</span></span> <span class="inlinecode"><span class="id" title="var">definitions</span></span> <span class="inlinecode">(<span class="id" title="var">mem_states_valid_combination</span>)</span>
 
 <div class="paragraph"> </div>
@@ -835,7 +835,7 @@ This section provides several basic concepts that are necessary to model FFA mem
    
 <div class="paragraph"> </div>
 
-<a name="lab106"></a><h3 class="section">Ownership and access rules - Section 5.4.1</h3>
+<a name="lab115"></a><h3 class="section">Ownership and access rules - Section 5.4.1</h3>
 
 
 <div class="paragraph"> </div>
@@ -904,7 +904,7 @@ This section provides several basic concepts that are necessary to model FFA mem
      
 <div class="paragraph"> </div>
 
-<a name="lab107"></a><h3 class="section">Ownership and access states - Section 5.4.2</h3>
+<a name="lab116"></a><h3 class="section">Ownership and access states - Section 5.4.2</h3>
 
 
 <div class="paragraph"> </div>
@@ -1003,7 +1003,7 @@ For two FF-A components A and B and a memory region, valid combinations of state
 </div>
 
 <div class="doc">
-<a name="lab108"></a><h2 class="section">Remaining parts</h2>
+<a name="lab117"></a><h2 class="section">Remaining parts</h2>
 
 <div class="paragraph"> </div>
 

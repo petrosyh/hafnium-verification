@@ -457,6 +457,10 @@ Global Instance abstract_state_context :
 (** *                 Showable functions for system log                *)
 (***********************************************************************)
 
+(** Showable functions for system log are hidden in the document. *)
+
+(* begin hide *)
+
 Definition print_FFA_value_type (ffa_value: FFA_value_type) :=
   match ffa_value with
   | mkFFA_value_type ffa_type vals =>
@@ -928,6 +932,8 @@ Definition print_abstract_state (st : AbstractState) : string :=
 Instance abstract_state_Showable:
   Showable AbstractState := { show := print_abstract_state }.
 
+(* end hide *)
+
 (***********************************************************************)
 (** *   Showable function for other abstract values                    *)
 (***********************************************************************)
@@ -935,6 +941,11 @@ Instance abstract_state_Showable:
 (***********************************************************************)
 (** **   Showable function for global memory property                  *)
 (***********************************************************************)
+
+
+(** Showable functions for global memory property are hidden in the document. *)
+
+(* begin hide *)
 
 Definition print_OWNERSHIP_STATE_TYPE
            (ownership: OWNERSHIP_STATE_TYPE) :=
@@ -1059,9 +1070,17 @@ Definition print_mem_global_properties
 Instance mem_global_properties_Showable:
   Showable MemGlobalProperties := { show := print_mem_global_properties }.
 
+(* end hide *)
+
+
 (***********************************************************************)
 (** **   Showable function for local memory property                   *)
 (***********************************************************************)
+
+(** Showable functions for local memory property are hidden in the document. *)
+
+(* begin hide *)
+
 
 Definition print_mem_local_properties
            (mem_local_prop: MemLocalProperties) :=
@@ -1083,9 +1102,15 @@ Definition print_mem_local_properties
 Instance mem_local_properties_Showable:
   Showable MemLocalProperties := { show := print_mem_local_properties }.
 
+(* end hide *)
+
 (***********************************************************************)
 (** **   Showable function for vcpu structure                          *)
 (***********************************************************************)
+
+(** Showable functions for vcpu struct are hidden in the document. *)
+
+(* begin hide *)
 
 Definition print_vcpu_struct
            (vcpu_struct: VCPU_struct) :=
@@ -1111,6 +1136,9 @@ Definition print_vcpu_struct
 
 Instance vcpu_struct_Showable:
   Showable VCPU_struct := { show := print_vcpu_struct }.
+
+(* end hide *)
+
 
 (***********************************************************************)
 (** *      Additional  Specifications for testing                      *)

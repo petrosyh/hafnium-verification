@@ -26,18 +26,20 @@
 
 <div class="paragraph"> </div>
 
- This work formalizes memroy management interfaces described in Arm Firmware
-    Framework for Armv8-A (https://developer.arm.com/documentation/den0077/latest). The
-    following files are relavant to this formalization. 
+ This work formalizes memory management interfaces described in Arm Firmware
+    Framework for Armv8-A (https://developer.arm.com/documentation/den0077/a/). The
+    following files are relevant to this formalization.
 
 <div class="paragraph"> </div>
 
 <ul class="doclist">
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallIntro.v</span></span>
 <ul class="doclist">
-<li> This file introduces several concepts that are closely related to the FF-A
+<li> Concepts that are closely related to the FF-A
     memory management interface. 
-    Other files that contain formal definitions rely on concepts that this file describes. 
+
+</li>
+<li> Other files that contain formal definitions rely on concepts that this file describes.
     Therefore, looking at this file may help readers understand our formal definitions. 
 
 <div class="paragraph"> </div>
@@ -49,10 +51,10 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallDescriptorState.v</span></span>
 <ul class="doclist">
-<li> This file contains formal definitions of descriptor data structures defined in
+<li> Formal definitions of descriptor data structures defined in
     Sections 5.10, 5.11, and 5.12 of the FF-A document. 
-    Those descriptors contain several information that 
-    memory management hypervisor calls have to look at during its evaluations.
+    Those descriptors contain information that
+    memory management hypervisor calls have to look at during their evaluation.
 
 <div class="paragraph"> </div>
 
@@ -63,8 +65,8 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallState.v</span></span>
 <ul class="doclist">
-<li> This file introduces the abstract state definition, the mathematical view of 
-    the entire system with hiding unnecessary details. 
+<li> Abstract state definition, the mathematical view of
+    the entire system, hiding unnecessary details.
 
 <div class="paragraph"> </div>
 
@@ -75,11 +77,9 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallCoreTransition.v</span></span>
 <ul class="doclist">
-<li> This file contains core transition rules of FFA memory management interfaces. 
-
-</li>
-<li> Core transition rules in this file change ownership and accessibility information 
-    of the memory adress that interfaces want to handle.
+<li> Core transition rules of the FF-A memory management interfaces.
+    Those transition rules change ownership and accessibility information
+    of the memory address that interfaces want to handle.
 
 <div class="paragraph"> </div>
 
@@ -90,7 +90,7 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.v</span></span>
 <ul class="doclist">
-<li> Auxiliary functions that makes the entire specifications more readable 
+<li> Auxiliary functions that make the specifications more readable
     and structured.
 
 <div class="paragraph"> </div>
@@ -117,7 +117,7 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallTestingInterface.v</span></span>
 <ul class="doclist">
-<li> This file provides testing interfaces (e.g., context switchings, dispatch, and so on).
+<li> Testing interfaces (e.g., context switching, dispatch, and so on).
 
 <div class="paragraph"> </div>
 
@@ -128,7 +128,7 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallTesting.v</span></span>
 <ul class="doclist">
-<li> This file provides test cases.
+<li> Test cases.
 
 <div class="paragraph"> </div>
 
@@ -139,7 +139,7 @@
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">FFAMemoryHypCallWellFormedProof.v</span></span>
 <ul class="doclist">
-<li> This file contains the safety proof of our specifications, especially proofs
+<li> Safety proof of our specifications, especially proofs
     related to well-formedness conditions that FFA memory management
     transitions have to preserve (e.g., safety of memory ownership and
     accessibility).

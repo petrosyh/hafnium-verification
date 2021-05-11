@@ -71,16 +71,29 @@ Import Int64.
 Require Import Maps.
 Set Implicit Arguments.
 
-Definition page_low_int := Int64.repr page_low.
-Definition page_quater_value :=
-  ((Int64.repr page_high -  Int64.repr page_low) / (Int64.repr 4)).  
-Definition page_1st_quater_int :=
-  Int64.repr page_low + page_quater_value.
-Definition page_2nd_quater_int :=
-  Int64.repr page_low + (page_quater_value * (Int64.repr 2)).
-Definition page_3rd_quater_int :=
-  Int64.repr page_low + (page_quater_value * (Int64.repr 3)).
-Definition page_high_int := Int64.repr page_high.
+(*************************************************************)
+(** *                Introduction                            *) 
+(*************************************************************)
+
+(** This file provides several test cases. 
+
+    This file first includes several test cases for multiple getter/setter. 
+    In addiiton, it provides simple test cases that one VM tries to donate one page
+    to another VM. For those cases, this file contains not only cases 
+    that succeed its operation but also cases that raise errors during the evaluation.
+    By doing that, we can see how error messages are visible for our formal specifications. 
+
+    In addiiton to the proper formal specifications, we define one specification that 
+    is slightly modified to add an error in it. By doing that, we show how our test can 
+    detect errors when specifications have bugs in it.
+*)
+
+(*************************************************************)
+(** **   YIELD                                               *) 
+(*************************************************************)
+
+(** Utility function to add Yield in between each statement of test cases. Having yield statements 
+    will provide test cases with concurrency in a limited setting (sequential consistency *)
 
 Fixpoint INSERT_YIELD (s: stmt): stmt :=
   match s with
@@ -91,7 +104,33 @@ Fixpoint INSERT_YIELD (s: stmt): stmt :=
   end
 .
 
+(*************************************************************)
+(** **   Auxiliary definitions for initializations           *) 
+(*************************************************************)
 Section FFAMemoryHypCallInitialization.
+
+  (** Since we assume there are four VMs in the system, we divide the entire memory (from page_low_int to page_high_int) 
+    into four regions. Then, we allocate each quater into one VM *)
+
+  (*************************************************************)
+  (** ***    Address values           *) 
+  (*************************************************************)
+
+  Definition page_low_int := Int64.repr page_low.
+  Definition page_quater_value :=
+    ((Int64.repr page_high -  Int64.repr page_low) / (Int64.repr 4)).  
+  Definition page_1st_quater_int :=
+    Int64.repr page_low + page_quater_value.
+  Definition page_2nd_quater_int :=
+    Int64.repr page_low + (page_quater_value * (Int64.repr 2)).
+  Definition page_3rd_quater_int :=
+    Int64.repr page_low + (page_quater_value * (Int64.repr 3)).
+  Definition page_high_int := Int64.repr page_high.
+
+
+  (*************************************************************)
+  (** ***    Initialization values for Memory (Page) attribute tables           *) 
+  (*************************************************************)
 
   (** address low differs from address low in the memory context. 
       I am trying to use subset of  *)
@@ -171,6 +210,11 @@ Section FFAMemoryHypCallInitialization.
           (mkFFA_value_type
              FFA_IDENTIFIER_DEFAULT
              (ZMap.init 0)))).
+
+  (*************************************************************)
+  (** ***    Initialization Statements           *) 
+  (*************************************************************)
+
   
   Definition initialize_owners (cur_address initial_global_value initial_local_value : var): stmt :=
     Put "start initializaiton" (Vnull) #;
@@ -257,6 +301,9 @@ Section FFAMemoryHypCallInitialization.
 
 End  FFAMemoryHypCallInitialization.
 
+(*************************************************************)
+(** **   Auxiliary definitions for Memory Donate Descriptors   *) 
+(*************************************************************)
 Section DescriptorGenerator.
 
   Definition MemoryRegionConstituentGeneratorForDonate
@@ -336,8 +383,15 @@ Section DescriptorGenerator.
   
 End DescriptorGenerator.
 
+(*************************************************************)
+(** **   Test Cases    *) 
+(*************************************************************)
 Module FFAMEMORYHYPCALLTESTING.
 
+
+  (*************************************************************)
+  (** **   Initialization Test    *) 
+  (*************************************************************)  
   Module INITIALIZATION.
 
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -361,7 +415,9 @@ Module FFAMEMORYHYPCALLTESTING.
     
   End INITIALIZATION.
 
-  
+  (*************************************************************)
+  (** **   Flag value Setter/Getter Test    *) 
+  (*************************************************************)    
   Module DUMMYTEST1.
     
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -418,6 +474,9 @@ Module FFAMEMORYHYPCALLTESTING.
 
   End DUMMYTEST2.
 
+  (*************************************************************)
+  (** **   VCPU Index Setter/Getter Test    *) 
+  (*************************************************************)      
   Module DUMMYTEST3.
     
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -443,7 +502,9 @@ Module FFAMEMORYHYPCALLTESTING.
 
   End DUMMYTEST3.
 
-
+  (*************************************************************)
+  (** **   Current Entity ID Setter/Getter Test    *) 
+  (*************************************************************)      
   Module DUMMYTEST4.
     
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -471,6 +532,9 @@ Module FFAMEMORYHYPCALLTESTING.
 
   End DUMMYTEST4.
 
+  (*************************************************************)
+  (** **  Send/Recv Msg Test    *) 
+  (*************************************************************)        
   Module DUMMYTEST5.
     
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -502,35 +566,10 @@ Module FFAMEMORYHYPCALLTESTING.
 
   End DUMMYTEST5.
   
+  (*************************************************************)
+  (** **  Memory Property Setter/Getter Test    *) 
+  (*************************************************************)            
   Module DUMMYTEST6.
-
-
-    Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
-      (initialize_owners cur_address initial_global_value initial_local_value)
-        #; (Call "HVCToplevel.userspace_vcpu_index_setter" [CBV (Int64.repr 1)])
-        #; (Call "HVCTopLevel.userspace_vcpu_struct_setter"
-                 [CBV (Vabs (upcast (donate_vcpu_struct 1 primary_vm_id)))])
-        #; (Call "HVCTopLevel.userspace_vcpu_struct_getter" []).
-    
-    Definition mainF: function.
-      mk_function_tac main ([]: list var) (["cur_address";
-                                            "initial_global_value";
-                                            "initial_local_value"]: list var).
-    Defined.
-    
-    Definition main_program: program :=
-      [
-        ("main", mainF)
-      ].
-
-    Definition isem: itree Event unit :=
-      eval_multimodule [program_to_ModSem main_program ;
-                       top_level_accessor_modsem ;
-                       top_level_modsem].
-
-  End DUMMYTEST6.
-    
-  Module DUMMYTEST7.
     
     
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -564,9 +603,11 @@ Module FFAMEMORYHYPCALLTESTING.
                        top_level_accessor_modsem ;
                        top_level_modsem].
 
-  End DUMMYTEST7.
+  End DUMMYTEST6.
   
-  
+  (*************************************************************)
+  (** **  Context Switchin Test    *) 
+  (*************************************************************)              
   Module CONTEXTSWITCHINGTEST1.
 
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -602,7 +643,10 @@ Module FFAMEMORYHYPCALLTESTING.
                        top_level_modsem].        
     
   End CONTEXTSWITCHINGTEST1.
-    
+
+  (*************************************************************)
+  (** **  Donate test without concurrency    *) 
+  (*************************************************************)              
   Module DONATETEST1.
 
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -646,7 +690,9 @@ Module FFAMEMORYHYPCALLTESTING.
     
   End DONATETEST1.
 
-  
+  (*************************************************************)
+  (** **  Donate test with concurrency    *) 
+  (*************************************************************)                
   Module DONATETEST2.
 
     Definition GLOBAL_START := "GLOBAL_START".
@@ -765,6 +811,9 @@ Module FFAMEMORYHYPCALLTESTING.
     
   End DONATETEST2.
 
+  (*************************************************************)
+  (** **  Wrong donate test - invalid descriptor     *) 
+  (*************************************************************)
   Module DONATETEST3.
 
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -809,6 +858,9 @@ Module FFAMEMORYHYPCALLTESTING.
     
   End DONATETEST3.
 
+  (*************************************************************)
+  (** **  Wrong donate test - invalid descriptor     *) 
+  (*************************************************************)  
   Module DONATETEST4.
 
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
@@ -852,7 +904,10 @@ Module FFAMEMORYHYPCALLTESTING.
                        top_level_modsem].
     
   End DONATETEST4.
-  
+
+  (*************************************************************)
+  (** **  Wrong donate test with specs that has a bug           *) 
+  (*************************************************************)    
   Module DONATETEST5.
 
     Definition main (cur_address initial_global_value initial_local_value: var): stmt :=
