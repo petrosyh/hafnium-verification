@@ -388,8 +388,9 @@ Section FFA_DESCRIPTIONS.
   (** Check addresses in multiple constituents to see whether they are disjoint *)
   Definition check_overlap_in_ranges
              (ranges : list (Z * Z)) (range : (Z * Z)) :=
+    let '(ra, rb) := range in
     List.forallb
-      (fun x => decide ((fst x) > (snd range)) || decide ((fst range) > (snd x)))
+      (fun '(a, b) => decide (a > rb) || decide (ra > b))
       ranges.
 
   Fixpoint check_overlap_of_constituents_aux (ranges : list (Z * Z)) :=
@@ -417,21 +418,17 @@ Section FFA_DESCRIPTIONS.
   (** Check well formed conditions 
       - Page count needs to be consistent
       - All addresses can be divided by granuale *)
-  Fixpoint well_formed_FFA_composite_memory_region_struct_aux
-           (page_counts : Z)
-           (constituents : list FFA_memory_region_constituent_struct) :=
-    match constituents with
-    | nil => if decide (page_counts = 0) then true else false
-    | hd::tl =>
-      match hd with
-      | mkFFA_memory_region_constituent_struct address page_count =>
-        if decide (Z.modulo address granuale = 0) &&
-           decide ((page_counts - page_count)%Z >= 0) 
-        then well_formed_FFA_composite_memory_region_struct_aux
-               (page_counts - page_count) tl
-        else false
-      end
-    end.
+  Definition well_formed_FFA_composite_memory_region_struct_aux
+             (page_count : Z)
+             (constituents : list FFA_memory_region_constituent_struct) :=
+    let page_count_sum :=
+        List.fold_left
+          (fun acc x => acc + x.(FFA_memory_region_constituent_struct_page_count))
+          constituents 0 in
+    isTrue (page_count_sum = page_count) &&
+    List.forallb
+      (fun x => isTrue (Z.modulo x.(FFA_memory_region_constituent_struct_address) granuale = 0))
+      constituents.
 
   (** Return INVALID_PARAMETER when it is not satisfied *)
   Definition well_formed_FFA_composite_memory_region_struct
@@ -754,18 +751,16 @@ Section FFA_DESCRIPTIONS.
   (** [JIEUNG: The error code is not defined when the following offset is not correct. 
       I will return INVALID_PARAMETER for this case] *)
   Definition well_formed_FFA_endpoint_memory_access_descriptor_struct
-             (access_descriptor : FFA_endpoint_memory_access_descriptor_struct)
-             (composite_descriptor : FFA_composite_memory_region_struct) :=
+             (composite_descriptor : FFA_composite_memory_region_struct)
+             (access_descriptor : FFA_endpoint_memory_access_descriptor_struct) :=
     let offset :=
         (access_descriptor
          .(FFA_memory_access_descriptor_struct_composite_memory_region_offset))%nat in
-    if decide
+    isTrue
          (((length (composite_descriptor
                     .(FFA_composite_memory_region_struct_constituents)) + 2)%nat >=
-           offset)%nat)
-    then true
-    else false.
-  
+           offset)%nat).
+
   (*******************************************************)
   (** *** 5.11.2 Data access permissions usage           *)
   (*******************************************************)
@@ -1485,7 +1480,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
     let time_slice_check :=
         if default_flag.(FFA_mem_default_flags_struct_operation_time_slicing_flag)
         then true
-        else if time_slice_enabled then false else true in
+        else negb time_slice_enabled in
     if time_slice_check then
       if default_flag.(FFA_mem_default_flags_struct_zero_memory_flag)
       then Some (FFA_INVALID_PARAMETERS
@@ -1503,7 +1498,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
     let time_slice_check :=
         if default_flag.(FFA_mem_default_flags_struct_operation_time_slicing_flag)
         then true
-        else if time_slice_enabled then false else true in
+        else negb time_slice_enabled in
     if time_slice_check then None      
     else Some (FFA_INVALID_PARAMETERS
                  "check_FFA_mem_default_flags_struct_for_donate_and_lend_retrieve").
@@ -1515,7 +1510,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
     let time_slice_check :=
         if default_flag.(FFA_mem_default_flags_struct_operation_time_slicing_flag)
         then true
-        else if time_slice_enabled then false else true in
+        else negb time_slice_enabled in
     if time_slice_check then
       if default_flag.(FFA_mem_default_flags_struct_zero_memory_flag)
       then Some (FFA_INVALID_PARAMETERS
@@ -1707,7 +1702,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         if relinquish_flag
            .(FFA_mem_relinquish_req_flags_struct_operation_time_slicing_flag)
         then true
-        else if time_slice_enabled then false else true in
+        else negb time_slice_enabled in
     if time_slice_check then
       if relinquish_flag
          .(FFA_mem_relinquish_req_flags_struct_zero_memory_before_retrieval_flag)
@@ -2069,34 +2064,24 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
       MEMORY_REGION_FLAG_DEFAULT 0 init_ffa_memory_region_tag nil init_FFA_composite_memory_region_struct.
 
   (** **** well formed conditions *)
-  Fixpoint well_formed_FFA_memory_region_struct_receivers
+  Definition well_formed_FFA_memory_region_struct_receivers
            (access_descriptors:
               list FFA_endpoint_memory_access_descriptor_struct)
            (composite_descriptors:
               FFA_composite_memory_region_struct) :=
-    match access_descriptors with
-    | nil => true
-    | hd::tl =>
-      well_formed_FFA_endpoint_memory_access_descriptor_struct
-        hd composite_descriptors &&
-      well_formed_FFA_memory_region_struct_receivers
-        tl composite_descriptors
-    end.
+    List.forallb
+      (well_formed_FFA_endpoint_memory_access_descriptor_struct composite_descriptors)
+      access_descriptors.
 
   Definition FFA_memory_region_receivers_number_donate_check
              (ffa_memory_region: FFA_memory_region_struct) :=
-    if decide ((length ffa_memory_region
-                .(FFA_memory_region_struct_receivers) = 1)%nat)
-    then true
-    else false.
+    isTrue ((length ffa_memory_region
+                .(FFA_memory_region_struct_receivers) = 1)%nat).
 
   Definition FFA_memory_region_receivers_number_lend_and_share_check
              (ffa_memory_region: FFA_memory_region_struct) :=
-    if decide ((length ffa_memory_region
-                .(FFA_memory_region_struct_receivers) > 0)%nat)
-    then true
-    else false.
-
+    isTrue ((length ffa_memory_region
+                .(FFA_memory_region_struct_receivers) > 0)%nat).
 
   (** Return INVALID_PARAMETERS when it is not satisfied *)
   (** - For Tag, the following thing is not captured in our well-formed conditions 
@@ -2110,8 +2095,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
              (memory_region : FFA_memory_region_struct)
              (function_type : FFA_FUNCTION_TYPE) :=
     let handle_value_check :=
-        if decide (memory_region.(FFA_memory_region_struct_handle) = 0)
-        then true else false in
+        isTrue (memory_region.(FFA_memory_region_struct_handle) = 0) in
     let handle_value_and_receiver_num_check :=
         match function_type with
         | FFA_MEM_DONATE =>
