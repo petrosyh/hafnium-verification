@@ -24,6 +24,13 @@ Open Scope Z_scope.
 Class Decision (P: Prop) := decide: {P} + {~P}.
 Arguments decide P {_}.
 
+Ltac decision_eq :=
+  unfold Decision;
+  decide equality;
+  try match goal with
+      | |- {?a = ?b} + {?a <> ?b} => apply (decide (a = b))
+      end.
+
 Definition isTrue P `{Decision P} :=
   if decide P then true else false.
 
