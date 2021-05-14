@@ -75,11 +75,11 @@ Local Open Scope ffa_monad_scope.
 
 (* end hide *)
 
-Definition GET_TEST : RESULT Z :=
+Example GET_TEST : RESULT Z :=
   get Z, "error", a <- (Some 1)
     ;;; SUCCESS a.
 
-Definition CHECK_TEST : RESULT (Z * bool) :=
+Example CHECK_TEST : RESULT (Z * bool) :=
   check (Z * bool), "error",
   (decide (1 = 1))
     ;;; SUCCESS (1, true).
@@ -143,23 +143,18 @@ Section VALID_COMBINATIONS.
   Definition mem_states_valid_combination
              (a b : ffa_UUID_t) (ownership: OWNERSHIP_STATE_TYPE)
              (access: ACCESS_STATE_TYPE) :=
-    if decide (a <> b) 
-    then match ownership, access with
-         | Owned id, NoAccess =>
-           if decide (a = id) || decide (b = id)
-           then true else false                                  
-         | Owned id, ExclusiveAccess id' =>
-           if decide (a = id) || decide (b = id)
-           then if decide (a = id') || decide (b = id')
-                then true else false
-           else false
-         | Owned id, SharedAccess ids =>
-           if decide (a = id) || decide (b = id)
-           then if (in_dec zeq a ids) || (in_dec zeq b ids)
-                then true else false
+    if decide (a <> b)
+    then match ownership with
+         | Owned id =>
+           if decide (a = id) || decide (b = id) then
+             match access with
+             | NoAccess => true
+             | ExclusiveAccess id' => isTrue (a = id') || isTrue (b = id')
+             | SharedAccess ids => (in_dec zeq a ids) || (in_dec zeq b ids)
+             end
            else false
          (* at least one component has ownerhsip *)
-         | _, _ => false
+         | NotOwned => false
          end
     else false.
 
@@ -314,15 +309,17 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
             - lender has to have exclusive access to the address
             - borrower does not have the memory in its memory property pool 
            *)
-          match global_property, lender_property,
-                ZTree.get page_number borrower_properties_pool  with
-          | mkMemGlobalProperties is_ns owned accessible _ _ _ dirty,
-            mkMemLocalProperties local_owned _ _ _, None =>
+          match ZTree.get page_number borrower_properties_pool with
+          | None =>
             (** - Check the valid onwership and accessibility combination for lender and borrower *)
-            match is_ns, mem_states_valid_combination lender borrower owned accessible,
-                  owned, accessible, local_owned with
-            | false, true, Owned owner, ExclusiveAccess ex_accessor, LocalOwned =>
-              if decide (owner = lender) && decide (ex_accessor = lender)
+            let '(mkMemGlobalProperties is_ns owned accessible _ _ _ dirty) := global_property in
+            let '(mkMemLocalProperties local_owned _ _ _) := lender_property in
+            match owned, accessible, local_owned with
+            | Owned owner, ExclusiveAccess ex_accessor, LocalOwned =>
+              if decide (owner = lender)
+                 && decide (ex_accessor = lender)
+                 && negb is_ns
+                 && mem_states_valid_combination lender borrower owned accessible
               then
                 (** - Only change accessibility option of the lender. The remaining operations will
                 be performed in the retrieve *)
@@ -336,9 +333,9 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
                                          ++(SetAccessible lender page_number NoAccess)::nil} in
                 SUCCESS (new_st, true)
               else SUCCESS (st, false)
-            | _, _, _, _, _ => SUCCESS (st, false)
+            | _, _, _ => SUCCESS (st, false)
             end
-          | _, _, _ => SUCCESS (st, false)
+          | Some _ => SUCCESS (st, false)
           end.
     
   End FFA_MEM_DONATE_CORE_STEPS.
@@ -367,13 +364,11 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
       "cannot get lender_property",
       lender_property
       <- (ZTree.get page_number lender_properties_pool)
-          ;;; match global_property, lender_property,
-                    ZTree.get page_number borrower_properties_pool with
-              | mkMemGlobalProperties _ owned accessible _ _ _ dirty,
-                mkMemLocalProperties local_owned _ _ _, None =>
-                (** - Check the valid onwership and accessibility combination for lender and borrower *)        
+          ;;; match ZTree.get page_number borrower_properties_pool with
+              | None =>
+                let '(mkMemGlobalProperties _ owned accessible _ _ _ _) := global_property in
                 SUCCESS (mem_states_valid_combination lender borrower owned accessible)
-              | _, _, _ => FAIL bool "invalid properties"
+              | Some _ => FAIL bool "invalid properties"
               end.
 
     Fixpoint check_mem_states_valid_combination_for_borrowers
