@@ -24,12 +24,22 @@ Open Scope Z_scope.
 Class Decision (P: Prop) := decide: {P} + {~P}.
 Arguments decide P {_}.
 
-Ltac decision_eq :=
+Ltac decision_eqs n :=
   unfold Decision;
   decide equality;
-  try match goal with
-      | |- {?a = ?b} + {?a <> ?b} => apply (decide (a = b))
-      end.
+  match goal with
+  | |- {?a = ?b} + {?a <> ?b} =>
+    (apply (decide (a = b))) +
+    (destruct a, b;
+     match n with
+     | S (S (?n')) => decision_eqs (S n')
+     | S _ => idtac
+     | O => idtac
+     | _ => let n_t := type of n in fail "decision_eqs takes a nat (got" n_t "instead)"
+     end)
+  end.
+
+Ltac decision_eq := decision_eqs 1%nat.
 
 Definition isTrue P `{Decision P} :=
   if decide P then true else false.
@@ -116,63 +126,10 @@ Program Instance decide_none {A} (a: option A): Decision (a = None) := {
     end
 }.
 
-Program Instance decide_option_eq {A}:
-  (forall (x y : A), Decision (x = y)) ->
-  (forall (x y : option A), Decision (x = y)) := 
-  fun H x y =>
-    match x, y with
-      | Some x, Some y =>
-        match decide (x = y) with
-          | left H => left (f_equal _ H)
-          | right H => right _
-        end
-      | None, None =>
-        left eq_refl
-      | _, _ =>
-        right _
-    end.
-Obligation 4.
-intros contra; destruct x eqn: ?; destruct y eqn: ?; simpl; try discriminate.
-- inversion contra; subst.
-  apply (H1 a0 a0); tauto.
-- elim H0; tauto.
-Qed.
-
-Obligation 5.
-split.
-- intros [contra _]; inversion contra.
-- intros; intros [_ contra]; inversion contra.
-Qed.
-
-Obligation 6.
-split.
-- intros [_ contra]; inversion contra.
-- intros; intros [contra _]; inversion contra.
-Qed.
-
-(*
 Instance decide_option_eq {A}:
   (forall (x y : A), Decision (x = y)) ->
-  (forall (x y : option A), Decision (x = y)) := 
-  fun H x y =>
-    match x, y with
-      | Some x, Some y =>
-        match decide (x = y) with
-          | left H => left (f_equal _ H)
-          | right H => right _
-        end
-      | None, None =>
-        left eq_refl
-      | _, _ =>
-        right _
-    end.
-Obligations.
-  * abstract (injection; eauto).
-  * abstract discriminate.
-  * abstract discriminate.
-Defined.
-*)
-
+  (forall (x y : option A), Decision (x = y)).
+Proof. decision_eq. Qed.
 
 Program Instance not_dec P `(Pdec: Decision P): Decision (~P) :=
   {
@@ -182,6 +139,14 @@ Program Instance not_dec P `(Pdec: Decision P): Decision (~P) :=
         | right _ => left _
       end
   }.
+(* SF:
+Instance not_dec A : Decision A -> Decision (~ A).
+Proof.
+  intros H.
+  unfold Decision.
+  destruct (decide A); auto.
+Qed.
+ *)
 
 (*
 Instance not_dec P `(Pdec: Decision P): Decision (~P) :=
@@ -238,14 +203,7 @@ Section DECIDE_PROD.
   Context B `{Bdec: forall x y: B, Decision (x = y)}.
 
   Global Instance decide_eq_pair: forall (x y: A * B), Decision (x = y).
-  Proof.
-    intros [x1 x2] [y1 y2].
-    destruct (decide (x1 = y1)).
-    destruct (decide (x2 = y2)).
-    left; congruence.
-    right; intro H; inversion H; now auto.
-    right; intro H; inversion H; now auto.
-  Defined.
+  Proof. decision_eq. Qed.
 End DECIDE_PROD.
 
 (** * Decision procedures for lists *)
@@ -278,7 +236,7 @@ Defined.
 
 Instance list_decide_eq {A} `{forall (x y: A), Decision (x = y)} :
   forall (xs ys: list A), Decision (xs = ys).
-Proof. intros; apply list_eq_dec; auto. Qed.
+Proof. decision_eq. Qed.
 
 (** * Decision procedures from [compare] *)
 
@@ -286,11 +244,9 @@ Proof. intros; apply list_eq_dec; auto. Qed.
   [le x y := compare x y <> Gt]. *)
 
 Instance comparison_eq_dec (x y: comparison): Decision (x = y).
-Proof.
-  red.
-  decide equality.
-Defined.
+Proof. decision_eq. Qed.
 
+(* SF: we already have the following from `not_dec` and `comparison_eq_dec` *)
 Program Instance comparison_ne_dec (x y: comparison): Decision (x <> y) :=
   match decide (x = y) with
     | left Hne => right _
