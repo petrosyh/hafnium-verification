@@ -153,19 +153,14 @@ Section VALID_COMBINATIONS.
   Definition mem_states_valid_combination
              (a b : ffa_UUID_t) (ownership: OWNERSHIP_STATE_TYPE)
              (access: ACCESS_STATE_TYPE) :=
-    if decide (a <> b) (* /\ (ownership = Owned a)) *)
-    then match ownership with
-         | Owned id =>
-           if decide (a = id \/ b = id) then
-             match access with
-             | NoAccess => true
-             | ExclusiveAccess id' => isTrue (a = id') || isTrue (b = id')
-             | SharedAccess ids => (in_dec zeq a ids) || (in_dec zeq b ids)
-             end
-           else false
-         (* at least one component has ownerhsip *)
-         | NotOwned => false
-         end
+    (* at least one component has ownerhsip *)
+    if decide (a <> b /\ (ownership = Owned a \/ ownership = Owned b))
+    then
+      match access with
+      | NoAccess => true
+      | ExclusiveAccess id' => decide (a = id' \/ b = id')
+      | SharedAccess ids => decide (In a ids \/ In b ids)
+      end
     else false.
 
   Definition hyp_mem_global_props (st : AbstractState) :=
@@ -316,33 +311,27 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
             - lender has to have exclusive access to the address
             - borrower does not have the memory in its memory property pool
            *)
-      ;; match ZTree.get page_number borrower_properties_pool with
-         | None =>
-           (** - Check the valid onwership and accessibility combination for lender and borrower *)
-           let '(mkMemGlobalProperties is_ns owned accessible _ _ _ dirty) := global_property in
-           let '(mkMemLocalProperties local_owned _ _ _) := lender_property in
-           match owned, accessible, local_owned with
-           | Owned owner, ExclusiveAccess ex_accessor, LocalOwned =>
-             if decide (owner = lender /\ ex_accessor = lender)
-                && negb is_ns
-                && mem_states_valid_combination lender borrower owned accessible
-             then
-               (** - Only change accessibility option of the lender. The remaining operations will
-                be performed in the retrieve *)
-               let new_global_props :=
-                   ZTree.set page_number (global_property {accessible_by: NoAccess})
-                             (hyp_mem_global_props st) in
-               let new_st :=
-                   st {hypervisor_context / mem_properties :
-                         mkMemProperties new_global_props (hyp_mem_local_props st)}
-                      {system_log: st.(system_log)
-                                        ++(SetAccessible lender page_number NoAccess)::nil} in
-               ret (new_st, true)
-             else ret (st, false)
-           | _, _, _ => ret (st, false)
-           end
-         | Some _ => ret (st, false)
-         end.
+      (** - Check the valid onwership and accessibility combination for lender and borrower *)
+      ;; if mem_states_valid_combination lender borrower
+                                         global_property.(owned_by) global_property.(accessible_by)
+            && decide (ZTree.get page_number borrower_properties_pool = None
+                       /\ global_property.(owned_by) = Owned lender
+                       /\ global_property.(accessible_by) = ExclusiveAccess lender
+                       /\ lender_property.(mem_local_owned) = LocalOwned)
+            && negb global_property.(is_ns)
+         then
+           (** - Only change accessibility option of the lender. The remaining operations will
+            be performed in the retrieve *)
+           let new_global_props :=
+               ZTree.set page_number (global_property {accessible_by: NoAccess})
+                         (hyp_mem_global_props st) in
+           let new_st :=
+               st {hypervisor_context / mem_properties :
+                     mkMemProperties new_global_props (hyp_mem_local_props st)}
+                  {system_log: st.(system_log)
+                                    ++(SetAccessible lender page_number NoAccess)::nil} in
+           ret (new_st, true)
+         else ret (st, false).
 
   End FFA_MEM_DONATE_CORE_STEPS.
 
@@ -373,16 +362,16 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
          | Some _ => FAIL "invalid properties"
          end.
 
-    Fixpoint check_mem_states_valid_combination_for_borrowers
+    Definition check_mem_states_valid_combination_for_borrowers
              (lender : ffa_UUID_t) (borrowers : list ffa_UUID_t)
              (page_number: Z) (st : AbstractState) :=
-      match borrowers with
-      | nil => SUCCESS true
-      | hd::tl =>
-        res <- check_mem_states_valid_combination_for_borrowers
-                lender tl page_number st
-        ;; check_mem_states_valid_combination lender hd page_number st
-      end.
+      List.fold_right
+        (fun borrower res =>
+           prev <- res
+           ;; check <- check_mem_states_valid_combination lender borrower page_number st
+           ;; ret (check && prev))
+        (ret true)
+        borrowers.
 
     (** TODO: need to use RESULT type instead of bool *)
     Definition check_mem_states_valid_combination_for_borrowers_unwrapper
@@ -455,33 +444,26 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
             -   lender has to have exclusive access to the address
             - borrower does not have the memory in its memory property pool 
            *)
-      ;; match global_property, lender_property,
-               check_mem_states_valid_combination_for_borrowers_unwrapper
-                 lender borrowers page_number st  with
-         | mkMemGlobalProperties is_ns owned accessible _ _ _ dirty,
-           mkMemLocalProperties local_owned _ _ _, true =>
-           (** - Check the valid onwership and accessibility combination for lender and borrower *)
-           match is_ns, owned, accessible, local_owned with
-           | false, Owned owner, ExclusiveAccess ex_accessor, LocalOwned =>
-             if decide (owner = lender /\ ex_accessor = lender)
-             then (** Only change accessibility option of the lender. The remaining operations will
-                      be performed in the retrieve *)
-               let new_global_props :=
-                   ZTree.set
-                     page_number (global_property {accessible_by: NoAccess})
-                     (hyp_mem_global_props st) in
-               let new_st :=
-                   st {hypervisor_context / mem_properties :
-                         mkMemProperties new_global_props (hyp_mem_local_props st)}
-                      {system_log: st.(system_log)
-                                        ++(SetAccessible lender page_number NoAccess)::nil} in
-               ret (new_st, true)
-             else ret (st, false)
-           | _, _, _, _ => ret (st, false)
-           end
-         | _, _, _ => ret (st, false)
-         end.
-    
+      ;; if check_mem_states_valid_combination_for_borrowers_unwrapper
+              lender borrowers page_number st
+            && decide (global_property.(owned_by) = Owned lender
+                       /\ global_property.(accessible_by) = ExclusiveAccess lender
+                       /\ lender_property.(mem_local_owned) = LocalOwned)
+            && negb global_property.(is_ns)
+         then (** Only change accessibility option of the lender. The remaining operations will
+                  be performed in the retrieve *)
+           let new_global_props :=
+               ZTree.set
+                 page_number (global_property {accessible_by: NoAccess})
+                 (hyp_mem_global_props st) in
+           let new_st :=
+               st {hypervisor_context / mem_properties :
+                     mkMemProperties new_global_props (hyp_mem_local_props st)}
+                  {system_log: st.(system_log)
+                                    ++(SetAccessible lender page_number NoAccess)::nil} in
+           ret (new_st, true)
+         else ret (st, false).
+
   End FFA_MEM_LEND_CORE_STEPS.
     
   Section FFA_MEM_SHARE_CORE_STEPS.
@@ -540,33 +522,26 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
             - lender has to have exclusive access to the address
             - borrower does not have the memory in its memory property pool 
            *)
-      ;; match global_property, lender_property,
-               check_mem_states_valid_combination_for_borrowers_unwrapper
-                 lender borrowers page_number st  with
-         | mkMemGlobalProperties is_ns owned accessible _ _ _ dirty,
-           mkMemLocalProperties local_owned _ _ _, true =>
-           (** Check the valid onwership and accessibility combination for lender and borrower *)
-           match is_ns, owned, accessible, local_owned with
-           | false, Owned owner, ExclusiveAccess ex_accessor, LocalOwned =>
-             if decide (owner = lender /\ ex_accessor = lender)
-             then (** Only change accessibility option of the lender. The remaining operations will
-                      be performed in the retrieve *)
-               let new_global_props :=
-                   ZTree.set page_number
-                             (global_property
-                                {accessible_by: SharedAccess (lender::nil)})
-                             (hyp_mem_global_props st) in
-               let new_st :=
-                   st {hypervisor_context / mem_properties :
-                         mkMemProperties new_global_props (hyp_mem_local_props st)}
-                      {system_log: st.(system_log)
-                                        ++(SetAccessible lender page_number NoAccess)::nil} in
-               ret (new_st, true)
-             else ret (st, false)
-           | _, _, _, _ => ret (st, false)
-           end
-         | _, _, _ => ret (st, false)
-         end.
+      ;; if check_mem_states_valid_combination_for_borrowers_unwrapper
+              lender borrowers page_number st
+            && decide (global_property.(owned_by) = Owned lender
+                       /\ global_property.(accessible_by) = ExclusiveAccess lender
+                       /\ lender_property.(mem_local_owned) = LocalOwned)
+            && negb global_property.(is_ns)
+         then (** Only change accessibility option of the lender. The remaining operations will
+                  be performed in the retrieve *)
+           let new_global_props :=
+               ZTree.set page_number
+                         (global_property
+                            {accessible_by: SharedAccess (lender::nil)})
+                         (hyp_mem_global_props st) in
+           let new_st :=
+               st {hypervisor_context / mem_properties :
+                     mkMemProperties new_global_props (hyp_mem_local_props st)}
+                  {system_log: st.(system_log)
+                                    ++(SetAccessible lender page_number NoAccess)::nil} in
+           ret (new_st, true)
+         else ret (st, false).
 
   End FFA_MEM_SHARE_CORE_STEPS.
 
@@ -630,56 +605,51 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
               - lender has to have exclusive access to the address
               - borrower does not have the memory in its memory property pool 
            *)
-      ;; match global_property, lender_property,
-               ZTree.get page_number borrower_properties_pool  with
-         | mkMemGlobalProperties is_ns owned accessible _ _ _ dirty,
-           mkMemLocalProperties local_owned _ _ _, None =>
-           (** - Check the valid onwership and accessibility combination for lender and borrower *)
-           match is_ns, mem_states_valid_combination lender borrower owned accessible,
-                 owned, accessible, local_owned with
-           | false, true, Owned owner, NoAccess, LocalOwned =>
-             if decide (owner = lender)
-             then let new_dirty := if clean then MemClean else dirty in
-                  (** - Only change accessibility option of the lender. The remaining operations will
-                      be performed in the retrieve *)
-                  let new_global_properties :=
-                      ZTree.set page_number
-                                (global_property
-                                   {owned_by: Owned borrower}
-                                   {accessible_by: ExclusiveAccess borrower}
-                                   {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
-                  (** - Remove the corresponding map in the lender memory local properties pool *)
-                  let new_lender_properties_pool :=
-                      ZTree.remove page_number lender_properties_pool in
-                  (** - Create the new  memory local properties pool for the borrower.
-                     Instead of     making a new ini  tial state, we copied the previous local properties that lender had.
-                     Next opeartions can adjust th     e properties if it is necessary *)
-                  let new_borrower_properties_pool :=
-                      ZTree.set page_number
-                                (gen_own_mem_local_properties_wrapper lender_property)
-                                borrower_properties_pool in
-                  let new_local_properties_global_pool' :=
-                      ZTree.set lender new_lender_properties_pool
-                                (hyp_mem_local_props st) in
-                  let new_local_properties_global_pool :=
-                      ZTree.set borrower
-                                new_borrower_properties_pool
-                                new_local_properties_global_pool' in
-                  let new_st :=
-                      st {hypervisor_context / mem_properties :
-                            mkMemProperties new_global_properties
-                                            new_local_properties_global_pool}
-                         {system_log: st.(system_log)
-                                           ++((SetOwner lender page_number (Owned borrower))
-                                                ::(SetAccessible lender page_number
-                                                                (ExclusiveAccess borrower))
-                                                ::(SetDirty lender page_number new_dirty)::nil)} in
-                  ret (new_st, true)
-             else ret (st, false)
-           | _, _, _, _, _ => ret (st, false)
-           end
-         | _, _, _ => ret (st, false)
-         end.
+      ;; if mem_states_valid_combination lender borrower global_property.(owned_by)
+                                         global_property.(accessible_by)
+            && decide (ZTree.get page_number borrower_properties_pool = None
+                       /\ global_property.(owned_by) = Owned lender
+                       /\ global_property.(accessible_by) = NoAccess
+                       /\ lender_property.(mem_local_owned) = LocalOwned)
+            && negb global_property.(is_ns)
+         then
+           let new_dirty := if clean then MemClean else global_property.(mem_dirty) in
+           (** - Only change accessibility option of the lender. The remaining operations will
+               be performed in the retrieve *)
+           let new_global_properties :=
+               ZTree.set page_number
+                         (global_property
+                            {owned_by: Owned borrower}
+                            {accessible_by: ExclusiveAccess borrower}
+                            {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
+           (** - Remove the corresponding map in the lender memory local properties pool *)
+           let new_lender_properties_pool :=
+               ZTree.remove page_number lender_properties_pool in
+           (** - Create the new  memory local properties pool for the borrower.
+               Instead of     making a new ini  tial state, we copied the previous local properties that lender had.
+               Next opeartions can adjust th     e properties if it is necessary *)
+           let new_borrower_properties_pool :=
+               ZTree.set page_number
+                         (gen_own_mem_local_properties_wrapper lender_property)
+                         borrower_properties_pool in
+           let new_local_properties_global_pool' :=
+               ZTree.set lender new_lender_properties_pool
+                         (hyp_mem_local_props st) in
+           let new_local_properties_global_pool :=
+               ZTree.set borrower
+                         new_borrower_properties_pool
+                         new_local_properties_global_pool' in
+           let new_st :=
+               st {hypervisor_context / mem_properties :
+                     mkMemProperties new_global_properties
+                                     new_local_properties_global_pool}
+                  {system_log: st.(system_log)
+                                    ++((SetOwner lender page_number (Owned borrower))
+                                         ::(SetAccessible lender page_number
+                                                         (ExclusiveAccess borrower))
+                                         ::(SetDirty lender page_number new_dirty)::nil)} in
+           ret (new_st, true)
+         else ret (st, false).
 
     (*************************************************************)
     (** ****         FFA_MEM_LEND_RETRIEVE_REQ                   *)
@@ -688,12 +658,12 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
     Definition add_accessor
                (borrower : ffa_UUID_t) (borrower_num : Z)
                (access_state : ACCESS_STATE_TYPE) :=
-      match access_state, decide (borrower_num > 1) with 
-      | NoAccess, left _ =>
+      match access_state, isTrue (borrower_num > 1) with
+      | NoAccess, true =>
         Some (SharedAccess (borrower::nil))
-      | NoAccess, right _ =>
+      | NoAccess, false =>
         Some (ExclusiveAccess borrower)
-      | SharedAccess borrowers, left _ =>
+      | SharedAccess borrowers, true =>
         Some (SharedAccess (borrower::borrowers))
       | _, _ => None
       end.
@@ -720,54 +690,51 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
             - lender has to have exclusive access to the address
             - borrower does not have the memory in its memory property pool 
            *)
-      ;; match global_property, lender_property,
-               ZTree.get page_number borrower_properties_pool,
-               decide (borrower_num >= 1)  with
-         | mkMemGlobalProperties is_ns owned accessible _ _ _ dirty,
-           mkMemLocalProperties local_owned _ _ _, None, left _ =>
-           (** - Check the valid onwership and accessibility combination for lender and borrower *)
-           match is_ns, mem_states_valid_combination
-                          lender borrower owned accessible,
-                 owned, add_accessor borrower borrower_num accessible,
-                 local_owned with
-           | false, true, Owned owner, Some new_accessibility, LocalOwned =>
-             if decide (owner = lender)
-             then let new_dirty := if clean then MemClean else dirty in
-                  (** - Only change accessibility option of the lender. The remaining operations will
-                     be performed in the retrieve *)
-                  let new_global_properties :=
-                      ZTree.set page_number
-                                (global_property
-                                   {owned_by: Owned borrower}
-                                   {accessible_by: new_accessibility}
-                                   {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
-                  (** - Create the new memory local properties pool for the borrower.
-                     Instead of making a new initial state, we copied the previous local properties that lender had. 
-                     Next opeartions can adjust the properties if it is necessary *)
-                  let new_borrower_properties_pool :=
-                      ZTree.set page_number
-                                (gen_borrow_mem_local_properties_wrapper
-                                   lender lender_property)
-                                borrower_properties_pool in
-                  let new_local_properties_global_pool :=
-                      ZTree.set borrower
-                                new_borrower_properties_pool
-                                (hyp_mem_local_props st) in
-                  let new_st :=
-                      st {hypervisor_context / mem_properties :
-                            mkMemProperties new_global_properties
-                                            new_local_properties_global_pool}
-                         {system_log: st.(system_log)
-                                           ++((SetOwner lender page_number (Owned borrower))
-                                                ::(SetAccessible lender page_number
-                                                                (ExclusiveAccess borrower))
-                                                ::(SetDirty lender page_number new_dirty)::nil)} in
-                  ret (new_st, true)
-             else ret (st, false)
-           | _, _, _, _, _ => ret (st, false)
+      (** - Check the valid onwership and accessibility combination for lender and borrower *)
+      ;; if mem_states_valid_combination lender borrower
+                                         global_property.(owned_by) global_property.(accessible_by)
+            && decide (ZTree.get page_number borrower_properties_pool = None
+                       /\ borrower_num >= 1
+                       /\ global_property.(owned_by) = Owned lender
+                       /\ lender_property.(mem_local_owned) = LocalOwned)
+            && negb global_property.(is_ns)
+         then
+           match add_accessor borrower borrower_num global_property.(accessible_by) with
+           | Some new_accessibility =>
+             let new_dirty := if clean then MemClean else global_property.(mem_dirty) in
+             (** - Only change accessibility option of the lender. The remaining operations will
+                   be performed in the retrieve *)
+             let new_global_properties :=
+                 ZTree.set page_number
+                           (global_property
+                              {owned_by: Owned borrower}
+                              {accessible_by: new_accessibility}
+                              {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
+             (** - Create the new memory local properties pool for the borrower.
+                 Inst ead of making a new initial state, we copied the previous local properties that lender had.
+                 Next opeartions can adjust the properties if it is necessary *)
+             let new_borrower_properties_pool :=
+                 ZTree.set page_number
+                           (gen_borrow_mem_local_properties_wrapper
+                              lender lender_property)
+                           borrower_properties_pool in
+             let new_local_properties_global_pool :=
+                 ZTree.set borrower
+                           new_borrower_properties_pool
+                           (hyp_mem_local_props st) in
+             let new_st :=
+                 st {hypervisor_context / mem_properties :
+                       mkMemProperties new_global_properties
+                                       new_local_properties_global_pool}
+                    {system_log: st.(system_log)
+                                      ++((SetOwner lender page_number (Owned borrower))
+                                           ::(SetAccessible lender page_number
+                                                           (ExclusiveAccess borrower))
+                                           ::(SetDirty lender page_number new_dirty)::nil)} in
+             ret (new_st, true)
+           | None => ret (st, false)
            end
-         | _, _, _, _ => ret (st, false)
-         end.
+         else ret (st, false).
 
     (*************************************************************)
     (** ****        FFA_MEM_SHARE_RETRIEVE_REQ                   *)
@@ -794,51 +761,53 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
             - lender has to have exclusive access to the address
             - borrower does not have the memory in its memory property pool 
            *)
-      ;; match global_property, lender_property,
-               ZTree.get page_number borrower_properties_pool  with
-         | mkMemGlobalProperties is_ns owned accessible _ _ _ dirty,
-           mkMemLocalProperties local_owned _ _ _, None =>
-           (** - Check the valid onwership and accessibility combination for lender and borrower *)
-           match is_ns, mem_states_valid_combination lender borrower owned accessible,
-                 owned, accessible, local_owned with
-           | is_ns, true, Owned owner, SharedAccess accessors, LocalOwned =>
-             if decide (owner = lender /\ in_dec zeq lender accessors)
-             then let new_dirty := if clean then MemClean else dirty in
-                  (** - Only change accessibility option of the lender. The remaining operations will
+      (** - Check the valid onwership and accessibility combination for lender and borrower *)
+      ;; if mem_states_valid_combination lender borrower
+                                         global_property.(owned_by) global_property.(accessible_by)
+            && decide (ZTree.get page_number borrower_properties_pool = None
+                       /\ global_property.(owned_by) = Owned lender
+                       /\ lender_property.(mem_local_owned) = LocalOwned)
+            && negb global_property.(is_ns)
+         then
+           match global_property.(accessible_by) with
+           | SharedAccess accessors =>
+             if decide (In lender accessors) then
+               let new_dirty := if clean then MemClean else global_property.(mem_dirty) in
+               (** - Only change accessibility option of the lender. The remaining operations will
                      be performed in the retrieve *)
-                  let new_global_properties :=
-                      ZTree.set page_number
-                                (global_property
-                                   {owned_by: Owned borrower}
-                                   {accessible_by: SharedAccess (borrower::accessors)}
-                                   {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
-                  (** - Create the new  memory local properties pool for the borrower.
-                     Instead of making a new initial state, we copied the previous local properties that lender had. 
+               let new_global_properties :=
+                   ZTree.set page_number
+                             (global_property
+                                {owned_by: Owned borrower}
+                                {accessible_by: SharedAccess (borrower::accessors)}
+                                {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
+               (** - Create the new  memory local properties pool for the borrower.
+                     Instead of making a new initial state, we copied the previous local properties that lender had.
                      Next opeartions can adjust the properties if it is necessary *)
-                  let new_borrower_properties_pool :=
-                      ZTree.set page_number
-                                (gen_borrow_mem_local_properties_wrapper
-                                   lender lender_property)
-                                borrower_properties_pool in
-                  let new_local_properties_global_pool :=
-                      ZTree.set borrower
-                                new_borrower_properties_pool
-                                (hyp_mem_local_props st) in
-                  let new_st :=
-                      st {hypervisor_context / mem_properties :
-                            mkMemProperties new_global_properties
-                                            new_local_properties_global_pool}
-                         {system_log: st.(system_log)
-                                           ++((SetOwner lender page_number (Owned borrower))
-                                                ::(SetAccessible lender page_number
-                                                                (SharedAccess (borrower::accessors)))
-                                                ::(SetDirty lender page_number new_dirty)::nil)} in
-                  ret (new_st, true)
+               let new_borrower_properties_pool :=
+                   ZTree.set page_number
+                             (gen_borrow_mem_local_properties_wrapper
+                                lender lender_property)
+                             borrower_properties_pool in
+               let new_local_properties_global_pool :=
+                   ZTree.set borrower
+                             new_borrower_properties_pool
+                             (hyp_mem_local_props st) in
+               let new_st :=
+                   st {hypervisor_context / mem_properties :
+                         mkMemProperties new_global_properties
+                                         new_local_properties_global_pool}
+                      {system_log: st.(system_log)
+                                        ++((SetOwner lender page_number (Owned borrower))
+                                             ::(SetAccessible lender page_number
+                                                             (SharedAccess (borrower::accessors)))
+                                             ::(SetDirty lender page_number new_dirty)::nil)} in
+               ret (new_st, true)
              else ret (st, false)
-           | _, _, _, _, _ => ret (st, false)
+           | _ => ret (st, false)
            end
-         | _, _, _ => ret (st, false)
-         end.
+         else ret (st, false).
+
 
   End FFA_MEM_RETRIEVE_REQ_CORE_STEP.
   
@@ -883,7 +852,7 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
     Definition remove_accessor
                (lender borrower : ffa_UUID_t)
                (access_state : ACCESS_STATE_TYPE) :=
-      match access_state with 
+      match access_state with
       | ExclusiveAccess borrower' =>
         if decide (borrower = borrower')
         then Some (ExclusiveAccess lender)
@@ -902,18 +871,14 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
           else
             (** - This is the case for Lend. Lend opeartion excludes lender's access, so we check it
                   - we can ignore them. I believe ignoring them is safe *)
-            match (List.In_dec zeq borrower shared_vms) with
-            | left _ =>
+            if decide (In borrower shared_vms) then
               Some (SharedAccess (List.remove zeq borrower shared_vms))
-            | _ => None
-            end
+            else None
         (** - This is the case for Lend. Lend opeartion excludes lender's access, so we check it
               - we can ignore them. I believe ignoring them is safe *)
-        | _ => match (List.In_dec zeq borrower shared_vms) with
-              | left _ =>
+        | _ => if decide (In borrower shared_vms) then
                 Some (SharedAccess (List.remove zeq borrower shared_vms))
-              | _ => None
-              end
+              else None
         end
       | _ => None
       end.
@@ -939,47 +904,45 @@ Section FFA_MEMORY_INTERFACE_CORE_STEPS.
             - lender has to have exclusive access to the address
             - borrower does not have the memory in its memory property pool
        *)
-      ;; match global_property, lender_property,
-               ZTree.get page_number borrower_properties_pool  with
-         | mkMemGlobalProperties is_ns owned accessible _ _ _ dirty,
-           mkMemLocalProperties local_owned _ _ _, None =>
-           (** - Check the valid onwership and accessibility combination for lender and borrower *)
-           match is_ns, mem_states_valid_combination lender borrower owned accessible,
-                 owned, remove_accessor lender borrower accessible, local_owned with
-           | false, true, Owned owner, Some new_accessibility, LocalOwned =>
-             if decide (owner = lender)
-             then let new_dirty := if clean then MemClean else dirty in
-                  (** - Only change accessibility option of the lender. The remaining operations will
-                     be performed in the retrieve *)
-                  let new_global_properties :=
-                      ZTree.set page_number (global_property
-                                               {owned_by: Owned lender}
-                                               {accessible_by: new_accessibility}
-                                               {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
-                  (** - Create the new  memory local properties pool for the borrower.
-                     Instead of making a new initial state, we copied the previous local properties that lender had. 
-                     Next opeartions can adjust the properties if it is necessary *)               
-                  let new_borrower_properties_pool :=
-                      ZTree.remove page_number borrower_properties_pool in
-                  let new_local_properties_global_pool :=
-                      ZTree.set borrower
-                                new_borrower_properties_pool
-                                (hyp_mem_local_props st) in
-                  let new_st :=
-                      st {hypervisor_context / mem_properties :
-                            mkMemProperties new_global_properties
-                                            new_local_properties_global_pool}
-                         {system_log: st.(system_log)
-                                           ++((SetOwner lender page_number (Owned borrower))
-                                                ::(SetAccessible lender page_number new_accessibility)
-                                                ::(SetDirty lender page_number new_dirty)::nil)} in
-
-                  ret (new_st, true)
-             else ret (st, false)
-           | _, _, _, _, _ => ret (st, false)
+      (** - Check the valid onwership and accessibility combination for lender and borrower *)
+      ;; if mem_states_valid_combination lender borrower
+                                         global_property.(owned_by) global_property.(accessible_by)
+            && decide (ZTree.get page_number borrower_properties_pool = None
+                       /\ global_property.(owned_by) = Owned lender
+                       /\ lender_property.(mem_local_owned) = LocalOwned)
+            && negb global_property.(is_ns)
+         then
+           match remove_accessor lender borrower global_property.(accessible_by) with
+           | Some new_accessibility =>
+             let new_dirty := if clean then MemClean else global_property.(mem_dirty) in
+             (** - Only change accessibility option of the lender. The remaining operations will
+                 be performed in the retrieve *)
+             let new_global_properties :=
+                 ZTree.set page_number (global_property
+                                          {owned_by: Owned lender}
+                                          {accessible_by: new_accessibility}
+                                          {mem_dirty : new_dirty}) (hyp_mem_global_props st) in
+             (** - Create the new  memory local properties pool for the borrower.
+                 Instead of making a new initial state, we copied the previous local properties that lender had.
+                 Next opeartions can adjust the properties if it is necessary *)
+             let new_borrower_properties_pool :=
+                 ZTree.remove page_number borrower_properties_pool in
+             let new_local_properties_global_pool :=
+                 ZTree.set borrower
+                           new_borrower_properties_pool
+                           (hyp_mem_local_props st) in
+             let new_st :=
+                 st {hypervisor_context / mem_properties :
+                       mkMemProperties new_global_properties
+                                       new_local_properties_global_pool}
+                    {system_log: st.(system_log)
+                                      ++((SetOwner lender page_number (Owned borrower))
+                                           ::(SetAccessible lender page_number new_accessibility)
+                                           ::(SetDirty lender page_number new_dirty)::nil)} in
+             ret (new_st, true)
+           | None => ret (st, false)
            end
-         | _, _, _ => ret (st, false)
-         end.
+         else ret (st, false).
 
   End FFA_MEM_RELINQUISH_CORE_STEPS.
 
