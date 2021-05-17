@@ -201,7 +201,7 @@ Section MEM_AND_PTABLE.
   | Owned (id : ffa_UUID_t)
   | NotOwned.
 
-  Instance decide_OWNERSHIP_STATE_TYPE_eq : forall (m n : OWNERSHIP_STATE_TYPE), Decision (m = n).
+  #[global] Instance decide_OWNERSHIP_STATE_TYPE_eq : forall (m n : OWNERSHIP_STATE_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (** Indicates access state of each memory address *)
@@ -211,7 +211,7 @@ Section MEM_AND_PTABLE.
   (** SharedAccess with one UUID differs from ExclusiveAccess - Note that accesssors will not be nil *)
   | SharedAccess (accessors : list ffa_UUID_t).
 
-  Instance decide_ACCESS_STATE_TYPE_eq : forall (m n : ACCESS_STATE_TYPE), Decision (m = n).
+  #[global] Instance decide_ACCESS_STATE_TYPE_eq : forall (m n : ACCESS_STATE_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (** Check whether the page is dirty or clean. Some FFA calls clean the memory, and it is 
@@ -229,7 +229,7 @@ Section MEM_AND_PTABLE.
       - Note that accesssors will not be nil *)
   | MemWritten (writers: list ffa_UUID_t).
 
-  Instance decide_MEM_DIRTY_TYPE_eq : forall (m n : MEM_DIRTY_TYPE), Decision (m = n).
+  #[global] Instance decide_MEM_DIRTY_TYPE_eq : forall (m n : MEM_DIRTY_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (** This memory properties are key features that we may hope to guarantee in our system -
@@ -269,7 +269,7 @@ Section MEM_AND_PTABLE.
   | LocalOwned
   | LocalBorrowed (owner : ffa_UUID_t).
 
-  Instance decide_MEM_LOCAL_OWNED_TYPE_eq : forall (m n : MEM_LOCAL_OWNED_TYPE), Decision (m = n).
+  #[global] Instance decide_MEM_LOCAL_OWNED_TYPE_eq : forall (m n : MEM_LOCAL_OWNED_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (* [TODO: we need to check whether the following MemAttributes needs to be a global attributes

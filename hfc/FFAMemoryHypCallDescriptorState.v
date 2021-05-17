@@ -141,7 +141,7 @@ Section FFA_DATATYPES.
   | FFA_MEM_RELINQUISH
   | FFA_MEM_RECLAIM.
 
-  Instance decide_FFA_FUNCTION_TYPE_eq : forall (m n : FFA_FUNCTION_TYPE), Decision (m = n).
+  #[global] Instance decide_FFA_FUNCTION_TYPE_eq : forall (m n : FFA_FUNCTION_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (** The following parts are not defined in Chapter 5, but in Chapter 7.
@@ -170,10 +170,11 @@ Section FFA_DATATYPES.
   | FFA_RETRY (reason: string)
   | FFA_ABORTED (reason: string).
 
+  (* SF: these should probably be somewhere else *)
   (* Instance decide_ascii_eq (m n : ascii) : Decision (m = n) := {decide := ascii_dec m n}. *)
-  Instance decide_string_eq (m n : string) : Decision (m = n) := {decide := Strings.String.string_dec m n}.
+  #[global] Instance decide_string_eq (m n : string) : Decision (m = n) := {decide := Strings.String.string_dec m n}.
 
-  Instance decide_FFA_ERROR_CODE_TYPE_eq : forall (m n : FFA_ERROR_CODE_TYPE), Decision (m = n).
+  #[global] Instance decide_FFA_ERROR_CODE_TYPE_eq : forall (m n : FFA_ERROR_CODE_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (*[SF: Consider adding
@@ -195,7 +196,7 @@ Section FFA_DATATYPES.
   | FFA_ERROR (ffa_error_value : FFA_ERROR_CODE_TYPE) 
   | FFA_SUCCESS (ffa_handle : ffa_memory_handle_t).
 
-  Instance decide_FFA_RESULT_CODE_TYPE_eq : forall (m n : FFA_RESULT_CODE_TYPE), Decision (m = n).
+  #[global] Instance decide_FFA_RESULT_CODE_TYPE_eq : forall (m n : FFA_RESULT_CODE_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (** *** FFA Identifier Type Coq Definition *)
@@ -206,7 +207,7 @@ Section FFA_DATATYPES.
   | FFA_FUNCTION_IDENTIFIER (func: FFA_FUNCTION_TYPE)
   | FFA_RESULT_CODE_IDENTIFIER (func: FFA_RESULT_CODE_TYPE).
 
-  Instance decide_FFA_IDENTIFIER_TYPE_eq : forall (m n : FFA_IDENTIFIER_TYPE), Decision (m = n).
+  #[global] Instance decide_FFA_IDENTIFIER_TYPE_eq : forall (m n : FFA_IDENTIFIER_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
 End FFA_DATATYPES.
@@ -523,7 +524,7 @@ Section FFA_DESCRIPTIONS.
   | FFA_INSTRUCTION_ACCESS_X
   | FFA_INSTRUCTION_ACCESS_RESERVED.
 
-  Instance decide_FFA_INSTRUCTION_ACCESS_TYPE_eq : forall (m n : FFA_INSTRUCTION_ACCESS_TYPE), Decision (m = n).
+  #[global] Instance decide_FFA_INSTRUCTION_ACCESS_TYPE_eq : forall (m n : FFA_INSTRUCTION_ACCESS_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (**
@@ -538,7 +539,7 @@ Section FFA_DESCRIPTIONS.
   | FFA_DATA_ACCESS_RW
   | FFA_DATA_ACCESS_RESERVED.
 
-  Instance decide_FFA_DATA_ACCESS_TYPE_eq : forall (m n : FFA_DATA_ACCESS_TYPE), Decision (m = n).
+  #[global] Instance decide_FFA_DATA_ACCESS_TYPE_eq : forall (m n : FFA_DATA_ACCESS_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
  (** FFA memory access permissions descriptor
@@ -1138,7 +1139,7 @@ Section FFA_DESCRIPTIONS.
   | FFA_MEMORY_CACHE_RESERVED_1
   | FFA_MEMORY_CACHE_WRITE_BACK.
 
-  Instance decide_FFA_MEMORY_CACHEABILITY_TYPE_1_eq : forall (m n : FFA_MEMORY_CACHEABILITY_TYPE_1), Decision (m = n).
+  #[global] Instance decide_FFA_MEMORY_CACHEABILITY_TYPE_1_eq : forall (m n : FFA_MEMORY_CACHEABILITY_TYPE_1), Decision (m = n).
   Proof. decision_eq. Qed.
 
   Inductive FFA_MEMORY_CACHEABILITY_TYPE_2 :=
@@ -1147,7 +1148,7 @@ Section FFA_DESCRIPTIONS.
   | FFA_MEMORY_DEV_NGRE
   | FFA_MEMORY_DEV_GRE.
 
-  Instance decide_FFA_MEMORY_CACHEABILITY_TYPE_2_eq : forall (m n : FFA_MEMORY_CACHEABILITY_TYPE_2), Decision (m = n).
+  #[global] Instance decide_FFA_MEMORY_CACHEABILITY_TYPE_2_eq : forall (m n : FFA_MEMORY_CACHEABILITY_TYPE_2), Decision (m = n).
   Proof. decision_eq. Qed.
 
   Inductive FFA_MEMORY_SHAREABILITY :=
@@ -1156,7 +1157,7 @@ Section FFA_DESCRIPTIONS.
   | FFA_MEMORY_OUTER_SHAREABLE
   | FFA_MEMORY_INNER_SHAREABLE.
 
-  Instance decide_FFA_MEMORY_SHAREABILITY_eq : forall (m n : FFA_MEMORY_SHAREABILITY), Decision (m = n).
+  #[global] Instance decide_FFA_MEMORY_SHAREABILITY_eq : forall (m n : FFA_MEMORY_SHAREABILITY), Decision (m = n).
   Proof. decision_eq. Qed.
 
   Definition FFA_MEMORY_CACHEABILITY_TYPE_1_permissive
@@ -1215,7 +1216,7 @@ Section FFA_DESCRIPTIONS.
       (shareability_type: FFA_MEMORY_SHAREABILITY)
   | FFA_MEMORY_MEM_RESERVED.
 
-  Instance decide_FFA_MEMORY_TYPE_eq : forall (m n : FFA_MEMORY_TYPE), Decision (m = n).
+  #[global] Instance decide_FFA_MEMORY_TYPE_eq : forall (m n : FFA_MEMORY_TYPE), Decision (m = n).
   Proof. decision_eq. Qed.
 
   Definition FFA_MEMORY_TYPE_permissive
@@ -1480,7 +1481,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
         (** - Bit(31:2): Reserved (MBZ). *)
       }.
 
-  Instance decide_FFA_mem_default_flags_struct_eq : forall (m n : FFA_mem_default_flags_struct), Decision (m = n).
+  #[global] Instance decide_FFA_mem_default_flags_struct_eq : forall (m n : FFA_mem_default_flags_struct), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (** **** Well formed conditions *)  
@@ -1641,7 +1642,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
   | MEMORY_MANAGEMENT_LEND_TRANSACTION
   | MEMORY_MANAGEMENT_DONATE_TRANSACTION.
 
-  Instance decide_FFA_memory_management_transaction_type_eq : forall (m n : FFA_memory_management_transaction_type), Decision (m = n).
+  #[global] Instance decide_FFA_memory_management_transaction_type_eq : forall (m n : FFA_memory_management_transaction_type), Decision (m = n).
   Proof. decision_eq. Qed.
 
   (** **** FFA Mem Relinquish Req Flags Coq Definition *)
@@ -1967,7 +1968,7 @@ Section FFA_MEMORY_REGION_DESCRIPTOR.
   | MEMORY_REGION_FLAG_RELINQUISH_RESP
       (flag: FFA_mem_relinquish_resp_flags_struct).
 
-  Instance decide_ffa_memory_region_flags_t_eq : forall (m n : ffa_memory_region_flags_t), Decision (m = n).
+  #[global] Instance decide_ffa_memory_region_flags_t_eq : forall (m n : ffa_memory_region_flags_t), Decision (m = n).
   Proof. decision_eqs 2%nat. Qed.
 
   (** The following descriptor specifies the data structure that must be used by the 
