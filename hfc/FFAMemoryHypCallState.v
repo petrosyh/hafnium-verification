@@ -112,7 +112,7 @@ Section FFA_VM.
     mkArchRegs {
         regs: FFA_value_type;
       }.
-  
+
   Record VCPU_struct :=
     mkVCPU_struct{
         (** The vm that is currently associated with this vcpu *)
@@ -200,13 +200,19 @@ Section MEM_AND_PTABLE.
   Inductive OWNERSHIP_STATE_TYPE :=
   | Owned (id : ffa_UUID_t)
   | NotOwned.
-  
+
+  #[global] Instance decide_OWNERSHIP_STATE_TYPE_eq : forall (m n : OWNERSHIP_STATE_TYPE), Decision (m = n).
+  Proof. decision_eq. Qed.
+
   (** Indicates access state of each memory address *)
   Inductive ACCESS_STATE_TYPE :=
   | NoAccess 
   | ExclusiveAccess (accessor: ffa_UUID_t)
   (** SharedAccess with one UUID differs from ExclusiveAccess - Note that accesssors will not be nil *)
   | SharedAccess (accessors : list ffa_UUID_t).
+
+  #[global] Instance decide_ACCESS_STATE_TYPE_eq : forall (m n : ACCESS_STATE_TYPE), Decision (m = n).
+  Proof. decision_eq. Qed.
 
   (** Check whether the page is dirty or clean. Some FFA calls clean the memory, and it is 
       one of important behaviours that we have to observe. In this sense, we explicitly 
@@ -222,7 +228,10 @@ Section MEM_AND_PTABLE.
       - who wrote values in the address
       - Note that accesssors will not be nil *)
   | MemWritten (writers: list ffa_UUID_t).
-                              
+
+  #[global] Instance decide_MEM_DIRTY_TYPE_eq : forall (m n : MEM_DIRTY_TYPE), Decision (m = n).
+  Proof. decision_eq. Qed.
+
   (** This memory properties are key features that we may hope to guarantee in our system -
       There are some redundant information in between them, and we may need to 
       make invariants to guarantee well-formed relations between the following different properties 
@@ -259,15 +268,19 @@ Section MEM_AND_PTABLE.
   Inductive MEM_LOCAL_OWNED_TYPE :=
   | LocalOwned
   | LocalBorrowed (owner : ffa_UUID_t).
-  (* [TODO: we need to check whether the following MemAttributes needs to be a global attributes 
+
+  #[global] Instance decide_MEM_LOCAL_OWNED_TYPE_eq : forall (m n : MEM_LOCAL_OWNED_TYPE), Decision (m = n).
+  Proof. decision_eq. Qed.
+
+  (* [TODO: we need to check whether the following MemAttributes needs to be a global attributes
      or a local attributes]
 
-     Indicates whether the memory is device memory or normal memory, and corresponding 
-     attributes of that page. If the page is a normal memory, the memory is shareable if the 
-     shareability flag indicates it is possible. 
+     Indicates whether the memory is device memory or normal memory, and corresponding
+     attributes of that page. If the page is a normal memory, the memory is shareable if the
+     shareability flag indicates it is possible.
 
      This memory attributes need to be consistent with AccessState. *)
-  
+
   Record MemLocalProperties :=
     mkMemLocalProperties {
         mem_local_owned:  MEM_LOCAL_OWNED_TYPE;
@@ -489,7 +502,7 @@ Section AbstractState.
             (msg : MAILBOX_struct)
   | RecvMsg (receiver: ffa_UUID_t)
             (msg : MAILBOX_struct).
-  
+
   Record AbstractState :=
     mkAbstractState{
         (** - The number to memorize the version of FFA - See 8.1 FFA_VERSION of the document and 
@@ -557,6 +570,11 @@ End AbstractStateContext.
 (*************************************************************)
 (** **        Update functions for readability               *)
 (*************************************************************)
+
+(*[SF: consider using the coq-record-update library instead of the following code
+  `opam install coq-record-update`
+  https://github.com/tchajed/coq-record-update
+]*)
 
 Section AbstractStateUpdate.  
 

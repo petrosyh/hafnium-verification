@@ -49,18 +49,18 @@ Require Export FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.
 
 Notation "'get' T ',' E ',' X <- A ';;;' B" :=
   (match A with Some X => B |
-           None => FAIL T E end)
+           None => @FAIL T E end)
     (at level 200, X ident, A at level 100, B at level 200)
   : ffa_monad_scope.
 
 Notation "'get_r' T ',' X <- A ';;;' B" :=
   (match A with SUCCESS X => B |
-           FAIL E => FAIL T E end)
+           FAIL E => @FAIL T E end)
     (at level 200, X ident, A at level 100, B at level 200)
   : ffa_monad_scope.
 
 Notation " 'check' T ',' E ',' A ';;;' B" :=
-  (if A then B else FAIL T E)
+  (if A then B else @FAIL T E)
     (at level 200, A at level 100, B at level 200) : ffa_monad_scope.
 
 Local Open Scope ffa_monad_scope.
@@ -254,7 +254,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         | SUCCESS st'' =>
           ffa_mem_donate_core_transition_spec
             caller receiver_id hd (fst st'') 
-        | FAIL msg => FAIL (AbstractState * bool) msg
+        | FAIL msg => FAIL msg
         end
       end.
 
@@ -509,7 +509,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         | SUCCESS st'' =>
           ffa_mem_lend_core_transition_spec
             caller receivers hd (fst st'') 
-        | FAIL msg => FAIL (AbstractState * bool) msg
+        | FAIL msg => FAIL msg
         end
       end.
     
@@ -737,7 +737,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         | SUCCESS st'' =>
           ffa_mem_share_core_transition_spec
             caller receivers hd (fst st'') 
-        | FAIL msg => FAIL (AbstractState * bool) msg
+        | FAIL msg => FAIL msg
         end
       end.
    
@@ -992,7 +992,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         | SUCCESS st' =>
           ffa_mem_donate_retrieve_req_core_transition_spec
             lender borrower hd clean (fst st')
-        | FAIL msg => FAIL (AbstractState * bool) msg
+        | FAIL msg => FAIL msg
         end
       end.
     
@@ -1211,7 +1211,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         | SUCCESS st' =>
           ffa_mem_lend_retrieve_req_core_transition_spec
             lender borrower borrower_num hd clean (fst st')
-        | FAIL msg => FAIL (AbstractState * bool) msg
+        | FAIL msg => FAIL msg
         end
       end.
     
@@ -1412,7 +1412,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
         | SUCCESS st' =>
           ffa_mem_share_retrieve_req_core_transition_spec
             lender borrower hd clean (fst st')
-        | FAIL msg => FAIL (AbstractState * bool) msg
+        | FAIL msg => FAIL msg
         end
       end.
     
@@ -1649,7 +1649,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
               ;;;
               ffa_mem_relinquish_core_transition_spec
               lender borrower hd clean st''
-        | FAIL msg => FAIL (AbstractState * bool) msg
+        | FAIL msg => FAIL msg
         end
       end.
     Fixpoint FFA_mem_relinquish_req_alignment_hint_check_iter 
@@ -1986,7 +1986,7 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS.
                  sender receivers tl clean st with
         | SUCCESS st' => ffa_mem_reclaim_core_transition
                        sender receivers hd clean st'
-        | FAIL msg => FAIL AbstractState msg
+        | FAIL msg => FAIL msg
         end
       end.
     
