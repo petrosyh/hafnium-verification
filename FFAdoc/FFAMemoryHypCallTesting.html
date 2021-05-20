@@ -19,76 +19,14 @@
 <h1 class="libtitle">Library FFAMemoryHypCallTesting</h1>
 
 <div class="code">
-<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Arith.PeanoNat</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Lists.List</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Strings.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Morphisms</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Setoid</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelationClasses</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ExtLib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelDec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Monad</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Traversable</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.List</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Option</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Monads.OptionMonad</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ITree</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ITree</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ITreeFacts</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Events.MapDefault</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Events.StateFacts</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ITree</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ITree</span> <span class="id" title="var">ITreeFacts</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">ITreeNotations</span>.<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">Monads</span>.<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">MonadNotation</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">monad_scope</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">string_scope</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Coqlib</span> <span class="id" title="var">sflib</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Lang</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Any</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Values</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Integers</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Constant</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Decision</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCall</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallIntro</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallDescriptorState</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallState</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallCoreTransition</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallTestingInterface</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">LangNotations</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">expr_scope</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">stmt_scope</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">Int64</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Maps</span>.<br/>
-<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-<a name="lab131"></a><h1 class="section">Introduction</h1>
+<a name="lab130"></a><h1 class="section">Introduction</h1>
 
 <div class="paragraph"> </div>
 
@@ -110,7 +48,7 @@
 
 <div class="paragraph"> </div>
 
-<a name="lab132"></a><h2 class="section">YIELD</h2>
+<a name="lab131"></a><h2 class="section">YIELD</h2>
 
 <div class="paragraph"> </div>
 
@@ -133,7 +71,7 @@
 </div>
 
 <div class="doc">
-<a name="lab133"></a><h2 class="section">Auxiliary definitions for initializations</h2>
+<a name="lab132"></a><h2 class="section">Auxiliary definitions for initializations</h2>
 
 </div>
 <div class="code">
@@ -147,7 +85,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
     into four regions. Then, we allocate each quater into one VM 
 <div class="paragraph"> </div>
 
-<a name="lab134"></a><h3 class="section">Address values</h3>
+<a name="lab133"></a><h3 class="section">Address values</h3>
 
 </div>
 <div class="code">
@@ -168,60 +106,85 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab135"></a><h3 class="section">Initialization values for Memory (Page) attribute tables</h3>
+<a name="lab134"></a><h3 class="section">Initial values for memory property tables and vcpu</h3>
 
 <div class="paragraph"> </div>
 
- address low differs from address low in the memory context. 
-      I am trying to use subset of  
+ Initial value for global memory properties. We divide the entire memory into four sub-regions. 
+      Each region will be associated with one VM (VM 1, 2, 3, and 4). 
+      Initial permissions and memory attributes are as follows, even though
+      they can be changed quite easily. 
+<ul class="doclist">
+<li> Owner: owned by each VM. 
+
+</li>
+<li> accessibility: exclusive access by the owner 
+
+</li>
+<li> instruction permissions: XN
+
+</li>
+<li> data permissions: RW
+
+</li>
+<li> memory type: normal memory with non cacheable and shareable
+
+</li>
+</ul>
+  
 </div>
 <div class="code">
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalAttributesForVMOne</span> :=<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalMemAttributeValue</span> (<span class="id" title="var">owner</span> : <span class="id" title="var">Z</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">false</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Owned</span> <span class="id" title="var">primary_vm_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">primary_vm_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">owner</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_INSTRUCTION_ACCESS_XN</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_DATA_ACCESS_RW</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_MEMORY_NORMAL_MEM</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_CACHE_NON_CACHEABLE</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_OUTER_SHAREABLE</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">MemClean</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalAttributesForVMOne</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">InitialGlobalMemAttributeValue</span> <span class="id" title="var">primary_vm_id</span>.<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalAttributesForVMTwo</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">false</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Owned</span> 2)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ExclusiveAccess</span> 2)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_INSTRUCTION_ACCESS_XN</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_DATA_ACCESS_RW</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_MEMORY_NORMAL_MEM</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_CACHE_NON_CACHEABLE</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_OUTER_SHAREABLE</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">MemClean</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">InitialGlobalMemAttributeValue</span> 2.<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalAttributesForVMThree</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">false</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Owned</span> 3)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ExclusiveAccess</span> 3)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_INSTRUCTION_ACCESS_XN</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_DATA_ACCESS_RW</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_MEMORY_NORMAL_MEM</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_CACHE_NON_CACHEABLE</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_OUTER_SHAREABLE</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">MemClean</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">InitialGlobalMemAttributeValue</span> 3.<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialGlobalAttributesForVMFour</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">false</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Owned</span> 4)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ExclusiveAccess</span> 4)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_INSTRUCTION_ACCESS_XN</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_DATA_ACCESS_RW</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_MEMORY_NORMAL_MEM</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_CACHE_NON_CACHEABLE</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_MEMORY_OUTER_SHAREABLE</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">MemClean</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">InitialGlobalMemAttributeValue</span> 4.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Initial value of local memory properties. We set the initial local attributes as follows
+<ul class="doclist">
+<li> local owner: onwed (among onwed and borrowed)  
+
+</li>
+<li> instruction permissions: XN
+
+</li>
+<li> data permissions: RW
+
+</li>
+<li> memory type: normal memory with non cacheable and shareable
+
+</li>
+</ul>
+      
+</div>
+<div class="code">
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">InitialLocalAttributes</span> :=<br/>
@@ -250,8 +213,12 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_MEMORY_NOT_SPECIFIED_MEM</span>).<br/>
 
 <br/>
+</div>
 
-<br/>
+<div class="doc">
+Initial value for vcpu 
+</div>
+<div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">initial_vcpu_struct</span> (<span class="id" title="var">cpu_id</span> : <span class="id" title="var">ffa_CPU_ID_t</span>) (<span class="id" title="var">vm_id</span> : <span class="id" title="var">ffa_UUID_t</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">mkVCPU_struct</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Some</span> <span class="id" title="var">cpu_id</span>)<br/>
@@ -265,17 +232,41 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab136"></a><h3 class="section">Initialization Statements</h3>
+<a name="lab135"></a><h3 class="section">Initialization Statements</h3>
 
+<div class="paragraph"> </div>
+
+ Initialization statements. 
+      It initializes the following things.
+<ul class="doclist">
+<li> Global memory property pool
+
+</li>
+<li> Local memory property pool for each VM
+
+</li>
+<li> VCPU context values stored in the kernel (hypervisor)
+
+</li>
+<li> VCPU values in userpsace
+
+</li>
+</ul>
+   
 </div>
 <div class="code">
-
-<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">initialize_owners</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span> : <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Put</span> "start initializaiton" (<span class="id" title="var">Vnull</span>) #;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_address</span> #= <span class="id" title="var">page_low_int</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+VCPU initialization for VM 1 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.kernel_vcpu_index_setter_with_entity_id"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>); <span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>)])              <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_setter_with_entity_id"<br/>
@@ -285,6 +276,12 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter_with_entity_id"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>); <span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">initial_vcpu_struct</span> 1 <span class="id" title="var">primary_vm_id</span>)))]) <br/>
 <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+VCPU initialization for VM 2 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.kernel_vcpu_index_setter_with_entity_id"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 2); <span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 2)])              <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_setter_with_entity_id"<br/>
@@ -294,6 +291,12 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter_with_entity_id"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 2); <span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">initial_vcpu_struct</span> 2 2)))]) <br/>
 <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+VCPU initialization for VM 3 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.kernel_vcpu_index_setter_with_entity_id"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 3); <span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 3)])              <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_setter_with_entity_id"<br/>
@@ -303,6 +306,12 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter_with_entity_id"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 3); <span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">initial_vcpu_struct</span> 3 3)))])              <br/>
 <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+VCPU initialization for VM 4 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.kernel_vcpu_index_setter_with_entity_id"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 4); <span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 4)])                            <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_setter_with_entity_id"<br/>
@@ -312,9 +321,17 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter_with_entity_id"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 4); <span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">initial_vcpu_struct</span> 4 4)))])                      <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">initial_local_value</span> #= (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialLocalAttributesForDonate</span>)))<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">cur_address</span> &lt; <span class="id" title="var">page_1st_quater_int</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+Memory property initialization for the first quater of the entire memory (memory region owned by VM 1) 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initial_global_value</span> #= (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialGlobalAttributesForVMOneDonate</span>)))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.global_properties_setter"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> <span class="id" title="var">cur_address</span>; <span class="id" title="var">CBV</span> <span class="id" title="var">initial_global_value</span>])<br/>
@@ -324,6 +341,12 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">cur_address</span> #= <span class="id" title="var">cur_address</span> + (<span class="id" title="var">Int64.repr</span> 1))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">initial_local_value</span> #= (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialLocalAttributes</span>)))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+Memory property initialization for the first quater of the entire memory (memory region owned by VM 2) 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">cur_address</span> &lt; <span class="id" title="var">page_2nd_quater_int</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> (<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initial_global_value</span> #=  (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialGlobalAttributesForVMTwo</span>)))<br/>
@@ -335,6 +358,12 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">cur_address</span> #= <span class="id" title="var">cur_address</span> + (<span class="id" title="var">Int64.repr</span> 1))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">initial_local_value</span> #= (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialLocalAttributes</span>)))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#;                  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+Memory property initialization for the first quater of the entire memory (memory region owned by VM 3) 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">cur_address</span> &lt; <span class="id" title="var">page_3rd_quater_int</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> (<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initial_global_value</span> #=  (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialGlobalAttributesForVMThree</span>)))<br/>
@@ -346,6 +375,12 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">cur_address</span> #= <span class="id" title="var">cur_address</span> + (<span class="id" title="var">Int64.repr</span> 1))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">initial_local_value</span> #= (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialLocalAttributes</span>)))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+Memory property initialization for the first quater of the entire memory (memory region owned by VM 4) 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">cur_address</span> &lt; <span class="id" title="var">page_high_int</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> (<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initial_global_value</span> #=  (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">InitialGlobalAttributesForVMFour</span>)))<br/>
@@ -363,7 +398,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab137"></a><h2 class="section">Auxiliary definitions for Memory Donate Descriptors</h2>
+<a name="lab136"></a><h2 class="section">Auxiliary definitions for Memory Donate Descriptors</h2>
 
 </div>
 <div class="code">
@@ -429,16 +464,16 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">MemoryRegionCompositeGeneratorForDonate</span> <span class="id" title="var">address</span> <span class="id" title="var">page</span>).<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mailbox_msg</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">buffer_msg</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span> :<span class="id" title="var">ffa_address_t</span>) (<span class="id" title="var">page</span>: <span class="id" title="var">Z</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;:= <span class="id" title="var">mailbox_memory_region</span> (<span class="id" title="var">DonateDescriptorGenerator</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">address</span> <span class="id" title="var">page</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;:= <span class="id" title="var">buffer_memory_region</span> (<span class="id" title="var">DonateDescriptorGenerator</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">address</span> <span class="id" title="var">page</span>).<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">wrong_mailbox_msg</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">wrong_buffer_msg</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">address</span> :<span class="id" title="var">ffa_address_t</span>) (<span class="id" title="var">page</span>: <span class="id" title="var">Z</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;:= <span class="id" title="var">mailbox_memory_region</span> (<span class="id" title="var">WrongDonateDescriptorGenerator</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">address</span> <span class="id" title="var">page</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;:= <span class="id" title="var">buffer_memory_region</span> (<span class="id" title="var">WrongDonateDescriptorGenerator</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">address</span> <span class="id" title="var">page</span>).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">donate_vcpu_struct</span> (<span class="id" title="var">cpu_id</span> : <span class="id" title="var">ffa_CPU_ID_t</span>) (<span class="id" title="var">vm_id</span> : <span class="id" title="var">ffa_UUID_t</span>)  :=<br/>
@@ -451,6 +486,14 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZMap.init</span> 0)))).<br/>
 
 <br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">retrieve_req_vcpu_struct</span> (<span class="id" title="var">cpu_id</span> : <span class="id" title="var">ffa_CPU_ID_t</span>) (<span class="id" title="var">vm_id</span> : <span class="id" title="var">ffa_UUID_t</span>)  :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">mkVCPU_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Some</span> <span class="id" title="var">cpu_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Some</span> <span class="id" title="var">vm_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">mkArchRegs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">mkFFA_value_type</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FFA_FUNCTION_IDENTIFIER</span> <span class="id" title="var">FFA_MEM_RETREIVE_REQ</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZMap.init</span> 0)))).<br/>
 
 <br/>
 <span class="id" title="keyword">End</span> <span class="id" title="var">DescriptorGenerator</span>.<br/>
@@ -459,7 +502,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab138"></a><h2 class="section">Test Cases</h2>
+<a name="lab137"></a><h2 class="section">Test Cases</h2>
 
 </div>
 <div class="code">
@@ -469,7 +512,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab139"></a><h2 class="section">Initialization Test</h2>
+<a name="lab138"></a><h2 class="section">Initialization Test</h2>
 
 </div>
 <div class="code">
@@ -505,7 +548,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab140"></a><h2 class="section">Flag value Setter/Getter Test</h2>
+<a name="lab139"></a><h2 class="section">Flag value Setter/Getter Test</h2>
 
 </div>
 <div class="code">
@@ -580,7 +623,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab141"></a><h2 class="section">VCPU Index Setter/Getter Test</h2>
+<a name="lab140"></a><h2 class="section">VCPU Index Setter/Getter Test</h2>
 
 </div>
 <div class="code">
@@ -618,7 +661,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab142"></a><h2 class="section">Current Entity ID Setter/Getter Test</h2>
+<a name="lab141"></a><h2 class="section">Current Entity ID Setter/Getter Test</h2>
 
 </div>
 <div class="code">
@@ -658,7 +701,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab143"></a><h2 class="section">Send/Recv Msg Test</h2>
+<a name="lab142"></a><h2 class="section">Set/Get Msg Test</h2>
 
 </div>
 <div class="code">
@@ -667,13 +710,13 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.send_msg" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.set_buffer" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0);<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">mailbox_msg</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">buffer_msg</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> 2<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">page_low</span> 1)));<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.recv_msg" []).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.get_buffer" []).<br/>
 
 <br/>
 
@@ -703,7 +746,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab144"></a><h2 class="section">Memory Property Setter/Getter Test</h2>
+<a name="lab143"></a><h2 class="section">Memory Property Setter/Getter Test</h2>
 
 </div>
 <div class="code">
@@ -753,7 +796,7 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab145"></a><h2 class="section">Context Switchin Test</h2>
+<a name="lab144"></a><h2 class="section">Context Switchin Test</h2>
 
 </div>
 <div class="code">
@@ -801,34 +844,155 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab146"></a><h2 class="section">Donate test without concurrency</h2>
+<a name="lab145"></a><h2 class="section">Donate test (Sequential)</h2>
 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">DONATETEST1</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.send_msg" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">mailbox_msg</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> 2<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1 1)));<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
+</div>
+
+<div class="doc">
+Donate test with sequential setting. The testing scenario of this test case is as follows.
+<ul class="doclist">
+<li> VM tries to donate one memory page to VM 2 
+
+</li>
+<li> VM 1 sets up the descriptor and write the descriptor inside the buffer
+
+</li>
+<li> VM 1 triggers the hypervisor call. 
+<ul class="doclist">
+<li> Context switching from the user space to the kernel space
+
+</li>
+<li> hypervisor looks up the descriptor, and performs its operation.
+
+</li>
+<li> Check the validity of the descriptor
+
+</li>
+<li> Change the accessibility of the page as no-access (the proper behavior that FF-A document describes)
+
+</li>
+<li> Store the descriptor information and notify VM 2 that there is a page that VM 2 can retrieve 
+
+</li>
+<li> Perform scheduling (change the execution entity ID from 1 to 2)
+
+</li>
+<li> Context switching from the kernel space to the user space
+
+</li>
+</ul>
+
+</li>
+<li> After performing it, it performs pseudo scheduling, which only change the execution entity ID.
+<ul class="doclist">
+<li> We do not model the remaing operation for the memory donate (retrieve_req call) via VM 2 in our
+            test cases. 
+
+</li>
+</ul>
+
+</li>
+</ul>
+     
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Initialization 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Set up descriptor 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.set_buffer"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">buffer_msg</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span>  2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1 1)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.userspace_vcpu_index_setter" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0)])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">donate_vcpu_struct</span> 1 <span class="id" title="var">primary_vm_id</span>)))])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Trigger hypervisor call 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "hyp mode" (<span class="id" title="var">Call</span> "HVCTopLevel.is_hvc_mode_getter" []))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.hypervisor_call" [])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "hyp mode" (<span class="id" title="var">Call</span> "HVCTopLevel.is_hvc_mode_getter" []))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Change the running entity ID 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" []) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" []) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" []) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "current state print" (<span class="id" title="var">Call</span> "HVCToplevel.state_getter" []))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp; .<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Print out the system log 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "current state print"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCToplevel.state_getter" [])).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Program definition of this test 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mainF</span>: <span class="id" title="var">function</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mk_function_tac</span> <span class="id" title="var">main</span> ([]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>) (["cur_address";<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"initial_global_value";<br/>
@@ -842,6 +1006,16 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;].<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Connecting top-level testing interfaces with this test main funciton. 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">isem</span>: <span class="id" title="var">itree</span> <span class="id" title="var">Event</span> <span class="id" title="var">unit</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">eval_multimodule</span> [<span class="id" title="var">program_to_ModSem</span> <span class="id" title="var">main_program</span> ;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">top_level_accessor_modsem</span> ;<br/>
@@ -854,13 +1028,31 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab147"></a><h2 class="section">Donate test with concurrency</h2>
+<a name="lab146"></a><h2 class="section">Donate test (Concurrent)</h2>
 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">DONATETEST2</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+Donate test with concurrent setting. The testing scenario of this test case is quite 
+        similar to the previous sequential example.
+        However, it introduces concurrency in it. The YIELD statement is inserted in between
+        every line, and one thread will be picked up randomly when evaluating YIELD statements.
+        By doing that, we could model and test threads that run concurrently.
+     
+<div class="paragraph"> </div>
+
+<ul class="doclist">
+<li> Global variables  
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">GLOBAL_START</span> := "GLOBAL_START".<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">SIGNAL</span> := "SIGNAL".<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">CNT</span> := "CNT".<br/>
@@ -869,69 +1061,216 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">LIMIT</span> := <span class="id" title="var">Int64.repr</span> 4.<br/>
 
 <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Main thread that initializes all kernel values 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">INSERT_YIELD</span> (<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">GLOBAL_START</span> #= (<span class="id" title="var">Int64.zero</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">SIGNAL</span> #= (<span class="id" title="var">Int64.one</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">GLOBAL_START</span> #= (<span class="id" title="var">Int64.one</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">SIGNAL</span> &lt; <span class="id" title="var">LIMIT</span>) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> ( <span class="id" title="var">Skip</span> )<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "current state print" (<span class="id" title="var">Call</span> "HVCToplevel.state_getter" []))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">GLOBAL_START</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#= (<span class="id" title="var">Int64.zero</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">SIGNAL</span> #= (<span class="id" title="var">Int64.one</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Initialization 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">GLOBAL_START</span> #= (<span class="id" title="var">Int64.one</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Wait other threads' evaluation until number of their evaluations reaches the limit 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">SIGNAL</span> &lt; <span class="id" title="var">LIMIT</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> ( <span class="id" title="var">Skip</span> )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Print the log 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "current state print"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCToplevel.state_getter" []))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Main function of the primary VM 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">primary_vm_main</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">INSERT_YIELD</span> (<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CNT</span> #= <span class="id" title="var">Int64.zero</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Wait until the main thread initialize kernel structures 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">GLOBAL_START</span> == <span class="id" title="var">Int64.zero</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> ( <span class="id" title="var">Skip</span> )<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">SIGNAL</span> &lt; <span class="id" title="var">LIMIT</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check whether this VM is scheduled 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="keyword">if</span> ((<span class="id" title="var">Call</span> "HVCToplevel.current_entity_id_getter" []) ==<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Int64.one</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> If this VM is first scheduled, set up the descriptor for the donate hypervisor call 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="keyword">if</span> (<span class="id" title="var">CNT</span> == <span class="id" title="var">Int64.zero</span>) <span class="id" title="keyword">then</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">SIGNAL</span> #= (<span class="id" title="var">SIGNAL</span> + <span class="id" title="var">Int64.one</span>)                               <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.send_msg" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">mailbox_msg</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> 2<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;9065<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1)));<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.userspace_vcpu_index_setter" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 1)])<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">donate_vcpu_struct</span> 1 <span class="id" title="var">primary_vm_id</span>)))])<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.hypervisor_call" [])<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">CNT</span> #= <span class="id" title="var">CNT</span> + <span class="id" title="var">Int64.one</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">SIGNAL</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#= (<span class="id" title="var">SIGNAL</span> + <span class="id" title="var">Int64.one</span>)                               <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.set_buffer"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">buffer_msg</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span>  2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;9065<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.userspace_vcpu_index_setter"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 1)])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">donate_vcpu_struct</span> 1 <span class="id" title="var">primary_vm_id</span>)))])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Trigger hypervisor call 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.hypervisor_call" [])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; <span class="id" title="var">CNT</span> #= <span class="id" title="var">CNT</span> + <span class="id" title="var">Int64.one</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">SIGNAL</span> #= <span class="id" title="var">SIGNAL</span> + <span class="id" title="var">Int64.one</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" [])                               <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Trigger scheduling 
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">SIGNAL</span> #=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">SIGNAL</span> + <span class="id" title="var">Int64.one</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" [])                               <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">SIGNAL</span> #= <span class="id" title="var">SIGNAL</span> + <span class="id" title="var">Int64.one</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" []) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Skip</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Main function of secondary VMs 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span>  <span class="id" title="var">vms_main</span> (<span class="id" title="var">tid</span>: <span class="id" title="var">Z</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Eval</span> <span class="id" title="tactic">compute</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">INSERT_YIELD</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Wait until the main thread initialize kernel structures 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">GLOBAL_START</span> == <span class="id" title="var">Int64.zero</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> ( <span class="id" title="var">Skip</span> )<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="var">while</span> (<span class="id" title="var">SIGNAL</span> &lt; <span class="id" title="var">LIMIT</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">do</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Check whether this VM is scheduled 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#<span class="id" title="keyword">if</span> ((<span class="id" title="var">Call</span> "HVCToplevel.current_entity_id_getter" []) ==<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Int64.repr</span> <span class="id" title="var">tid</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Trigger scheduling 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">SIGNAL</span> #= (<span class="id" title="var">SIGNAL</span> + <span class="id" title="var">Int64.one</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" [])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">Skip</span><br/>
@@ -939,6 +1278,16 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Program definition of this test 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mainF</span>: <span class="id" title="var">function</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mk_function_tac</span> <span class="id" title="var">main</span> ([]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>) (["cur_address";<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"initial_global_value";<br/>
@@ -981,6 +1330,16 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">top_level_modsem</span>].<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Connecting top-level testing interfaces with this test main funciton. 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">isem</span>: <span class="id" title="var">itree</span> <span class="id" title="var">Event</span> <span class="id" title="var">unit</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">eval_multimodule_multicore</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">modsems</span> [ "main" ; "primary_vm_main" ; "vm_2_main";<br/>
@@ -993,33 +1352,56 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab148"></a><h2 class="section">Wrong donate test - invalid descriptor</h2>
+<a name="lab147"></a><h2 class="section">Donate test - invalid descriptor</h2>
 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">DONATETEST3</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.send_msg" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">wrong_mailbox_msg</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> 2<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1 1)));<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
+</div>
+
+<div class="doc">
+Donate test with the invalid descriptor. The descriptor in this example uses invalid memory attributes. 
+        Therefore, it returns FFA_INVALID_PARAMETERS instead of FFA_SUCCESS. In this example, 
+        we only print out vcpu value, the result of the hypervisor call, instead of the entire system log. 
+     
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.set_buffer"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">wrong_buffer_msg</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> 2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1 1)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.userspace_vcpu_index_setter" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0)])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">donate_vcpu_struct</span> 1 <span class="id" title="var">primary_vm_id</span>)))])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "hyp mode" (<span class="id" title="var">Call</span> "HVCTopLevel.is_hvc_mode_getter" []))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.hypervisor_call" [])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "hyp mode" (<span class="id" title="var">Call</span> "HVCTopLevel.is_hvc_mode_getter" []))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "kernel vcpu values for 1" (<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 1)]))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp; .<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "kernel vcpu values for 1"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 1)])).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Program definition of this test 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mainF</span>: <span class="id" title="var">function</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mk_function_tac</span> <span class="id" title="var">main</span> ([]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>) (["cur_address";<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"initial_global_value";<br/>
@@ -1033,6 +1415,16 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;].<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Connecting top-level testing interfaces with this test main funciton. 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">isem</span>: <span class="id" title="var">itree</span> <span class="id" title="var">Event</span> <span class="id" title="var">unit</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">eval_multimodule</span> [<span class="id" title="var">program_to_ModSem</span> <span class="id" title="var">main_program</span> ;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">top_level_accessor_modsem</span> ;<br/>
@@ -1045,34 +1437,57 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab149"></a><h2 class="section">Wrong donate test - invalid descriptor</h2>
+<a name="lab148"></a><h2 class="section">Donate test - invalid descriptor</h2>
 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">DONATETEST4</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>)<br/>
+</div>
+
+<div class="doc">
+Donate test with the invalid memory address. In this example, VM 2 tries to donate the page 
+        that is owned by VM 1. Therefore, it reaises an error with the message that they cannot
+        find out local memory attributes associated with VM 2 for the page 
+     
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" []) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.send_msg" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 2);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">mailbox_msg</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2 3<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1 1)));<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.set_buffer"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">buffer_msg</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2 3<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1 1)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.userspace_vcpu_index_setter" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0)])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">donate_vcpu_struct</span> 1 2)))])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "hyp mode" (<span class="id" title="var">Call</span> "HVCTopLevel.is_hvc_mode_getter" []))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.hypervisor_call" [])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "hyp mode" (<span class="id" title="var">Call</span> "HVCTopLevel.is_hvc_mode_getter" []))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "kernel vcpu values for 2" (<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 2)]))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp; .<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "kernel vcpu values for 2"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 2)])).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Program definition of this test 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mainF</span>: <span class="id" title="var">function</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mk_function_tac</span> <span class="id" title="var">main</span> ([]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>) (["cur_address";<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"initial_global_value";<br/>
@@ -1086,6 +1501,16 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;].<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Connecting top-level testing interfaces with this test main funciton. 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">isem</span>: <span class="id" title="var">itree</span> <span class="id" title="var">Event</span> <span class="id" title="var">unit</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">eval_multimodule</span> [<span class="id" title="var">program_to_ModSem</span> <span class="id" title="var">main_program</span> ;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">top_level_accessor_modsem</span> ;<br/>
@@ -1098,21 +1523,33 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 </div>
 
 <div class="doc">
-<a name="lab150"></a><h2 class="section">Wrong donate test with specs that has a bug</h2>
+<a name="lab149"></a><h2 class="section">Donate test with specs that has a bug</h2>
 
 </div>
 <div class="code">
 &nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">DONATETEST5</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span> <span class="id" title="var">initial_local_value</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.send_msg" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> <span class="id" title="var">primary_vm_id</span>);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">mailbox_msg</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> 2<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1 1)));<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
+</div>
+
+<div class="doc">
+Donate test with the spec that has an error in it. The checking for the number of receivers in
+        the spec is written in a wrong way, so it will return an error that the number of receivers 
+        is incorrect 
+     
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">main</span> (<span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>: <span class="id" title="var">var</span>): <span class="id" title="var">stmt</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">initialize_owners</span> <span class="id" title="var">cur_address</span> <span class="id" title="var">initial_global_value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial_local_value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.set_buffer"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 36);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">buffer_msg</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> 2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1 1)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">FFA_MEM_DONATE</span>)))])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCToplevel.userspace_vcpu_index_setter" [<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 0)])<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.userspace_vcpu_struct_setter"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> (<span class="id" title="var">donate_vcpu_struct</span> 1 <span class="id" title="var">primary_vm_id</span>)))])<br/>
@@ -1122,12 +1559,21 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" []) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" []) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Call</span> "HVCTopLevel.scheduling" [])<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "kernel vcpu values for 1" (<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 1)]))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#; (<span class="id" title="var">Put</span> "kernel vcpu values for 1"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Call</span> "HVCTopLevel.kernel_vcpu_struct_getter_with_entity_id"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id" title="var">CBV</span> (<span class="id" title="var">Int64.repr</span> 1)])).<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Program definition of this test 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mainF</span>: <span class="id" title="var">function</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mk_function_tac</span> <span class="id" title="var">main</span> ([]: <span class="id" title="var">list</span> <span class="id" title="var">var</span>) (["cur_address";<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"initial_global_value";<br/>
@@ -1141,6 +1587,16 @@ Since we assume there are four VMs in the system, we divide the entire memory (f
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;].<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+<ul class="doclist">
+<li> Connecting top-level testing interfaces with this test main funciton. 
+</li>
+</ul>
+
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">isem</span>: <span class="id" title="var">itree</span> <span class="id" title="var">Event</span> <span class="id" title="var">unit</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">eval_multimodule</span> [<span class="id" title="var">program_to_ModSem</span> <span class="id" title="var">main_program</span> ;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">top_level_accessor_modsem</span> ;<br/>

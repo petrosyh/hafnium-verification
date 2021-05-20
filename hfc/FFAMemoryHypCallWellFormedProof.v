@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *)
+
+(* begin hide *)
 From Coq Require Import
      Arith.PeanoNat
      Lists.List
@@ -66,8 +68,10 @@ Require Export FFAMemoryHypCallTestingInterface.
 Require Export FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions.
 Require Export FFAMemoryHypCallAdditionalSteps.
 
-
 Require Import Maps.
+
+(* end hide *)
+
 
 Section AbstractStateContextProps.
 
@@ -77,10 +81,10 @@ Section AbstractStateContextProps.
     (** - Basic decidability properties of them *)
     ffa_memory_region_tag_t_dec : forall (tag1 tag2: ffa_memory_region_tag_t),
         {tag1 = tag2} + {tag1 <> tag2};
-    ffa_mailbox_msg_t_dec :
-      forall (mailbox_msg1 mailbox_msg2: ffa_mailbox_msg_t),
-        {mailbox_msg1 = mailbox_msg2} +
-        {mailbox_msg1 <> mailbox_msg2};
+    ffa_buffer_msg_t_dec :
+      forall (buffer_msg1 buffer_msg2: ffa_buffer_msg_t),
+        {buffer_msg1 = buffer_msg2} +
+        {buffer_msg1 <> buffer_msg2};
 
     
     entity_list_prop := NoDup entity_list;
@@ -90,7 +94,7 @@ Section AbstractStateContextProps.
       alignment_value > 0;
     address_low_alignment_prop :
       (Z.modulo page_low alignment_value)%Z = 0;
-    address_high_alignment_prop :
+    address_high_alignment_prop : 
       (Z.modulo (page_high + 1) alignment_value)%Z = 0;
 
     (** all results of  the address translation needs to be in betweeen low and high *)

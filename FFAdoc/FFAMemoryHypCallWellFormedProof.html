@@ -19,64 +19,8 @@
 <h1 class="libtitle">Library FFAMemoryHypCallWellFormedProof</h1>
 
 <div class="code">
-<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Arith.PeanoNat</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Lists.List</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Strings.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Morphisms</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Setoid</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelationClasses</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ExtLib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelDec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Monad</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Traversable</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.List</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Option</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Monads.OptionMonad</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ITree</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ITree</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ITreeFacts</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Events.MapDefault</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Events.StateFacts</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ITree</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ITree</span> <span class="id" title="var">ITreeFacts</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">ITreeNotations</span>.<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">Monads</span>.<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">MonadNotation</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">monad_scope</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">string_scope</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Coqlib</span> <span class="id" title="var">sflib</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Lang</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Values</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Integers</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Constant</span>.<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">LangNotations</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">expr_scope</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">stmt_scope</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCall</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallIntro</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallDescriptorState</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallState</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallCoreTransition</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallTestingInterface</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallAdditionalSteps</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Maps</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Section</span> <span class="id" title="var">AbstractStateContextProps</span>.<br/>
@@ -96,10 +40,10 @@
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_memory_region_tag_t_dec</span> : <span class="id" title="keyword">forall</span> (<span class="id" title="var">tag1</span> <span class="id" title="var">tag2</span>: <span class="id" title="var">ffa_memory_region_tag_t</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">tag1</span> = <span class="id" title="var">tag2</span>} + {<span class="id" title="var">tag1</span> &lt;&gt; <span class="id" title="var">tag2</span>};<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t_dec</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<span class="id" title="var">mailbox_msg1</span> <span class="id" title="var">mailbox_msg2</span>: <span class="id" title="var">ffa_mailbox_msg_t</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mailbox_msg1</span> = <span class="id" title="var">mailbox_msg2</span>} +<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">mailbox_msg1</span> &lt;&gt; <span class="id" title="var">mailbox_msg2</span>};<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_buffer_msg_t_dec</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">forall</span> (<span class="id" title="var">buffer_msg1</span> <span class="id" title="var">buffer_msg2</span>: <span class="id" title="var">ffa_buffer_msg_t</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">buffer_msg1</span> = <span class="id" title="var">buffer_msg2</span>} +<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">buffer_msg1</span> &lt;&gt; <span class="id" title="var">buffer_msg2</span>};<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">entity_list_prop</span> := <span class="id" title="var">NoDup</span> <span class="id" title="var">entity_list</span>;<br/>
@@ -109,7 +53,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">alignment_value</span> &gt; 0;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address_low_alignment_prop</span> :<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Z.modulo</span> <span class="id" title="var">page_low</span> <span class="id" title="var">alignment_value</span>)%<span class="id" title="var">Z</span> = 0;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address_high_alignment_prop</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">address_high_alignment_prop</span> : <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Z.modulo</span> (<span class="id" title="var">page_high</span> + 1) <span class="id" title="var">alignment_value</span>)%<span class="id" title="var">Z</span> = 0;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
@@ -164,7 +108,7 @@ all results of  the address translation needs to be in betweeen low and high
 </div>
 
 <div class="doc">
-<a name="lab188"></a><h2 class="section">Invariants for memory</h2>
+<a name="lab187"></a><h2 class="section">Invariants for memory</h2>
  We specified several (basic) invariants for memory attributes, properties, etc 
 </div>
 <div class="code">
@@ -303,7 +247,7 @@ all results of  the address translation needs to be in betweeen low and high
 </div>
 
 <div class="doc">
-<a name="lab189"></a><h2 class="section">Wrapper spec</h2>
+<a name="lab188"></a><h2 class="section">Wrapper spec</h2>
  The following definition is a wrapper spec to easily find out 
       input and output states 
 </div>

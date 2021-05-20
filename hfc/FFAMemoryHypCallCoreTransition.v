@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *)
+
+(* begin hide *)
 From Coq Require Import
      Arith.PeanoNat
      Lists.List
@@ -42,6 +44,8 @@ Require Import FFAMemoryHypCall.
 Require Import FFAMemoryHypCallIntro.
 Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
+
+(* end hide *)
 
 (*************************************************************)
 (** *             Core Step Rules                            *)

@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *)
+
+(* begin hide *)
 From Coq Require Import
      Arith.PeanoNat
      Lists.List
@@ -55,8 +57,6 @@ Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
 Require Export FFAMemoryHypCallCoreTransition.
 
-(* begin hide *)
-
 Notation "'get' T ',' E ',' X <- A ';;;' B" :=
   (match A with Some X => B |
            None => FAIL T E end)
@@ -74,8 +74,6 @@ Notation " 'check' T ',' E ',' A ';;;' B" :=
     (at level 200, A at level 100, B at level 200) : ffa_monad_scope.
 
 Local Open Scope ffa_monad_scope.
-
-(* end hide *)
 
 (***********************************************************************)
 (** *    Auxiliary Functions for Print                                 *)
@@ -122,6 +120,8 @@ Section PRINT_AUXILIARY_FUNCTIONS.
   
 
 End PRINT_AUXILIARY_FUNCTIONS.
+
+(* end hide *)
 
 (***********************************************************************)
 (** *    Auxiliary Functions for additional transition Rules           *)
@@ -172,12 +172,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
       ;;; get ((AbstractState * FFA_memory_region_struct)%type),
     "cannot get memory_region",
     memory_region <-
-    mailbox_msg_to_region_struct
-      (vm_context.(mailbox).(message))
+    buffer_msg_to_region_struct
+      (vm_context.(buffer).(message))
       ;;; 
       SUCCESS (state
                  {system_log: state.(system_log)
-                                      ++(RecvMsg caller vm_context.(mailbox))::nil},
+                                      ++(GetBuffer caller vm_context.(buffer))::nil},
                memory_region).
                                      
   Definition set_send_memory_region_descriptor
@@ -194,17 +194,17 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
        ;;; get AbstractState,
     "cannot get message", 
     message <-
-    (region_struct_to_mailbox_msg region_descriptor)
+    (region_struct_to_buffer_msg region_descriptor)
       ;;; 
-      let mailbox_contents := mkMAILBOX_struct 
+      let buffer_contents := mkBUFFER_struct 
                                 message (Some sender) size (Some recv_func) in
-      let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
+      let new_vm_context := vm_context {vm_buffer: buffer_contents} in
       let new_vm_contexts :=
           ZTree.set receiver new_vm_context
                     state.(hypervisor_context).(vms_contexts) in
       SUCCESS (state {hypervisor_context / vms_contexts : new_vm_contexts}
                      {system_log: state.(system_log)
-                                          ++(SendMsg sender receiver mailbox_contents)::nil}).
+                                          ++(SetBuffer sender receiver buffer_contents)::nil}).
   
     Fixpoint set_send_memory_region_descriptors_for_multiple_receivers
              (receivers: list ffa_UUID_t)
@@ -236,9 +236,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
       ;;; get ((AbstractState * Z)%type),
     "cannot get handle",
     handle <-
-    (mailbox_msg_to_Z vm_context.(mailbox).(message))
+    (buffer_msg_to_Z vm_context.(buffer).(message))
       ;;; SUCCESS (state {system_log: state.(system_log)
-                                              ++(RecvMsg caller vm_context.(mailbox))::nil},
+                                              ++(GetBuffer caller vm_context.(buffer))::nil},
                    handle).
                                                           
   Definition set_send_handle
@@ -255,17 +255,17 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
         AbstractState,
     "cannot get message",
     message
-    <- (Z_to_mailbox_msg handle)
+    <- (Z_to_buffer_msg handle)
         ;;; 
-        let mailbox_contents := mkMAILBOX_struct 
+        let buffer_contents := mkBUFFER_struct 
                                   message (Some sender) size (Some recv_func) in
-        let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
+        let new_vm_context := vm_context {vm_buffer : buffer_contents} in
         let new_vm_contexts :=
             ZTree.set receiver new_vm_context
                       state.(hypervisor_context).(vms_contexts) in
         SUCCESS (state {hypervisor_context / vms_contexts : new_vm_contexts}
                        {system_log: state.(system_log)
-                                            ++(SendMsg sender receiver mailbox_contents)::nil}).
+                                            ++(SetBuffer sender receiver buffer_contents)::nil}).
          
   Fixpoint set_send_handle_for_multiple_receivers
              (receivers: list ffa_UUID_t)
@@ -307,9 +307,9 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
       ;;; get (AbstractState * FFA_memory_relinquish_struct),
     "cannot get relinquish_descriptor",
       relinquish_descriptor <-
-    (mailbox_msg_to_relinqiush_struct vm_context.(mailbox).(message))
+    (buffer_msg_to_relinqiush_struct vm_context.(buffer).(message))
       ;;; SUCCESS (state {system_log: state.(system_log)
-                                              ++(RecvMsg caller vm_context.(mailbox))::nil},
+                                              ++(GetBuffer caller vm_context.(buffer))::nil},
                    relinquish_descriptor).
        
   Definition set_send_relinquish_descriptor
@@ -324,18 +324,18 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
       ;;; get AbstractState,
     "cannot get message",
     message <-
-    (relinqiush_struct_to_mailbox_msg relinquish_descriptor)
-      ;;; let mailbox_contents := mkMAILBOX_struct
+    (relinqiush_struct_to_buffer_msg relinquish_descriptor)
+      ;;; let buffer_contents := mkBUFFER_struct
                                     message 
                                     (Some sender) size (Some FFA_MEM_RELINQUISH) in
-          let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
+          let new_vm_context := vm_context {vm_buffer : buffer_contents} in
           let new_vm_contexts :=
               ZTree.set receiver new_vm_context
                         state.(hypervisor_context).(vms_contexts) in
           SUCCESS (state
                      {hypervisor_context / vms_contexts : new_vm_contexts}
                      {system_log: state.(system_log)
-                                          ++(SendMsg sender receiver mailbox_contents)::nil}).
+                                          ++(SetBuffer sender receiver buffer_contents)::nil}).
        
   (***********************************************************************)
   (** **   Getter for memory accessibility and attributes                *)

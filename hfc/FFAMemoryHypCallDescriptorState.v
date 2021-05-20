@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *)
+
+(* begin hide *)
+
 From Coq Require Import
      Arith.PeanoNat
      Lists.List
@@ -42,6 +45,8 @@ Require Import FFAMemoryHypCallIntro.
 
 Require Import Maps.
 Set Implicit Arguments.
+
+(* end hide *)
 
 Definition Z_64MAX := ((Z.pow 2 64) - 1)%Z.
 Definition Z_not := fun val => (Z.lxor Z_64MAX val).

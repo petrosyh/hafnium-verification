@@ -19,74 +19,8 @@
 <h1 class="libtitle">Library FFAMemoryHypCallTestingInterface</h1>
 
 <div class="code">
-<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Arith.PeanoNat</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Lists.List</span>  <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Strings.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Morphisms</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Setoid</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelationClasses</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ExtLib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelDec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Monad</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Traversable</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.List</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Option</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Monads.OptionMonad</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ITree</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ITree</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ITreeFacts</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Events.MapDefault</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Events.StateFacts</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ITree</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ITree</span> <span class="id" title="var">ITreeFacts</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">ITreeNotations</span>.<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">Monads</span>.<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">MonadNotation</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">monad_scope</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">string_scope</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Coqlib</span> <span class="id" title="var">sflib</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">HexString</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Any</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Lang</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Values</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Integers</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Constant</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Decision</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCall</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallIntro</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallDescriptorState</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallState</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallCoreTransition</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallAdditionalStepsAuxiliaryFunctions</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallAdditionalSteps</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">LangNotations</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">expr_scope</span>.<br/>
-<span class="id" title="keyword">Local Open</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">stmt_scope</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">Int64</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Maps</span>.<br/>
-<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">Z_64MAX</span> := ((<span class="id" title="var">Z.pow</span> 2 64) - 1)%<span class="id" title="var">Z</span>.<br/>
@@ -96,7 +30,7 @@
 </div>
 
 <div class="doc">
-<a name="lab151"></a><h1 class="section">Introduction</h1>
+<a name="lab150"></a><h1 class="section">Introduction</h1>
 
 <div class="paragraph"> </div>
 
@@ -134,12 +68,12 @@
 </div>
 
 <div class="doc">
-<a name="lab152"></a><h1 class="section">Instantiations for contexts</h1>
+<a name="lab151"></a><h1 class="section">Instantiations for contexts</h1>
  We provides instantiations for the context that our specifiction
     relies on. 
 <div class="paragraph"> </div>
 
-<a name="lab153"></a><h2 class="section">FFA_TYPES_AND_CONSTANTS instance</h2>
+<a name="lab152"></a><h2 class="section">FFA_TYPES_AND_CONSTANTS instance</h2>
 
 </div>
 <div class="code">
@@ -179,7 +113,7 @@
 </div>
 
 <div class="doc">
-<a name="lab154"></a><h2 class="section">DescriptorContext instance</h2>
+<a name="lab153"></a><h2 class="section">DescriptorContext instance</h2>
 
 </div>
 <div class="code">
@@ -203,16 +137,16 @@
 </div>
 
 <div class="doc">
-<a name="lab155"></a><h2 class="section">FFA_VM_CONTEXT instance</h2>
- Mailbox message could be either the initial value, memory region descriptor, relinquish descriptor,
+<a name="lab154"></a><h2 class="section">FFA_VM_CONTEXT instance</h2>
+ buffer message could be either the initial value, memory region descriptor, relinquish descriptor,
     or handle value (Z type value). 
 </div>
 <div class="code">
-<span class="id" title="keyword">Inductive</span> <span class="id" title="var">ffa_mailbox_msg_instance_t</span> : <span class="id" title="keyword">Type</span> :=<br/>
-| <span class="id" title="var">mailbox_memory_init_value</span><br/>
-| <span class="id" title="var">mailbox_memory_region</span> (<span class="id" title="var">region_descriptor</span>: <span class="id" title="var">FFA_memory_region_struct</span>)<br/>
-| <span class="id" title="var">mailbox_memory_relinquish</span> (<span class="id" title="var">relinquish_descriptor</span>: <span class="id" title="var">FFA_memory_relinquish_struct</span>)<br/>
-| <span class="id" title="var">mailbox_z</span> (<span class="id" title="var">value</span> : <span class="id" title="var">Z</span>).<br/>
+<span class="id" title="keyword">Inductive</span> <span class="id" title="var">ffa_buffer_msg_instance_t</span> : <span class="id" title="keyword">Type</span> :=<br/>
+| <span class="id" title="var">buffer_memory_init_value</span><br/>
+| <span class="id" title="var">buffer_memory_region</span> (<span class="id" title="var">region_descriptor</span>: <span class="id" title="var">FFA_memory_region_struct</span>)<br/>
+| <span class="id" title="var">buffer_memory_relinquish</span> (<span class="id" title="var">relinquish_descriptor</span>: <span class="id" title="var">FFA_memory_relinquish_struct</span>)<br/>
+| <span class="id" title="var">buffer_z</span> (<span class="id" title="var">value</span> : <span class="id" title="var">Z</span>).<br/>
 
 <br/>
 </div>
@@ -221,7 +155,7 @@
 We assume there are four VCPUs in the system 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">init_ffa_mailbox_msg</span> := <span class="id" title="var">mailbox_memory_init_value</span>.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">init_ffa_buffer_msg</span> := <span class="id" title="var">buffer_memory_init_value</span>.<br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">vcpu_max_num</span> := 4.<br/>
 
 <br/>
@@ -231,43 +165,43 @@ We assume there are four VCPUs in the system
 Conversions to/from mailbox messages from/to memory region descriptor/relinquish descriptor/handle value 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">mailbox_msg_to_region_struct</span> :=<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">buffer_msg_to_region_struct</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">x</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mailbox_memory_region</span> <span class="id" title="var">region_descriptor</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">buffer_memory_region</span> <span class="id" title="var">region_descriptor</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> <span class="id" title="var">region_descriptor</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">None</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">mailbox_msg_to_relinquish_struct</span> :=<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">buffer_msg_to_relinquish_struct</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">x</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mailbox_memory_relinquish</span> <span class="id" title="var">relinquish_descriptor</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">buffer_memory_relinquish</span> <span class="id" title="var">relinquish_descriptor</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> <span class="id" title="var">relinquish_descriptor</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">None</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">mailbox_msg_to_z</span> :=<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">buffer_msg_to_z</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">x</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mailbox_z</span> <span class="id" title="var">value</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">buffer_z</span> <span class="id" title="var">value</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Some</span> <span class="id" title="var">value</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">None</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">region_struct_to_mailbox_msg</span> :=<br/>
-&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">mailbox_memory_region</span> <span class="id" title="var">x</span>).<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">region_struct_to_buffer_msg</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">buffer_memory_region</span> <span class="id" title="var">x</span>).<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">relinquish_struct_to_mailbox_msg</span> :=<br/>
-&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">mailbox_memory_relinquish</span> <span class="id" title="var">x</span>).<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">relinquish_struct_to_buffer_msg</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">buffer_memory_relinquish</span> <span class="id" title="var">x</span>).<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">z_to_mailbox_msg</span> := <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">mailbox_z</span> <span class="id" title="var">x</span>).<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">z_to_buffer_msg</span> := <br/>
+&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">x</span> =&gt; <span class="id" title="var">Some</span> (<span class="id" title="var">buffer_z</span> <span class="id" title="var">x</span>).<br/>
 
 <br/>
 <span class="id" title="keyword">Global Instance</span> <span class="id" title="var">ffa_vm_context</span> :<br/>
@@ -284,8 +218,8 @@ Conversions to/from mailbox messages from/to memory region descriptor/relinquish
 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> := <span class="id" title="var">ffa_mailbox_msg_instance_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_msg</span> := <span class="id" title="var">init_ffa_mailbox_msg</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_buffer_msg_t</span> := <span class="id" title="var">ffa_buffer_msg_instance_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_buffer_msg</span> := <span class="id" title="var">init_ffa_buffer_msg</span>;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vcpu_max_num</span> := <span class="id" title="var">vcpu_max_num</span>;<br/>
 <br/>
@@ -295,12 +229,12 @@ Conversions to/from mailbox messages from/to memory region descriptor/relinquish
 mailbox to/from descriptors 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_region_struct</span> := <span class="id" title="var">mailbox_msg_to_region_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_relinqiush_struct</span> := <span class="id" title="var">mailbox_msg_to_relinquish_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_Z</span> := <span class="id" title="var">mailbox_msg_to_z</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_mailbox_msg</span> := <span class="id" title="var">region_struct_to_mailbox_msg</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_mailbox_msg</span> := <span class="id" title="var">relinquish_struct_to_mailbox_msg</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_mailbox_msg</span> := <span class="id" title="var">z_to_mailbox_msg</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">buffer_msg_to_region_struct</span> := <span class="id" title="var">buffer_msg_to_region_struct</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">buffer_msg_to_relinqiush_struct</span> := <span class="id" title="var">buffer_msg_to_relinquish_struct</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">buffer_msg_to_Z</span> := <span class="id" title="var">buffer_msg_to_z</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_buffer_msg</span> := <span class="id" title="var">region_struct_to_buffer_msg</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_buffer_msg</span> := <span class="id" title="var">relinquish_struct_to_buffer_msg</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_buffer_msg</span> := <span class="id" title="var">z_to_buffer_msg</span>;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">primary_vm_id</span> := 1;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">secondary_vm_ids</span> := 2::3::4::<span class="id" title="var">nil</span>;<br/>
@@ -318,7 +252,7 @@ TODO: The following values are dummy representations. We have to provide
     hypervisor implementations 
 <div class="paragraph"> </div>
 
-<a name="lab156"></a><h2 class="section">HafniumMemoryManagementContext instance</h2>
+<a name="lab155"></a><h2 class="section">HafniumMemoryManagementContext instance</h2>
  Note that we cannot use a large number in here to avoid stack overflow. 
     I have tested with 16, but it raised stack overflow. 
 
@@ -380,7 +314,7 @@ TODO: The following values are dummy representations. We have to provide
 </div>
 
 <div class="doc">
-<a name="lab157"></a><h2 class="section">AbstractStateContext instance</h2>
+<a name="lab156"></a><h2 class="section">AbstractStateContext instance</h2>
 
 <div class="paragraph"> </div>
 
@@ -475,9 +409,9 @@ TODO: The following values are dummy representations. We have to provide
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZTree.empty</span> <span class="id" title="var">VCPU_struct</span>).<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">init_MAILBOX_struct</span> :=<br/>
-&nbsp;&nbsp;<span class="id" title="var">mkMAILBOX_struct</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_msg</span><br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">init_BUFFER_struct</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="var">mkBUFFER_struct</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_buffer_msg</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">None</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;0 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">None</span> <br/>
@@ -487,7 +421,7 @@ TODO: The following values are dummy representations. We have to provide
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">init_VM_KERNEL_context</span> (<span class="id" title="var">vcpu_index</span> : <span class="id" title="var">Z</span>) (<span class="id" title="var">vcpu_ids</span>: <span class="id" title="var">list</span> <span class="id" title="var">Z</span>) :=<br/>
 &nbsp;<span class="id" title="var">mkVM_KERNEL_struct</span> <br/>
 &nbsp;&nbsp;&nbsp;(<span class="id" title="var">init_VM_COMMON_struct</span> <span class="id" title="var">vcpu_index</span> <span class="id" title="var">vcpu_ids</span>)<br/>
-&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_MAILBOX_struct</span>.<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_BUFFER_struct</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">cal_init_VM_KERNEL_contexts</span> (<span class="id" title="var">vm_ids</span>: <span class="id" title="var">list</span> <span class="id" title="var">Z</span>) := <br/>
@@ -583,7 +517,7 @@ TODO: The following values are dummy representations. We have to provide
 </div>
 
 <div class="doc">
-<a name="lab158"></a><h1 class="section">Showable functions for system log</h1>
+<a name="lab157"></a><h1 class="section">Showable functions for system log</h1>
 
 <div class="paragraph"> </div>
 
@@ -597,11 +531,11 @@ TODO: The following values are dummy representations. We have to provide
 </div>
 
 <div class="doc">
-<a name="lab159"></a><h1 class="section">Showable function for other abstract values</h1>
+<a name="lab158"></a><h1 class="section">Showable function for other abstract values</h1>
 
 <div class="paragraph"> </div>
 
-<a name="lab160"></a><h2 class="section">Showable function for global memory property</h2>
+<a name="lab159"></a><h2 class="section">Showable function for global memory property</h2>
 
 <div class="paragraph"> </div>
 
@@ -615,7 +549,7 @@ TODO: The following values are dummy representations. We have to provide
 </div>
 
 <div class="doc">
-<a name="lab161"></a><h2 class="section">Showable function for local memory property</h2>
+<a name="lab160"></a><h2 class="section">Showable function for local memory property</h2>
 
 <div class="paragraph"> </div>
 
@@ -629,7 +563,7 @@ TODO: The following values are dummy representations. We have to provide
 </div>
 
 <div class="doc">
-<a name="lab162"></a><h2 class="section">Showable function for vcpu structure</h2>
+<a name="lab161"></a><h2 class="section">Showable function for vcpu structure</h2>
 
 <div class="paragraph"> </div>
 
@@ -643,8 +577,8 @@ TODO: The following values are dummy representations. We have to provide
 </div>
 
 <div class="doc">
-<a name="lab163"></a><h1 class="section">Additional  Specifications for testing</h1>
-<a name="lab164"></a><h2 class="section">Event and Update functions</h2>
+<a name="lab162"></a><h1 class="section">Additional  Specifications for testing</h1>
+<a name="lab163"></a><h2 class="section">Event and Update functions</h2>
 
 </div>
 <div class="code">
@@ -670,7 +604,7 @@ TODO: The following values are dummy representations. We have to provide
 </div>
 
 <div class="doc">
-<a name="lab165"></a><h2 class="section">Context switching</h2>
+<a name="lab164"></a><h2 class="section">Context switching</h2>
 
 </div>
 <div class="code">
@@ -945,7 +879,7 @@ get vcpu register information
 </div>
 
 <div class="doc">
-<a name="lab166"></a><h2 class="section">FFA Dispatch</h2>
+<a name="lab165"></a><h2 class="section">FFA Dispatch</h2>
 
 </div>
 <div class="code">
@@ -1359,8 +1293,8 @@ In Hafnium: Defined in "inc/vmapi/hf/ffa.h"
 </div>
 
 <div class="doc">
-<a name="lab167"></a><h2 class="section">Client Setter and Getter</h2>
-<a name="lab168"></a><h3 class="section">FFA Interface Values</h3>
+<a name="lab166"></a><h2 class="section">Client Setter and Getter</h2>
+<a name="lab167"></a><h3 class="section">FFA Interface Values</h3>
  This section defines Z type interface values for FFA calls 
 </div>
 <div class="code">
@@ -1509,7 +1443,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab169"></a><h2 class="section">Client modeling</h2>
+<a name="lab168"></a><h2 class="section">Client modeling</h2>
 
 </div>
 <div class="code">
@@ -1519,7 +1453,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab170"></a><h3 class="section">Address translation</h3>
+<a name="lab169"></a><h3 class="section">Address translation</h3>
  Memory load and store operations 
 </div>
 <div class="code">
@@ -1575,7 +1509,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab171"></a><h3 class="section">Logical flag changes</h3>
+<a name="lab170"></a><h3 class="section">Logical flag changes</h3>
 
 </div>
 <div class="code">
@@ -1668,145 +1602,151 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab172"></a><h3 class="section">Send / Receive messages</h3>
+<a name="lab171"></a><h3 class="section">Setter/Getter for buffer</h3>
 
 </div>
 <div class="code">
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">send_msg_spec</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_buffer_spec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">size</span> : <span class="id" title="var">Z</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">ffa_mailbox_msg_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">ffa_buffer_msg_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">recv_func</span> : <span class="id" title="var">FFA_FUNCTION_TYPE</span>) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "send_msg: invalid receiver",<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">receiver</span> <span class="id" title="var">vm_ids</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "set_buffer: invalid receiver",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">receiver</span> <span class="id" title="var">entity_list</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">sender</span> := <span class="id" title="var">state</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "send_msg: error in getting vm_context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">receiver_buffer_id</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">receiver</span> = <span class="id" title="var">hypervisor_id</span>) <span class="id" title="keyword">then</span> <span class="id" title="var">sender</span> <span class="id" title="keyword">else</span> <span class="id" title="var">receiver</span> <span class="id" title="tactic">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> (<span class="id" title="var">append_all</span> ["set_buffer: error in getting vm_context";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">HexString.of_Z</span> <span class="id" title="var">receiver_buffer_id</span>]),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver_buffer_id</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mailbox_contents</span> := <span class="id" title="var">mkMAILBOX_struct</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">buffer_contents</span> := <span class="id" title="var">mkBUFFER_struct</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">msg</span> (<span class="id" title="var">Some</span> <span class="id" title="var">sender</span>) <span class="id" title="var">size</span> (<span class="id" title="var">Some</span> <span class="id" title="var">recv_func</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_mailbox</span> : <span class="id" title="var">mailbox_contents</span>} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_buffer</span> : <span class="id" title="var">buffer_contents</span>} <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">receiver</span> <span class="id" title="var">new_vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">receiver_buffer_id</span> <span class="id" title="var">new_vm_context</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">state</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">vms_contexts</span> : <span class="id" title="var">new_vm_contexts</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: (<span class="id" title="var">SendMsg</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">mailbox_contents</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: (<span class="id" title="var">SetBuffer</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">buffer_contents</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">state</span>.(<span class="id" title="var">system_log</span>))})).<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">send_msg_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_buffer_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">receiver</span>)); (<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">size</span>)); (<span class="id" title="var">Vabs</span> <span class="id" title="var">mailbox_msg</span>); (<span class="id" title="var">Vabs</span> <span class="id" title="var">recv_func</span>)] =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">downcast</span> <span class="id" title="var">mailbox_msg</span> <span class="id" title="var">ffa_mailbox_msg_t</span>, <span class="id" title="var">downcast</span> <span class="id" title="var">recv_func</span> <span class="id" title="var">FFA_FUNCTION_TYPE</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">receiver</span>)); (<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">size</span>)); (<span class="id" title="var">Vabs</span> <span class="id" title="var">buffer_msg</span>); (<span class="id" title="var">Vabs</span> <span class="id" title="var">recv_func</span>)] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">downcast</span> <span class="id" title="var">buffer_msg</span> <span class="id" title="var">ffa_buffer_msg_t</span>, <span class="id" title="var">downcast</span> <span class="id" title="var">recv_func</span> <span class="id" title="var">FFA_FUNCTION_TYPE</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">msg</span>, <span class="id" title="var">Some</span> <span class="id" title="var">func_type</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">send_msg_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">receiver</span>) (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">size</span>) <span class="id" title="var">msg</span> <span class="id" title="var">func_type</span> ;;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">set_buffer_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">receiver</span>) (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">size</span>) <span class="id" title="var">msg</span> <span class="id" title="var">func_type</span> ;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vnull</span>, <span class="id" title="var">args</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "send_msg_call: impossible conversion"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "set_buffer_call: impossible conversion"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "send_msg_call: wrong arguments"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "set_buffer_call: wrong arguments"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">recv_msg_spec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">FFAMemoryHypCallState.ffa_mailbox_msg_t</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_buffer_spec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">FFAMemoryHypCallState.ffa_buffer_msg_t</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">current_vm_id</span> := <span class="id" title="var">st</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "recv_msg: error in getting vm_context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "get_buffer: error in getting vm_context",<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">current_vm_id</span> <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">Ret</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">message</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">Ret</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">buffer</span>).(<span class="id" title="var">message</span>)).<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">recv_msg_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_buffer_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| [] =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">recv_msg_spec</span>;;  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">get_buffer_spec</span>;;  <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">res</span>), <span class="id" title="var">args</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "recv_msg_call: wrong arguments"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "get_buffer_call: wrong arguments"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-<a name="lab173"></a><h3 class="section">Send / Receive messages with ID</h3>
+<a name="lab172"></a><h3 class="section">Setter/Getter for buffer with ID</h3>
 
 </div>
 <div class="code">
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">send_msg_with_sender_id_spec</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">set_buffer_with_sender_id_spec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sender</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">size</span> : <span class="id" title="var">Z</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">ffa_mailbox_msg_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">ffa_buffer_msg_t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">recv_func</span> : <span class="id" title="var">FFA_FUNCTION_TYPE</span>) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">unit</span>) := <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "send_msg_with_sender: invalid sender and/or receiver" ,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">sender</span> <span class="id" title="var">vm_ids</span>) &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">receiver</span> <span class="id" title="var">vm_ids</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "set_buffer_with_sender: invalid sender and/or receiver" ,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">sender</span> <span class="id" title="var">entity_list</span>) &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">receiver</span> <span class="id" title="var">entity_list</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="keyword">let</span> <span class="id" title="var">sender</span> := <span class="id" title="var">state</span>.(<span class="id" title="var">cur_user_entity_id</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "send_msg_with_sender: error in getting vm_context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">receiver_buffer_id</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">receiver</span> = <span class="id" title="var">hypervisor_id</span>) <span class="id" title="keyword">then</span> <span class="id" title="var">sender</span> <span class="id" title="keyword">else</span> <span class="id" title="var">receiver</span> <span class="id" title="tactic">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> (<span class="id" title="var">append_all</span> ["set_buffer_with_sender: error in getting vm_context";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">HexString.of_Z</span> <span class="id" title="var">receiver_buffer_id</span>]),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver_buffer_id</span> <span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">mailbox_contents</span> := <span class="id" title="var">mkMAILBOX_struct</span> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">msg</span> (<span class="id" title="var">Some</span> <span class="id" title="var">sender</span>) <span class="id" title="var">size</span> (<span class="id" title="var">Some</span> <span class="id" title="var">recv_func</span>) <span class="id" title="tactic">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_mailbox</span> : <span class="id" title="var">mailbox_contents</span>} <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">buffer_contents</span> := <span class="id" title="var">mkBUFFER_struct</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">msg</span> (<span class="id" title="var">Some</span> <span class="id" title="var">sender</span>) <span class="id" title="var">size</span> (<span class="id" title="var">Some</span> <span class="id" title="var">recv_func</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_context</span> := <span class="id" title="var">vm_context</span> {<span class="id" title="var">vm_buffer</span> : <span class="id" title="var">buffer_contents</span>} <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">receiver</span> <span class="id" title="var">new_vm_context</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.set</span> <span class="id" title="var">receiver_buffer_id</span> <span class="id" title="var">new_vm_context</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">state</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">trigger</span> (<span class="id" title="var">SetState</span> (<span class="id" title="var">state</span> {<span class="id" title="var">hypervisor_context</span> / <span class="id" title="var">vms_contexts</span> : <span class="id" title="var">new_vm_contexts</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: (<span class="id" title="var">SendMsg</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">mailbox_contents</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">system_log</span>: (<span class="id" title="var">SetBuffer</span> <span class="id" title="var">sender</span> <span class="id" title="var">receiver</span> <span class="id" title="var">buffer_contents</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::(<span class="id" title="var">state</span>.(<span class="id" title="var">system_log</span>))})).<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">send_msg_with_sender_id_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span>  <span class="id" title="var">set_buffer_with_sender_id_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">sender</span>)); (<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">receiver</span>)); (<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">size</span>));<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Vabs</span> <span class="id" title="var">mailbox_msg</span>); (<span class="id" title="var">Vabs</span> <span class="id" title="var">recv_func</span>)] =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">downcast</span> <span class="id" title="var">mailbox_msg</span> <span class="id" title="var">ffa_mailbox_msg_t</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Vabs</span> <span class="id" title="var">buffer_msg</span>); (<span class="id" title="var">Vabs</span> <span class="id" title="var">recv_func</span>)] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">downcast</span> <span class="id" title="var">buffer_msg</span> <span class="id" title="var">ffa_buffer_msg_t</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">downcast</span> <span class="id" title="var">recv_func</span> <span class="id" title="var">FFA_FUNCTION_TYPE</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">msg</span>, <span class="id" title="var">Some</span> <span class="id" title="var">func_type</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">send_msg_with_sender_id_spec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">set_buffer_with_sender_id_spec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">sender</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">receiver</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">size</span>) <span class="id" title="var">msg</span> <span class="id" title="var">func_type</span> ;;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vnull</span>, <span class="id" title="var">args</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "send_msg_with_sender_call: impossible conversion"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "set_buffer_with_sender_call: impossible conversion"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "send_msg_with_sender_call: wrong arguments"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "set_buffer_with_sender_call: wrong arguments"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">recv_msg_with_receiver_id_spec</span> (<span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">FFAMemoryHypCallState.ffa_mailbox_msg_t</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_buffer_with_receiver_id_spec</span> (<span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">FFAMemoryHypCallState.ffa_buffer_msg_t</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">st</span> &lt;- <span class="id" title="var">trigger</span> <span class="id" title="var">GetState</span>;;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "send_msg: invalid receiver",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">check</span> "get_buffer: invalid receiver",<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">decide</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">receiver</span> <span class="id" title="var">vm_ids</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;;    <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "recv_msg: error in getting vm_context",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">get</span> "get_buffer: error in getting vm_context",<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">vm_context</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">receiver</span> <span class="id" title="var">st</span>.(<span class="id" title="var">hypervisor_context</span>).(<span class="id" title="var">vms_contexts</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">Ret</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">mailbox</span>).(<span class="id" title="var">message</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">Ret</span> (<span class="id" title="var">vm_context</span>.(<span class="id" title="var">buffer</span>).(<span class="id" title="var">message</span>)).<br/>
 
 <br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">recv_msg_with_receiver_id_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">get_buffer_with_receiver_id_call</span> (<span class="id" title="var">args</span>: <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">itree</span> <span class="id" title="var">HypervisorEE</span> (<span class="id" title="var">Lang.val</span> * <span class="id" title="var">list</span> <span class="id" title="var">Lang.val</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">args</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| [(<span class="id" title="var">Vcomp</span> (<span class="id" title="var">Vlong</span> <span class="id" title="var">receiver</span>))] =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">recv_msg_with_receiver_id_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">receiver</span>);;  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">res</span> &lt;- <span class="id" title="var">get_buffer_with_receiver_id_spec</span> (<span class="id" title="var">Int64.unsigned</span> <span class="id" title="var">receiver</span>);;  <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Ret</span> (<span class="id" title="var">Vabs</span> (<span class="id" title="var">upcast</span> <span class="id" title="var">res</span>), <span class="id" title="var">args</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "recv_msg_call: wrong arguments"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span> =&gt; <span class="id" title="var">triggerNB</span> "get_buffer_call: wrong arguments"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
@@ -1816,7 +1756,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab174"></a><h2 class="section">FFA Memory Management Interface Module</h2>
+<a name="lab173"></a><h2 class="section">FFA Memory Management Interface Module</h2>
 
 </div>
 <div class="code">
@@ -1826,7 +1766,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab175"></a><h3 class="section">Global property getter / setter</h3>
+<a name="lab174"></a><h3 class="section">Global property getter / setter</h3>
 
 </div>
 <div class="code">
@@ -1890,7 +1830,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab176"></a><h3 class="section">Local property getter / setter</h3>
+<a name="lab175"></a><h3 class="section">Local property getter / setter</h3>
 
 </div>
 <div class="code">
@@ -1970,7 +1910,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab177"></a><h3 class="section">Set / clean mem dirty + mem dirty getter</h3>
+<a name="lab176"></a><h3 class="section">Set / clean mem dirty + mem dirty getter</h3>
 
 </div>
 <div class="code">
@@ -2092,7 +2032,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab178"></a><h3 class="section">current entity id getter / setter</h3>
+<a name="lab177"></a><h3 class="section">current entity id getter / setter</h3>
 
 </div>
 <div class="code">
@@ -2143,7 +2083,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab179"></a><h3 class="section">userspace vcpu index getter / setter</h3>
+<a name="lab178"></a><h3 class="section">userspace vcpu index getter / setter</h3>
 
 </div>
 <div class="code">
@@ -2216,7 +2156,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab180"></a><h2 class="section">userspace vcpu index getter / setter with entity id</h2>
+<a name="lab179"></a><h2 class="section">userspace vcpu index getter / setter with entity id</h2>
 
 </div>
 <div class="code">
@@ -2296,7 +2236,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab181"></a><h2 class="section">kernel vcpu index getter / setter with entity id</h2>
+<a name="lab180"></a><h2 class="section">kernel vcpu index getter / setter with entity id</h2>
 
 </div>
 <div class="code">
@@ -2348,7 +2288,7 @@ The following numbers are also defined in Chapter 7
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Some</span> <span class="id" title="var">vcpu_index</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">cur_kernel_vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">cur_kernel_vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus_contexts</span>)))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_kernel_vm_context</span>.(<span class="id" title="var">mailbox</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_kernel_vm_context</span>.(<span class="id" title="var">buffer</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZTree.set</span> <span class="id" title="var">cur_user_entity_id</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_kernel_vm_context</span><br/>
@@ -2372,7 +2312,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab182"></a><h2 class="section">userspace vcpu getter / setter</h2>
+<a name="lab181"></a><h2 class="section">userspace vcpu getter / setter</h2>
 
 </div>
 <div class="code">
@@ -2461,7 +2401,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab183"></a><h2 class="section">userspace vcpu getter / setter with entity ID</h2>
+<a name="lab182"></a><h2 class="section">userspace vcpu getter / setter with entity ID</h2>
 
 </div>
 <div class="code">
@@ -2561,7 +2501,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab184"></a><h2 class="section">kernel vcpu getter / setter with entity ID</h2>
+<a name="lab183"></a><h2 class="section">kernel vcpu getter / setter with entity ID</h2>
 
 </div>
 <div class="code">
@@ -2627,7 +2567,7 @@ The following numbers are also defined in Chapter 7
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Some</span> <span class="id" title="var">cur_kernel_vcpu_id</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">cur_kernel_vm_context</span>.(<span class="id" title="var">vm_kernelspace_context</span>).(<span class="id" title="var">vcpus</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_vcpu_contexts</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_kernel_vm_context</span>.(<span class="id" title="var">mailbox</span>) <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">cur_kernel_vm_context</span>.(<span class="id" title="var">buffer</span>) <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">new_vm_contexts</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">ZTree.set</span> <span class="id" title="var">cur_user_entity_id</span> <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">new_kernel_vm_contexts</span><br/>
@@ -2695,7 +2635,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab185"></a><h2 class="section">FFA Memory Management Interface Module</h2>
+<a name="lab184"></a><h2 class="section">FFA Memory Management Interface Module</h2>
 
 </div>
 <div class="code">
@@ -2719,10 +2659,10 @@ The following numbers are also defined in Chapter 7
 &nbsp;&nbsp;&nbsp;&nbsp;("HVCToplevel.current_entity_id_getter", <span class="id" title="var">current_entity_id_getter_call</span>);<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;("HVCToplevel.current_entity_id_setter", <span class="id" title="var">current_entity_id_setter_call</span>);<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.send_msg", <span class="id" title="var">send_msg_call</span>);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.recv_msg", <span class="id" title="var">recv_msg_call</span>);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.send_msg_with_sender_id", <span class="id" title="var">send_msg_with_sender_id_call</span>);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.recv_msg_with_receiver_id", <span class="id" title="var">recv_msg_with_receiver_id_call</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.set_buffer", <span class="id" title="var">set_buffer_call</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.get_buffer", <span class="id" title="var">get_buffer_call</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.set_buffer_with_sender_id", <span class="id" title="var">set_buffer_with_sender_id_call</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.get_buffer_with_receiver_id", <span class="id" title="var">get_buffer_with_receiver_id_call</span>);<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.global_properties_getter", <span class="id" title="var">global_properties_getter_call</span>);<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;("HVCTopLevel.global_properties_setter", <span class="id" title="var">global_properties_setter_call</span>);<br/>
@@ -2795,7 +2735,7 @@ The following numbers are also defined in Chapter 7
 </div>
 
 <div class="doc">
-<a name="lab186"></a><h2 class="section">Hypervisor Call</h2>
+<a name="lab185"></a><h2 class="section">Hypervisor Call</h2>
 
 </div>
 <div class="code">
@@ -2860,7 +2800,7 @@ Jieung: I do not figure out the reason, but it is required
 </div>
 
 <div class="doc">
-<a name="lab187"></a><h2 class="section">FFA Memory Management Interface Module With Mem Accessor</h2>
+<a name="lab186"></a><h2 class="section">FFA Memory Management Interface Module With Mem Accessor</h2>
 
 </div>
 <div class="code">

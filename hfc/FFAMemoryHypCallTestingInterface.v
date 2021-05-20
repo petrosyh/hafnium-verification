@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *)
+
+(* begin hide *)
 From Coq Require Import
      Arith.PeanoNat
      Lists.List  
@@ -73,6 +75,8 @@ Import Int64.
 
 Require Import Maps.
 Set Implicit Arguments.
+
+(* end hide *)
 
 Definition Z_64MAX := ((Z.pow 2 64) - 1)%Z.
 Definition Z_not := fun val => (Z.lxor Z_64MAX val).
@@ -152,69 +156,69 @@ Global Instance descriptor_context :
 (***********************************************************************)
 (** **                  FFA_VM_CONTEXT instance                        *)
 (***********************************************************************)
-(** Mailbox message could be either the initial value, memory region descriptor, relinquish descriptor,
+(** buffer message could be either the initial value, memory region descriptor, relinquish descriptor,
     or handle value (Z type value). *)
-Inductive ffa_mailbox_msg_instance_t : Type :=
-| mailbox_memory_init_value
-| mailbox_memory_region (region_descriptor: FFA_memory_region_struct)
-| mailbox_memory_relinquish (relinquish_descriptor: FFA_memory_relinquish_struct)
-| mailbox_z (value : Z).
+Inductive ffa_buffer_msg_instance_t : Type :=
+| buffer_memory_init_value
+| buffer_memory_region (region_descriptor: FFA_memory_region_struct)
+| buffer_memory_relinquish (relinquish_descriptor: FFA_memory_relinquish_struct)
+| buffer_z (value : Z).
 
 (** We assume there are four VCPUs in the system *)
-Definition init_ffa_mailbox_msg := mailbox_memory_init_value.
+Definition init_ffa_buffer_msg := buffer_memory_init_value.
 Definition vcpu_max_num := 4.
 
 (** Conversions to/from mailbox messages from/to memory region descriptor/relinquish descriptor/handle value *) 
-Definition mailbox_msg_to_region_struct :=
+Definition buffer_msg_to_region_struct :=
   fun x =>
     match x with
-    | mailbox_memory_region region_descriptor =>
+    | buffer_memory_region region_descriptor =>
       Some region_descriptor
     | _ => None
     end.
 
-Definition mailbox_msg_to_relinquish_struct :=
+Definition buffer_msg_to_relinquish_struct :=
   fun x =>
     match x with
-    | mailbox_memory_relinquish relinquish_descriptor =>
+    | buffer_memory_relinquish relinquish_descriptor =>
       Some relinquish_descriptor
     | _ => None
     end.
 
-Definition mailbox_msg_to_z :=
+Definition buffer_msg_to_z :=
   fun x =>
     match x with
-    | mailbox_z value =>
+    | buffer_z value =>
       Some value
     | _ => None
     end.
 
-Definition region_struct_to_mailbox_msg :=
-  fun x => Some (mailbox_memory_region x).
+Definition region_struct_to_buffer_msg :=
+  fun x => Some (buffer_memory_region x).
 
-Definition relinquish_struct_to_mailbox_msg :=
-  fun x => Some (mailbox_memory_relinquish x).
+Definition relinquish_struct_to_buffer_msg :=
+  fun x => Some (buffer_memory_relinquish x).
 
-Definition z_to_mailbox_msg := 
-  fun x => Some (mailbox_z x).
+Definition z_to_buffer_msg := 
+  fun x => Some (buffer_z x).
 
 Global Instance ffa_vm_context :
   FFA_VM_CONTEXT (ffa_types_and_constants := ffa_types_and_constants)  :=
     {
     (** - The following two types are for message passings. We use them to record and 
         retrieve descriptor information *)
-    ffa_mailbox_msg_t := ffa_mailbox_msg_instance_t;
-    init_ffa_mailbox_msg := init_ffa_mailbox_msg;
+    ffa_buffer_msg_t := ffa_buffer_msg_instance_t;
+    init_ffa_buffer_msg := init_ffa_buffer_msg;
 
     vcpu_max_num := vcpu_max_num;
 
     (** mailbox to/from descriptors *)
-    mailbox_msg_to_region_struct := mailbox_msg_to_region_struct;
-    mailbox_msg_to_relinqiush_struct := mailbox_msg_to_relinquish_struct;
-    mailbox_msg_to_Z := mailbox_msg_to_z;
-    region_struct_to_mailbox_msg := region_struct_to_mailbox_msg;
-    relinqiush_struct_to_mailbox_msg := relinquish_struct_to_mailbox_msg;
-    Z_to_mailbox_msg := z_to_mailbox_msg;
+    buffer_msg_to_region_struct := buffer_msg_to_region_struct;
+    buffer_msg_to_relinqiush_struct := buffer_msg_to_relinquish_struct;
+    buffer_msg_to_Z := buffer_msg_to_z;
+    region_struct_to_buffer_msg := region_struct_to_buffer_msg;
+    relinqiush_struct_to_buffer_msg := relinquish_struct_to_buffer_msg;
+    Z_to_buffer_msg := z_to_buffer_msg;
 
     primary_vm_id := 1;
     secondary_vm_ids := 2::3::4::nil;
@@ -359,9 +363,9 @@ Definition init_VM_COMMON_struct (vcpu_index : Z) (vcpu_ids: list Z)
        vcpu_ids 
        (ZTree.empty VCPU_struct).
 
-Definition init_MAILBOX_struct :=
-  mkMAILBOX_struct
-    init_ffa_mailbox_msg
+Definition init_BUFFER_struct :=
+  mkBUFFER_struct
+    init_ffa_buffer_msg
     None (* sender *)
     0 (* size *)
     None (* recv func *)
@@ -370,7 +374,7 @@ Definition init_MAILBOX_struct :=
 Definition init_VM_KERNEL_context (vcpu_index : Z) (vcpu_ids: list Z) :=
  mkVM_KERNEL_struct 
    (init_VM_COMMON_struct vcpu_index vcpu_ids)
-   init_MAILBOX_struct.
+   init_BUFFER_struct.
 
 Fixpoint cal_init_VM_KERNEL_contexts (vm_ids: list Z) := 
   match vm_ids with
@@ -461,6 +465,8 @@ Global Instance abstract_state_context :
 
 (* begin hide *)
 
+
+(** print FFA values. for the simplicity, we only print the result of the operation *)
 Definition print_FFA_value_type (ffa_value: FFA_value_type) :=
   match ffa_value with
   | mkFFA_value_type ffa_type vals =>
@@ -495,8 +501,9 @@ Definition print_FFA_value_type (ffa_value: FFA_value_type) :=
           | FFA_SUCCESS value =>
             (append_all [" FFA_SUCCESS (" ; HexString.of_Z value; ") "])
           end
-        end in
-    append ffa_value_string (print_ffa_vals vals)
+        end
+    in ffa_value_string
+    (* append ffa_value_string (print_ffa_vals vals) *)
   end.
 
 Definition print_onwership_state_type
@@ -570,7 +577,6 @@ Definition print_ffa_memory_type
       append_all  ["NORMAL_MEM"; " "; ctype_string; " "; stype_string]
   | FFA_MEMORY_MEM_RESERVED => "RESERVED"
   end.
-
 
 
 Definition print_permissions_descriptor_struct
@@ -683,23 +689,23 @@ Definition print_relinquish_region_descriptor
            (relinquish_desc: FFA_memory_relinquish_struct)
   := " ".
 
-Definition print_mailbox_msg (mailbox : MAILBOX_struct) :=
-  match mailbox with
-  | mkMAILBOX_struct message sender size func =>
-    let intro_str := append_all [newline;"MAILBOX: "] in
+Definition print_buffer_msg (buffer : BUFFER_struct) :=
+  match buffer with
+  | mkBUFFER_struct message sender size func =>
+    let intro_str := append_all [newline;"BUFFER: "] in
     let message_str :=        
     match message with
-    | mailbox_memory_init_value
+    | buffer_memory_init_value
       => append_all [newline; tabspace; "init value"]
-    | mailbox_memory_region region_desc =>
+    | buffer_memory_region region_desc =>
       append_all [newline; tabspace;
                  "region_desc: ";
                   print_memory_region_descriptor region_desc]
-    | mailbox_memory_relinquish relinquish_desc =>
+    | buffer_memory_relinquish relinquish_desc =>
       append_all [newline; tabspace;
                  "relinquish_desc: ";
                  print_relinquish_region_descriptor relinquish_desc]
-    | mailbox_z value => append_all [newline; tabspace; "z value: "; HexString.of_Z value]
+    | buffer_z value => append_all [newline; tabspace; "z value: "; HexString.of_Z value]
     end in
     let sender_str :=
         append_all [newline; tabspace; "Sender: "; 
@@ -882,9 +888,9 @@ Definition print_system_log_entity (log_entity : log_type) :=
                  print_ffa_memory_type attributes;
                  ")"]
 
-  | SendMsg sender receiver msg
+  | SetBuffer sender receiver msg
     => append_all [newline;
-                 "(SendMsg:";
+                 "(SetBuffer:";
                  newline;
                  tabspace;
                  "sender: ";
@@ -896,12 +902,12 @@ Definition print_system_log_entity (log_entity : log_type) :=
                  newline;
                  tabspace;
                  "msg: ";
-                 print_mailbox_msg msg;
+                 print_buffer_msg msg;
                  ")"]
                  
-  | RecvMsg receiver msg 
+  | GetBuffer receiver msg 
     => append_all [newline;
-                 "(RecvMsg:";
+                 "(GetBuffer:";
                  newline;
                  tabspace;
                  "receiver: ";
@@ -909,7 +915,7 @@ Definition print_system_log_entity (log_entity : log_type) :=
                  newline;
                  tabspace;
                  "msg: ";
-                 print_mailbox_msg msg;
+                 print_buffer_msg msg;
                  ")"]
   end.
                   
@@ -1757,130 +1763,136 @@ Section InterfaceFunctions.
     end.
 
   (***********************************************************************)
-  (** ***      Send / Receive messages                                   *)
+  (** ***      Setter/Getter for buffer                                   *)
   (***********************************************************************)
   
-  Definition send_msg_spec
+  Definition set_buffer_spec
              (receiver: ffa_UUID_t)
              (size : Z)
-             (msg : ffa_mailbox_msg_t)
+             (msg : ffa_buffer_msg_t)
              (recv_func : FFA_FUNCTION_TYPE) 
     : itree HypervisorEE (unit) := 
     state <- trigger GetState;;
-    check "send_msg: invalid receiver",
-    (decide (in_dec zeq receiver vm_ids))
+    check "set_buffer: invalid receiver",
+    (decide (in_dec zeq receiver entity_list))
       ;;;
       let sender := state.(cur_user_entity_id) in
-      get "send_msg: error in getting vm_context",
+      let receiver_buffer_id :=
+          if decide (receiver = hypervisor_id) then sender else receiver in 
+      get (append_all ["set_buffer: error in getting vm_context";
+                      HexString.of_Z receiver_buffer_id]),
       vm_context
-      <- (ZTree.get receiver state.(hypervisor_context).(vms_contexts))
+      <- (ZTree.get receiver_buffer_id state.(hypervisor_context).(vms_contexts))
           ;;;
-          let mailbox_contents := mkMAILBOX_struct 
+          let buffer_contents := mkBUFFER_struct 
                                     msg (Some sender) size (Some recv_func) in
-          let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
+          let new_vm_context := vm_context {vm_buffer : buffer_contents} in
           let new_vm_contexts :=
-              ZTree.set receiver new_vm_context
+              ZTree.set receiver_buffer_id new_vm_context
                         state.(hypervisor_context).(vms_contexts) in
           trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts}
-                                   {system_log: (SendMsg sender receiver mailbox_contents)
+                                   {system_log: (SetBuffer sender receiver buffer_contents)
                                                   ::(state.(system_log))})).
     
-  Definition send_msg_call (args: list Lang.val)
+  Definition set_buffer_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
-    | [(Vcomp (Vlong receiver)); (Vcomp (Vlong size)); (Vabs mailbox_msg); (Vabs recv_func)] =>
-        match downcast mailbox_msg ffa_mailbox_msg_t, downcast recv_func FFA_FUNCTION_TYPE with
+    | [(Vcomp (Vlong receiver)); (Vcomp (Vlong size)); (Vabs buffer_msg); (Vabs recv_func)] =>
+        match downcast buffer_msg ffa_buffer_msg_t, downcast recv_func FFA_FUNCTION_TYPE with
         | Some msg, Some func_type =>
-          res <- send_msg_spec (Int64.unsigned receiver) (Int64.unsigned size) msg func_type ;;
+          res <- set_buffer_spec (Int64.unsigned receiver) (Int64.unsigned size) msg func_type ;;
           Ret (Vnull, args)
-        | _, _ => triggerNB "send_msg_call: impossible conversion"
+        | _, _ => triggerNB "set_buffer_call: impossible conversion"
         end
-    | _ => triggerNB "send_msg_call: wrong arguments"
+    | _ => triggerNB "set_buffer_call: wrong arguments"
     end.
 
-  Definition recv_msg_spec
-    : itree HypervisorEE (FFAMemoryHypCallState.ffa_mailbox_msg_t) :=
+  Definition get_buffer_spec
+    : itree HypervisorEE (FFAMemoryHypCallState.ffa_buffer_msg_t) :=
     st <- trigger GetState;;
     let current_vm_id := st.(cur_user_entity_id) in
-    get "recv_msg: error in getting vm_context",
+    get "get_buffer: error in getting vm_context",
     vm_context
     <- (ZTree.get current_vm_id st.(hypervisor_context).(vms_contexts))
-        ;;; Ret (vm_context.(mailbox).(message)).
+        ;;; Ret (vm_context.(buffer).(message)).
   
-  Definition recv_msg_call (args: list Lang.val)
+  Definition get_buffer_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [] =>
-      res <- recv_msg_spec;;  
+      res <- get_buffer_spec;;  
       Ret (Vabs (upcast res), args)
-    | _ => triggerNB "recv_msg_call: wrong arguments"
+    | _ => triggerNB "get_buffer_call: wrong arguments"
     end.
   
   (***********************************************************************)
-  (** ***      Send / Receive messages with ID                           *)
+  (** ***      Setter/Getter for buffer with ID                           *)
   (***********************************************************************)
 
-  Definition send_msg_with_sender_id_spec
+  Definition set_buffer_with_sender_id_spec
              (sender: ffa_UUID_t)
              (receiver: ffa_UUID_t)
              (size : Z)
-             (msg : ffa_mailbox_msg_t)
+             (msg : ffa_buffer_msg_t)
              (recv_func : FFA_FUNCTION_TYPE) 
     : itree HypervisorEE (unit) := 
     state <- trigger GetState;;
-    check "send_msg_with_sender: invalid sender and/or receiver" ,
-    (decide (in_dec zeq sender vm_ids) && decide (in_dec zeq receiver vm_ids))
+    check "set_buffer_with_sender: invalid sender and/or receiver" ,
+    (decide (in_dec zeq sender entity_list) && decide (in_dec zeq receiver entity_list))
       ;;; let sender := state.(cur_user_entity_id) in
-          get "send_msg_with_sender: error in getting vm_context",
+          let receiver_buffer_id :=
+              if decide (receiver = hypervisor_id) then sender else receiver in 
+          get (append_all ["set_buffer_with_sender: error in getting vm_context";
+                          HexString.of_Z receiver_buffer_id]),
           vm_context
-          <- (ZTree.get receiver state.(hypervisor_context).(vms_contexts))
+          <- (ZTree.get receiver_buffer_id state.(hypervisor_context).(vms_contexts))
               ;;;
-              let mailbox_contents := mkMAILBOX_struct 
-                                        msg (Some sender) size (Some recv_func) in
-              let new_vm_context := vm_context {vm_mailbox : mailbox_contents} in
+              let buffer_contents := mkBUFFER_struct 
+                                       msg (Some sender) size (Some recv_func) in
+              let new_vm_context := vm_context {vm_buffer : buffer_contents} in
               let new_vm_contexts :=
-                  ZTree.set receiver new_vm_context
+                  ZTree.set receiver_buffer_id new_vm_context
                             state.(hypervisor_context).(vms_contexts) in
               trigger (SetState (state {hypervisor_context / vms_contexts : new_vm_contexts}
-                                       {system_log: (SendMsg sender receiver mailbox_contents)
+                                       {system_log: (SetBuffer sender receiver buffer_contents)
                                                       ::(state.(system_log))})).
     
-  Definition send_msg_with_sender_id_call (args: list Lang.val)
+  Definition  set_buffer_with_sender_id_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [(Vcomp (Vlong sender)); (Vcomp (Vlong receiver)); (Vcomp (Vlong size));
-      (Vabs mailbox_msg); (Vabs recv_func)] =>
-      match downcast mailbox_msg ffa_mailbox_msg_t,
+      (Vabs buffer_msg); (Vabs recv_func)] =>
+      match downcast buffer_msg ffa_buffer_msg_t,
             downcast recv_func FFA_FUNCTION_TYPE with
         | Some msg, Some func_type =>
-          res <- send_msg_with_sender_id_spec
+          res <- set_buffer_with_sender_id_spec
                   (Int64.unsigned sender)
                   (Int64.unsigned receiver)
                   (Int64.unsigned size) msg func_type ;;
           Ret (Vnull, args)
-        | _, _ => triggerNB "send_msg_with_sender_call: impossible conversion"
+        | _, _ => triggerNB "set_buffer_with_sender_call: impossible conversion"
         end
-    | _ => triggerNB "send_msg_with_sender_call: wrong arguments"
+    | _ => triggerNB "set_buffer_with_sender_call: wrong arguments"
     end.
 
-  Definition recv_msg_with_receiver_id_spec (receiver: ffa_UUID_t)
-    : itree HypervisorEE (FFAMemoryHypCallState.ffa_mailbox_msg_t) :=
+  Definition get_buffer_with_receiver_id_spec (receiver: ffa_UUID_t)
+    : itree HypervisorEE (FFAMemoryHypCallState.ffa_buffer_msg_t) :=
     st <- trigger GetState;;
-    check "send_msg: invalid receiver",
+    check "get_buffer: invalid receiver",
     (decide (in_dec zeq receiver vm_ids))
       ;;;    
-      get "recv_msg: error in getting vm_context",
+      get "get_buffer: error in getting vm_context",
     vm_context
     <- (ZTree.get receiver st.(hypervisor_context).(vms_contexts))
-        ;;; Ret (vm_context.(mailbox).(message)).
+        ;;; Ret (vm_context.(buffer).(message)).
   
-  Definition recv_msg_with_receiver_id_call (args: list Lang.val)
+  Definition get_buffer_with_receiver_id_call (args: list Lang.val)
     : itree HypervisorEE (Lang.val * list Lang.val) :=
     match args with
     | [(Vcomp (Vlong receiver))] =>
-      res <- recv_msg_with_receiver_id_spec (Int64.unsigned receiver);;  
+      res <- get_buffer_with_receiver_id_spec (Int64.unsigned receiver);;  
       Ret (Vabs (upcast res), args)
-    | _ => triggerNB "recv_msg_call: wrong arguments"
+    | _ => triggerNB "get_buffer_call: wrong arguments"
     end.
   
 End InterfaceFunctions.
@@ -2354,7 +2366,7 @@ Section VCPUSetterGetter.
                  (Some vcpu_index)
                  (cur_kernel_vm_context.(vm_kernelspace_context).(vcpus))
                  (cur_kernel_vm_context.(vm_kernelspace_context).(vcpus_contexts)))
-              cur_kernel_vm_context.(mailbox) in
+              cur_kernel_vm_context.(buffer) in
         let new_vm_contexts :=
             (ZTree.set cur_user_entity_id 
                        new_kernel_vm_context
@@ -2608,7 +2620,7 @@ Section VCPUSetterGetter.
                    (Some cur_kernel_vcpu_id)
                    (cur_kernel_vm_context.(vm_kernelspace_context).(vcpus))
                    new_vcpu_contexts)
-                cur_kernel_vm_context.(mailbox) in
+                cur_kernel_vm_context.(buffer) in
           let new_vm_contexts :=
               (ZTree.set cur_user_entity_id 
                          new_kernel_vm_contexts
@@ -2688,10 +2700,10 @@ Section FFAMemoryManagementInterfaceModule.
     ("HVCToplevel.current_entity_id_getter", current_entity_id_getter_call);
     ("HVCToplevel.current_entity_id_setter", current_entity_id_setter_call);
     
-    ("HVCTopLevel.send_msg", send_msg_call);
-    ("HVCTopLevel.recv_msg", recv_msg_call);
-    ("HVCTopLevel.send_msg_with_sender_id", send_msg_with_sender_id_call);
-    ("HVCTopLevel.recv_msg_with_receiver_id", recv_msg_with_receiver_id_call);
+    ("HVCTopLevel.set_buffer", set_buffer_call);
+    ("HVCTopLevel.get_buffer", get_buffer_call);
+    ("HVCTopLevel.set_buffer_with_sender_id", set_buffer_with_sender_id_call);
+    ("HVCTopLevel.get_buffer_with_receiver_id", get_buffer_with_receiver_id_call);
     
     ("HVCTopLevel.global_properties_getter", global_properties_getter_call);
     ("HVCTopLevel.global_properties_setter", global_properties_setter_call);

@@ -19,46 +19,18 @@
 <h1 class="libtitle">Library FFAMemoryHypCallState</h1>
 
 <div class="code">
-<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Arith.PeanoNat</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Lists.List</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Strings.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Morphisms</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Setoid</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelationClasses</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ExtLib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelDec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Monad</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Traversable</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.List</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Option</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Monads.OptionMonad</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Decision</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Coqlib</span> <span class="id" title="var">sflib</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">FFAMemoryHypCall</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">FFAMemoryHypCallIntro</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallDescriptorState</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Maps</span>.<br/>
-<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
 </div>
 
 <div class="doc">
-<a name="lab118"></a><h1 class="section">Introduction - state definition</h1>
+<a name="lab117"></a><h1 class="section">Introduction - state definition</h1>
  This file provides a state definition for FF-A memory management interfaces. 
 <div class="paragraph"> </div>
 
-<a name="lab119"></a><h2 class="section">VM CONTEXT</h2>
+<a name="lab118"></a><h2 class="section">VM CONTEXT</h2>
  This one is necessary to model context saving/restoring of FFA ABI.  
     To model these parts, we refer Hafnium. However, the following model 
     should be quite general enough to use them in other hypervisor implementations. 
@@ -90,7 +62,7 @@
 </div>
 
 <div class="doc">
-<a name="lab120"></a><h3 class="section">Abstract definitions</h3>
+<a name="lab119"></a><h3 class="section">Abstract definitions</h3>
 
 </div>
 <div class="code">
@@ -107,15 +79,15 @@
 <ul class="doclist">
 <li> Message types. The default communication 
           channel in our formalization is by using
-          the designated mailbox to each VM. 
-          The following message types are for those communication messages.  
+          the designated buffer to each VM. 
+          The following buffer types are for those communication messages.  
 </li>
 </ul>
 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> : <span class="id" title="keyword">Type</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_mailbox_msg</span>: <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_buffer_msg_t</span> : <span class="id" title="keyword">Type</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">init_ffa_buffer_msg</span>: <span class="id" title="var">ffa_buffer_msg_t</span>;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
 
@@ -137,26 +109,26 @@
 
 <div class="doc">
 <ul class="doclist">
-<li> Mailbox to/from descriptors. The followings are interpreter and 
-          generator of mailbox messages. Note that mailbox messages can be used as 
+<li> Buffer to/from descriptors. The followings are interpreter and 
+          generator of buffer messages. Note that buffer messages can be used as 
           multiple purpose 
 </li>
 </ul>
 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_region_struct</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_region_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_relinqiush_struct</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_relinquish_struct</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox_msg_to_Z</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_mailbox_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">Z</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_mailbox_msg</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_region_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_mailbox_msg</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_relinquish_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_mailbox_msg</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">buffer_msg_to_region_struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_buffer_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_region_struct</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">buffer_msg_to_relinqiush_struct</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_buffer_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">FFA_memory_relinquish_struct</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">buffer_msg_to_Z</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ffa_buffer_msg_t</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">Z</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">region_struct_to_buffer_msg</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_region_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_buffer_msg_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">relinqiush_struct_to_buffer_msg</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">FFA_memory_relinquish_struct</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_buffer_msg_t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z_to_buffer_msg</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Z</span> -&gt; <span class="id" title="var">option</span> <span class="id" title="var">ffa_buffer_msg_t</span>;<br/>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;</div>
 
@@ -221,7 +193,7 @@
 </div>
 
 <div class="doc">
-<a name="lab121"></a><h3 class="section">VCPU</h3>
+<a name="lab120"></a><h3 class="section">VCPU</h3>
  Simplified VCPU context 
 <ul class="doclist">
 <li> We only include a small set of registers
@@ -256,13 +228,14 @@ The vm that is currently associated with this vcpu
 </div>
 
 <div class="doc">
-<a name="lab122"></a><h3 class="section">Mailbox</h3>
- Mailbox definition. Each mailbox is assigned into each VM 
+<a name="lab121"></a><h3 class="section">BUFFER</h3>
+ Buffer definition. Each buffer is assigned into each VM for 
+      save, send, receive the descriptors 
 </div>
 <div class="code">
-&nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">MAILBOX_struct</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMAILBOX_struct</span> {<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">message</span>: <span class="id" title="var">ffa_mailbox_msg_t</span>;<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">BUFFER_struct</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkBUFFER_struct</span> {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">message</span>: <span class="id" title="var">ffa_buffer_msg_t</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">sender</span> : <span class="id" title="var">option</span> <span class="id" title="var">ffa_UUID_t</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">size</span> : <span class="id" title="var">Z</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">func</span> : <span class="id" title="var">option</span> <span class="id" title="var">FFA_FUNCTION_TYPE</span>;<br/>
@@ -272,7 +245,7 @@ The vm that is currently associated with this vcpu
 </div>
 
 <div class="doc">
-<a name="lab123"></a><h3 class="section">VM modeling</h3>
+<a name="lab122"></a><h3 class="section">VM modeling</h3>
  The common data structure for VM userspace modeling and VM context modeling in the hypervisor 
 </div>
 <div class="code">
@@ -335,11 +308,11 @@ VM context modeling in the hypervisor  Simplified VM context
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
-Each VM has its own mailbox.  IN FFA ABI handling, the actual information for the handling is in mailboxes. 
-           In this sense, we includes this informaiton in this state definition 
+Each VM has its own buffer.  IN FFA ABI handling, the actual information for the handling is in buffers
+            (buffer).  In this sense, we includes this informaiton in this state definition 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mailbox</span> : <span class="id" title="var">MAILBOX_struct</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">buffer</span> : <span class="id" title="var">BUFFER_struct</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
@@ -355,7 +328,7 @@ all other parts are ignored
 </div>
 
 <div class="doc">
-<a name="lab124"></a><h2 class="section">memory and ptable</h2>
+<a name="lab123"></a><h2 class="section">memory and ptable</h2>
 
 </div>
 <div class="code">
@@ -389,7 +362,7 @@ memory states on memory addresses
    
 <div class="paragraph"> </div>
 
-<a name="lab125"></a><h3 class="section">Global properties</h3>
+<a name="lab124"></a><h3 class="section">Global properties</h3>
  Indicates who is the owner of the memory 
 </div>
 <div class="code">
@@ -540,7 +513,7 @@ key is a page number (address / granuale) of the memory region
 </div>
 
 <div class="doc">
-<a name="lab126"></a><h3 class="section">Local properties</h3>
+<a name="lab125"></a><h3 class="section">Local properties</h3>
  It indicates the owned infromation in memory local properties.
       This needs to be consistent with OwnershipState. 
 </div>
@@ -619,7 +592,7 @@ key is a entity id of the system
 </div>
 
 <div class="doc">
-<a name="lab127"></a><h3 class="section">Memory properties</h3>
+<a name="lab126"></a><h3 class="section">Memory properties</h3>
  There are relations between mem_global_properties and mem_local_properties.
       For example, if a certain address in access_state of MemGlobalProperties is mapped with 
       SharedAccess 1, then there should be a valid element for the address in the mem local properties pool for entity 1.
@@ -650,7 +623,7 @@ key is a entity id of the system
 </div>
 
 <div class="doc">
-<a name="lab128"></a><h2 class="section">Page Table</h2>
+<a name="lab127"></a><h2 class="section">Page Table</h2>
 
 </div>
 <div class="code">
@@ -765,7 +738,7 @@ This address translation won't be used in the current setting.
 </div>
 
 <div class="doc">
-<a name="lab129"></a><h2 class="section">AbstractState for FFA modeling</h2>
+<a name="lab128"></a><h2 class="section">AbstractState for FFA modeling</h2>
 
 </div>
 <div class="code">
@@ -1020,10 +993,10 @@ Log file to print out the history of system changes.
 
 </div>
 <div class="code">
-&nbsp;&nbsp;| <span class="id" title="var">SendMsg</span> (<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">MAILBOX_struct</span>)<br/>
-&nbsp;&nbsp;| <span class="id" title="var">RecvMsg</span> (<span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">MAILBOX_struct</span>).<br/>
+&nbsp;&nbsp;| <span class="id" title="var">SetBuffer</span> (<span class="id" title="var">sender</span> <span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">BUFFER_struct</span>)<br/>
+&nbsp;&nbsp;| <span class="id" title="var">GetBuffer</span> (<span class="id" title="var">receiver</span>: <span class="id" title="var">ffa_UUID_t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">msg</span> : <span class="id" title="var">BUFFER_struct</span>).<br/>
 
 <br/>
 &nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">AbstractState</span> :=<br/>
@@ -1127,7 +1100,7 @@ Log file to print out the history of system changes.
 </div>
 
 <div class="doc">
-<a name="lab130"></a><h2 class="section">Several abstract definitions and invariants</h2>
+<a name="lab129"></a><h2 class="section">Several abstract definitions and invariants</h2>
 
 </div>
 <div class="code">

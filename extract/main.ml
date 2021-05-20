@@ -334,6 +334,9 @@ let main =
   print_endline "------------------   ArchMM TEST Passed  ---------------------" ;
   *)
 
+  print_endline "------------------ Multicore Simple Testing ---------------------" ;
+  run (MultiCoreMPSC.sem) ;
+
   print_endline "----------------------Top-level testing-----------------------" ;
   print_endline "--------------------Initiailization---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.INITIALIZATION.isem) ;
@@ -345,7 +348,7 @@ let main =
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST3.isem) ;
   print_endline "--------------------cur entity id getter---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST4.isem) ;
-  print_endline "--------------------send/recv messages---------------------" ;
+  print_endline "--------------------get/set buffer message---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST5.isem) ;
   print_endline "--------------------mem prop getter/setter---------------------" ;
   run (FFAMemoryHypCallTesting.FFAMEMORYHYPCALLTESTING.DUMMYTEST6.isem) ;

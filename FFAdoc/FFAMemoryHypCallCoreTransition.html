@@ -19,45 +19,14 @@
 <h1 class="libtitle">Library FFAMemoryHypCallCoreTransition</h1>
 
 <div class="code">
-<span class="id" title="keyword">From</span> <span class="id" title="var">Coq</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Arith.PeanoNat</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Lists.List</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Strings.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Morphisms</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Setoid</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelationClasses</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">ExtLib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">RelDec</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.String</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Monad</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Structures.Traversable</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.List</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Option</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Data.Monads.OptionMonad</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Coqlib</span> <span class="id" title="var">sflib</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Decision</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Maps</span>.<br/>
-<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">FFAMemoryHypCall</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">FFAMemoryHypCallIntro</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallDescriptorState</span>.<br/>
-<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">FFAMemoryHypCallState</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-<a name="lab27"></a><h1 class="section">Core Step Rules</h1>
+<a name="lab26"></a><h1 class="section">Core Step Rules</h1>
  This file defines the core step rules of FFA memory management 
     interfaces 
 </div>
@@ -71,12 +40,12 @@
 <br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">GET_TEST</span> : <span class="id" title="var">RESULT</span> <span class="id" title="var">Z</span> :=<br/>
+<span class="id" title="keyword">Example</span> <span class="id" title="var">GET_TEST</span> : <span class="id" title="var">RESULT</span> <span class="id" title="var">Z</span> :=<br/>
 &nbsp;&nbsp;<span class="id" title="var">get</span> <span class="id" title="var">Z</span>, "error", <span class="id" title="var">a</span> &lt;- (<span class="id" title="var">Some</span> 1)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">SUCCESS</span> <span class="id" title="var">a</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">CHECK_TEST</span> : <span class="id" title="var">RESULT</span> (<span class="id" title="var">Z</span> * <span class="id" title="var">bool</span>) :=<br/>
+<span class="id" title="keyword">Example</span> <span class="id" title="var">CHECK_TEST</span> : <span class="id" title="var">RESULT</span> (<span class="id" title="var">Z</span> * <span class="id" title="var">bool</span>) :=<br/>
 &nbsp;&nbsp;<span class="id" title="var">check</span> (<span class="id" title="var">Z</span> * <span class="id" title="var">bool</span>), "error",<br/>
 &nbsp;&nbsp;(<span class="id" title="var">decide</span> (1 = 1))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="var">SUCCESS</span> (1, <span class="id" title="var">true</span>).<br/>
@@ -120,7 +89,7 @@ Three roles in the FFA_XXX communications, and endpoints in the communications
  
 <div class="paragraph"> </div>
 
-<a name="lab28"></a><h2 class="section">Valid Combinations</h2>
+<a name="lab27"></a><h2 class="section">Valid Combinations</h2>
 
 </div>
 <div class="code">
@@ -198,23 +167,18 @@ This part is one of the most important parts that describe ownership and accessi
 &nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">mem_states_valid_combination</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">a</span> <span class="id" title="var">b</span> : <span class="id" title="var">ffa_UUID_t</span>) (<span class="id" title="var">ownership</span>: <span class="id" title="var">OWNERSHIP_STATE_TYPE</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">access</span>: <span class="id" title="var">ACCESS_STATE_TYPE</span>) :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> &lt;&gt; <span class="id" title="var">b</span>) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">match</span> <span class="id" title="var">ownership</span>, <span class="id" title="var">access</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">id</span>, <span class="id" title="var">NoAccess</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id</span>) || <span class="id" title="var">decide</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">true</span> <span class="id" title="keyword">else</span> <span class="id" title="var">false</span>                                  <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">id</span>, <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">id'</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id</span>) || <span class="id" title="var">decide</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id'</span>) || <span class="id" title="var">decide</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id'</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">true</span> <span class="id" title="keyword">else</span> <span class="id" title="var">false</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">false</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">id</span>, <span class="id" title="var">SharedAccess</span> <span class="id" title="var">ids</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id</span>) || <span class="id" title="var">decide</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">if</span> (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">a</span> <span class="id" title="var">ids</span>) || (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">b</span> <span class="id" title="var">ids</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="var">true</span> <span class="id" title="keyword">else</span> <span class="id" title="var">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> &lt;&gt; <span class="id" title="var">b</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span> <span class="id" title="keyword">match</span> <span class="id" title="var">ownership</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">id</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id</span>) || <span class="id" title="var">decide</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id</span>) <span class="id" title="keyword">then</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">access</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">NoAccess</span> =&gt; <span class="id" title="var">true</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">id'</span> =&gt; <span class="id" title="var">isTrue</span> (<span class="id" title="var">a</span> = <span class="id" title="var">id'</span>) || <span class="id" title="var">isTrue</span> (<span class="id" title="var">b</span> = <span class="id" title="var">id'</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">SharedAccess</span> <span class="id" title="var">ids</span> =&gt; (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">a</span> <span class="id" title="var">ids</span>) || (<span class="id" title="var">in_dec</span> <span class="id" title="var">zeq</span> <span class="id" title="var">b</span> <span class="id" title="var">ids</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">false</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">NotOwned</span> =&gt; <span class="id" title="var">false</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">false</span>.<br/>
 
@@ -233,7 +197,7 @@ This part is one of the most important parts that describe ownership and accessi
 </div>
 
 <div class="doc">
-<a name="lab29"></a><h1 class="section">step rules</h1>
+<a name="lab28"></a><h1 class="section">step rules</h1>
  Multiple sections in the FF-A document are related to step rules in here. 
 
 <div class="paragraph"> </div>
@@ -313,7 +277,7 @@ This part is one of the most important parts that describe ownership and accessi
 
 <div class="paragraph"> </div>
 
-<a name="lab30"></a><h2 class="section">1. Core memory ownership and access state change</h2>
+<a name="lab29"></a><h2 class="section">1. Core memory ownership and access state change</h2>
  This file contains a core transition rules of each FFA interface related to memory managements. 
    This does not include any safety check on arguments, attributes, and descriptors or consider 
    transitions on multiple pages. It only consider memory ownership and accessibility. 
@@ -366,7 +330,7 @@ TODO:
         them in our specs without missing generality 
 <div class="paragraph"> </div>
 
-<a name="lab31"></a><h3 class="section">FFA_MEM_DONATE</h3>
+<a name="lab30"></a><h3 class="section">FFA_MEM_DONATE</h3>
 
 <div class="paragraph"> </div>
 
@@ -491,10 +455,8 @@ TODO:
 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">page_number</span> <span class="id" title="var">borrower_properties_pool</span>  <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">is_ns</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">None</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">ZTree.get</span> <span class="id" title="var">page_number</span> <span class="id" title="var">borrower_properties_pool</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">None</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
 <div class="doc">
@@ -505,10 +467,14 @@ TODO:
 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">is_ns</span>, <span class="id" title="var">mem_states_valid_combination</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">owned</span>, <span class="id" title="var">accessible</span>, <span class="id" title="var">local_owned</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">false</span>, <span class="id" title="var">true</span>, <span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>, <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">ex_accessor</span>, <span class="id" title="var">LocalOwned</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">owner</span> = <span class="id" title="var">lender</span>) &amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">ex_accessor</span> = <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> '(<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">is_ns</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>) := <span class="id" title="var">global_property</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> '(<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>) := <span class="id" title="var">lender_property</span> <span class="id" title="tactic">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">owned</span>, <span class="id" title="var">accessible</span>, <span class="id" title="var">local_owned</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Owned</span> <span class="id" title="var">owner</span>, <span class="id" title="var">ExclusiveAccess</span> <span class="id" title="var">ex_accessor</span>, <span class="id" title="var">LocalOwned</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">if</span> <span class="id" title="var">decide</span> (<span class="id" title="var">owner</span> = <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; <span class="id" title="var">decide</span> (<span class="id" title="var">ex_accessor</span> = <span class="id" title="var">lender</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; <span class="id" title="var">negb</span> <span class="id" title="var">is_ns</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; <span class="id" title="var">mem_states_valid_combination</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">then</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
 
@@ -531,9 +497,9 @@ TODO:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++(<span class="id" title="var">SetAccessible</span> <span class="id" title="var">lender</span> <span class="id" title="var">page_number</span> <span class="id" title="var">NoAccess</span>)::<span class="id" title="var">nil</span>} <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">SUCCESS</span> (<span class="id" title="var">new_st</span>, <span class="id" title="var">true</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">else</span> <span class="id" title="var">SUCCESS</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">SUCCESS</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">SUCCESS</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">SUCCESS</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">_</span> =&gt; <span class="id" title="var">SUCCESS</span> (<span class="id" title="var">st</span>, <span class="id" title="var">false</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
@@ -543,7 +509,7 @@ TODO:
 </div>
 
 <div class="doc">
-<a name="lab32"></a><h3 class="section">Auxiliary functions for lend and share</h3>
+<a name="lab31"></a><h3 class="section">Auxiliary functions for lend and share</h3>
 
 </div>
 <div class="code">
@@ -569,22 +535,11 @@ TODO:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"cannot get lender_property",<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">lender_property</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;- (<span class="id" title="var">ZTree.get</span> <span class="id" title="var">page_number</span> <span class="id" title="var">lender_properties_pool</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="keyword">match</span> <span class="id" title="var">global_property</span>, <span class="id" title="var">lender_property</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">ZTree.get</span> <span class="id" title="var">page_number</span> <span class="id" title="var">borrower_properties_pool</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">_</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">dirty</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">mkMemLocalProperties</span> <span class="id" title="var">local_owned</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>, <span class="id" title="var">None</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-
-<div class="doc">
-<ul class="doclist">
-<li> Check the valid onwership and accessibility combination for lender and borrower 
-</li>
-</ul>
-
-</div>
-<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;; <span class="id" title="keyword">match</span> <span class="id" title="var">ZTree.get</span> <span class="id" title="var">page_number</span> <span class="id" title="var">borrower_properties_pool</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">None</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> '(<span class="id" title="var">mkMemGlobalProperties</span> <span class="id" title="var">_</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span> <span class="id" title="var">_</span>) := <span class="id" title="var">global_property</span> <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">SUCCESS</span> (<span class="id" title="var">mem_states_valid_combination</span> <span class="id" title="var">lender</span> <span class="id" title="var">borrower</span> <span class="id" title="var">owned</span> <span class="id" title="var">accessible</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">_</span>, <span class="id" title="var">_</span>, <span class="id" title="var">_</span> =&gt; <span class="id" title="var">FAIL</span> <span class="id" title="var">bool</span> "invalid properties"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Some</span> <span class="id" title="var">_</span> =&gt; <span class="id" title="var">FAIL</span> <span class="id" title="var">bool</span> "invalid properties"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
@@ -628,7 +583,7 @@ TODO: need to use RESULT type instead of bool
 </div>
 
 <div class="doc">
-<a name="lab33"></a><h3 class="section">FFA_MEM_LEND</h3>
+<a name="lab32"></a><h3 class="section">FFA_MEM_LEND</h3>
 
 <div class="paragraph"> </div>
 
@@ -802,7 +757,7 @@ Only change accessibility option of the lender. The remaining operations will
 </div>
 
 <div class="doc">
-<a name="lab34"></a><h3 class="section">FFA_MEM_SHARE</h3>
+<a name="lab33"></a><h3 class="section">FFA_MEM_SHARE</h3>
 
 <div class="paragraph"> </div>
 
@@ -970,7 +925,7 @@ Only change accessibility option of the lender. The remaining operations will
 </div>
 
 <div class="doc">
-<a name="lab35"></a><h3 class="section">FFA_MEM_RETRIEVE_REQ</h3>
+<a name="lab34"></a><h3 class="section">FFA_MEM_RETRIEVE_REQ</h3>
 
 </div>
 <div class="code">
@@ -981,7 +936,7 @@ Only change accessibility option of the lender. The remaining operations will
 </div>
 
 <div class="doc">
-<a name="lab36"></a><h4 class="section">FFA_MEM_DONATE_RETRIEVE_REQ</h4>
+<a name="lab35"></a><h4 class="section">FFA_MEM_DONATE_RETRIEVE_REQ</h4>
 
 </div>
 <div class="code">
@@ -1130,7 +1085,7 @@ Only change accessibility option of the lender. The remaining operations will
 </div>
 
 <div class="doc">
-<a name="lab37"></a><h4 class="section">FFA_MEM_LEND_RETRIEVE_REQ</h4>
+<a name="lab36"></a><h4 class="section">FFA_MEM_LEND_RETRIEVE_REQ</h4>
 
 </div>
 <div class="code">
@@ -1283,7 +1238,7 @@ Only change accessibility option of the lender. The remaining operations will
 </div>
 
 <div class="doc">
-<a name="lab38"></a><h4 class="section">FFA_MEM_SHARE_RETRIEVE_REQ</h4>
+<a name="lab37"></a><h4 class="section">FFA_MEM_SHARE_RETRIEVE_REQ</h4>
 
 </div>
 <div class="code">
@@ -1424,7 +1379,7 @@ Only change accessibility option of the lender. The remaining operations will
 </div>
 
 <div class="doc">
-<a name="lab39"></a><h3 class="section">FFA_MEM_SHARE_RETRIEVE</h3>
+<a name="lab38"></a><h3 class="section">FFA_MEM_SHARE_RETRIEVE</h3>
 
 </div>
 <div class="code">

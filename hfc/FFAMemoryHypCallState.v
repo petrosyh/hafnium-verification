@@ -1,3 +1,21 @@
+(*
+ * Copyright 2020 Jieung Kim (jieungkim@google.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+(* begin hide *)
+
 From Coq Require Import
      Arith.PeanoNat
      Lists.List
@@ -26,6 +44,9 @@ Require Export FFAMemoryHypCallDescriptorState.
 
 Require Import Maps.
 Set Implicit Arguments.
+
+(* end hide *)
+
 (*************************************************************)
 (** * Introduction - state definition                        *)
 (*************************************************************)
@@ -55,10 +76,10 @@ Section FFA_VM.
           retrieve descriptor information *)
     (** - Message types. The default communication 
           channel in our formalization is by using
-          the designated mailbox to each VM. 
-          The following message types are for those communication messages.  *)
-    ffa_mailbox_msg_t : Type;
-    init_ffa_mailbox_msg: ffa_mailbox_msg_t;
+          the designated buffer to each VM. 
+          The following buffer types are for those communication messages.  *)
+    ffa_buffer_msg_t : Type;
+    init_ffa_buffer_msg: ffa_buffer_msg_t;
 
     (** - Virtual CPU numbers in the system. All VCPUs will be shared by 
           multiple VMs. Each VCPU in the system will be connected with 
@@ -67,21 +88,21 @@ Section FFA_VM.
           which VCPU. *)
     vcpu_max_num : Z;
 
-    (** - Mailbox to/from descriptors. The followings are interpreter and 
-          generator of mailbox messages. Note that mailbox messages can be used as 
+    (** - Buffer to/from descriptors. The followings are interpreter and 
+          generator of buffer messages. Note that buffer messages can be used as 
           multiple purpose *)
-    mailbox_msg_to_region_struct :
-      ffa_mailbox_msg_t -> option FFA_memory_region_struct;
-    mailbox_msg_to_relinqiush_struct:
-      ffa_mailbox_msg_t -> option FFA_memory_relinquish_struct;
-    mailbox_msg_to_Z :
-      ffa_mailbox_msg_t -> option Z;
-    region_struct_to_mailbox_msg :
-      FFA_memory_region_struct -> option ffa_mailbox_msg_t;
-    relinqiush_struct_to_mailbox_msg :
-      FFA_memory_relinquish_struct -> option ffa_mailbox_msg_t;
-    Z_to_mailbox_msg :
-      Z -> option ffa_mailbox_msg_t;
+    buffer_msg_to_region_struct :
+      ffa_buffer_msg_t -> option FFA_memory_region_struct;
+    buffer_msg_to_relinqiush_struct:
+      ffa_buffer_msg_t -> option FFA_memory_relinquish_struct;
+    buffer_msg_to_Z :
+      ffa_buffer_msg_t -> option Z;
+    region_struct_to_buffer_msg :
+      FFA_memory_region_struct -> option ffa_buffer_msg_t;
+    relinqiush_struct_to_buffer_msg :
+      FFA_memory_relinquish_struct -> option ffa_buffer_msg_t;
+    Z_to_buffer_msg :
+      Z -> option ffa_buffer_msg_t;
 
     (** - Simple system configuration related values *)
     (** - Hypervisor entity has a designated ID *)
@@ -122,12 +143,13 @@ Section FFA_VM.
       }.
   
   (*************************************************************)
-  (** ***    Mailbox                                           *)
+  (** ***    BUFFER                                           *)
   (*************************************************************)   
-  (** Mailbox definition. Each mailbox is assigned into each VM *)
-  Record MAILBOX_struct :=
-    mkMAILBOX_struct {
-        message: ffa_mailbox_msg_t;
+  (** Buffer definition. Each buffer is assigned into each VM for 
+      save, send, receive the descriptors *)
+  Record BUFFER_struct :=
+    mkBUFFER_struct {
+        message: ffa_buffer_msg_t;
         sender : option ffa_UUID_t;
         size : Z;
         func : option FFA_FUNCTION_TYPE;
@@ -163,10 +185,10 @@ Section FFA_VM.
   Record VM_KERNEL_struct :=
     mkVM_KERNEL_struct {
         vm_kernelspace_context : VM_COMMON_struct;
-        (** Each VM has its own mailbox. *)
-        (** IN FFA ABI handling, the actual information for the handling is in mailboxes. 
-           In this sense, we includes this informaiton in this state definition *)
-        mailbox : MAILBOX_struct;
+        (** Each VM has its own buffer. *)
+        (** IN FFA ABI handling, the actual information for the handling is in buffers
+            (buffer).  In this sense, we includes this informaiton in this state definition *)
+        buffer : BUFFER_struct;
         (** all other parts are ignored *)        
       }.
 
@@ -485,10 +507,10 @@ Section AbstractState.
   | SetAttributes (vm_id : ffa_UUID_t) (address: ffa_address_t)
                   (attributes: FFA_MEMORY_TYPE)
   (** - Send and receiver Msg *)
-  | SendMsg (sender receiver: ffa_UUID_t)
-            (msg : MAILBOX_struct)
-  | RecvMsg (receiver: ffa_UUID_t)
-            (msg : MAILBOX_struct).
+  | SetBuffer (sender receiver: ffa_UUID_t)
+            (msg : BUFFER_struct)
+  | GetBuffer (receiver: ffa_UUID_t)
+              (msg : BUFFER_struct).
   
   Record AbstractState :=
     mkAbstractState{
@@ -699,23 +721,23 @@ Section AbstractStateUpdate.
     mkVM_KERNEL_struct
       (update_cur_vcpu_index_in_vm_common_context
          (a.(vm_kernelspace_context)) b)
-      (a.(mailbox)).
+      (a.(buffer)).
 
   Definition update_vcpus_in_vm_kernel_context
              (a : VM_KERNEL_struct) b :=
     mkVM_KERNEL_struct
       (update_vcpus_in_vm_common_context
          (a.(vm_kernelspace_context)) b)
-      (a.(mailbox)).
+      (a.(buffer)).
 
   Definition update_vcpus_contexts_in_vm_kernel_context
              (a : VM_KERNEL_struct) b :=
     mkVM_KERNEL_struct
       (update_vcpus_contexts_in_vm_common_context
          (a.(vm_kernelspace_context)) b)
-      (a.(mailbox)).
+      (a.(buffer)).
 
-  Definition update_mailbox_in_vm_kernel_context
+  Definition update_buffer_in_vm_kernel_context
              (a : VM_KERNEL_struct) b :=
     mkVM_KERNEL_struct (a.(vm_kernelspace_context)) b.
 
@@ -1012,8 +1034,8 @@ Notation "a '{' 'vm_vcpus' : b '}'"
   := (update_vcpus_in_vm_kernel_context a b) (at level 1).
 Notation "a '{' 'vm_vcpus_contexts' : b '}'"
   := (update_vcpus_contexts_in_vm_kernel_context a b) (at level 1).
-Notation "a '{' 'vm_mailbox' : b '}'"
-  := (update_mailbox_in_vm_kernel_context a b) (at level 1).
+Notation "a '{' 'vm_buffer' : b '}'"
+  := (update_buffer_in_vm_kernel_context a b) (at level 1).
 
 (** update hafnium context *)
 Notation "a '{' 'hypervisor_context' '/' 'current_cpu_id' : b '}'"
