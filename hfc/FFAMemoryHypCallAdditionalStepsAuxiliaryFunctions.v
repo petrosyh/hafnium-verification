@@ -57,22 +57,6 @@ Require Export FFAMemoryHypCallDescriptorState.
 Require Export FFAMemoryHypCallState.
 Require Export FFAMemoryHypCallCoreTransition.
 
-Notation "'get' T ',' E ',' X <- A ';;;' B" :=
-  (match A with Some X => B |
-           None => FAIL T E end)
-    (at level 200, X ident, A at level 100, B at level 200)
-  : ffa_monad_scope.
-
-Notation "'get_r' T ',' X <- A ';;;' B" :=
-  (match A with SUCCESS X => B |
-           FAIL E => FAIL T E end)
-    (at level 200, X ident, A at level 100, B at level 200)
-  : ffa_monad_scope.
-
-Notation " 'check' T ',' E ',' A ';;;' B" :=
-  (if A then B else FAIL T E)
-    (at level 200, A at level 100, B at level 200) : ffa_monad_scope.
-
 Local Open Scope ffa_monad_scope.
 
 (***********************************************************************)
@@ -86,38 +70,32 @@ Section PRINT_AUXILIARY_FUNCTIONS.
 
   Definition tabspace := "    ".
   
-  Fixpoint append_all (cls: list string) :=
-    match cls with
+  Definition append_all (cls: list string) : string :=
+    List.fold_right append "" cls.
+
+  Definition list_z_to_string (vals : list Z) :=
+    match List.map HexString.of_Z vals with
     | nil => ""
-    | hd::tl =>
-      let res := append_all tl in
-      append hd res
+    | hd::tl => append_all (hd::(List.map (append ", ") tl))
     end.
 
-  Fixpoint list_z_to_string (vals : list Z) :=
-    match vals with
-    | nil => ""
-    | hd::nil =>
-      HexString.of_Z hd
-    | hd::tl =>
-      append_all [HexString.of_Z hd; ", "; list_z_to_string tl]
-    end.
+  Example list_z_to_string_ex1 :
+    list_z_to_string [1; 2; 3] = "0x1, 0x2, 0x3".
+  Proof. reflexivity. Qed.
 
-  Fixpoint print_vals (position : nat) (vals :ZMap.t Z) :=
-    let print_val_fun :=
-        fun (x : nat) =>
-          append_all ["("; HexString.of_Z (Z.of_nat position); ": ";
-                     HexString.of_Z (ZMap.get (Z.of_nat position) vals); ")"] in
-    match position with
-    | O => print_val_fun position
-    | S position' =>
-      let res := print_vals position' vals in
-      append (print_val_fun position) res
-    end.
+  Definition print_vals (len : nat) (vals :ZMap.t Z) :=
+    let print_val (pos : Z) :=
+        append_all ["("; HexString.of_Z pos; ": ";
+                   HexString.of_Z (ZMap.get pos vals); ")"] in
+    append_all (List.map print_val (List.map Z.of_nat (List.rev (List.seq 0 len)))).
 
   Definition print_ffa_vals (vals :ZMap.t Z) :=
-    print_vals 7 vals.
-  
+    print_vals 8 vals.
+
+  Example print_ffa_vals_ex1 :
+    print_ffa_vals (ZMap.set 7 5 (ZMap.set 1 4 (ZMap.init 0))) =
+    "(0x7: 0x5)(0x6: 0x0)(0x5: 0x0)(0x4: 0x0)(0x3: 0x0)(0x2: 0x0)(0x1: 0x4)(0x0: 0x0)".
+  Proof. reflexivity. Qed.
 
 End PRINT_AUXILIARY_FUNCTIONS.
 
@@ -144,17 +122,12 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
       are not actually used. Do we need to define the following definitions even for that case? *)
   Definition ffa_mem_general_check_arguments
              (total_length fragment_length address page_count: Z) : bool :=
-    if decide (total_length = 0) && decide (fragment_length = 0) &&
-       decide (address  = 0) && decide (page_count = 0)
-    then true
-    else false. 
-  
+    isTrue (total_length = 0 /\ fragment_length = 0 /\ address = 0 /\ page_count = 0).
+
   Definition ffa_mem_retrieve_resp_check_arguments
              (total_length fragment_length: Z) : bool :=
-    if decide (total_length = 0) && decide (fragment_length = 0)
-    then true
-    else false. 
-  
+    isTrue (total_length = 0 /\ fragment_length = 0).
+
   (***********************************************************************)
   (** **   Getter and setter functions for RX/TX buffers                 *)
   (***********************************************************************)
@@ -163,179 +136,153 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
   (** Getter and setters for memory region descriptors in the RX/TX buffers *)
   Definition get_send_memory_region_descriptor
              (caller : Z) (state: AbstractState)
-    : RESULT ((AbstractState * FFA_memory_region_struct)%type) := 
-    get ((AbstractState * FFA_memory_region_struct)%type),
-    "cannot get vm_context",
-    vm_context <-
-    (ZTree.get caller
-               (state.(hypervisor_context).(vms_contexts)))
-      ;;; get ((AbstractState * FFA_memory_region_struct)%type),
-    "cannot get memory_region",
-    memory_region <-
-    buffer_msg_to_region_struct
-      (vm_context.(buffer).(message))
-      ;;; 
-      SUCCESS (state
-                 {system_log: state.(system_log)
-                                      ++(GetBuffer caller vm_context.(buffer))::nil},
-               memory_region).
-                                     
+    : RESULT ((AbstractState * FFA_memory_region_struct)%type) :=
+    vm_context <- result_from_option
+                   "cannot get vm_context"
+                   (ZTree.get caller
+                              state.(hypervisor_context).(vms_contexts))
+    ;; memory_region <- result_from_option
+                         "cannot get memory_region"
+                         (buffer_msg_to_region_struct
+                            (vm_context.(buffer).(message)))
+    ;; ret (state
+              {system_log: state.(system_log)
+                                   ++(GetBuffer caller vm_context.(buffer))::nil},
+            memory_region).
+  
   Definition set_send_memory_region_descriptor
              (sender receiver : ffa_UUID_t) (size : Z)
              (region_descriptor: FFA_memory_region_struct)
              (recv_func : FFA_FUNCTION_TYPE)
              (state: AbstractState)
-    : RESULT AbstractState := 
-    get AbstractState,
-    "cannot get vm_context",
-    vm_context <-
-    (ZTree.get
-       receiver state.(hypervisor_context).(vms_contexts))
-       ;;; get AbstractState,
-    "cannot get message", 
-    message <-
-    (region_struct_to_buffer_msg region_descriptor)
-      ;;; 
-      let buffer_contents := mkBUFFER_struct 
-                                message (Some sender) size (Some recv_func) in
-      let new_vm_context := vm_context {vm_buffer: buffer_contents} in
-      let new_vm_contexts :=
-          ZTree.set receiver new_vm_context
-                    state.(hypervisor_context).(vms_contexts) in
-      SUCCESS (state {hypervisor_context / vms_contexts : new_vm_contexts}
-                     {system_log: state.(system_log)
-                                          ++(SetBuffer sender receiver buffer_contents)::nil}).
-  
-    Fixpoint set_send_memory_region_descriptors_for_multiple_receivers
+    : RESULT AbstractState :=
+    vm_context <- result_from_option
+                   "cannot get vm_context"
+                   (ZTree.get
+                      receiver state.(hypervisor_context).(vms_contexts))
+    ;; message <- result_from_option
+                   "cannot get message"
+                   (region_struct_to_buffer_msg region_descriptor)
+    ;; let buffer_contents := mkBUFFER_struct
+                                 message (Some sender) size (Some recv_func) in
+       let vm_context := vm_context {vm_buffer : buffer_contents} in
+       let vms_contexts :=
+        ZTree.set receiver vm_context
+                  state.(hypervisor_context).(vms_contexts) in
+       ret (state {hypervisor_context / vms_contexts : vms_contexts}
+                  {system_log: state.(system_log)
+                                       ++(SetBuffer sender receiver buffer_contents)::nil}).
+
+  Definition set_send_memory_region_descriptors_for_multiple_receivers
              (receivers: list ffa_UUID_t)
              (sender: ffa_UUID_t) (size : Z)
              (region_descriptor: FFA_memory_region_struct)
              (recv_func : FFA_FUNCTION_TYPE)
              (state: AbstractState)
-      : RESULT AbstractState :=
-      match receivers with
-      | nil => SUCCESS state
-      | hd::tl =>
-        get_r AbstractState,
-        new_st <- 
-        set_send_memory_region_descriptors_for_multiple_receivers
-          tl sender size region_descriptor
-          recv_func state ;;;
-          set_send_memory_region_descriptor sender hd size
-          region_descriptor recv_func new_st
-      end.
+    : RESULT AbstractState :=
+    List.fold_right
+      (fun receiver res_state =>
+         state <- res_state
+         ;; set_send_memory_region_descriptor sender receiver size
+                                              region_descriptor recv_func state)
+      (SUCCESS state)
+      receivers.
 
   (** Getter and setters for the handle value in the RX/TX buffers *)           
   Definition get_send_handle_value
              (caller : Z) (state: AbstractState)
-    : RESULT (AbstractState * Z) := 
-    get ((AbstractState * Z)%type),
-    "cannot get vm_context",
-    vm_context <-
-    (ZTree.get caller state.(hypervisor_context).(vms_contexts))
-      ;;; get ((AbstractState * Z)%type),
-    "cannot get handle",
-    handle <-
-    (buffer_msg_to_Z vm_context.(buffer).(message))
-      ;;; SUCCESS (state {system_log: state.(system_log)
-                                              ++(GetBuffer caller vm_context.(buffer))::nil},
-                   handle).
+    : RESULT (AbstractState * Z) :=
+    vm_context <- result_from_option
+                   "cannot get vm_context"
+                   (ZTree.get caller state.(hypervisor_context).(vms_contexts))
+    ;; handle <- result_from_option
+                  "cannot get handle"
+                  (buffer_msg_to_Z vm_context.(buffer).(message))
+    ;; ret (state {system_log: state.(system_log)
+                                       ++(GetBuffer caller vm_context.(buffer))::nil},
+            handle).
                                                           
   Definition set_send_handle
              (sender receiver : ffa_UUID_t) (size : Z)
              (handle: Z)
              (recv_func : FFA_FUNCTION_TYPE)
              (state: AbstractState)
-    : RESULT AbstractState := 
-    get AbstractState,
-    "cannot get vm_context",
-    vm_context
-    <- (ZTree.get receiver state.(hypervisor_context).(vms_contexts))
-        ;;; get
-        AbstractState,
-    "cannot get message",
-    message
-    <- (Z_to_buffer_msg handle)
-        ;;; 
-        let buffer_contents := mkBUFFER_struct 
-                                  message (Some sender) size (Some recv_func) in
-        let new_vm_context := vm_context {vm_buffer : buffer_contents} in
-        let new_vm_contexts :=
-            ZTree.set receiver new_vm_context
-                      state.(hypervisor_context).(vms_contexts) in
-        SUCCESS (state {hypervisor_context / vms_contexts : new_vm_contexts}
-                       {system_log: state.(system_log)
-                                            ++(SetBuffer sender receiver buffer_contents)::nil}).
+    : RESULT AbstractState :=
+    vm_context <- result_from_option
+                   "cannot get vm_context"
+                   (ZTree.get receiver state.(hypervisor_context).(vms_contexts))
+    ;; message <- result_from_option
+                   "cannot get message"
+                   (Z_to_buffer_msg handle)
+    ;; let buffer_contents := mkBUFFER_struct
+                                 message (Some sender) size (Some recv_func) in
+       let vm_context := vm_context {vm_buffer : buffer_contents} in
+       let vms_contexts :=
+           ZTree.set receiver vm_context
+                  state.(hypervisor_context).(vms_contexts) in
+       ret (state {hypervisor_context / vms_contexts : vms_contexts}
+                  {system_log: state.(system_log)
+                                       ++(SetBuffer sender receiver buffer_contents)::nil}).
          
-  Fixpoint set_send_handle_for_multiple_receivers
+  Definition set_send_handle_for_multiple_receivers
              (receivers: list ffa_UUID_t)
              (sender : ffa_UUID_t) (size : Z)
              (handle: Z)
              (recv_func : FFA_FUNCTION_TYPE)
              (state: AbstractState)
     : RESULT AbstractState :=
-      match receivers with
-      | nil => SUCCESS state
-      | hd::tl =>
-        get_r AbstractState,
-        new_st <- 
-        set_send_handle_for_multiple_receivers
-          tl sender size handle recv_func state
-          ;;; set_send_handle sender hd size handle recv_func new_st
-      end.
+    List.fold_right
+      (fun receiver res_state =>
+         state <- res_state
+         ;; set_send_handle sender receiver size handle recv_func state)
+      (SUCCESS state)
+      receivers.
 
-  (** The unwrapper to retrieve the actual information from the handle value *)           
+  (** The unwrapper to retrieve the actual information from the handle value *)
   Definition get_handle_information (handle: ffa_memory_handle_t) (st : AbstractState)      
     : RESULT FFA_memory_share_state_struct :=
     let share_state_pool_index := get_value handle in 
-    get FFA_memory_share_state_struct,
-    "cannot get share state",
-    share_state <-
-    ZTree.get
-      share_state_pool_index
-      (st.(hypervisor_context).(ffa_share_state))
-      ;;; SUCCESS share_state.    
-       
-  (** Getter and setters for the relinquish descriptor in the RX/TX buffers *)           
+    result_from_option
+      "cannot get share state"
+      (ZTree.get share_state_pool_index
+                 (st.(hypervisor_context).(ffa_share_state))).
+
+  (** Getter and setters for the relinquish descriptor in the RX/TX buffers *)
   Definition get_send_relinquish_descriptor
              (caller : Z) (state: AbstractState)
-    : RESULT (AbstractState * FFA_memory_relinquish_struct) := 
-    get (AbstractState * FFA_memory_relinquish_struct),
-    "cannot get vm_context",
-    vm_context <-
-    (ZTree.get caller state.(hypervisor_context).(vms_contexts))
-      ;;; get (AbstractState * FFA_memory_relinquish_struct),
-    "cannot get relinquish_descriptor",
-      relinquish_descriptor <-
-    (buffer_msg_to_relinqiush_struct vm_context.(buffer).(message))
-      ;;; SUCCESS (state {system_log: state.(system_log)
-                                              ++(GetBuffer caller vm_context.(buffer))::nil},
-                   relinquish_descriptor).
+    : RESULT (AbstractState * FFA_memory_relinquish_struct) :=
+    vm_context <- result_from_option
+                   "cannot get vm_context"
+                   (ZTree.get caller state.(hypervisor_context).(vms_contexts))
+    ;; relinquish_descriptor <- result_from_option
+                                 "cannot get relinquish_descriptor"
+                                 (buffer_msg_to_relinqiush_struct vm_context.(buffer).(message))
+    ;; ret (state {system_log: state.(system_log)
+                                       ++(GetBuffer caller vm_context.(buffer))::nil},
+            relinquish_descriptor).
        
   Definition set_send_relinquish_descriptor
              (sender receiver : ffa_UUID_t) (size : Z)
              (relinquish_descriptor: FFA_memory_relinquish_struct)
              (state: AbstractState)
-    : RESULT AbstractState := 
-    get AbstractState,
-    "cannot get vm_contxt", 
-    vm_context <-
-    (ZTree.get receiver state.(hypervisor_context).(vms_contexts))
-      ;;; get AbstractState,
-    "cannot get message",
-    message <-
-    (relinqiush_struct_to_buffer_msg relinquish_descriptor)
-      ;;; let buffer_contents := mkBUFFER_struct
-                                    message 
-                                    (Some sender) size (Some FFA_MEM_RELINQUISH) in
-          let new_vm_context := vm_context {vm_buffer : buffer_contents} in
-          let new_vm_contexts :=
-              ZTree.set receiver new_vm_context
-                        state.(hypervisor_context).(vms_contexts) in
-          SUCCESS (state
-                     {hypervisor_context / vms_contexts : new_vm_contexts}
-                     {system_log: state.(system_log)
-                                          ++(SetBuffer sender receiver buffer_contents)::nil}).
+    : RESULT AbstractState :=
+    vm_context <- result_from_option
+                   "cannot get vm_contxt"
+                   (ZTree.get receiver state.(hypervisor_context).(vms_contexts))
+    ;; message <- result_from_option
+                   "cannot get message"
+                   (relinqiush_struct_to_buffer_msg relinquish_descriptor)
+    ;; let buffer_contents := mkBUFFER_struct
+                                 message
+                                 (Some sender) size (Some FFA_MEM_RELINQUISH) in
+       let vm_context := vm_context {vm_buffer : buffer_contents} in
+       let vms_contexts :=
+           ZTree.set receiver vm_context
+                     state.(hypervisor_context).(vms_contexts) in
+       ret (state
+              {hypervisor_context / vms_contexts : vms_contexts}
+              {system_log: state.(system_log)
+                                   ++(SetBuffer sender receiver buffer_contents)::nil}).
        
   (***********************************************************************)
   (** **   Getter for memory accessibility and attributes                *)
@@ -362,177 +309,129 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
   Definition get_instruction_access_from_global_local_pool_props
              (id : ffa_UUID_t) (address : Z)
              (global_local_props: mem_local_properties_global_pool) :=
-    get FFA_INSTRUCTION_ACCESS_TYPE,
-    "cannot get local props",
-    local_props <-
-    (ZTree.get id global_local_props)
-      ;;; get FFA_INSTRUCTION_ACCESS_TYPE,
-    "cannot get local prop",
-    local_prop <-
-    (ZTree.get address local_props)
-      ;;;
-      SUCCESS local_prop.(instruction_access_property).
+    local_props <- result_from_option
+                    "cannot get local props"
+                    (ZTree.get id global_local_props)
+    ;; local_prop <- result_from_option
+                      "cannot get local prop"
+                      (ZTree.get address local_props)
+    ;; ret local_prop.(instruction_access_property).
 
   Definition get_data_access_from_global_local_pool_props
              (id : ffa_UUID_t) (address : Z)
              (global_local_props: mem_local_properties_global_pool) :=
-    get FFA_DATA_ACCESS_TYPE,
-    "cannot get local props",
-    local_props <-
-    (ZTree.get id global_local_props)
-      ;;; get FFA_DATA_ACCESS_TYPE,
-    "cannot get local prop",
-    local_prop <-
-    (ZTree.get address local_props)
-      ;;;
-      SUCCESS local_prop.(data_access_property).
+    local_props <- result_from_option
+                    "cannot get local props"
+                    (ZTree.get id global_local_props)
+    ;; local_prop <- result_from_option
+                      "cannot get local prop"
+                      (ZTree.get address local_props)
+    ;; ret local_prop.(data_access_property).
 
   Definition get_attributes_from_global_local_pool_props
              (id : ffa_UUID_t) (address : Z)
              (global_local_props: mem_local_properties_global_pool) :=
-    get FFA_MEMORY_TYPE,
-    "cannot get local props",
-    local_props <-
-    (ZTree.get id global_local_props)
-      ;;; get FFA_MEMORY_TYPE,
-    "cannot get local prop",
-    local_prop <-
-    (ZTree.get address local_props)
-      ;;;
-      SUCCESS local_prop.(mem_attribute).
+    local_props <- result_from_option
+                    "cannot get local props"
+                    (ZTree.get id global_local_props)
+    ;; local_prop <- result_from_option
+                      "cannot get local prop"
+                      (ZTree.get address local_props)
+    ;; ret local_prop.(mem_attribute).
        
   (** Get memory attributes and access infomation from global pools *)        
   Definition get_instruction_access_from_global_props
              (id : ffa_UUID_t) (address : Z)
              (global_props: mem_global_properties_pool) :=
-    get FFA_INSTRUCTION_ACCESS_TYPE,
-    "cannot get global props",
-    global_prop <-
-    (ZTree.get address global_props)
-      ;;;
-      SUCCESS global_prop.(global_instruction_access_property).
+    global_prop <- result_from_option
+                    "cannot get global props"
+                    (ZTree.get address global_props)
+    ;; ret global_prop.(global_instruction_access_property).
 
   Definition get_data_access_from_global_props
              (id : ffa_UUID_t) (address : Z)
              (global_props: mem_global_properties_pool) :=
-    get FFA_DATA_ACCESS_TYPE,
-    "cannot get global props",
-    global_prop <-
-    (ZTree.get address global_props)
-      ;;;
-      SUCCESS global_prop.(global_data_access_property).
+    global_prop <- result_from_option
+                    "cannot get global props"
+                    (ZTree.get address global_props)
+    ;; ret global_prop.(global_data_access_property).
        
   Definition get_attributes_from_global_props
              (id : ffa_UUID_t) (address : Z)
              (global_props: mem_global_properties_pool) :=
-    get FFA_MEMORY_TYPE,
-    "cannot get global props",
-    global_prop <-
-    (ZTree.get address global_props)
-      ;;;
-      SUCCESS  global_prop.(global_mem_attribute).
+    global_prop <- result_from_option
+                    "cannot get global props"
+                    (ZTree.get address global_props)
+    ;; ret global_prop.(global_mem_attribute).
 
-  Notation PERM_AND_ATTR_TYPE :=
+  Definition PERM_AND_ATTR_TYPE :=
     (FFA_INSTRUCTION_ACCESS_TYPE * FFA_DATA_ACCESS_TYPE * FFA_MEMORY_TYPE *
      FFA_INSTRUCTION_ACCESS_TYPE * FFA_DATA_ACCESS_TYPE * FFA_MEMORY_TYPE)%type.
   
   Definition get_permissions_and_attributes
              (vid : ffa_UUID_t) (address: Z)
              (mem_properties: MemProperties) : RESULT  PERM_AND_ATTR_TYPE :=
-    get_r PERM_AND_ATTR_TYPE,
-    local_inst_access <-
-    (get_instruction_access_from_global_local_pool_props
-       vid address mem_properties.(mem_local_properties))
-      ;;;
-      get_r PERM_AND_ATTR_TYPE,
-    local_data_access <-
-    (get_data_access_from_global_local_pool_props
-       vid address mem_properties.(mem_local_properties))
-      ;;;
-      get_r PERM_AND_ATTR_TYPE,
-    local_attributes <-
-    (get_attributes_from_global_local_pool_props
-       vid address mem_properties.(mem_local_properties))
-      ;;;
-      get_r PERM_AND_ATTR_TYPE,
-    global_inst_access <-
-    (get_instruction_access_from_global_props
-       vid address mem_properties.(mem_global_properties))
-      ;;;
-      get_r PERM_AND_ATTR_TYPE,
-    global_data_access <-
-    (get_data_access_from_global_props
-       vid address mem_properties.(mem_global_properties))
-      ;;;
-      get_r PERM_AND_ATTR_TYPE,
-    global_attributes <-
-    (get_attributes_from_global_props
-       vid address mem_properties.(mem_global_properties))
-      ;;;
-      SUCCESS (local_inst_access, local_data_access, local_attributes,
-               global_inst_access, global_data_access, global_attributes).       
+    local_inst_access <- get_instruction_access_from_global_local_pool_props
+                          vid address mem_properties.(mem_local_properties)
+    ;; local_data_access <- get_data_access_from_global_local_pool_props
+                             vid address mem_properties.(mem_local_properties)
+    ;; local_attributes <- get_attributes_from_global_local_pool_props
+                            vid address mem_properties.(mem_local_properties)
+    ;; global_inst_access <- get_instruction_access_from_global_props
+                              vid address mem_properties.(mem_global_properties)
+    ;; global_data_access <- get_data_access_from_global_props
+                              vid address mem_properties.(mem_global_properties)
+    ;; global_attributes <- get_attributes_from_global_props
+                             vid address mem_properties.(mem_global_properties)
+    ;; ret (local_inst_access, local_data_access, local_attributes,
+            global_inst_access, global_data_access, global_attributes).
 
   (***********************************************************************)
   (** **   Get addresses from the descriptor                             *)
   (***********************************************************************)
-  Fixpoint get_addresses (base_address :Z) (page_count : nat) :=
-    match page_count with
-    | O => nil
-    | S page_count' =>
-      let res := get_addresses base_address page_count' in
-      res ++ (base_address + (Z.of_nat page_count) * 4096)::nil
-    end.
-       
+  Definition get_addresses (base_address :Z) (page_count : nat) : list Z :=
+    List.map (fun page => base_address + (Z.of_nat page) * 4096) (List.seq 1 page_count).
+
+  Example get_addresses_ex1 : get_addresses 4096%Z 3%nat = [8192; 12288; 16384].
+  Proof. reflexivity. Qed.
+
   Definition get_addreses_from_single_constituent 
            (constituent: FFA_memory_region_constituent_struct) := 
     get_addresses
       constituent.(FFA_memory_region_constituent_struct_address)     
       (Z.to_nat (constituent.(FFA_memory_region_constituent_struct_page_count))).
 
-  Fixpoint get_addreses_from_constituents
+  Definition get_addreses_from_constituents
            (constituents: list FFA_memory_region_constituent_struct) :=
-    match constituents with
-    | nil => nil
-    | hd::tl =>
-      (get_addreses_from_single_constituent hd)
-        ++ (get_addreses_from_constituents tl)
-    end.
+    List.concat (List.map get_addreses_from_single_constituent constituents).
 
   Definition get_addreses_from_composite
              (offset : nat)
              (composite: FFA_composite_memory_region_struct) : RESULT (list Z) :=
-    check (list Z),
-    "invalid offset",
-    (decide (offset = O)%nat)
-      ;;; SUCCESS
-      (get_addreses_from_constituents
-         composite.(FFA_composite_memory_region_struct_constituents)).
+    guard decide (offset = O)%nat report "invalid offset"
+    ;; ret (get_addreses_from_constituents
+               composite.(FFA_composite_memory_region_struct_constituents)).
   
-  Fixpoint remove_nth {A : Type} (a : list A) (n : nat) : option (list A) :=
+  Fixpoint skipn_error {A : Type} (a : list A) (n : nat) : option (list A) :=
     match n with
     | O => Some a
     | S n' =>
       match a with
       | nil => None
-      | hd::tl => remove_nth tl n'
+      | hd::tl => skipn_error tl n'
       end
     end.
 
   Definition get_addreses_from_composite_with_offsets
              (offset: nat) (composite: FFA_composite_memory_region_struct)
     : RESULT (list Z) :=
-    check (list Z),
-    "invalid offset",
-    (decide (offset < 2)%nat)
-      ;;;
-      get (list Z),
-    "invalid remove_nth",
-    res <-
-    (remove_nth
-       (composite
-        .(FFA_composite_memory_region_struct_constituents))
-       (offset - 2))
-      ;;; SUCCESS (get_addreses_from_constituents res).
+    guard decide (offset < 2)%nat report "invalid offset"
+    ;; res <- result_from_option
+                "invalid skipn_error"
+                (skipn_error
+                   composite.(FFA_composite_memory_region_struct_constituents)
+                               (offset - 2))
+    ;; ret (get_addreses_from_constituents res).
 
   Definition get_all_addresses
              (region_descriptor: FFA_memory_region_struct) :=
@@ -564,89 +463,69 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
     offset.
 
 
-  Notation receiver_tuple
+  Definition receiver_tuple
     := (FFA_endpoint_memory_access_descriptor_struct *
         ffa_UUID_t * (list Z))%type.
 
-  Fixpoint get_receivers_receiver_ids_and_addresses
+  Definition get_receivers_receiver_ids_and_addresses
            (receivers : list FFA_endpoint_memory_access_descriptor_struct)
-           (composite: FFA_composite_memory_region_struct) :  RESULT (list receiver_tuple) :=
-    match receivers with
-    | nil => SUCCESS (@nil receiver_tuple)
-    | hd::tl =>
-      get_r (list receiver_tuple),
-      tl_res <-
-      (get_receivers_receiver_ids_and_addresses tl composite)
-        ;;;
-        get_r (list receiver_tuple),
-      hd_addresses <-
-      (get_addreses_from_composite_with_offsets (get_offset hd) composite)
-        ;;;  let hd_res := (hd, get_receiver_id hd, hd_addresses) in
-             SUCCESS (hd_res::tl_res)
-    end.
-           
+           (composite: FFA_composite_memory_region_struct) : RESULT (list receiver_tuple) :=
+    List.fold_right
+      (fun receiver res_tuples =>
+         tuples <- res_tuples
+         ;; addresses <- get_addreses_from_composite_with_offsets
+                          (get_offset receiver) composite
+         ;; let tuple := (receiver, get_receiver_id receiver, addresses) in
+            ret (tuple::tuples))
+      (SUCCESS nil)
+      receivers.
+
   Definition get_recievers_receiver_ids_and_addresses_tuple
              (region_descriptor: FFA_memory_region_struct) :=
     get_receivers_receiver_ids_and_addresses
       (region_descriptor.(FFA_memory_region_struct_receivers))
       (region_descriptor.(FFA_memory_region_struct_composite)).
 
-  Fixpoint GetPAsFromIPAs (addresses : list Z) : RESULT (list Z) :=
-    match addresses with
-    | nil => SUCCESS nil
-    | hd::tl =>
-      match stage2_address_translation_table hd with
-      | Some phd =>
-        match GetPAsFromIPAs tl with
-        | SUCCESS ptl => SUCCESS (phd::ptl)
-        | FAIL msg => FAIL (list Z) msg
-        end
-      | None => FAIL (list Z) "cannot get a translation result"
-      end
-    end.
-  
-  Fixpoint get_receiver_tuple_aux
-             (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct *
-                                 ffa_UUID_t * list Z))
-             (receiver_id : ffa_UUID_t) :=
-    match info_tuple with
-    | nil => None
-    | (descriptor, id, addrs)::tl =>
-      if decide (receiver_id = id)
-      then Some (descriptor, id, addrs)
-      else get_receiver_tuple_aux tl receiver_id
-    end.
+  Definition GetPAsFromIPAs (addresses : list Z) : RESULT (list Z) :=
+    List.fold_right
+      (fun address res_paddrs =>
+         paddrs <- res_paddrs
+         ;; paddr <- result_from_option
+                      "cannot get a translation result"
+                      (stage2_address_translation_table address)
+         ;; ret (paddr::paddrs))
+      (SUCCESS nil)
+      addresses.
 
-  Fixpoint SubstIPAsIntoPAs
-           (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct *
+  Definition get_receiver_tuple_aux
+             (info_tuples : list (FFA_endpoint_memory_access_descriptor_struct *
+                                  ffa_UUID_t * list Z))
+             (receiver_id : ffa_UUID_t) :=
+    List.find
+      (fun '(_, id, _) => decide (receiver_id = id))
+      info_tuples.
+
+  Definition SubstIPAsIntoPAs
+           (info_tuples : list (FFA_endpoint_memory_access_descriptor_struct *
                                ffa_UUID_t * list Z)) : 
     RESULT (list receiver_tuple) :=
-    match info_tuple with
-    | nil => SUCCESS (nil)
-    | (descriptor, id, addrs)::tl =>
-      match GetPAsFromIPAs addrs with
-      | SUCCESS paddrs =>
-        match SubstIPAsIntoPAs tl with
-        | SUCCESS res => SUCCESS ((descriptor, id, paddrs)::res)
-        | FAIL msg => FAIL (list receiver_tuple) msg
-        end
-      | FAIL msg => FAIL (list receiver_tuple) msg
-      end
-    end.
+    List.fold_right
+      (fun '(descriptor, id, addrs) res_pinfos =>
+         pinfos <- res_pinfos
+         ;; paddrs <- GetPAsFromIPAs addrs
+         ;; ret ((descriptor, id, paddrs)::pinfos))
+      (SUCCESS nil)
+      info_tuples.
 
   Definition get_receiver_tuple (receiver_id : ffa_UUID_t)
              (region_descriptor: FFA_memory_region_struct) :=
-    get_r receiver_tuple,
     info_tuple <-
-    (get_receivers_receiver_ids_and_addresses
-                     (region_descriptor.(FFA_memory_region_struct_receivers))
-                     (region_descriptor.(FFA_memory_region_struct_composite)))
-      ;;;
-      get receiver_tuple,
-    "get_receiver_tuple_aux",
-    res <-
-    (get_receiver_tuple_aux info_tuple receiver_id)
-      ;;; SUCCESS res.
+      get_receivers_receiver_ids_and_addresses
+         region_descriptor.(FFA_memory_region_struct_receivers)
+                             region_descriptor.(FFA_memory_region_struct_composite)
+    ;; result_from_option
+         "get_receiver_tuple_aux"
+         (get_receiver_tuple_aux info_tuple receiver_id).
 
   Definition get_receiver_id_addrs_pair
              (info_tuple : list (FFA_endpoint_memory_access_descriptor_struct
@@ -672,46 +551,40 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
   (***********************************************************************)
   (** **   Auxiliary functions to construct retrieve information         *)
   (***********************************************************************)  
-  Fixpoint init_retrieve_relinquish_info_maps_per_receivers
-           (addresses : list Z) : ZTree.t bool :=
-    match addresses with
-    | nil => ZTree.empty bool
-    | hd::tl =>
-      let res := init_retrieve_relinquish_info_maps_per_receivers tl in
-      ZTree.set hd false res
-    end.
-  
-  Fixpoint init_retrieve_relinquish_info_maps
-           (receivers_and_addresses: list (ffa_UUID_t * list Z)) :=
-    match receivers_and_addresses with
-    | nil => ZTree.empty (ZTree.t bool)
-    | hd::tl =>
-      let res := init_retrieve_relinquish_info_maps tl in
-      ZTree.set (fst hd)
-                (init_retrieve_relinquish_info_maps_per_receivers (snd hd))
-                res 
-    end.
+  Definition init_retrieve_relinquish_info_maps_per_receivers
+             (addresses : list Z) : ZTree.t bool :=
+    List.fold_right
+      (fun address res => ZTree.set address false res)
+      (ZTree.empty bool)
+      addresses.
 
-  Fixpoint init_retrieve_relinquish_num_info_maps_per_receivers
-           (addresses : list Z) : ZTree.t Z :=
-    match addresses with
-    | nil => ZTree.empty Z
-    | hd::tl =>
-      let res := init_retrieve_relinquish_num_info_maps_per_receivers tl in
-      ZTree.set hd 1 res
-    end.
-  
-  Fixpoint init_retrieve_relinquish_num_info_maps
-           (receivers_and_addresses: list (ffa_UUID_t * list Z)) :=
-    match receivers_and_addresses with
-    | nil => ZTree.empty (ZTree.t Z)
-    | hd::tl =>
-      let res := init_retrieve_relinquish_num_info_maps tl in
-      ZTree.set (fst hd)
-                (init_retrieve_relinquish_num_info_maps_per_receivers (snd hd))
-                res 
-    end.
-  
+  Definition init_retrieve_relinquish_info_maps
+             (receivers_and_addresses: list (ffa_UUID_t * list Z)) :=
+    List.fold_right
+      (fun '(uuid, addrs) res =>
+         ZTree.set uuid
+                   (init_retrieve_relinquish_info_maps_per_receivers addrs)
+                   res)
+      (ZTree.empty (ZTree.t bool))
+      receivers_and_addresses.
+
+  Definition init_retrieve_relinquish_num_info_maps_per_receivers
+             (addresses : list Z) : ZTree.t Z :=
+    List.fold_right
+      (fun addr res => ZTree.set addr 1 res)
+      (ZTree.empty Z)
+      addresses.
+
+  Definition init_retrieve_relinquish_num_info_maps
+             (receivers_and_addresses: list (ffa_UUID_t * list Z)) :=
+    List.fold_right
+      (fun '(uuid, addrs) res =>
+         ZTree.set uuid
+                   (init_retrieve_relinquish_num_info_maps_per_receivers addrs)
+                   res)
+      (ZTree.empty (ZTree.t Z))
+      receivers_and_addresses.
+
   (***********************************************************************)
   (** **   Setter for memory region descriptor in the hypervisor         *)
   (***********************************************************************)
@@ -751,85 +624,76 @@ Section FFA_MEMORY_INTERFACE_ADDITIONAL_STEPS_AUXILIARY_FUNCTIONS.
     let flags :=
         match flags_arg with
         | Some flags' => flags'
-        | _ =>  (memory_region.(FFA_memory_region_struct_flags))
+        | _ => memory_region.(FFA_memory_region_struct_flags)
         end in
     let new_index :=
         st.(hypervisor_context).(fresh_index_for_ffa_share_state) in
-    get (AbstractState * Z),
-    "cannot get handle",
-    handle_value <-
-    (make_handle caller new_index)
-      ;;;
-      let handle := if set_handle then handle_value
-                    else (memory_region.(FFA_memory_region_struct_handle)) in
-      let new_shared_state :=
-          mkFFA_memory_share_state_struct
-            (update_handle_in_FFA_memory_region_struct handle memory_region)
-            func_type
-            (init_retrieve_relinquish_info_maps receivers_and_addresses)
-            (init_retrieve_relinquish_info_maps receivers_and_addresses)
-            (init_retrieve_relinquish_num_info_maps receivers_and_addresses) in
-      let next_index := new_index + 1 in
-      let new_api_page_pool_size :=
-          st.(hypervisor_context).(api_page_pool_size) - size in
-      let new_shared_state_pool :=
-          ZTree.set new_index
-                    new_shared_state
-                    st.(hypervisor_context).(ffa_share_state) in
-      SUCCESS (st { hypervisor_context / api_page_pool_size : new_api_page_pool_size }
+    handle_value <- result_from_option
+                     "cannot get handle"
+                     (make_handle caller new_index)
+    ;; let handle :=
+           if set_handle then handle_value
+           else (memory_region.(FFA_memory_region_struct_handle)) in
+       let new_shared_state :=
+           mkFFA_memory_share_state_struct
+             (update_handle_in_FFA_memory_region_struct handle memory_region)
+             func_type
+             (init_retrieve_relinquish_info_maps receivers_and_addresses)
+             (init_retrieve_relinquish_info_maps receivers_and_addresses)
+             (init_retrieve_relinquish_num_info_maps receivers_and_addresses) in
+       let next_index := new_index + 1 in
+       let new_api_page_pool_size :=
+           st.(hypervisor_context).(api_page_pool_size) - size in
+       let new_shared_state_pool :=
+           ZTree.set new_index
+                     new_shared_state
+                     st.(hypervisor_context).(ffa_share_state) in
+       ret (st { hypervisor_context / api_page_pool_size : new_api_page_pool_size }
                { hypervisor_context / ffa_share_state : new_shared_state_pool }
                { hypervisor_context / fresh_index_for_ffa_share_state : next_index },
             handle).
 
   Definition remove_share_state (index : Z) (st : AbstractState) :
     RESULT AbstractState :=
-    get AbstractState,
-    "remove share state",
-    share_state <-
-    (ZTree.get index st.(hypervisor_context).(ffa_share_state))
-      ;;;
-      match share_state with 
-      | mkFFA_memory_share_state_struct 
-          memory_region _ _ _ _ =>
-        let region_size
-            := (FFA_memory_region_struct_size
-                  (Zlength
-                     (memory_region
-                      .(FFA_memory_region_struct_composite)
-                      .(FFA_composite_memory_region_struct_constituents)))) in
-        let new_share_state_pool
-            := ZTree.remove index st.(hypervisor_context).(ffa_share_state) in
-        let new_api_page_pool_size :=
-            st.(hypervisor_context).(api_page_pool_size) + region_size in
-        SUCCESS (st { hypervisor_context / api_page_pool_size : new_api_page_pool_size }
-                    { hypervisor_context / ffa_share_state : new_share_state_pool })
-      end.
+    share_state <- result_from_option
+                    "remove share state"
+                    (ZTree.get index st.(hypervisor_context).(ffa_share_state))
+    ;; let '(mkFFA_memory_share_state_struct memory_region _ _ _ _) := share_state in
+       let region_size
+           := (FFA_memory_region_struct_size
+                 (Zlength
+                    (memory_region
+                     .(FFA_memory_region_struct_composite)
+                     .(FFA_composite_memory_region_struct_constituents)))) in
+       let new_share_state_pool
+           := ZTree.remove index st.(hypervisor_context).(ffa_share_state) in
+       let new_api_page_pool_size :=
+           st.(hypervisor_context).(api_page_pool_size) + region_size in
+       ret (st { hypervisor_context / api_page_pool_size : new_api_page_pool_size }
+               { hypervisor_context / ffa_share_state : new_share_state_pool }).
 
   Definition unset_retrieve
              (index : Z) (addr : Z) (receiver: ffa_UUID_t) (st: AbstractState) :
     RESULT AbstractState :=
-    get AbstractState,
-    "cannot get share state",
-    share_state <-
-    (ZTree.get index st.(hypervisor_context).(ffa_share_state))
-      ;;;
-      get AbstractState,
-    "cannot get receiver_retrive_pool",
-    receiver_retrieve_pool <-
-    (ZTree.get receiver share_state.(retrieved))
-      ;;; 
-      let new_retrieved := ZTree.set receiver  
-                                     (ZTree.set addr false  receiver_retrieve_pool)
-                                     share_state.(retrieved) in
-      let new_shared_state :=
-          mkFFA_memory_share_state_struct
-            (share_state.(memory_region)) (share_state.(share_func)) new_retrieved
-            (share_state.(relinquished)) (share_state.(retrieve_count)) in
-      let new_shared_state_pool :=
-          ZTree.set index
-                    new_shared_state
-                    st.(hypervisor_context).(ffa_share_state) in
-      SUCCESS (st { hypervisor_context / ffa_share_state : new_shared_state_pool }).
+    share_state <- result_from_option
+                    "cannot get share state"
+                    (ZTree.get index st.(hypervisor_context).(ffa_share_state))
+    ;; receiver_retrieve_pool <- result_from_option
+                                  "cannot get receiver_retrive_pool"
+                                  (ZTree.get receiver share_state.(retrieved))
+    ;; let new_retrieved :=
+           ZTree.set receiver
+                     (ZTree.set addr false  receiver_retrieve_pool)
+                     share_state.(retrieved) in
+       let new_shared_state :=
+           mkFFA_memory_share_state_struct
+             share_state.(memory_region) share_state.(share_func) new_retrieved
+                                                                  share_state.(relinquished) share_state.(retrieve_count) in
+       let new_shared_state_pool :=
+           ZTree.set index
+                     new_shared_state
+                     st.(hypervisor_context).(ffa_share_state) in
+       ret (st { hypervisor_context / ffa_share_state : new_shared_state_pool }).
     
   (***********************************************************************)
   (** **   Flag value getters         *)
