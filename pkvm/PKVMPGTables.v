@@ -582,8 +582,7 @@ Definition AArch64_FirstStageTranslate (table_base vaddress : Z) :=
   s1.(addrdesc).
 
 
-
-(**********************************************)
+(******************************************************************************************************)
 (*
 /* abstraction of pKVM intended mappings */
 

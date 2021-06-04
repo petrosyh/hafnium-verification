@@ -171,7 +171,7 @@ struct page_group {
 	unsigned int order;
 	bool free;
 };
- *)
+1 *)
 
 Record page_group :=
   mkpage_group {
@@ -217,3 +217,40 @@ bool in_used_pages(phys_addr_t phys, struct hyp_pool *pool)
 
 Definition in_used_pages (phys : phys_addr_t) (pool: hyp_pool) :=
   decide (phys < pool.(range_start) + PAGE_SIZE * (pool.(used_pages))).
+
+(* 
+bool check_free_list(struct list_head *head, unsigned int order, struct hyp_pool *pool)
+{
+	bool ret;
+	struct list_head *pos;
+	struct hyp_page *p;
+	phys_addr_t phys;
+	ret = true;
+	list_for_each(pos, head) { //for (pos = head->next; pos != (head); pos = pos->next) {
+		p = list_entry(pos, struct hyp_page, node);
+		phys = hyp_page_to_phys(p);
+		if (phys < pool->range_start + PAGE_SIZE*pool->used_pages || phys >= pool->range_end) { ret=false; hyp_putsxn("phys",(u64)phys,64); check_assert_fail("free list entry not in pool unused_page range"); } // maybe this should check p is the address of a hyp_page node member, not just go straight to hyp_page_to_phys's notion of phys 
+		if (p->order != order) { ret=false; hyp_putsxn("phys",(u64)phys,64); check_assert_fail("free list entry has wrong order"); }
+	}
+	return ret;
+}
+ *)
+
+
+
+(*
+/* well-formed free lists of pool */
+bool check_free_lists(struct hyp_pool *pool)
+{
+	u64 i;
+	bool ret;
+	ret = true;
+	for (i=0; i<HYP_MAX_ORDER+1; i++) {
+		ret = ret && check_free_list(&pool->free_area[i], i, pool);
+	}
+	return ret;
+}
+*)
+
+
+
