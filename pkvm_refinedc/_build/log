@@ -1,0 +1,148 @@
+# dune build --display=short
+# OCAMLPARAM: unset
+# Workspace root: /usr/local/google/home/jieungkim/Desktop/pkvm_refinedc
+$ /usr/bin/nproc > /tmp/duneb4fb3a.output 2> /dev/null
+# Auto-detected concurrency: 6
+# disable binary cache
+$ /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/ocamlc.opt -config > /tmp/dune0d3a5d.output
+# Dune context:
+#  { name = "default"
+#  ; kind = "default"
+#  ; profile = Dyn
+#  ; merlin = true
+#  ; for_host = None
+#  ; fdo_target_exe = None
+#  ; build_dir = "default"
+#  ; toplevel_path =
+#      Some
+#        External
+#          "/usr/local/google/home/jieungkim/.opam/refinedc-projects/lib/toplevel"
+#  ; ocaml_bin =
+#      External "/usr/local/google/home/jieungkim/.opam/refinedc-projects/bin"
+#  ; ocaml =
+#      Ok
+#        External
+#          "/usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/ocaml"
+#  ; ocamlc =
+#      External
+#        "/usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/ocamlc.opt"
+#  ; ocamlopt =
+#      Ok
+#        External
+#          "/usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/ocamlopt.opt"
+#  ; ocamldep =
+#      Ok
+#        External
+#          "/usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/ocamldep.opt"
+#  ; ocamlmklib =
+#      Ok
+#        External
+#          "/usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/ocamlmklib.opt"
+#  ; env =
+#      map
+#        { "DUNE_OCAML_HARDCODED" :
+#            "/usr/local/google/home/jieungkim/.opam/refinedc-projects/lib"
+#        ; "DUNE_OCAML_STDLIB" :
+#            "/usr/local/google/home/jieungkim/.opam/refinedc-projects/lib/ocaml"
+#        ; "DUNE_SOURCEROOT" :
+#            "/usr/local/google/home/jieungkim/Desktop/pkvm_refinedc"
+#        ; "INSIDE_DUNE" :
+#            "/usr/local/google/home/jieungkim/Desktop/pkvm_refinedc/_build/default"
+#        ; "OCAMLFIND_IGNORE_DUPS_IN" :
+#            "/usr/local/google/home/jieungkim/Desktop/pkvm_refinedc/_build/install/default/lib"
+#        ; "OCAMLPATH" :
+#            "/usr/local/google/home/jieungkim/Desktop/pkvm_refinedc/_build/install/default/lib"
+#        ; "OCAMLTOP_INCLUDE_PATH" :
+#            "/usr/local/google/home/jieungkim/Desktop/pkvm_refinedc/_build/install/default/lib/toplevel"
+#        ; "OCAML_COLOR" : "always"
+#        ; "OPAMCOLOR" : "always"
+#        }
+#  ; findlib_path =
+#      [ External
+#          "/usr/local/google/home/jieungkim/.opam/refinedc-projects/lib"
+#      ]
+#  ; arch_sixtyfour = true
+#  ; natdynlink_supported = true
+#  ; supports_shared_libraries = true
+#  ; ocaml_config =
+#      { version = "4.11.1"
+#      ; standard_library_default =
+#          "/usr/local/google/home/jieungkim/.opam/refinedc-projects/lib/ocaml"
+#      ; standard_library =
+#          "/usr/local/google/home/jieungkim/.opam/refinedc-projects/lib/ocaml"
+#      ; standard_runtime = "the_standard_runtime_variable_was_deleted"
+#      ; ccomp_type = "cc"
+#      ; c_compiler = "gcc"
+#      ; ocamlc_cflags = [ "-O2"; "-fno-strict-aliasing"; "-fwrapv"; "-fPIC" ]
+#      ; ocamlc_cppflags = [ "-D_FILE_OFFSET_BITS=64"; "-D_REENTRANT" ]
+#      ; ocamlopt_cflags =
+#          [ "-O2"; "-fno-strict-aliasing"; "-fwrapv"; "-fPIC" ]
+#      ; ocamlopt_cppflags = [ "-D_FILE_OFFSET_BITS=64"; "-D_REENTRANT" ]
+#      ; bytecomp_c_compiler =
+#          [ "gcc"
+#          ; "-O2"
+#          ; "-fno-strict-aliasing"
+#          ; "-fwrapv"
+#          ; "-fPIC"
+#          ; "-D_FILE_OFFSET_BITS=64"
+#          ; "-D_REENTRANT"
+#          ]
+#      ; bytecomp_c_libraries = [ "-lm"; "-ldl"; "-lpthread" ]
+#      ; native_c_compiler =
+#          [ "gcc"
+#          ; "-O2"
+#          ; "-fno-strict-aliasing"
+#          ; "-fwrapv"
+#          ; "-fPIC"
+#          ; "-D_FILE_OFFSET_BITS=64"
+#          ; "-D_REENTRANT"
+#          ]
+#      ; native_c_libraries = [ "-lm"; "-ldl" ]
+#      ; cc_profile = []
+#      ; architecture = "amd64"
+#      ; model = "default"
+#      ; int_size = 63
+#      ; word_size = 64
+#      ; system = "linux"
+#      ; asm = [ "as" ]
+#      ; asm_cfi_supported = true
+#      ; with_frame_pointers = false
+#      ; ext_exe = ""
+#      ; ext_obj = ".o"
+#      ; ext_asm = ".s"
+#      ; ext_lib = ".a"
+#      ; ext_dll = ".so"
+#      ; os_type = "Unix"
+#      ; default_executable_name = "a.out"
+#      ; systhread_supported = true
+#      ; host = "x86_64-pc-linux-gnu"
+#      ; target = "x86_64-pc-linux-gnu"
+#      ; profiling = false
+#      ; flambda = false
+#      ; spacetime = false
+#      ; safe_string = true
+#      ; exec_magic_number = "Caml1999X028"
+#      ; cmi_magic_number = "Caml1999I028"
+#      ; cmo_magic_number = "Caml1999O028"
+#      ; cma_magic_number = "Caml1999A028"
+#      ; cmx_magic_number = "Caml1999Y028"
+#      ; cmxa_magic_number = "Caml1999Z028"
+#      ; ast_impl_magic_number = "Caml1999M028"
+#      ; ast_intf_magic_number = "Caml1999N028"
+#      ; cmxs_magic_number = "Caml1999D028"
+#      ; cmt_magic_number = "Caml1999T028"
+#      ; natdynlink_supported = true
+#      ; supports_shared_libraries = true
+#      ; windows_unicode = false
+#      }
+#  }
+$ (cd _build/default/src/proofs/check_pkvm_pgtables && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqdep -R . refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables -dyndep opt generated_proof_AArch64_TranslationTableWalk.v) > _build/default/src/proofs/check_pkvm_pgtables/generated_proof_AArch64_TranslationTableWalk.v.d
+$ (cd _build/default/src/proofs/check_pkvm_pgtables && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqdep -R . refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables -dyndep opt generated_spec.v) > _build/default/src/proofs/check_pkvm_pgtables/generated_spec.v.d
+$ (cd _build/default/src/proofs/check_pkvm_pgtables && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqdep -R . refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables -dyndep opt generated_code.v) > _build/default/src/proofs/check_pkvm_pgtables/generated_code.v.d
+$ (cd _build/default/src/proofs/check_pkvm_pgtables && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqdep -R . refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables -dyndep opt generated_proof_main.v) > _build/default/src/proofs/check_pkvm_pgtables/generated_proof_main.v.d
+$ (cd _build/default/src/proofs/check_pkvm_pgtables && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqdep -R . refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables -dyndep opt generated_proof_entry_kind.v) > _build/default/src/proofs/check_pkvm_pgtables/generated_proof_entry_kind.v.d
+$ (cd _build/default/src/proofs/check_pkvm_pgtables && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqdep -R . refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables -dyndep opt generated_proof_hyp_phys_to_virt.v) > _build/default/src/proofs/check_pkvm_pgtables/generated_proof_hyp_phys_to_virt.v.d
+$ (cd _build/default && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqc -w -notation-overridden -w -redundant-canonical-projection -w -native-compiler-disabled -native-compiler ondemand -R src/proofs/check_pkvm_pgtables refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables src/proofs/check_pkvm_pgtables/generated_proof_AArch64_TranslationTableWalk.v)
+$ (cd _build/default && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqc -w -notation-overridden -w -redundant-canonical-projection -w -native-compiler-disabled -native-compiler ondemand -R src/proofs/check_pkvm_pgtables refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables src/proofs/check_pkvm_pgtables/generated_proof_hyp_phys_to_virt.v)
+$ (cd _build/default && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqc -w -notation-overridden -w -redundant-canonical-projection -w -native-compiler-disabled -native-compiler ondemand -R src/proofs/check_pkvm_pgtables refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables src/proofs/check_pkvm_pgtables/generated_code.v)
+$ (cd _build/default && /usr/local/google/home/jieungkim/.opam/refinedc-projects/bin/coqc -w -notation-overridden -w -redundant-canonical-projection -w -native-compiler-disabled -native-compiler ondemand -R src/proofs/check_pkvm_pgtables refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables src/proofs/check_pkvm_pgtables/generated_spec.v)
