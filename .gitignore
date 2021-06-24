@@ -23,6 +23,8 @@ extract/*.mli
 !extract/main.ml
 extract/main.native
 extract/_build/
+pkvm_refinedc/src/proof/*
+pkvm_refinedc/src/proof
 
 main.native
 main.byte
