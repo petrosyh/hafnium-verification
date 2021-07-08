@@ -1,20 +1,69 @@
 #include <assert.h> 
 
+//@rc::import page_table_entry_type from refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables
+
+// The following defines aliasings for type names.
+// They are defined in two files in the repository
+// 1. include/uapi/asm-generic/int-l64.h
+// 2. include/uapi/asm-generic/int-ll64.h
+
+// Among them, I couldn't find out the proper file for this implementation. 
+// So, I am currently working on this file based on
+// "include/uapi/asm-generic/int-l64.h"
+// [XXX(JK) - We may need to find out the proper file among those two]
+
+/*
+ * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
+ * header files exported to user space
+ */
+
+// In the below, __signed__ is the keyword that may be generated via lex and
+// yacc. 
+// The relevant files are scripts/genksyms/keywords.c, scripts/genksyms/lex.l,
+// and scripts/genksyms/parse.y.
+// [XXX(JK) - Do we need to think about what we can do with those things?]
+/*
+typedef __signed__ char __s8;
+typedef unsigned char __u8;
+
+typedef __signed__ short __s16;
+typedef unsigned short __u16;
+
+typedef __signed__ int __s32;
+typedef unsigned int __u32;
+
+typedef __signed__ long __s64;
+typedef unsigned long __u64;
+*/
+
+typedef signed char __s8;
+typedef unsigned char __u8;
+
+typedef signed short __s16;
+typedef unsigned short __u16;
+
+typedef signed int __s32;
+typedef unsigned int __u32;
+
+typedef signed long __s64;
+typedef unsigned long __u64;
+
+
 // #ifndef __ASSEMBLY__
 // /*
 //  * __xx is ok: it doesn't pollute the POSIX namespace. Use these in the
 //  * header files exported to user space
 //  */
-// 
+//
 // typedef __signed__ char __s8;
 // typedef unsigned char __u8;
-// 
+//
 // typedef __signed__ short __s16;
 // typedef unsigned short __u16;
-// 
+//
 // typedef __signed__ int __s32;
 // typedef unsigned int __u32;
-// 
+//
 // #ifdef __GNUC__
 // __extension__ typedef __signed__ long long __s64;
 // __extension__ typedef unsigned long long __u64;
@@ -22,21 +71,107 @@
 // typedef __signed__ long long __s64;
 // typedef unsigned long long __u64;
 // #endif
-// 
+//
 // #endif /* __ASSEMBLY__ */
 
+// There are three files that contain GENMASK definitions 
+// 1. include/linux/bits.h
+// 2. tools/include/linux/bits.h
+// 3. tools/power/x86/intel-speed-select/isst.h
+//
+// Among them, include/linux/bits.h is used in this file. 
 
+// GENMASK is one of the most important definition here. The top level GENMASK
+// definition relies on several definitions, but the top most one is in 
 /*
  * BUILD_BUG_ON_ZERO is not available in h files included from asm files,
  * disable the input check if that is the case.
  */
 
-#define BITS_PER_LONG 64 
+// In include/uapi/linux/const.h, It defines UL, ULL based on several
+// definitions. We define them.
+
+
+// XXX(JK) - The following definition raises errors (may be... due to X##Y. 
+// Therefore, I changed it...
+// RefinedC has to be extended to cover them
+/* 
+#define __AC(X,Y)       (X##Y)
+#define _AC(X,Y)        __AC(X,Y)
+
+#define _UL(x)          (_AC(x, UL))
+*/
+
+// In include/vdso/const.h (It is imported into "include/linux/bits.h" via 
+// include/linux/const.h
+/* XXX(JK) - It is also changed due to the error
+#define UL(x)           (_UL(x))
+*/
+
+// In include/asm-generic/bitsperlong.h, it defines BITS_PER_LONG and other
+// related definitions. The file also imports include/uapi/asm-generic/bitsperlong.h
+// [XXX(JK) - It depends on CONFIG_64BIT, but I ignore the definition]
+
+#define BITS_PER_LONG 64
+#define BITS_PER_LONG_LONG 64
+
+// include/linux/build_bug.h
+// GENMASK_INPUT_CHECK uses BUILD_BUG_ON_ZERO. 
+// This BUILD_BUG_ON_ZERO is defined in multiple places. 
+// 1. include/linux/build_bug.h
+// 2. tools/include/linux/bug.h
+// 3. tools/include/linux/build_bug.h
+
+// Among them, "include/linux/bits.h" explicitly imports
+// "include/linux/build_bug.h" in it.
+
+#define BUILD_BUG_ON_ZERO(e) ((int)(sizeof(struct { int:(-!!(e)); })))
+
+// include/linux/bits.h
+
+// The following GENMASK_INPUT_CHECK relies on two builtin functions in 
+// GNU GCC. 
+//
+// They are __builtin_choose_expr and __builtin_constant_p
+// Please look at https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html for
+// the full explanation about it 
+//
+// Built-in Function: type __builtin_choose_expr (const_exp, exp1, exp2)
+// You can use the built-in function __builtin_choose_expr to evaluate code depending on the value of a constant expression. This built-in function returns exp1 if const_exp, which is an integer constant expression, is nonzero. Otherwise it returns exp2.
+
+// This built-in function is analogous to the ‘? :’ operator in C, except that the expression returned has its type unaltered by promotion rules. Also, the built-in function does not evaluate the expression that is not chosen. For example, if const_exp evaluates to true, exp2 is not evaluated even if it has side effects.
+
+// This built-in function can return an lvalue if the chosen argument is an lvalue.
+
+// If exp1 is returned, the return type is the same as exp1’s type. Similarly, if exp2 is returned, its return type is the same as exp2.
+
+// Built-in Function: int __builtin_constant_p (exp)
+// You can use the built-in function __builtin_constant_p to determine if a value is known to be constant at compile time and hence that GCC can perform constant-folding on expressions involving that value. The argument of the function is the value to test. The function returns the integer 1 if the argument is known to be a compile-time constant and 0 if it is not known to be a compile-time constant. A return of 0 does not indicate that the value is not a constant, but merely that GCC cannot prove it is a constant with the specified value of the -O option.
+
+
+// [XXX(JK) - The original definition raises errors. I changed the definition.]
+/*
+#define __builtin_choose_expr(const_exp, exp1, exp2) (const_exp ? exp1 : exp2)
+#define __builtin_constant_p(exp) (exp)
+
+#define GENMASK_INPUT_CHECK(h, l) \
+        (BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
+                __builtin_constant_p((l) > (h)), (l) > (h), 0)))
 
 #define __GENMASK(h, l) \
-        (((~0) - (1 << (l)) + 1) & \
-         (~0 >> (BITS_PER_LONG - 1 - (h))))
-#define GENMASK(h, l) (__GENMASK(h, l))
+        (((~UL(0)) - (UL(1) << (l)) + 1) & \
+         (~UL(0) >> (BITS_PER_LONG - 1 - (h))))
+
+#define GENMASK(h, l) \
+        (GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))
+*/
+
+#define __GENMASK(h, l) \
+        (((~0UL) - (1UL << (l)) + 1) & \
+         (~0UL >> (BITS_PER_LONG - 1 - (h))))
+
+#define GENMASK(h, l) \
+        __GENMASK(h, l)
 
 // the logical entry kinds
 enum entry_kind {
@@ -57,6 +192,9 @@ enum entry_kind {
 #define ENTRY_PAGE_DESCRIPTOR 3
 #define ENTRY_TABLE 3
 
+[[rc::parameters("npte: nat", "nlevel : nat")]]
+[[rc::args("npte @ int<u64>", "nlevel @ int<u8>")]]
+[[rc::returns("int<u32>")]]
 // compute the entry_kind of a page-table entry
 enum entry_kind entry_kind(unsigned long long pte, unsigned char level)
 {
