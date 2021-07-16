@@ -1,6 +1,7 @@
 #include <assert.h> 
 
 //@rc::import page_table_entry_type from refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables
+//@rc::import Decision from refinedc.project.pkvm_refinedc.src.check_pkvm_pgtables
 
 // The following defines aliasings for type names.
 // They are defined in two files in the repository
@@ -95,12 +96,10 @@ typedef unsigned long __u64;
 // XXX(JK) - The following definition raises errors (may be... due to X##Y. 
 // Therefore, I changed it...
 // RefinedC has to be extended to cover them
-/* 
 #define __AC(X,Y)       (X##Y)
 #define _AC(X,Y)        __AC(X,Y)
 
 #define _UL(x)          (_AC(x, UL))
-*/
 
 // In include/vdso/const.h (It is imported into "include/linux/bits.h" via 
 // include/linux/const.h
@@ -150,10 +149,9 @@ typedef unsigned long __u64;
 
 
 // [XXX(JK) - The original definition raises errors. I changed the definition.]
-/*
 #define __builtin_choose_expr(const_exp, exp1, exp2) (const_exp ? exp1 : exp2)
 #define __builtin_constant_p(exp) (exp)
-
+/*
 #define GENMASK_INPUT_CHECK(h, l) \
         (BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
                 __builtin_constant_p((l) > (h)), (l) > (h), 0)))
@@ -169,12 +167,11 @@ typedef unsigned long __u64;
 #define __GENMASK(h, l) \
         (((~0UL) - (1UL << (l)) + 1) & \
          (~0UL >> (BITS_PER_LONG - 1 - (h))))
-
 #define GENMASK(h, l) \
         __GENMASK(h, l)
 
 // the logical entry kinds
-enum entry_kind {
+typedef enum entry_kind {
   EK_INVALID,
   EK_BLOCK,
   EK_TABLE,
@@ -182,7 +179,7 @@ enum entry_kind {
   EK_BLOCK_NOT_PERMITTED,
   EK_RESERVED,
   EK_DUMMY
-};
+} entry_kind_type;
 
 // the entry kind bit representations
 #define ENTRY_INVALID_0 0
@@ -192,10 +189,21 @@ enum entry_kind {
 #define ENTRY_PAGE_DESCRIPTOR 3
 #define ENTRY_TABLE 3
 
-[[rc::parameters("npte: nat", "nlevel : nat")]]
-[[rc::args("npte @ int<u64>", "nlevel @ int<u8>")]]
-[[rc::returns("int<u32>")]]
+
+[[rc::parameters("zpte: Z", "zlevel : Z")]]
+[[rc::args("zpte @ int<u64>", "zlevel @ int<u8>")]]
+// [[rc::requires("{ 0 ≤ (GENMASK_0_1 zpte)}")]]
+// [[rc::returns("ENTRY_TYPE")]]
+// [[rc::returns("int<u32>")]]
 // compute the entry_kind of a page-table entry
+[[rc::requires("{well_formed_page_table_entry zpte zlevel}")]]
+[[rc::exists("res : Z")]]
+[[rc::returns("res @ int<u32>")]]
+// [[rc::exists("pte_val : {PTE_TYPES}")]]
+// [[rc::exists("entry_type: {ENTRY_TYPE}")]]
+// [[rc::ensures("{Z_to_PTE_TYPES zpte zlevel = Some pte_val}")]]
+//[[rc::ensures("{GET_PTE_TYPES pte_val = entry_type}")]]
+//[[rc::ensures("{PTE_TYPE_VALUE_EQUIV entry_type res}")]]
 enum entry_kind entry_kind(unsigned long long pte, unsigned char level)
 {
         switch(level) {
@@ -236,6 +244,8 @@ enum entry_kind entry_kind(unsigned long long pte, unsigned char level)
         default:
                 return EK_DUMMY; // just to tell the compiler that the cases are exhaustive
         }
+
+        return EK_DUMMY;
 }
 
 
@@ -263,30 +273,46 @@ enum Fault {
         Fault_ICacheMaint
 };
 
-struct FaultRecord {
-        enum Fault statuscode; // Fault Status
-        //  AccType acctype; // Type of access that faulted
-        //  FullAddress ipaddress; // Intermediate physical address
-         //  boolean s2fs1walk; // Is on a Stage 1 page table walk
-        //  boolean write; // TRUE for a write, FALSE for a read
-        //  integer level; // For translation, access flag and permission faults
-        //  bit extflag; // IMPLEMENTATION DEFINED syndrome for external aborts
-        //  boolean secondstage; // Is a Stage 2 abort
-        //  bits(4) domain; // Domain number, AArch32 only
-        //  bits(2) errortype; // [Armv8.2 RAS] AArch32 AET or AArch64 SET
-        //  bits(4) debugmoe; // Debug method of entry, from AArch32 only
+struct
+[[rc::refined_by("statuscode : Z")]]
+[[rc::ptr_type("fault_record : ...")]]
+FaultRecord {
+  [[rc::field("statuscode @ int<u32>")]]
+  enum Fault statuscode; // Fault Status
+  //  AccType acctype; // Type of access that faulted
+  //  FullAddress ipaddress; // Intermediate physical address
+  //  boolean s2fs1walk; // Is on a Stage 1 page table walk
+  //  boolean write; // TRUE for a write, FALSE for a read
+  //  integer level; // For translation, access flag and permission faults
+  //  bit extflag; // IMPLEMENTATION DEFINED syndrome for external aborts
+  //  boolean secondstage; // Is a Stage 2 abort
+  //  bits(4) domain; // Domain number, AArch32 only
+  //  bits(2) errortype; // [Armv8.2 RAS] AArch32 AET or AArch64 SET
+  //  bits(4) debugmoe; // Debug method of entry, from AArch32 only
 };
 
-struct FullAddress {
-        unsigned long long address; // bits(52) address;
-        int NS;          // bit NS; // '0' = Secure, '1' = Non-secure
+struct 
+[[rc::refined_by("address : Z", "NS : Z")]]
+[[rc::ptr_type("full_address : ...")]]
+FullAddress {
+  [[rc::field("address @ int<u64>")]]
+  unsigned long long address; // bits(52) address;
+  // Can we annotate it with 1
+  [[rc::field("NS @ int<u32>")]]
+  int NS; // bit NS; // '0' = Secure, '1' = Non-secure
 };
 
-struct AddressDescriptor {
-        struct FaultRecord fault; // fault.statuscode indicates whether the address is valid
-        //  MemoryAttributes memattrs;
-        struct FullAddress paddress;
-        unsigned long long vaddress; // bits(64) vaddress;
+struct 
+// [[rc::refined_by("fault : fault_record", "paddr : full_address", "vaddress: Z")]]
+// [[rc::ptr_type("address_descriptor : ... ")]]
+AddressDescriptor {
+  // [[rc::field("fault @ fault_record")]]
+  struct FaultRecord fault; // fault.statuscode indicates whether the address is valid
+  //  MemoryAttributes memattrs;
+  // [[rc::field("paddress @ full_address")]]
+  struct FullAddress paddress;
+  // [[rc::field("vaddress @ int<u64>")]]
+  unsigned long long vaddress; // bits(64) vaddress;
 };
 
 //struct Permissions {
@@ -295,6 +321,39 @@ struct AddressDescriptor {
 // bit xxn; // [Armv8.2] Extended execute-never bit for stage 2
 // bit pxn // Privileged execute-never bit
 //}
+
+struct TLBRecord {
+ 	//  Permissions        perms;
+	//  bit 	             nG;	   // '0' = Global, '1' = not Global
+	//  bits(4)	     domain;	   // AArch32 only
+	//  bit		     GP;	   // Guarded Page
+	//  boolean	     contiguous;   // Contiguous bit from page table
+	//  integer	     level;	   // AArch32 Short-descriptor format: Indicates Section/Page
+	//  integer	     blocksize;    // Describes size of memory translated in KBytes
+	//  DescriptorUpdate   descupdate;   // [Armv8.1] Context for h/w update of table descriptor
+	//  bit		     CnP;	   // [Armv8.2] TLB entry can be shared between different PEs
+	struct AddressDescriptor  addrdesc;
+};
+
+
+// [[rc::parameters("vvaddress: Z")]]
+// [[rc::args("vvaddress @ int<u64>")]]
+struct TLBRecord mkFault(unsigned long long vaddress) {
+  struct TLBRecord result;
+  result.addrdesc.fault.statuscode = Fault_Translation;
+  result.addrdesc.paddress.address = 0;
+  result.addrdesc.paddress.NS = 0;
+  result.addrdesc.vaddress = vaddress;
+
+  return result;
+}
+
+/*
+struct TLBRecord mkFault_error(unsigned long long vaddress) {
+	struct TLBRecord r = { .addrdesc = { .fault = { .statuscode=Fault_Translation } , .paddress =  { .address=0, .NS=0 }, .vaddress = vaddress } };
+	return r;
+	// massively oversimplified
+} */
 
 
 // aarch64/translation/walk/AArch64.TranslationTableWalk
